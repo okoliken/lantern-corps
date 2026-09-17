@@ -1,92 +1,47 @@
-// Draws a Lantern side-on, like the characters in project-7.
-// The world is still seen from above (you move up/down/left/right), but
-// characters are upright and face left or right. All art is code.
+// Draws a Lantern side-on over their animated skeleton (see animation.ts).
 //
-// Two poses:
-//  - WALKING (on a planet): legs swing, shadow on the ground, no glow
-//  - FLYING  (always in space, or airborne over a planet): hovering, leaning
-//    into the direction of travel, ring arm forward, green aura. Over a
-//    planet a smaller shadow stays on the ground below.
+// The world is seen from above, but characters are upright and face left or
+// right, like project-7. Everything is drawn facing RIGHT; facing left just
+// mirrors the canvas with scale(-1, 1).
+//
+// Draw order gives depth without any 3D: the far arm and leg first (a bit
+// darker), then the torso, then the near leg, head, and ring arm on top.
 //
 // The origin (x, y) is the Lantern's ANCHOR: their feet when walking, the
-// spot below them when flying. Sorting by that y gives depth (lower on
-// screen = closer = drawn on top).
-//
-// Everything is drawn facing RIGHT. To face left we mirror the canvas with
-// scale(-1, 1), so the drawing code never has to think about direction.
+// spot below them when flying.
 
+import { HEAD_R, STANDING_HEIGHT, computeSkeleton, type LanternPose, type Point, type Skeleton } from '../animation';
 import type { LanternDef } from '../lanterns';
 
+export type { LanternPose } from '../animation';
+
 export const GREEN = '#3dff6e';
-const SUIT_BLACK = '#101412';
-/** Classic bottle green: the darker, traditional comic suit shade.
- *  Ring energy (GREEN above) stays bright so it still glows. */
-const SUIT_GREEN = '#0F4F34';
 
 /** Size multiplier for the whole figure. */
 const FIGURE_SCALE = 1.35;
 /** Height from feet to top of head, in world pixels, when standing. */
-export const FIGURE_HEIGHT = 50 * FIGURE_SCALE;
+export const FIGURE_HEIGHT = STANDING_HEIGHT * FIGURE_SCALE;
 /** How high Lanterns float, before scaling. Over a planet they fly higher so it reads as airborne. */
 export const HOVER_SPACE = 8;
 export const HOVER_PLANET = 26;
 /** Half the figure's width, used to keep them on screen. */
 export const FIGURE_HALF_WIDTH = 10 * FIGURE_SCALE;
 
-export interface LanternPose {
-	/** 1 = facing right, -1 = facing left. */
-	dir: 1 | -1;
-	/** Walk cycle angle. 0 when standing still or flying. */
-	walkPhase: number;
-	/** 0 = standing on the ground, 1 = fully airborne. In between during take-off/landing. */
-	altitude: number;
-	/** How high (unscaled px) they float at altitude 1. */
-	hoverHeight: number;
-	/** 0..1, how hard a flying Lantern leans forward (from horizontal speed). */
-	lean: number;
-	/** Green aura and glowing ring while airborne. Fades in with altitude. */
-	glow: boolean;
-	/** Draw a shadow on the ground below (false in space: nothing to land on). */
-	shadow: boolean;
-	/** Beam on: the ring arm points along (aimX, aimY) and the body stops leaning. */
-	firing: boolean;
-	aimX: number;
-	aimY: number;
-}
+// ---- Suit palette ----
+const BLACK = '#0d1210';
+const BLACK_LIT = '#24302b';
+/** Classic bottle green (the traditional comic suit shade). */
+const SUIT_GREEN = '#0F4F34';
+const SUIT_GREEN_LIT = '#1d7a50';
+const SUIT_GREEN_DARK = '#0b3a27';
+const OUTLINE = '#030504';
+const WHITE = '#eafff0';
 
-/** Shoulder of the ring arm, in local (unscaled, facing-right) coordinates. */
-const SHOULDER_X = 2;
-const SHOULDER_Y = -31;
-/** How far a fully extended ring arm reaches. */
-const ARM_REACH = 13;
-
-/**
- * How far the body is raised: up with altitude (plus a slow hover bob), and
- * on the ground either a bounce with each step or gentle breathing.
- * Negative = up. Unscaled local px.
- */
-function bodyLift(pose: LanternPose, time: number): number {
-	const air = pose.altitude;
-	const walking = air <= 0.5 && pose.walkPhase !== 0;
-	const hover = (-pose.hoverHeight + Math.sin(time * 2.2) * 1.6) * air;
-	const groundBob = walking ? Math.abs(Math.sin(pose.walkPhase)) * -1.5 : Math.sin(time * 2) * 0.6;
-	return hover + groundBob * (1 - air);
-}
-
-/** The ring arm's hand when aiming, in local coordinates. */
-function aimedHand(pose: LanternPose): [number, number] {
-	// Local space is mirrored when facing left, so flip the aim's x to match.
-	return [SHOULDER_X + pose.aimX * pose.dir * ARM_REACH, SHOULDER_Y + pose.aimY * ARM_REACH];
-}
-
-/**
- * Where the ring is in WORLD coordinates while firing. The beam starts here,
- * so it always comes out of the hand, whatever the pose.
- */
-export function ringPosition(x: number, y: number, pose: LanternPose, time: number, scale = 1): [number, number] {
+/** Where the ring is in WORLD coordinates. Beams and bolts start here. */
+export function ringPosition(x: number, y: number, pose: LanternPose, time: number, scale = 1): Point {
 	const s = FIGURE_SCALE * scale;
-	const [hx, hy] = aimedHand(pose);
-	return [x + hx * pose.dir * s, y + (bodyLift(pose, time) + hy) * s];
+	const [hx, hy] = computeSkeleton(pose, time).front.hand;
+	return [x + hx * pose.dir * s, y + hy * s];
 }
 
 export function drawLantern(
@@ -99,196 +54,410 @@ export function drawLantern(
 	scale = 1
 ) {
 	const s = FIGURE_SCALE * scale;
-	const pulse = 0.75 + 0.25 * Math.sin(time * 4);
+	const sk = computeSkeleton(pose, time);
 	const air = pose.altitude;
-	// Past halfway up, switch to the flying pose.
-	const flying = air > 0.5;
+	const pulse = 0.75 + 0.25 * Math.sin(time * 4);
+	const cast = pose.cast ?? 0;
+	const ringActive = pose.firing || cast > 0 || (pose.glow && air > 0.5);
 
 	ctx.save();
 	ctx.translate(x, y);
 	ctx.scale(s, s);
 
+	// ---- Ground shadow (not mirrored: it belongs to the floor) ----
 	if (pose.shadow) {
-		// Ground shadow. Not mirrored, not bobbing: it belongs to the floor.
-		// Flying over ground, it shrinks and fades, which sells the height.
 		const k = 1 - 0.35 * air;
+		const spread = pose.downed ? 1.9 : 1;
 		ctx.fillStyle = `rgba(0, 0, 0, ${0.45 * k})`;
 		ctx.beginPath();
-		ctx.ellipse(0, 0, 11 * k, 3.5 * k, 0, 0, Math.PI * 2);
-		ctx.fill();
-	}
-
-	const walking = !flying && pose.walkPhase !== 0;
-	const lift = bodyLift(pose, time);
-
-	if (pose.glow && air > 0) {
-		const aura = ctx.createRadialGradient(0, -24 + lift, 4, 0, -24 + lift, 36);
-		aura.addColorStop(0, `rgba(61, 255, 110, ${0.26 * pulse * air})`);
-		aura.addColorStop(1, 'rgba(61, 255, 110, 0)');
-		ctx.fillStyle = aura;
-		ctx.beginPath();
-		ctx.arc(0, -24 + lift, 36, 0, Math.PI * 2);
+		ctx.ellipse(0, 0, 12 * k * spread, 3.8 * k, 0, 0, Math.PI * 2);
 		ctx.fill();
 	}
 
 	ctx.scale(pose.dir, 1);
-	ctx.translate(0, lift);
-	ctx.lineCap = 'round';
-	ctx.lineJoin = 'round';
 
-	if (flying && !pose.firing) {
-		// Lean forward from the hips, like a superhero in flight.
-		// (Firing, they straighten up to aim.)
-		ctx.translate(0, -15);
-		ctx.rotate(pose.lean * 0.9);
-		ctx.translate(0, 15);
-	}
-
-	// ---- Limb positions for this pose ----
-	let backArm: [number, number];
-	let frontArm: [number, number];
-	let backLeg: [number, number];
-	let frontLeg: [number, number];
-
-	if (flying) {
-		const dangle = Math.sin(time * 1.6) * 1.2 * (1 - pose.lean);
-		// Idle: arms relaxed at the sides. Fast: ring arm punches forward.
-		backArm = [-2.5, -19];
-		frontArm = [lerp(6, 13, pose.lean), lerp(-21, -34, pose.lean)];
-		// Legs together, trailing slightly behind
-		backLeg = [-2.5 + dangle, -1.5];
-		frontLeg = [0.5 + dangle, -1];
-	} else {
-		const swing = walking ? Math.sin(pose.walkPhase) * 5 : 0;
-		backArm = [-3 - swing * 0.6, -19];
-		frontArm = [6 + swing * 0.4, -20];
-		backLeg = [-2 + swing, -2];
-		frontLeg = [2 - swing, -2];
-	}
-
-	// Back arm (behind the body)
-	limb(ctx, SUIT_BLACK, 4, -1, -31, backArm[0], backArm[1]);
-	glove(ctx, backArm[0], backArm[1]);
-
-	// Legs: black suit, bottle-green boots
-	for (const [hipX, foot] of [[-2, backLeg], [2, frontLeg]] as const) {
-		limb(ctx, SUIT_BLACK, 5, hipX, -15, foot[0], foot[1]);
-		const bootX = lerp(hipX, foot[0], 0.72);
-		const bootY = lerp(-15, foot[1], 0.72);
-		limb(ctx, SUIT_GREEN, 5, bootX, bootY, foot[0], foot[1] + 1);
-	}
-
-	// Torso: green chest, black flanks
-	ctx.fillStyle = SUIT_BLACK;
-	roundRect(ctx, -6.5, -34, 13, 21, 4);
-	ctx.fill();
-	ctx.fillStyle = SUIT_GREEN;
-	roundRect(ctx, -3.5, -33, 9, 13, 3);
-	ctx.fill();
-	// Belt
-	ctx.fillStyle = SUIT_BLACK;
-	ctx.fillRect(-6.5, -17, 13, 2);
-
-	// Chest emblem: small white circle with a green bar
-	ctx.fillStyle = '#eafff0';
-	ctx.beginPath();
-	ctx.arc(1, -28, 2.6, 0, Math.PI * 2);
-	ctx.fill();
-	ctx.fillStyle = SUIT_GREEN;
-	ctx.fillRect(-1, -28.6, 4, 1.2);
-
-	// Head
-	ctx.fillStyle = def.look.skin;
-	ctx.beginPath();
-	ctx.arc(1, -40.5, 6, 0, Math.PI * 2);
-	ctx.fill();
-	drawHair(ctx, def);
-
-	if (def.look.mask) {
-		// Domino mask across the eyes, facing forward
-		ctx.fillStyle = SUIT_GREEN;
-		roundRect(ctx, 1, -43, 6.5, 3, 1.5);
+	// ---- Aura while airborne ----
+	if (pose.glow && air > 0 && !pose.downed) {
+		const [cx, cy] = mid(sk.hip, sk.neck);
+		const aura = ctx.createRadialGradient(cx, cy, 4, cx, cy, 40);
+		aura.addColorStop(0, `rgba(61, 255, 110, ${0.26 * pulse * air})`);
+		aura.addColorStop(1, 'rgba(61, 255, 110, 0)');
+		ctx.fillStyle = aura;
+		ctx.beginPath();
+		ctx.arc(cx, cy, 40, 0, Math.PI * 2);
 		ctx.fill();
-		ctx.fillStyle = '#eafff0';
-		ctx.fillRect(4.5, -42.2, 1.6, 1.3);
-	} else {
-		// No mask: just a plain eye and brow
-		ctx.fillStyle = '#1a0f08';
-		ctx.fillRect(4.4, -42.4, 1.5, 1.6);
-		ctx.fillRect(3.8, -44.2, 2.6, 0.8);
 	}
 
-	// Front arm: the ring hand. Firing overrides it to point along the aim.
-	if (pose.firing) frontArm = aimedHand(pose);
-	limb(ctx, SUIT_BLACK, 4, SHOULDER_X, SHOULDER_Y, frontArm[0], frontArm[1]);
-	glove(ctx, frontArm[0], frontArm[1]);
+	ctx.lineJoin = 'round';
+	ctx.lineCap = 'round';
 
-	// The ring. Glows while flying or firing; just a small light otherwise.
-	const ringGlow = (pose.glow && flying) || pose.firing;
-	ctx.save();
-	if (ringGlow) {
-		ctx.shadowColor = GREEN;
-		ctx.shadowBlur = 10 * pulse;
-	}
-	ctx.fillStyle = ringGlow ? '#d9ffe3' : '#8fdca8';
-	ctx.beginPath();
-	const ringX = pose.firing ? frontArm[0] : frontArm[0] + 1;
-	ctx.arc(ringX, frontArm[1], pose.firing ? 2.4 : ringGlow ? 1.8 : 1.4, 0, Math.PI * 2);
-	ctx.fill();
-	ctx.restore();
+	// ---- Far side (shaded darker) ----
+	drawArm(ctx, sk.back, true);
+	drawLeg(ctx, sk.back, true);
+
+	// ---- Body, near side on top ----
+	drawTorso(ctx, sk, def);
+	drawLeg(ctx, sk.front, false);
+	drawHead(ctx, sk, def, ringActive, pulse);
+	drawArm(ctx, sk.front, false);
+	drawRing(ctx, sk.front.hand, ringActive, pulse, cast);
 
 	ctx.restore();
 }
 
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+// ------------------------------------------------------------------ parts
 
-function drawHair(ctx: CanvasRenderingContext2D, def: LanternDef) {
-	ctx.fillStyle = def.look.hair;
+/**
+ * A tapered limb segment: a capsule from a (radius ra) to b (radius rb),
+ * outlined so it reads on any background.
+ */
+function segment(ctx: CanvasRenderingContext2D, a: Point, b: Point, ra: number, rb: number, fill: string | CanvasGradient) {
+	const dx = b[0] - a[0];
+	const dy = b[1] - a[1];
+	const len = Math.hypot(dx, dy) || 1;
+	const nx = -dy / len;
+	const ny = dx / len;
+	const angle = Math.atan2(dy, dx);
 	ctx.beginPath();
-	if (def.look.hairStyle === 'swept') {
-		// Hal: fuller hair with a sweep up at the front
-		ctx.moveTo(-5.5, -39);
-		ctx.quadraticCurveTo(-7, -48, 1, -48.5);
-		ctx.quadraticCurveTo(8, -49, 7.5, -44);
-		ctx.quadraticCurveTo(3, -45.5, -1, -43.5);
-		ctx.lineTo(-3, -38);
-		ctx.closePath();
-	} else {
-		// John: close-cropped, following the skull
-		ctx.arc(1, -40.5, 6.2, Math.PI * 0.95, Math.PI * 1.85);
-		ctx.lineTo(-2, -41);
-		ctx.closePath();
-	}
+	ctx.moveTo(a[0] + nx * ra, a[1] + ny * ra);
+	ctx.lineTo(b[0] + nx * rb, b[1] + ny * rb);
+	ctx.arc(b[0], b[1], rb, angle + Math.PI / 2, angle - Math.PI / 2, true);
+	ctx.lineTo(a[0] - nx * ra, a[1] - ny * ra);
+	ctx.arc(a[0], a[1], ra, angle - Math.PI / 2, angle + Math.PI / 2, true);
+	ctx.closePath();
+	ctx.fillStyle = fill;
 	ctx.fill();
-}
-
-function limb(
-	ctx: CanvasRenderingContext2D,
-	color: string,
-	width: number,
-	x1: number,
-	y1: number,
-	x2: number,
-	y2: number
-) {
-	ctx.strokeStyle = color;
-	ctx.lineWidth = width;
-	ctx.beginPath();
-	ctx.moveTo(x1, y1);
-	ctx.lineTo(x2, y2);
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
 	ctx.stroke();
 }
 
-function glove(ctx: CanvasRenderingContext2D, x: number, y: number) {
-	ctx.fillStyle = SUIT_GREEN;
-	ctx.beginPath();
-	ctx.arc(x, y, 2.3, 0, Math.PI * 2);
-	ctx.fill();
+function drawLeg(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean) {
+	const black = far ? BLACK : BLACK_LIT;
+	const green = far ? SUIT_GREEN_DARK : SUIT_GREEN;
+	// Thigh, then the shin split into black suit and green boot
+	segment(ctx, l.hipJoint, l.knee, 3.9, 3.0, black);
+	const bootTop = lerpP(l.knee, l.foot, 0.4);
+	segment(ctx, l.knee, bootTop, 3.0, 2.7, black);
+	segment(ctx, bootTop, l.foot, 3.0, 2.5, green);
+
+	// Foot points forward, square to the shin
+	const shinAngle = Math.atan2(l.foot[1] - l.knee[1], l.foot[0] - l.knee[0]);
+	const toeAngle = shinAngle - Math.PI / 2;
+	const toe: Point = [l.foot[0] + Math.cos(toeAngle) * 4.2, l.foot[1] + Math.sin(toeAngle) * 4.2];
+	segment(ctx, l.foot, toe, 2.3, 1.6, green);
 }
 
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+function drawArm(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean) {
+	const black = far ? BLACK : BLACK_LIT;
+	segment(ctx, l.shoulder, l.elbow, 3.1, 2.5, black);
+	segment(ctx, l.elbow, l.hand, 2.4, 2.1, black);
+	// Glove: green cuff and fist
+	const cuff = lerpP(l.elbow, l.hand, 0.62);
+	segment(ctx, cuff, l.hand, 2.5, 2.2, far ? SUIT_GREEN_DARK : SUIT_GREEN);
+	ctx.fillStyle = far ? SUIT_GREEN_DARK : SUIT_GREEN_LIT;
 	ctx.beginPath();
-	ctx.roundRect(x, y, w, h, r);
+	ctx.arc(l.hand[0], l.hand[1], 2.5, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.stroke();
+}
+
+function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, def: LanternDef) {
+	const { hip, neck, torsoAngle } = sk;
+	const up: Point = [Math.sin(torsoAngle), -Math.cos(torsoAngle)];
+	const across: Point = [Math.cos(torsoAngle), Math.sin(torsoAngle)];
+	/** A point `along` the spine from the hip, `side` toward the front (+) or back (-). */
+	const at = (along: number, side: number): Point => [
+		hip[0] + up[0] * along + across[0] * side,
+		hip[1] + up[1] * along + across[1] * side
+	];
+
+	// Silhouette: narrow waist, broad chest and shoulders; the chest pushes forward
+	const body = poly([
+		at(-1.5, -4.6), // back of hips
+		at(6, -4.4), // small of back
+		at(14, -6.2), // upper back
+		at(18.2, -4.4), // back of shoulders
+		at(18.8, 3.2), // front of shoulders
+		at(14.5, 7.8), // chest
+		at(8.5, 6.2), // ribs
+		at(3, 5.2), // belly
+		at(-1.5, 5) // front of hips
+	]);
+
+	// Lit from the front: a gradient across the body
+	const [bx, by] = at(8, -6);
+	const [fx, fy] = at(8, 7);
+	const shade = ctx.createLinearGradient(bx, by, fx, fy);
+	shade.addColorStop(0, BLACK);
+	shade.addColorStop(1, BLACK_LIT);
+	ctx.fillStyle = shade;
+	ctx.fill(body);
+
+	// Green panel. Hal: classic green upper body, black below the chest.
+	// John: a green panel down the front of the chest, black shoulders,
+	// animated-series style.
+	const panel =
+		def.id === 'hal'
+			? poly([at(9, -5.6), at(14, -6.2), at(18.2, -4.4), at(18.8, 3.2), at(14.5, 7.8), at(9.5, 6.4)])
+			: poly([at(3.2, 2.6), at(15.5, 2.4), at(18.6, 3.2), at(14.5, 7.8), at(8.5, 6.2), at(3, 5.2)]);
+	const greenShade = ctx.createLinearGradient(bx, by, fx, fy);
+	greenShade.addColorStop(0, SUIT_GREEN_DARK);
+	greenShade.addColorStop(1, SUIT_GREEN_LIT);
+	ctx.fillStyle = greenShade;
+	ctx.fill(panel);
+
+	// Belt
+	ctx.strokeStyle = '#050706';
+	ctx.lineWidth = 1.6;
+	ctx.beginPath();
+	ctx.moveTo(...at(1.2, -4.6));
+	ctx.lineTo(...at(1.2, 5.1));
+	ctx.stroke();
+
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.9;
+	ctx.stroke(body);
+
+	// Chest emblem: the Corps symbol, on the front of the chest where it shows past the arm
+	const [ex, ey] = at(13.2, 5.4);
+	ctx.save();
+	ctx.translate(ex, ey);
+	ctx.rotate(torsoAngle);
+	ctx.fillStyle = WHITE;
+	ctx.beginPath();
+	ctx.arc(0, 0, 2.7, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.fillStyle = SUIT_GREEN;
+	ctx.beginPath();
+	ctx.arc(0, 0, 1.9, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.fillStyle = WHITE;
+	ctx.fillRect(-2.2, -1.05, 4.4, 0.6);
+	ctx.fillRect(-2.2, 0.45, 4.4, 0.6);
+	ctx.beginPath();
+	ctx.arc(0, 0, 0.75, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.restore();
+
+	// Neck
+	segment(ctx, neck, lerpP(neck, sk.headCenter, 0.45), 1.9, 1.8, def.look.skin);
+}
+
+function drawHead(ctx: CanvasRenderingContext2D, sk: Skeleton, def: LanternDef, ringActive: boolean, pulse: number) {
+	const [hx, hy] = sk.headCenter;
+	ctx.save();
+	ctx.translate(hx, hy);
+	ctx.rotate(sk.headAngle);
+
+	const skin = def.look.skin;
+	const R = HEAD_R;
+
+	// Skull and jaw as one shape: round at the back, brow, nose, lips, firm chin
+	const face = new Path2D();
+	face.moveTo(-R * 0.95, -1);
+	face.arc(0, 0, R, Math.PI * 1.05, Math.PI * 1.95);
+	face.quadraticCurveTo(R + 1.2, -0.5, R + 0.9, 1.6);
+	face.lineTo(R + 1.6, 2.6);
+	face.lineTo(R + 0.5, 3.1);
+	face.quadraticCurveTo(R + 0.7, 5.6, R - 0.6, 6.6);
+	face.quadraticCurveTo(R - 3.5, 7.8, -0.5, 5.8);
+	face.quadraticCurveTo(-R, 4.5, -R * 0.95, -1);
+	face.closePath();
+	ctx.fillStyle = skin;
+	ctx.fill(face);
+
+	// Soft shade along the underside of the jaw
+	ctx.save();
+	ctx.clip(face);
+	ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+	ctx.beginPath();
+	ctx.ellipse(0, R + 1.6, R, 1.8, 0, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.restore();
+
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.stroke(face);
+
+	// Ear
+	ctx.fillStyle = shadeColor(skin, -0.18);
+	ctx.beginPath();
+	ctx.ellipse(-1.2, 0.8, 1.4, 2, 0, 0, Math.PI * 2);
+	ctx.fill();
+
+	drawHair(ctx, def);
+
+	if (def.look.mask) {
+		// Hal's domino mask with the white eye
+		const mask = new Path2D();
+		mask.moveTo(1.2, -1.2);
+		mask.quadraticCurveTo(4.5, -2.8, R + 1.1, -1.2);
+		mask.lineTo(R + 1, 1.4);
+		mask.quadraticCurveTo(4.5, 2, 1.5, 1.2);
+		mask.closePath();
+		ctx.fillStyle = SUIT_GREEN;
+		ctx.fill(mask);
+		ctx.strokeStyle = OUTLINE;
+		ctx.lineWidth = 0.6;
+		ctx.stroke(mask);
+		ctx.fillStyle = WHITE;
+		ctx.beginPath();
+		ctx.ellipse(R - 0.6, -0.1, 1.1, 0.75, -0.15, 0, Math.PI * 2);
+		ctx.fill();
+	} else {
+		// John: no mask. His eyes glow green while the ring is active, like the animated series.
+		ctx.fillStyle = shadeColor(skin, -0.35);
+		ctx.fillRect(R - 3.1, -2.3, 3.4, 0.9); // brow
+		if (ringActive) {
+			ctx.save();
+			ctx.shadowColor = GREEN;
+			ctx.shadowBlur = 6 * pulse;
+			ctx.fillStyle = '#b8ffcf';
+			ctx.beginPath();
+			ctx.ellipse(R - 0.9, -0.2, 1.2, 0.7, 0, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.restore();
+		} else {
+			ctx.fillStyle = '#f2efe6';
+			ctx.beginPath();
+			ctx.ellipse(R - 0.9, -0.2, 1.1, 0.65, 0, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.fillStyle = '#1a0f08';
+			ctx.beginPath();
+			ctx.arc(R - 0.4, -0.2, 0.5, 0, Math.PI * 2);
+			ctx.fill();
+		}
+	}
+
+	// Mouth
+	ctx.strokeStyle = shadeColor(skin, -0.4);
+	ctx.lineWidth = 0.5;
+	ctx.beginPath();
+	ctx.moveTo(R - 1.6, 4.3);
+	ctx.lineTo(R + 0.4, 4.1);
+	ctx.stroke();
+
+	ctx.restore();
+}
+
+function drawHair(ctx: CanvasRenderingContext2D, def: LanternDef) {
+	const R = HEAD_R;
+	const hair = new Path2D();
+	if (def.look.hairStyle === 'swept') {
+		// Hal: short at the back and sides, a swept wave up at the front
+		hair.moveTo(-R - 0.2, 1.4);
+		hair.quadraticCurveTo(-R - 0.9, -3.5, -2.5, -R - 0.4);
+		hair.quadraticCurveTo(1.5, -R - 1.4, R - 0.2, -R - 1.6);
+		hair.quadraticCurveTo(R + 1.6, -R - 0.9, R + 0.6, -R + 1.6);
+		hair.quadraticCurveTo(3.2, -3.3, 0.8, -2.2);
+		hair.quadraticCurveTo(-1.6, -1.2, -1.4, 2.2);
+		hair.closePath();
+	} else {
+		// John: close-cropped, tight to the skull with a sharp line-up
+		hair.moveTo(-R - 0.2, 1.2);
+		hair.arc(0, 0, R + 0.35, Math.PI * 0.93, Math.PI * 1.78);
+		hair.lineTo(R - 0.8, -3.2);
+		hair.quadraticCurveTo(1.5, -3.8, 0.2, -2.2);
+		hair.lineTo(-0.4, 1.4);
+		hair.closePath();
+	}
+	ctx.fillStyle = def.look.hair;
+	ctx.fill(hair);
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.6;
+	ctx.stroke(hair);
+	// A little shine so dark hair still reads
+	ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+	ctx.lineWidth = 0.8;
+	ctx.beginPath();
+	ctx.arc(0, 0, R - 0.6, Math.PI * 1.25, Math.PI * 1.55);
+	ctx.stroke();
+}
+
+function drawRing(ctx: CanvasRenderingContext2D, hand: Point, active: boolean, pulse: number, cast: number) {
+	ctx.save();
+	if (active) {
+		ctx.shadowColor = GREEN;
+		ctx.shadowBlur = 10 * pulse;
+	}
+	ctx.fillStyle = active ? '#d9ffe3' : '#8fdca8';
+	ctx.beginPath();
+	ctx.arc(hand[0] + 0.6, hand[1] - 0.4, active ? 1.9 : 1.3, 0, Math.PI * 2);
+	ctx.fill();
+
+	// Casting a construct: rays of light burst from the ring
+	if (cast > 0) {
+		ctx.shadowBlur = 16;
+		ctx.strokeStyle = `rgba(234, 255, 240, ${0.8 * cast})`;
+		ctx.lineWidth = 1;
+		for (let i = 0; i < 8; i++) {
+			const a = (i / 8) * Math.PI * 2;
+			ctx.beginPath();
+			ctx.moveTo(hand[0] + Math.cos(a) * 3, hand[1] + Math.sin(a) * 3);
+			ctx.lineTo(hand[0] + Math.cos(a) * (3 + 7 * cast), hand[1] + Math.sin(a) * (3 + 7 * cast));
+			ctx.stroke();
+		}
+	}
+	ctx.restore();
+}
+
+/** Draw the bones and joints over a Lantern (animation lab). */
+export function drawSkeletonDebug(ctx: CanvasRenderingContext2D, pose: LanternPose, x: number, y: number, time: number, scale = 1) {
+	const sk = computeSkeleton(pose, time);
+	const s = FIGURE_SCALE * scale;
+	ctx.save();
+	ctx.translate(x, y);
+	ctx.scale(s * pose.dir, s);
+	ctx.strokeStyle = 'rgba(255, 200, 60, 0.9)';
+	ctx.fillStyle = 'rgba(255, 90, 60, 0.95)';
+	ctx.lineWidth = 0.6;
+	const bone = (a: Point, b: Point) => {
+		ctx.beginPath();
+		ctx.moveTo(...a);
+		ctx.lineTo(...b);
+		ctx.stroke();
+	};
+	for (const l of [sk.back, sk.front]) {
+		bone(l.shoulder, l.elbow);
+		bone(l.elbow, l.hand);
+		bone(l.hipJoint, l.knee);
+		bone(l.knee, l.foot);
+	}
+	bone(sk.hip, sk.neck);
+	bone(sk.neck, sk.headCenter);
+	const joints = [sk.hip, sk.neck, sk.headCenter, ...[sk.back, sk.front].flatMap((l) => [l.shoulder, l.elbow, l.hand, l.knee, l.foot])];
+	for (const p of joints) {
+		ctx.beginPath();
+		ctx.arc(p[0], p[1], 0.9, 0, Math.PI * 2);
+		ctx.fill();
+	}
+	ctx.restore();
+}
+
+// ---------------------------------------------------------------- helpers
+
+const mid = (a: Point, b: Point): Point => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+const lerpP = (a: Point, b: Point, t: number): Point => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+
+function poly(points: Point[]): Path2D {
+	const p = new Path2D();
+	points.forEach(([x, y], i) => (i === 0 ? p.moveTo(x, y) : p.lineTo(x, y)));
+	p.closePath();
+	return p;
+}
+
+/** Lighten (amount > 0) or darken (amount < 0) a #rrggbb color. */
+function shadeColor(hex: string, amount: number): string {
+	const n = parseInt(hex.slice(1), 16);
+	const channel = (shift: number) => {
+		const c = (n >> shift) & 255;
+		const v = amount < 0 ? c * (1 + amount) : c + (255 - c) * amount;
+		return Math.round(Math.min(255, Math.max(0, v)));
+	};
+	return `rgb(${channel(16)}, ${channel(8)}, ${channel(0)})`;
 }
 
 /** Name tag above a Lantern's head. `lift` is how high they're floating (world px). */

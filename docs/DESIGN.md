@@ -155,7 +155,7 @@ Skarr Vell → Manhunters → Dex-Starr → Atrocitus.
 
 **Phase 1.5: Characters** (before enemies, by request)
 - [x] **C1** Controls & accessibility: mouse aim, free ring shot, remappable bindings, pause menu, options, first-time card
-- [ ] **C2** Art & animation: detailed Hal/John, idle/walk/take-off/fly/shoot/cast/hurt/downed/victory
+- [x] **C2** Art & animation: skeleton (animation.ts), detailed Hal/John, idle/walk/take-off/fly/shoot/cast/hurt/downed/victory, /lab/animation
 - [ ] **C3** Signature abilities: super meter; Hal "Jet Strike", John "Fortress"
 - [ ] **C4** Stats & progression: XP, levels, upgrades, unlocks, Corps HQ screen, per-character save
 - [ ] **C5** Story & personality: bios, intro cards, combat lines, co-op banter

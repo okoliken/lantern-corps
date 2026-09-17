@@ -116,8 +116,10 @@ export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[]): C
 
 /** How long the fist stays visible after the wind-up (punch out, hold, fade). */
 export const FIST_OUT_TIME = 0.4;
+/** How long the arm stays pointed after a ring shot. */
+export const SHOT_POSE_TIME = 0.22;
 /** How long the arm stays in its action pose after a one-shot construct. */
-const ACTION_POSE_TIME = 0.45;
+export const ACTION_POSE_TIME = 0.45;
 /** Energy walls: how far in front of you they go up, and how thick they are. */
 const WALL_DISTANCE = 70;
 const WALL_THICKNESS = 18;
@@ -139,6 +141,7 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
 	p.cooldowns = p.cooldowns.map((c) => Math.max(0, c - dt));
 	p.shieldCooldown = Math.max(0, p.shieldCooldown - dt);
 	p.shotCooldown = Math.max(0, p.shotCooldown - dt);
+	p.shotTimer = Math.max(0, p.shotTimer - dt);
 	p.actionTimer = Math.max(0, p.actionTimer - dt);
 	if (p.actionTimer === 0) p.actionShape = null;
 
@@ -369,8 +372,8 @@ function ringShot(p: Player, w: ConstructWorld) {
 	if (p.shotCooldown > 0) return;
 	launch(p, RING_SHOT, 'bolt', p.aimX, p.aimY, w);
 	p.shotCooldown = RING_SHOT.cooldown * p.def.traits.cooldown;
-	// Arm snaps up to point, briefly
-	p.actionTimer = Math.max(p.actionTimer, 0.2);
+	// Arm points and kicks back a little (see animation.ts)
+	p.shotTimer = SHOT_POSE_TIME;
 }
 
 // ----------------------------------------------------------------- shield

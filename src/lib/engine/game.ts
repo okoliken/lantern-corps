@@ -5,6 +5,8 @@
 import { Camera } from './camera';
 import type { View } from './canvas';
 import {
+	ACTION_POSE_TIME,
+	SHOT_POSE_TIME,
 	costOf,
 	createConstructWorld,
 	updateConstructWorld,
@@ -262,7 +264,13 @@ export class Game {
 			glow: true,
 			shadow: env.hasGround,
 			// The ring arm aims while a construct is running or just used
-			firing: p.firing || p.actionTimer > 0
+			firing: p.firing || p.actionTimer > 0 || p.shotTimer > 0,
+			shotKick: p.shotTimer / SHOT_POSE_TIME,
+			// Cast is strongest right as the construct forms, then eases off
+			cast: p.actionTimer > 0 ? Math.min(1, p.actionTimer / ACTION_POSE_TIME) : 0,
+			hurt: Math.min(1, p.hurtTimer / 0.35),
+			downed: p.downed,
+			victory: Math.min(1, p.victoryTimer / 0.4)
 		};
 	}
 

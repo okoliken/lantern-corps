@@ -74,6 +74,16 @@ export interface Player {
 	shieldCooldown: number;
 	/** Seconds until the next free ring shot. */
 	shotCooldown: number;
+
+	// ---- Animation timers (drive poses; see animation.ts) ----
+	/** Seconds left on ring-shot recoil. */
+	shotTimer: number;
+	/** Seconds left on the flinch from being hit (enemies arrive in M5). */
+	hurtTimer: number;
+	/** Knocked down (M5). */
+	downed: boolean;
+	/** Seconds into a victory pose, or 0 (missions, M6). */
+	victoryTimer: number;
 }
 
 /** What the player needs to know about the world to move through it. */
@@ -120,6 +130,10 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		protectTarget: null,
 		shieldCooldown: 0,
 		shotCooldown: 0,
+		shotTimer: 0,
+		hurtTimer: 0,
+		downed: false,
+		victoryTimer: 0,
 		willpower: MAX_WILLPOWER,
 		exhausted: false,
 		recoverDelay: 0,

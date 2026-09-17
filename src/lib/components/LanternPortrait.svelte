@@ -10,7 +10,7 @@
 		size?: number;
 	}
 
-	let { def, size = 150 }: Props = $props();
+	let { def, size = 190 }: Props = $props();
 	let canvas: HTMLCanvasElement;
 
 	onMount(() => {
@@ -26,9 +26,10 @@
 			const t = (now - start) / 1000;
 			ctx.clearRect(0, 0, size, size);
 			// Hovering in space with the glow on, facing right.
-			const scale = size / 90;
+			// Fit the whole hovering figure (about 60 units tall, before the drawing's own 1.35x) in the frame
+			const scale = (size * 0.86) / (60 * 1.35);
 			const pose = { dir: 1, walkPhase: 0, altitude: 1, hoverHeight: HOVER_SPACE, lean: 0, glow: true, shadow: false, firing: false, aimX: 1, aimY: 0 } as const;
-			drawLantern(ctx, def, size / 2, size * 0.88, pose, t, scale);
+			drawLantern(ctx, def, size / 2, size * 0.95, pose, t, scale);
 			raf = requestAnimationFrame(frame);
 		};
 		raf = requestAnimationFrame(frame);

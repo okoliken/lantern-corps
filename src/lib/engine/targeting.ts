@@ -223,7 +223,7 @@ export function updateTargeting(
 
 	p.protectTarget = p.lock?.kind === 'ally' ? p.lock : null;
 	const lockedAttack = p.lock && p.lock.kind !== 'ally' ? p.lock : null;
-	const busy = p.firing || p.actionTimer > 0;
+	const busy = p.firing || p.actionTimer > 0 || p.shotTimer > 0;
 
 	if (lockedAttack) {
 		p.attackTarget = lockedAttack;
