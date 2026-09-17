@@ -129,6 +129,8 @@ export class Game {
 	godMode = false;
 	/** Enemies stand still and don't attack. Toggled from the enemy lab. */
 	freezeEnemies = false;
+	/** Camera also keeps enemies attacking the Lanterns in shot (for watching/recording). */
+	frameEnemies = false;
 	/** Runs the fight: sends waves of enemies (the demo), later missions. */
 	director: { update(game: Game, dt: number): void } | null = null;
 
@@ -319,7 +321,8 @@ export class Game {
 
 		this.director?.update(this, dt);
 
-		const [tx, ty] = this.cameraTarget();
+		const [tx, ty, fw, fh] = this.cameraTarget();
+		if (this.players.length > 1 || this.frameEnemies) this.camera.fit(fw, fh, dt, this.view);
 		this.camera.follow(tx, ty, dt, this.view, map.width, map.height);
 	}
 
@@ -356,15 +359,35 @@ export class Game {
 		cw.events.length = 0;
 	}
 
-	/** The middle of all players. With one player that's just them. */
-	private cameraTarget(): [number, number] {
+	/**
+	 * What the camera frames: the middle and size of a box around every player
+	 * (and, when framing enemies, the ones attacking them), with room around
+	 * it for bodies, name tags and incoming attacks. With one player that's just them.
+	 */
+	private cameraTarget(): [number, number, number, number] {
+		const points = this.players.map((p) => [p.x, p.y - CAMERA_AIM_UP]);
+		if (this.frameEnemies) {
+			for (const e of this.enemies) {
+				const t = e.brain.target;
+				if (t && Math.hypot(e.x - t.x, e.y - t.y) < 420) points.push([e.x, e.y - CAMERA_AIM_UP]);
+			}
+		}
+		const xs = points.map((p) => p[0]);
+		const ys = points.map((p) => p[1]);
+		const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+		const margin = 170;
+		// Centre on the players, so enemies coming and going don't yank the view around
 		let x = 0;
 		let y = 0;
 		for (const p of this.players) {
 			x += p.x;
 			y += p.y - CAMERA_AIM_UP;
 		}
-		return [x / this.players.length, y / this.players.length];
+		x /= this.players.length;
+		y /= this.players.length;
+		const width = 2 * Math.max(x - minX, maxX - x) + margin * 2;
+		const height = 2 * Math.max(y - minY, maxY - y) + margin * 2;
+		return [x, y, width, height];
 	}
 
 	private poseFor(p: Player): LanternPose {

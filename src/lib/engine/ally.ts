@@ -50,6 +50,12 @@ export class AllyInput implements InputSource {
 	private closeIn = false;
 	/** We locked onto our partner last tick to shield them; let go again. */
 	private lockedPartner = false;
+	/** Seconds before it will use its signature again (so it's a big moment, not always on). */
+	private signatureRest = 8;
+	/** Seconds before it will shield again, unless someone's badly hurt. */
+	private shieldRest = 0;
+	/** Seconds before it reconsiders shielding against a big attack it has already seen coming. */
+	private shieldRoll = 0;
 
 	constructor(private world: AllyWorld) {}
 
@@ -59,6 +65,9 @@ export class AllyInput implements InputSource {
 			me.lock = null;
 			this.lockedPartner = false;
 		}
+		this.signatureRest = Math.max(0, this.signatureRest - TICK);
+		this.shieldRest = Math.max(0, this.shieldRest - TICK);
+		this.shieldRoll = Math.max(0, this.shieldRoll - TICK);
 		if (!me || me.downed || me.dash) {
 			this.plan = null;
 			return IDLE;
@@ -77,7 +86,10 @@ export class AllyInput implements InputSource {
 			intent.shot = true;
 		}
 		this.defend(me, partner, enemies, intent);
-		if (target && me.surge >= 100 && enemies.filter((e) => dist(e, me) < 360).length >= 2) intent.signature = true;
+		if (target && me.surge >= 100 && this.signatureRest === 0 && this.worthASignature(me, partner, enemies)) {
+			intent.signature = true;
+			this.signatureRest = 30;
+		}
 		this.useConstructs(me, target, enemies, intent);
 		return intent;
 	}
@@ -97,10 +109,11 @@ export class AllyInput implements InputSource {
 		let gx = me.x;
 		let gy = me.y;
 		if (!target) {
-			if (partner) {
+			// Close enough already: hold still (two AI partners would otherwise chase each other's spot)
+			if (partner && dist(me, partner) > 200) {
 				const side = me.x < partner.x ? -1 : 1;
-				gx = partner.x + side * 110;
-				gy = partner.y + 20;
+				gx = partner.x + side * 120;
+				gy = partner.y;
 			}
 		} else {
 			this.strafeIn -= TICK;
@@ -145,21 +158,47 @@ export class AllyInput implements InputSource {
 		}
 	}
 
-	/** Bubble shield on myself, or my partner, when hurt and something is winding up on them. */
+	/** Save the signature for a big moment: surrounded, or when someone's in trouble. */
+	private worthASignature(me: Player, partner: Player | null, enemies: Enemy[]): boolean {
+		const near = enemies.filter((e) => dist(e, me) < 360).length;
+		const hurt = me.health < 60 || (partner !== null && partner.health < 60);
+		return near >= 3 || (near >= 2 && hurt);
+	}
+
+	/**
+	 * Bubble shield on myself or my partner: against a big attack winding up
+	 * (slam, roar, chain) at any health, or anything at all once hurt.
+	 */
 	private defend(me: Player, partner: Player | null, enemies: Enemy[], intent: Intent) {
 		if (me.shieldCooldown > 0 || me.exhausted || me.willpower < BUBBLE_SHIELD.cost) return;
 		const shields = this.world.constructs.shields;
-		const threatened = (p: Player) => enemies.some((e) => e.brain.target === p && e.brain.state === 'windup' && dist(e, p) < 380);
-		const unshielded = (p: Player) => !shields.some((s) => s.target === p);
+		const winding = (p: Player, big: boolean) =>
+			enemies.some(
+				(e) =>
+					e.brain.target === p &&
+					e.brain.state === 'windup' &&
+					dist(e, p) < 380 &&
+					(!big || e.brain.ability === 'slam' || e.brain.ability === 'roar' || e.brain.ability === 'chain')
+			);
+		// A big attack coming: react about half the time (people don't always see it either)
+		const bigComing = (p: Player) => {
+			if (!winding(p, true) || this.shieldRoll > 0 || this.shieldRest > 0) return false;
+			this.shieldRoll = 1;
+			return Math.random() < 0.45;
+		};
+		const needs = (p: Player, hurtBelow: number) =>
+			!shields.some((s) => s.target === p) && ((p.health < hurtBelow && winding(p, false)) || bigComing(p));
 
-		if (me.health < 50 && unshielded(me) && threatened(me)) {
+		if (needs(me, 40)) {
 			intent.shield = true;
+			this.shieldRest = 12;
 			return;
 		}
-		if (partner && partner.health < 45 && unshielded(partner) && dist(partner, me) < BUBBLE_SHIELD.range * 0.9 && threatened(partner)) {
+		if (partner && dist(partner, me) < BUBBLE_SHIELD.range * 0.9 && needs(partner, 40)) {
 			me.lock = { kind: 'ally', player: partner };
 			this.lockedPartner = true;
 			intent.shield = true;
+			this.shieldRest = 12;
 		}
 	}
 

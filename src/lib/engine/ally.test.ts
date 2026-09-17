@@ -28,6 +28,24 @@ describe('AI partner', () => {
 		expect(intent.shot).toBe(false);
 	});
 
+	it('two AI partners with nothing to fight stay put instead of chasing each other', () => {
+		const w = createConstructWorld([], []);
+		const players = [
+			createPlayer(0, LANTERNS.hal, { read: () => IDLE }, 0, 0),
+			createPlayer(1, LANTERNS.john, { read: () => IDLE }, 170, 0)
+		];
+		const brains = players.map((p) => {
+			const ally = new AllyInput({ players, dummies: w.dummies, constructs: w });
+			ally.me = p;
+			return ally;
+		});
+		for (const b of brains) {
+			const intent = b.read();
+			expect(intent.moveX).toBe(0);
+			expect(intent.moveY).toBe(0);
+		}
+	});
+
 	it('shoots at a Red Lantern in range', () => {
 		const { w, ally } = setup();
 		w.dummies.push(createEnemy('rageGrunt', 250, 40));

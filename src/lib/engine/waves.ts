@@ -29,7 +29,14 @@ export class Waves {
 	/** Packs beaten so far. */
 	cleared = 0;
 
-	constructor(private waves: Role[][] = DEMO_WAVES) {}
+	/**
+	 * @param toughness health multiplier for the pack (the demo makes them
+	 * tougher so fights last long enough to see every red construct).
+	 */
+	constructor(
+		private waves: Role[][] = DEMO_WAVES,
+		private toughness = 1
+	) {}
 
 	update(game: Game, dt: number) {
 		if (this.state === 'countdown') {
@@ -71,7 +78,8 @@ export class Waves {
 				y = Math.min(Math.max(cy + Math.sin(angle) * ARRIVE_DISTANCE, margin), game.map.height - margin);
 				if (!game.map.obstacles.some((o) => o.blocksFlying && boxOverlap(x, y, 20, 12, o))) break;
 			}
-			game.spawnEnemy('rageGrunt', x, y, role);
+			const e = game.spawnEnemy('rageGrunt', x, y, role);
+			e.hp = e.maxHp = e.brain.lastHp = Math.round(e.maxHp * this.toughness);
 		});
 	}
 }

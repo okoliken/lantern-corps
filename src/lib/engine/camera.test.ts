@@ -43,4 +43,13 @@ describe('Camera', () => {
 		// 800px screen at 2x zoom shows 400 world px, so centre can't go below 200
 		expect(cam.x).toBe(200);
 	});
+
+	it('zooms out to fit a wide group, but never closer than its normal zoom or past its limit', () => {
+		const cam = new Camera(1.6);
+		const view = { width: 800, height: 600 };
+		for (let i = 0; i < 600; i++) cam.fit(1000, 300, 1 / 60, view);
+		expect(cam.zoom).toBeCloseTo(1, 2); // 800 / 1000 = 0.8, clamped to minZoom 1
+		for (let i = 0; i < 600; i++) cam.fit(100, 100, 1 / 60, view);
+		expect(cam.zoom).toBeCloseTo(1.6, 2);
+	});
 });

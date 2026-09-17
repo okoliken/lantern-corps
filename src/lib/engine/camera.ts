@@ -8,6 +8,8 @@ import type { View } from './canvas';
 
 /** How quickly the camera catches up. Higher = snappier. */
 const FOLLOW_RATE = 6;
+/** How quickly zoom eases toward what's wanted (slower than moving, so it doesn't pump). */
+const ZOOM_RATE = 2.5;
 
 export class Camera {
 	x = 0;
@@ -16,9 +18,24 @@ export class Camera {
 	prevX = 0;
 	prevY = 0;
 	zoom: number;
+	/** The normal, closest zoom. The camera only ever zooms OUT from here. */
+	readonly baseZoom: number;
+	/** Furthest it zooms out to fit everyone in. */
+	minZoom = 1;
 
 	constructor(zoom = 1.6) {
 		this.zoom = zoom;
+		this.baseZoom = zoom;
+	}
+
+	/**
+	 * Ease zoom so a box of world px (width, height) fits on screen,
+	 * never closer than baseZoom or further than minZoom.
+	 */
+	fit(width: number, height: number, dt: number, view: View) {
+		const wanted = Math.min(this.baseZoom, view.width / Math.max(width, 1), view.height / Math.max(height, 1));
+		const target = Math.max(this.minZoom, wanted);
+		this.zoom += (target - this.zoom) * (1 - Math.exp(-ZOOM_RATE * dt));
 	}
 
 	/** Jump straight to a target (used when a level starts). */
