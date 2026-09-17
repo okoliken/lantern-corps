@@ -3,9 +3,10 @@
 // characters are upright and face left or right. All art is code.
 //
 // Two poses:
-//  - WALKING (planet missions): legs swing, shadow on the ground, no glow
-//  - FLYING  (space missions): hovering, leaning into the direction of
-//    travel, ring arm reaching forward, green aura around the body
+//  - WALKING (on a planet): legs swing, shadow on the ground, no glow
+//  - FLYING  (always in space, or airborne over a planet): hovering, leaning
+//    into the direction of travel, ring arm forward, green aura. Over a
+//    planet a smaller shadow stays on the ground below.
 //
 // The origin (x, y) is the Lantern's ANCHOR: their feet when walking, the
 // spot below them when flying. Sorting by that y gives depth (lower on
@@ -39,8 +40,10 @@ export interface LanternPose {
 	flying: boolean;
 	/** 0..1, how hard a flying Lantern leans forward (from horizontal speed). */
 	lean: number;
-	/** Green aura and glowing ring (space only). */
+	/** Green aura and glowing ring. On whenever the Lantern is flying. */
 	glow: boolean;
+	/** Draw a shadow on the ground below (false in space: nothing to land on). */
+	shadow: boolean;
 }
 
 export function drawLantern(
@@ -59,11 +62,13 @@ export function drawLantern(
 	ctx.translate(x, y);
 	ctx.scale(s, s);
 
-	if (!pose.flying) {
+	if (pose.shadow) {
 		// Ground shadow. Not mirrored, not bobbing: it belongs to the floor.
-		ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+		// Flying over ground, it shrinks and fades, which sells the height.
+		const k = pose.flying ? 0.7 : 1;
+		ctx.fillStyle = `rgba(0, 0, 0, ${0.45 * k})`;
 		ctx.beginPath();
-		ctx.ellipse(0, 0, 11, 3.5, 0, 0, Math.PI * 2);
+		ctx.ellipse(0, 0, 11 * k, 3.5 * k, 0, 0, Math.PI * 2);
 		ctx.fill();
 	}
 
@@ -175,7 +180,7 @@ export function drawLantern(
 	limb(ctx, SUIT_BLACK, 4, 2, -31, frontArm[0], frontArm[1]);
 	glove(ctx, frontArm[0], frontArm[1]);
 
-	// The ring. Glows in space; just a small light on a planet.
+	// The ring. Glows while flying; just a small light while walking.
 	ctx.save();
 	if (pose.glow) {
 		ctx.shadowColor = GREEN;

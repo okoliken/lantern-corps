@@ -19,7 +19,7 @@ export interface PlayerConfig {
 
 export interface GameOptions {
 	players: PlayerConfig[];
-	/** Space: flying + glow. Planet: walking, no glow. Defaults to space. */
+	/** Space: always flying. Planet: walking (flying comes in M2). Defaults to space. */
 	environment?: EnvironmentKind;
 	/** Show "P1"/"P2" under the name tags. */
 	showSlots?: boolean;
@@ -116,7 +116,7 @@ export class Game {
 		else this.drawPlanet(ctx, width, height);
 
 		if (!this.spawned) return;
-		const glow = ENVIRONMENT_RULES[this.environment].glow;
+		const { hasGround } = ENVIRONMENT_RULES[this.environment];
 		// Painter's order: whoever is lower on screen is closer to the viewer,
 		// so draw them last (on top).
 		const byDepth = [...this.players].sort((a, b) => a.y - b.y);
@@ -125,7 +125,8 @@ export class Game {
 			const y = lerp(p.prevY, p.y, alpha);
 			// Lean comes from horizontal speed: flying sideways fast = full lean.
 			const lean = Math.min(Math.abs(p.vx) / p.def.maxSpeed, 1);
-			drawLantern(ctx, p.def, x, y, { ...p, lean, glow }, this.time);
+			// Glow whenever flying; shadow whenever there's ground under them.
+			drawLantern(ctx, p.def, x, y, { ...p, lean, glow: p.flying, shadow: hasGround }, this.time);
 			const tag = this.showSlots ? `P${p.slot + 1} · ${p.def.name}` : p.def.name;
 			drawNameTag(ctx, tag, x, y);
 		}

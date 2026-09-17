@@ -24,7 +24,10 @@ Every mission is either **space** or **planet**:
 - **Space:** Lanterns are always flying. They hover, lean into the direction of travel with the ring
   arm forward, and have the green aura and a glowing ring. There's no ground, so no shadow.
 - **Planet:** Lanterns walk with a ground shadow and **no glow**; the ring is just a small light.
-  Take-off and landing (below) apply here.
+  Take-off and landing (below) apply here, and **a Lantern flying over a planet glows too**, with
+  a smaller shadow on the ground below.
+
+**Glow rule:** glow whenever flying (space or planet), never while walking.
 
 Rules live in `src/lib/engine/environment.ts`. Test either with `/play?as=hal&env=planet` or the
 toggle in `/lab/movement`.

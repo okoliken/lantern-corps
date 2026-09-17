@@ -27,7 +27,7 @@
 			ctx.clearRect(0, 0, size, size);
 			// Hovering in space with the glow on, facing right.
 			const scale = size / 90;
-			const pose = { dir: 1, walkPhase: 0, flying: true, lean: 0, glow: true } as const;
+			const pose = { dir: 1, walkPhase: 0, flying: true, lean: 0, glow: true, shadow: false } as const;
 			drawLantern(ctx, def, size / 2, size * 0.88, pose, t, scale);
 			raf = requestAnimationFrame(frame);
 		};
