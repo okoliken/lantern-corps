@@ -42,6 +42,7 @@
 		game.director = waves;
 		game.dummies.length = 0; // no training dummies in a real fight
 		game.frameEnemies = mode === 'watch';
+		game.nameTags = false;
 		return { game, waves };
 	});
 

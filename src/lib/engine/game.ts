@@ -146,6 +146,8 @@ export class Game {
 		}
 	}
 
+	/** Draw the Lanterns' names above their heads. */
+	nameTags = true;
 	/** Camera also keeps enemies attacking the Lanterns in shot (for watching/recording). */
 	frameEnemies = false;
 	/** Runs the fight: sends waves of enemies (the demo), later missions. */
@@ -628,7 +630,7 @@ export class Game {
 			}
 			drawEffect(ctx, e, e.lift ?? 0, this.time, inSpace);
 		}
-		for (const t of tags) t();
+		if (this.nameTags) for (const t of tags) t();
 
 		if (this.debug) this.drawDebug(ctx);
 		ctx.restore();
