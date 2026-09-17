@@ -42,6 +42,12 @@ export interface Projectile {
 	homing?: Dummy | null;
 	/** Hits from this don't fill the owner's surge meter (signature ability damage). */
 	noSurge?: boolean;
+	/**
+	 * How high above the ground plane it's drawn, fixed at launch. Projectiles
+	 * move on the ground plane; this keeps them level at the height they left
+	 * the ring, even if the shooter moves or lands afterwards.
+	 */
+	lift: number;
 }
 
 export interface Tether {
@@ -99,6 +105,8 @@ export interface Effect {
 	value?: number;
 	/** Big shout-out text (signature ability names). */
 	text?: string;
+	/** Height it's drawn above the ground plane, fixed when it was created. */
+	lift?: number;
 	/** Who made it: effects at hand height are drawn at that Lantern's ring height. */
 	owner?: Player;
 }
@@ -242,7 +250,7 @@ function useBeam(p: Player, def: ConstructDef, held: boolean, dt: number, w: Con
 
 	// Cast along the ground plane from the feet: obstacles are footprints,
 	// so that's where "what am I pointing at" lives in this view.
-	const { length, hit } = castAtTargets(p.x, p.y, p.aimX, p.aimY, def.range, w);
+	const { length, hit } = castAtTargets(p.x + p.ringDX, p.y, p.aimX, p.aimY, def.range, w);
 	p.beamLength = length;
 	if (!hit) return;
 
@@ -291,7 +299,17 @@ function perform(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 			return true;
 		case 'smash':
 			w.pending.push({ owner: p, def, time: def.windup ?? 0, damage: power(p, def.damage), knockback: power(p, def.knockback) });
-			w.effects.push({ kind: 'fist', x: p.x, y: p.y, age: 0, life: (def.windup ?? 0) + FIST_OUT_TIME, angle: Math.atan2(p.aimY, p.aimX), radius: def.radius, owner: p });
+			w.effects.push({
+				kind: 'fist',
+				x: p.x + p.ringDX,
+				y: p.y,
+				age: 0,
+				life: (def.windup ?? 0) + FIST_OUT_TIME,
+				angle: Math.atan2(p.aimY, p.aimX),
+				radius: def.radius,
+				owner: p,
+				lift: p.ringLift
+			});
 			return true;
 		case 'barrier':
 			return placeWall(p, def, w);
@@ -317,8 +335,9 @@ export function launch(
 	from?: { x: number; y: number }
 ): Projectile {
 	const speed = def.speed ?? 600;
-	const x = from ? from.x : p.x + dx * 14;
-	const y = from ? from.y : p.y + dy * 14;
+	// From the ring (its spot on the ground plane), nudged a few px along the aim
+	const x = from ? from.x : p.x + p.ringDX + dx * 4;
+	const y = from ? from.y : p.y + dy * 4;
 	w.projectiles.push({
 		kind,
 		owner: p,
@@ -332,7 +351,8 @@ export function launch(
 		life: def.range / speed,
 		damage: power(p, def.damage),
 		knockback: power(p, def.knockback),
-		ignore: w.obstacles.filter((o) => boxOverlap(x, y, 1, 1, o))
+		ignore: w.obstacles.filter((o) => boxOverlap(x, y, 1, 1, o)),
+		lift: p.ringLift
 	});
 	return w.projectiles[w.projectiles.length - 1];
 }
@@ -357,7 +377,7 @@ function slash(p: Player, def: ConstructDef, w: ConstructWorld) {
 		const [cx, cy] = center(o);
 		if (inArc(cx, cy, def.range + Math.max(o.w, o.h) / 2)) damageObstacle(w, o, power(p, def.damage));
 	}
-	w.effects.push({ kind: 'slash', x: p.x, y: p.y, age: 0, life: 0.35, angle: aim, radius: def.range, owner: p });
+	w.effects.push({ kind: 'slash', x: p.x + p.ringDX * 0.4, y: p.y, age: 0, life: 0.35, angle: aim, radius: def.range, owner: p, lift: p.ringLift });
 }
 
 function placeWall(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
@@ -566,7 +586,7 @@ function projectileHit(w: ConstructWorld, pr: Projectile, dummy: Dummy | null, s
 			if (dummy) hitDummyWithFx(w, dummy, pr.damage, 0, pr.x, pr.y, surgeCredit(pr));
 			w.tethers.push({ owner: pr.owner, target, time: TETHER_TIME });
 		} else {
-			w.effects.push({ kind: 'impact', x: pr.x, y: pr.y, age: 0, life: 0.15, owner: pr.owner });
+			w.effects.push({ kind: 'impact', x: pr.x, y: pr.y, age: 0, life: 0.15, owner: pr.owner, lift: pr.lift });
 		}
 		return;
 	}
@@ -574,7 +594,7 @@ function projectileHit(w: ConstructWorld, pr: Projectile, dummy: Dummy | null, s
 	// Bolt or bullet
 	if (dummy) hitDummyWithFx(w, dummy, pr.damage, pr.knockback, pr.x - pr.vx, pr.y - pr.vy, surgeCredit(pr));
 	if (solid) damageObstacle(w, solid, pr.damage);
-	w.effects.push({ kind: 'impact', x: pr.x, y: pr.y, age: 0, life: 0.12, owner: pr.owner });
+	w.effects.push({ kind: 'impact', x: pr.x, y: pr.y, age: 0, life: 0.12, owner: pr.owner, lift: pr.lift });
 }
 
 /** A cannon shell bursts, hurting everything in its splash radius. */
@@ -591,7 +611,7 @@ function explode(w: ConstructWorld, pr: Projectile) {
 		const [cx, cy] = center(o);
 		if (Math.hypot(cx - pr.x, cy - pr.y) <= r + Math.max(o.w, o.h) / 2) damageObstacle(w, o, pr.damage);
 	}
-	w.effects.push({ kind: 'blast', x: pr.x, y: pr.y, age: 0, life: 0.5, radius: r, owner: pr.owner });
+	w.effects.push({ kind: 'blast', x: pr.x, y: pr.y, age: 0, life: 0.5, radius: r, owner: pr.owner, lift: pr.lift });
 }
 
 function updatePending(w: ConstructWorld, dt: number) {
@@ -604,7 +624,7 @@ function updatePending(w: ConstructWorld, dt: number) {
 		}
 		// The fist lands in front of wherever the Lantern is aiming NOW
 		const p = s.owner;
-		const hx = p.x + p.aimX * s.def.range;
+		const hx = p.x + p.ringDX + p.aimX * s.def.range;
 		const hy = p.y + p.aimY * s.def.range;
 		const r = s.def.radius ?? 40;
 		for (const d of w.dummies) {

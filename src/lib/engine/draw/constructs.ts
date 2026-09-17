@@ -487,13 +487,16 @@ export function drawShield(
 	x: number,
 	y: number,
 	lift: number,
+	/** How tall the character is, so the bubble fits around them. */
+	bodyHeight: number,
 	time: number,
 	reduceFlashing = false
 ) {
+	// Centred on the body, big enough to hold the whole figure with room to spare
 	const cx = x;
-	const cy = y - lift - 30;
+	const cy = y - lift - bodyHeight * 0.5;
 	const hitRipple = s.ripple / 0.3;
-	const r = 38 + hitRipple * 4 + Math.sin(time * 3) * 1;
+	const r = bodyHeight * 0.66 + hitRipple * 4 + Math.sin(time * 3) * 1;
 	const health = s.hp / s.maxHp;
 	// Blink in the last two seconds so you know it's about to go (a gentle fade instead, with reduced flashing)
 	const blink = s.life < 2 ? (reduceFlashing ? 0.55 + 0.45 * (s.life / 2) : Math.sin(time * 18) > 0 ? 0.45 : 1) : 1;
@@ -520,8 +523,8 @@ export function drawShield(
 	ctx.lineWidth = 1;
 	const hex = 10;
 	const drift = (time * 6) % (hex * 3);
-	for (let row = -5; row <= 5; row++) {
-		for (let col = -5; col <= 5; col++) {
+	for (let row = -6; row <= 6; row++) {
+		for (let col = -6; col <= 6; col++) {
 			const hx = cx + col * hex * 1.5 + drift - hex * 1.5;
 			const hy = cy + row * hex * 1.732 + (col % 2 ? hex * 0.866 : 0);
 			ctx.beginPath();
@@ -889,7 +892,8 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 		}
 		case 'pop': {
 			// A bubble shield breaking: hex shards flying out from the body
-			const hy = e.y - lift - 30;
+			// (lift here is the body-centre height, see Game)
+			const hy = e.y - lift;
 			ctx.globalAlpha = 1 - t;
 			ctx.shadowColor = GREEN;
 			ctx.shadowBlur = 10;
@@ -897,7 +901,7 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			ctx.lineWidth = 1.5;
 			for (let i = 0; i < 14; i++) {
 				const a = (i / 14) * TAU;
-				const d = 38 + easeOut(t) * 40;
+				const d = (e.radius ?? 48) + easeOut(t) * 40;
 				ctx.save();
 				ctx.translate(e.x + Math.cos(a) * d, hy + Math.sin(a) * d);
 				ctx.rotate(t * 6 + i);

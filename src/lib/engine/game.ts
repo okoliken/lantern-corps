@@ -223,11 +223,13 @@ export class Game {
 			clampToBounds(p, FIGURE_HALF_WIDTH, FIGURE_HEIGHT, map.width - FIGURE_HALF_WIDTH, map.height - 6);
 			// The crosshair sits where you SEE the shot land, at ring height. Shots
 			// travel along the ground plane, so drop the aim point by that height.
-			const pointer = intent.pointer && { x: intent.pointer.x, y: intent.pointer.y + this.ringLift(p) };
+			const pointer = intent.pointer && { x: intent.pointer.x, y: intent.pointer.y + p.ringLift };
 			updateTargeting(p, intent.target, this.targetWorld, autoReach(p.loadout[p.selected]), {
 				pointer,
 				aimAssist: this.settings.aimAssist
 			});
+			// Now the aim is known, find the ring on the aimed skeleton
+			this.updateRing(p);
 			updateWillpower(p, dt, this.batteries);
 			updatePlayerConstructs(p, intent, dt, this.constructs);
 			updateSignature(p, intent, dt, this.constructs);
@@ -282,10 +284,12 @@ export class Game {
 		};
 	}
 
-	/** How high above a Lantern's anchor their aimed ring is, in world px. */
-	private ringLift(p: Player): number {
+	/** Where the ring is on this Lantern's aimed skeleton, relative to their anchor. */
+	private updateRing(p: Player) {
 		const pose = { ...this.poseFor(p), firing: true };
-		return -ringPosition(0, 0, pose, this.time)[1];
+		const [rx, ry] = ringPosition(0, 0, pose, this.time);
+		p.ringDX = rx;
+		p.ringLift = -ry;
 	}
 
 	/**
@@ -404,7 +408,7 @@ export class Game {
 		for (const pr of cw.projectiles) {
 			const x = lerp(pr.prevX, pr.x, alpha);
 			const y = lerp(pr.prevY, pr.y, alpha);
-			const lift = this.ringLift(pr.owner);
+			const lift = pr.lift;
 			if (pr.kind === 'hook') {
 				const [rx, ry] = ringPosition(pr.owner.x, pr.owner.y, { ...this.poseFor(pr.owner), firing: true }, this.time);
 				drawChain(ctx, rx, ry, x, y - lift, this.time);
@@ -422,7 +426,7 @@ export class Game {
 		for (const sh of cw.shields) {
 			const t = sh.target;
 			const lift = this.poseFor(t).hoverHeight * t.altitude * 1.35;
-			drawShield(ctx, sh, lerp(t.prevX, t.x, alpha), lerp(t.prevY, t.y, alpha), lift, this.time, this.settings.reduceFlashing);
+			drawShield(ctx, sh, lerp(t.prevX, t.x, alpha), lerp(t.prevY, t.y, alpha), lift, FIGURE_HEIGHT, this.time, this.settings.reduceFlashing);
 		}
 
 		// Target markers: what each Lantern will hit, and who they're protecting
@@ -443,7 +447,14 @@ export class Game {
 				drawCallout(ctx, e.text ?? '', cx, cy, e.age / e.life);
 				continue;
 			}
-			drawEffect(ctx, e, e.owner ? this.ringLift(e.owner) : 0, this.time);
+			if (e.kind === 'pop' && e.owner) {
+				// A shield popping: centre it on the body it was protecting, same size as the bubble
+				const o = e.owner;
+				const bodyMid = this.poseFor(o).hoverHeight * o.altitude * 1.35 + FIGURE_HEIGHT * 0.5;
+				drawEffect(ctx, { ...e, radius: FIGURE_HEIGHT * 0.66 }, bodyMid, this.time);
+				continue;
+			}
+			drawEffect(ctx, e, e.lift ?? 0, this.time);
 		}
 		for (const t of tags) t();
 

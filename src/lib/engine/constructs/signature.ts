@@ -173,7 +173,7 @@ function finishJet(p: Player, w: ConstructWorld) {
 	p.dash = null;
 	p.vx *= 0.25;
 	p.vy *= 0.25;
-	w.effects.push({ kind: 'blast', x: p.x, y: p.y, age: 0, life: 0.5, radius: 70, owner: p });
+	w.effects.push({ kind: 'blast', x: p.x, y: p.y, age: 0, life: 0.5, radius: 70, owner: p, lift: p.ringLift });
 
 	// Nearest enemies first; with fewer targets than missiles, spread missiles across them
 	const targets = w.dummies
@@ -217,6 +217,9 @@ function startFortress(p: Player, w: ConstructWorld) {
 
 // ---------------------------------------------------------------- world tick
 
+/** Height of a turret's barrel above the ground (matches drawTurret). */
+export const TURRET_HEAD_HEIGHT = 14;
+
 /** Where a Fortress turret sits, on the dome's rim (flattened like the ground). */
 export function turretPosition(f: Fortress, angle: number): { x: number; y: number } {
 	return { x: f.x + Math.cos(angle) * f.radius, y: f.y + Math.sin(angle) * f.radius * 0.5 };
@@ -258,6 +261,8 @@ export function updateSignatureWorld(w: ConstructWorld, dt: number) {
 			t.cooldown = FORTRESS.turretRate;
 			const bolt = launch(f.owner, TURRET_BOLT, 'bolt', Math.cos(t.aim), Math.sin(t.aim), w, pos);
 			bolt.noSurge = true;
+			// Fired from the turret head, not the owner's ring
+			bolt.lift = TURRET_HEAD_HEIGHT;
 		}
 	}
 }

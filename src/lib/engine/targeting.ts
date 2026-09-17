@@ -228,7 +228,8 @@ export function updateTargeting(
 	if (lockedAttack) {
 		p.attackTarget = lockedAttack;
 	} else if (pointer) {
-		const dx = pointer.x - p.x;
+		// Aim from the ring, so the shot's line passes exactly through the crosshair
+		const dx = pointer.x - (p.x + p.ringDX);
 		const dy = pointer.y - p.y;
 		const len = Math.hypot(dx, dy);
 		const dirX = len > 1 ? dx / len : p.faceX;
@@ -254,7 +255,7 @@ export function updateTargeting(
 	// Aim at the attack target, if there is one
 	if (p.attackTarget) {
 		const [tx, ty] = targetPosition(p.attackTarget);
-		const dx = tx - p.x;
+		const dx = tx - (p.x + p.ringDX);
 		const dy = ty - p.y;
 		const len = Math.hypot(dx, dy);
 		if (len > 1) {

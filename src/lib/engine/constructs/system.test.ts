@@ -402,3 +402,29 @@ describe('ring shot (free)', () => {
 		expect(p.loadout[p.selected].id).toBe('chain');
 	});
 });
+
+describe('everything comes out of the ring', () => {
+	it('shots start at the ring and keep the height they left it at', () => {
+		const { p, w } = setup('hal', 'beam');
+		p.ringDX = 22;
+		p.ringLift = 45;
+		run(p, w, { ...IDLE, shot: true }, DT);
+		const bolt = w.projectiles[0];
+		// It has already flown one tick, so check where that tick started: the ring (+4px along the aim)
+		expect(bolt.prevX).toBeCloseTo(26);
+		expect(bolt.lift).toBe(45);
+		// The shooter lands: the bolt stays level
+		p.ringLift = 10;
+		run(p, w, IDLE, 0.1);
+		expect(w.projectiles[0].lift).toBe(45);
+	});
+
+	it('the beam is cast from the ring, not the feet', () => {
+		const d = createDummy(100, 0);
+		const { p, w } = setup('john', 'beam', [d]);
+		p.ringDX = 20;
+		run(p, w, HOLD, DT);
+		// Dummy's near edge is at 88; from the ring at x=20 that's 68 away
+		expect(p.beamLength).toBeCloseTo(68, 0);
+	});
+});

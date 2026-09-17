@@ -36,6 +36,13 @@ export interface Player {
 	/** Direction the ring points: at the target if there is one, otherwise where you face. */
 	aimX: number;
 	aimY: number;
+	/**
+	 * Where the ring is relative to the anchor, in world px: `ringDX` across,
+	 * `ringLift` up. The Game sets these from the animated skeleton each tick,
+	 * so shots, beams and punches start exactly at the ring.
+	 */
+	ringDX: number;
+	ringLift: number;
 
 	// ---- Targeting (see targeting.ts) ----
 	/** What the Target key has locked onto, if anything. */
@@ -143,6 +150,8 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		faceY: 0,
 		aimX: 1,
 		aimY: 0,
+		ringDX: 0,
+		ringLift: 0,
 		lock: null,
 		attackTarget: null,
 		protectTarget: null,
