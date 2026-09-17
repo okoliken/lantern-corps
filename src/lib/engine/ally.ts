@@ -82,7 +82,7 @@ export class AllyInput implements InputSource {
 		const target = this.pickTarget(me, partner, enemies);
 		const intent: Intent = { ...IDLE };
 
-		if (target && !me.flying) intent.toggleFly = true;
+		if (enemies.length > 0 && !me.flying) intent.toggleFly = true;
 		this.move(me, partner, enemies, target, intent);
 		if (target) {
 			// The game lifts the pointer to ring height; aim so it lands on the enemy
@@ -112,7 +112,12 @@ export class AllyInput implements InputSource {
 	private move(me: Player, partner: Player | null, enemies: Enemy[], target: Enemy | null, intent: Intent) {
 		let gx = me.x;
 		let gy = me.y;
-		if (!target) {
+		const nearest = enemies.reduce<Enemy | null>((best, e) => (!best || dist(e, me) < dist(best, me) ? e : best), null);
+		if (!target && nearest) {
+			// Enemies about, but none close: go and find them
+			gx = nearest.x;
+			gy = nearest.y;
+		} else if (!target) {
 			// Close enough already: hold still (two AI partners would otherwise chase each other's spot)
 			if (partner && dist(me, partner) > 200) {
 				const side = me.x < partner.x ? -1 : 1;

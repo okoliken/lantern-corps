@@ -2,7 +2,7 @@
 // Same energy language as the green constructs, in angry red and ragged shapes.
 
 import type { Effect } from '../constructs/system';
-import type { RedShot } from '../enemies/redConstructs';
+import type { RedBeam, RedCage, RedPuddle, RedShot, RedStrike } from '../enemies/redConstructs';
 import { drawSawShape } from './enemies';
 
 const RED = '#ff2a2a';
@@ -19,6 +19,65 @@ export function drawRedShot(ctx: CanvasRenderingContext2D, s: RedShot, x: number
 
 	if (s.kind === 'saw') {
 		drawSawShape(ctx, x, dy, 9, time * 22);
+	} else if (s.kind === 'spear') {
+		// A long jagged lance with a flickering tail
+		ctx.translate(x, dy);
+		ctx.rotate(Math.atan2(uy, ux));
+		ctx.shadowColor = RED;
+		ctx.shadowBlur = 10;
+		const tail = ctx.createLinearGradient(-34, 0, 0, 0);
+		tail.addColorStop(0, 'rgba(255, 42, 42, 0)');
+		tail.addColorStop(1, 'rgba(255, 42, 42, 0.7)');
+		ctx.fillStyle = tail;
+		ctx.fillRect(-34, -1.2, 34, 2.4);
+		ctx.fillStyle = RED;
+		ctx.beginPath();
+		ctx.moveTo(14, 0);
+		ctx.lineTo(2, -4.5);
+		ctx.lineTo(4, -1.2);
+		ctx.lineTo(-10, -1.6);
+		ctx.lineTo(-10, 1.6);
+		ctx.lineTo(4, 1.2);
+		ctx.lineTo(2, 4.5);
+		ctx.closePath();
+		ctx.fill();
+		ctx.fillStyle = HOT;
+		ctx.fillRect(-6, -0.6, 14, 1.2);
+	} else if (s.kind === 'skull') {
+		drawSkull(ctx, x, dy, ux, uy, time);
+	} else if (s.kind === 'plasma') {
+		// A burning blob of napalm, wobbling as it flies
+		const r = 4 + Math.sin(time * 30 + x) * 1;
+		ctx.shadowColor = RED;
+		ctx.shadowBlur = 12;
+		ctx.fillStyle = 'rgba(255, 60, 30, 0.85)';
+		ctx.beginPath();
+		ctx.ellipse(x, dy, r * 1.4, r, Math.atan2(uy, ux), 0, TAU);
+		ctx.fill();
+		ctx.fillStyle = '#ffb070';
+		ctx.beginPath();
+		ctx.arc(x, dy, r * 0.45, 0, TAU);
+		ctx.fill();
+	} else if (s.kind === 'orb') {
+		// A red sphere with cage bars turning inside it
+		ctx.translate(x, dy);
+		ctx.shadowColor = RED;
+		ctx.shadowBlur = 14;
+		ctx.fillStyle = 'rgba(255, 42, 42, 0.35)';
+		ctx.beginPath();
+		ctx.arc(0, 0, 9, 0, TAU);
+		ctx.fill();
+		ctx.strokeStyle = RED;
+		ctx.lineWidth = 1.6;
+		ctx.beginPath();
+		ctx.arc(0, 0, 9, 0, TAU);
+		ctx.stroke();
+		for (let i = 0; i < 3; i++) {
+			const k = Math.cos(time * 6 + (i * Math.PI) / 3);
+			ctx.beginPath();
+			ctx.ellipse(0, 0, Math.abs(k) * 9, 9, 0, 0, TAU);
+			ctx.stroke();
+		}
 	} else if (s.kind === 'hook') {
 		ctx.translate(x, dy);
 		ctx.rotate(Math.atan2(uy, ux));
@@ -65,6 +124,196 @@ export function drawRedShot(ctx: CanvasRenderingContext2D, s: RedShot, x: number
 		ctx.beginPath();
 		ctx.ellipse(1, 0, 3.5, 2, 0, 0, TAU);
 		ctx.fill();
+	}
+	ctx.restore();
+}
+
+function drawSkull(ctx: CanvasRenderingContext2D, x: number, y: number, ux: number, uy: number, time: number) {
+	// Smoky wake
+	for (let i = 1; i <= 5; i++) {
+		ctx.globalAlpha = 0.3 * (1 - i / 6);
+		ctx.fillStyle = RED;
+		ctx.beginPath();
+		ctx.arc(x - ux * i * 6, y - uy * i * 6 + Math.sin(time * 20 + i) * 1.5, 6 - i * 0.8, 0, TAU);
+		ctx.fill();
+	}
+	ctx.globalAlpha = 1;
+	ctx.translate(x, y);
+	ctx.scale(ux < 0 ? -1 : 1, 1);
+	ctx.shadowColor = RED;
+	ctx.shadowBlur = 12;
+	ctx.fillStyle = RED;
+	ctx.beginPath();
+	ctx.arc(0, -1, 7, Math.PI * 0.9, Math.PI * 2.1);
+	ctx.lineTo(5, 4);
+	ctx.lineTo(3, 7);
+	ctx.lineTo(-3, 7);
+	ctx.lineTo(-5, 4);
+	ctx.closePath();
+	ctx.fill();
+	ctx.shadowBlur = 0;
+	ctx.fillStyle = '#2a0000';
+	ctx.beginPath();
+	ctx.arc(-2.5, 0, 1.8, 0, TAU);
+	ctx.arc(3, 0, 1.8, 0, TAU);
+	ctx.fill();
+	ctx.fillStyle = HOT;
+	ctx.beginPath();
+	ctx.arc(3, 0, 0.8, 0, TAU);
+	ctx.fill();
+}
+
+/** Ground layer: burning puddles, and circles where meteors are about to land. */
+export function drawRedGround(ctx: CanvasRenderingContext2D, puddles: readonly RedPuddle[], strikes: readonly RedStrike[], time: number) {
+	for (const pd of puddles) {
+		const fade = Math.min(1, pd.life / 0.6) * Math.min(1, (pd.maxLife - pd.life) / 0.15 + 0.3);
+		ctx.save();
+		ctx.globalAlpha = fade;
+		const g = ctx.createRadialGradient(pd.x, pd.y, 2, pd.x, pd.y, pd.radius);
+		g.addColorStop(0, 'rgba(255, 170, 80, 0.8)');
+		g.addColorStop(0.5, 'rgba(255, 50, 30, 0.6)');
+		g.addColorStop(1, 'rgba(120, 0, 0, 0)');
+		ctx.fillStyle = g;
+		ctx.beginPath();
+		ctx.ellipse(pd.x, pd.y, pd.radius, pd.radius * 0.55, 0, 0, TAU);
+		ctx.fill();
+		// Bubbles and licks of flame
+		ctx.fillStyle = '#ffb070';
+		for (let i = 0; i < 3; i++) {
+			const k = (time * 1.5 + i / 3 + pd.x * 0.01) % 1;
+			const bx = pd.x + Math.cos(i * 2.1 + pd.y) * pd.radius * 0.5;
+			ctx.globalAlpha = fade * (1 - k);
+			ctx.beginPath();
+			ctx.ellipse(bx, pd.y - k * 14, 1.6, 2.6 * (1 - k) + 0.5, 0, 0, TAU);
+			ctx.fill();
+		}
+		ctx.restore();
+	}
+	for (const s of strikes) {
+		if (s.kind !== 'meteor') continue;
+		const k = 1 - s.delay / s.warning;
+		ctx.save();
+		ctx.strokeStyle = RED;
+		ctx.lineWidth = 2;
+		ctx.globalAlpha = 0.9;
+		ctx.setLineDash([7, 5]);
+		ctx.lineDashOffset = -time * 40;
+		ctx.beginPath();
+		ctx.ellipse(s.x, s.y, s.radius, s.radius * 0.55, 0, 0, TAU);
+		ctx.stroke();
+		ctx.setLineDash([]);
+		ctx.fillStyle = `rgba(255, 42, 42, ${0.1 + 0.3 * k})`;
+		ctx.beginPath();
+		ctx.ellipse(s.x, s.y, s.radius * k, s.radius * 0.55 * k, 0, 0, TAU);
+		ctx.fill();
+		ctx.restore();
+	}
+}
+
+/** Falling meteors: a burning rock streaking down in the last moments before it lands. */
+export function drawFallingMeteors(ctx: CanvasRenderingContext2D, strikes: readonly RedStrike[], time: number) {
+	const FALL = 0.4;
+	for (const s of strikes) {
+		if (s.kind !== 'meteor' || s.delay > FALL) continue;
+		const k = 1 - s.delay / FALL; // 0 high up .. 1 landing
+		const height = (1 - k) * 420;
+		const mx = s.x + (1 - k) * 160;
+		const my = s.y - height;
+		ctx.save();
+		const trail = ctx.createLinearGradient(mx + 60, my - 150, mx, my);
+		trail.addColorStop(0, 'rgba(255, 42, 42, 0)');
+		trail.addColorStop(1, 'rgba(255, 120, 60, 0.85)');
+		ctx.strokeStyle = trail;
+		ctx.lineWidth = 9;
+		ctx.lineCap = 'round';
+		ctx.beginPath();
+		ctx.moveTo(mx + 60, my - 150);
+		ctx.lineTo(mx, my);
+		ctx.stroke();
+		ctx.shadowColor = RED;
+		ctx.shadowBlur = 20;
+		ctx.fillStyle = RED;
+		ctx.beginPath();
+		for (let i = 0; i < 9; i++) {
+			const a = (i / 9) * TAU + time * 3;
+			const r = (i % 2 ? 9 : 13) * (0.8 + 0.2 * k);
+			ctx.lineTo(mx + Math.cos(a) * r, my + Math.sin(a) * r);
+		}
+		ctx.closePath();
+		ctx.fill();
+		ctx.fillStyle = HOT;
+		ctx.beginPath();
+		ctx.arc(mx, my, 5, 0, TAU);
+		ctx.fill();
+		ctx.restore();
+	}
+}
+
+/** A Rage Beam from the enemy's hand: a hot core in a ragged, flickering red ray. */
+export function drawRedBeam(ctx: CanvasRenderingContext2D, bm: RedBeam, hx: number, hy: number, time: number) {
+	const len = bm.length;
+	if (len < 4) return;
+	ctx.save();
+	ctx.translate(hx, hy);
+	ctx.rotate(bm.angle);
+	ctx.lineCap = 'round';
+	ctx.shadowColor = RED;
+	ctx.shadowBlur = 18;
+	ctx.strokeStyle = 'rgba(255, 42, 42, 0.45)';
+	ctx.lineWidth = 16 + Math.sin(time * 40) * 3;
+	ctx.beginPath();
+	ctx.moveTo(0, 0);
+	ctx.lineTo(len, 0);
+	ctx.stroke();
+	ctx.strokeStyle = RED;
+	ctx.lineWidth = 7;
+	ctx.beginPath();
+	ctx.moveTo(0, 0);
+	for (let d = 20; d < len; d += 20) ctx.lineTo(d, Math.sin(time * 50 + d * 0.3) * 2.5);
+	ctx.lineTo(len, 0);
+	ctx.stroke();
+	ctx.shadowBlur = 0;
+	ctx.strokeStyle = HOT;
+	ctx.lineWidth = 2.5;
+	ctx.beginPath();
+	ctx.moveTo(0, 0);
+	ctx.lineTo(len, 0);
+	ctx.stroke();
+	// Burning splash where it hits
+	ctx.fillStyle = HOT;
+	ctx.shadowColor = RED;
+	ctx.shadowBlur = 16;
+	ctx.beginPath();
+	ctx.arc(len, 0, 6 + Math.sin(time * 35) * 2, 0, TAU);
+	ctx.fill();
+	ctx.restore();
+}
+
+/** A Rage Prison around a Lantern: red bars, glowing and closing in. `top` is the top of their head. */
+export function drawRedCage(ctx: CanvasRenderingContext2D, c: RedCage, x: number, feetY: number, top: number, time: number) {
+	const k = Math.min(1, (c.maxTime - c.time) / 0.15);
+	const fade = Math.min(1, c.time / 0.2);
+	const w = 30;
+	const h = feetY - top + 16;
+	const y0 = feetY + 4 - h * k;
+	ctx.save();
+	ctx.globalAlpha = fade;
+	ctx.shadowColor = RED;
+	ctx.shadowBlur = 12;
+	ctx.strokeStyle = RED;
+	ctx.lineWidth = 2.2;
+	for (let i = 0; i <= 5; i++) {
+		const bx = x - w + (i * 2 * w) / 5;
+		ctx.beginPath();
+		ctx.moveTo(bx, feetY + 4);
+		ctx.lineTo(bx + Math.sin(time * 20 + i) * 0.8, y0);
+		ctx.stroke();
+	}
+	ctx.lineWidth = 3;
+	for (const yy of [feetY + 4, y0]) {
+		ctx.beginPath();
+		ctx.ellipse(x, yy, w, 6, 0, 0, TAU);
+		ctx.stroke();
 	}
 	ctx.restore();
 }
@@ -164,6 +413,63 @@ export function drawRedEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: nu
 				}
 				ctx.stroke();
 			}
+			break;
+		}
+		case 'scythe': {
+			// A giant crescent blade whipping all the way round
+			const cy = e.y - lift;
+			const spin = (e.angle ?? 0) + easeOut(t) * TAU * 1.1;
+			ctx.shadowColor = RED;
+			ctx.shadowBlur = 16;
+			for (let ghost = 0; ghost < 4; ghost++) {
+				const a = spin - ghost * 0.45;
+				ctx.globalAlpha = (1 - t) * (1 - ghost * 0.22);
+				ctx.fillStyle = ghost === 0 && t < 0.3 ? HOT : RED;
+				ctx.beginPath();
+				ctx.ellipse(e.x, cy, r, r * 0.55, 0, a - 0.9, a);
+				ctx.ellipse(e.x, cy, r * 0.72, r * 0.4, 0, a - 0.1, a - 0.8, true);
+				ctx.closePath();
+				ctx.fill();
+			}
+			break;
+		}
+		case 'spikeBurst': {
+			// Jagged spikes jutting out of the ground, then crumbling
+			const up = t < 0.2 ? easeOut(t / 0.2) : 1 - Math.max(0, (t - 0.55) / 0.45);
+			ctx.shadowColor = RED;
+			ctx.shadowBlur = 10;
+			ctx.fillStyle = t < 0.15 ? HOT : RED;
+			for (let i = -2; i <= 2; i++) {
+				const bx = e.x + i * r * 0.32;
+				const h = (26 - Math.abs(i) * 7) * up * (r / 30);
+				ctx.beginPath();
+				ctx.moveTo(bx - 5, e.y);
+				ctx.lineTo(bx + i * 1.5, e.y - h);
+				ctx.lineTo(bx + 5, e.y);
+				ctx.closePath();
+				ctx.fill();
+			}
+			ctx.globalAlpha = 0.5 * (1 - t);
+			ctx.strokeStyle = RED;
+			ctx.lineWidth = 2;
+			ctx.beginPath();
+			ctx.ellipse(e.x, e.y, r, r * 0.5, 0, 0, TAU);
+			ctx.stroke();
+			break;
+		}
+		case 'redTrail': {
+			// Afterimage streak left by a Rage Charge
+			const a = e.angle ?? 0;
+			ctx.globalAlpha = 0.5 * (1 - t);
+			ctx.strokeStyle = RED;
+			ctx.shadowColor = RED;
+			ctx.shadowBlur = 10;
+			ctx.lineCap = 'round';
+			ctx.lineWidth = 10 * (1 - t);
+			ctx.beginPath();
+			ctx.moveTo(e.x, e.y - lift);
+			ctx.lineTo(e.x - Math.cos(a) * 30, e.y - lift - Math.sin(a) * 30);
+			ctx.stroke();
 			break;
 		}
 		case 'redImpact': {

@@ -37,7 +37,7 @@ export function damagePlayer(
 	const through = absorbWithShield(w, p, amount);
 	if (through <= 0) return 0;
 
-	p.health = Math.max(0, p.health - through);
+	p.health = Math.max(p.minHealth, p.health - through);
 	p.hurtTimer = HURT_TIME;
 	p.invuln = HIT_INVULN;
 	w.effects.push({ kind: 'number', x: p.x, y: p.y, age: 0, life: 0.9, value: Math.round(through), hurt: true });

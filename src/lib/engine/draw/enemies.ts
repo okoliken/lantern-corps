@@ -53,9 +53,10 @@ export function enemyPose(e: Enemy, hasGround: boolean, time: number): LanternPo
 	const busy = b.state === 'windup' || b.state === 'act';
 	const a = busy ? b.ability : null;
 	const s = FIGURE_SCALE * def.scale;
+	const tell = a ? ABILITIES[a].tell : null;
 	let cast = 0;
-	if (a === 'claws') cast = b.state === 'act' ? 1 : 0.35 + 0.15 * Math.sin(time * 30);
-	else if (a === 'roar') cast = b.state === 'act' ? 1 : 0.5 + 0.2 * Math.sin(time * 40);
+	if (tell === 'strike') cast = b.state === 'act' ? 1 : 0.35 + 0.15 * Math.sin(time * 30);
+	else if (tell === 'heavy' || tell === 'sky') cast = b.state === 'act' ? 1 : 0.5 + 0.2 * Math.sin(time * 40);
 	else if (a) cast = b.state === 'act' ? 0.8 : 0.3 * windupProgress(e);
 	return {
 		dir: e.dir,
@@ -65,7 +66,7 @@ export function enemyPose(e: Enemy, hasGround: boolean, time: number): LanternPo
 		lean: Math.min(1, Math.hypot(e.vx, e.vy) / (def.speed * 1.5)) * 0.7,
 		glow: false,
 		shadow: hasGround,
-		firing: a !== null && a !== 'roar' && a !== 'slam',
+		firing: tell === 'aim' || tell === 'strike' || a === 'charge' || a === 'scythe',
 		aimX: b.aimX,
 		aimY: b.aimY,
 		cast,
@@ -131,10 +132,12 @@ export function drawRedLantern(ctx: CanvasRenderingContext2D, e: Enemy, x: numbe
 	ctx.lineJoin = 'round';
 	ctx.lineCap = 'round';
 
-	// Windup tell: the whole body flashes hot for close attacks
-	const tell = (winding === 'claws' || winding === 'slam' || winding === 'roar') && Math.sin(time * 30) > 0;
+	// Windup tell: the whole body flashes hot before close and heavy attacks
+	const windTell = winding ? ABILITIES[winding].tell : null;
+	const bodyTell = windTell === 'strike' || windTell === 'heavy' || windTell === 'sky';
+	const tell = bodyTell && Math.sin(time * 30) > 0;
 	const flash = e.flash > 0 || tell;
-	const claws = b.ability === 'claws' && (winding !== null || acting !== null);
+	const claws = (b.ability === 'claws' || b.ability === 'scythe') && (winding !== null || acting !== null);
 
 	drawArm(ctx, sk.back, true, flash, false);
 	drawLeg(ctx, sk.back, true, flash);
@@ -147,8 +150,9 @@ export function drawRedLantern(ctx: CanvasRenderingContext2D, e: Enemy, x: numbe
 	// Something forming in the hand
 	if (!defeated) {
 		const [hx, hy] = sk.front.hand;
-		if (winding === 'blast' || winding === 'chain') drawHandOrb(ctx, hx, hy, 1.5 + progress * 3.5, time);
-		else if (winding === 'saw') drawSawShape(ctx, hx, hy, 2 + progress * 5, time * 20);
+		if (winding === 'saw') drawSawShape(ctx, hx, hy, 2 + progress * 5, time * 20);
+		else if (windTell === 'aim') drawHandOrb(ctx, hx, hy, 1.5 + progress * 3.5, time);
+		else if (windTell === 'sky') drawHandOrb(ctx, sk.headCenter[0], sk.headCenter[1] - 12 - progress * 4, 2 + progress * 5, time);
 		else if (e.kind === 'rageGrunt' && b.role === 'gunner') drawHandOrb(ctx, hx, hy, 1.4, time);
 	}
 
@@ -160,7 +164,7 @@ export function drawRedLantern(ctx: CanvasRenderingContext2D, e: Enemy, x: numbe
 	const top = y - (HOVER + 52) * s - air;
 
 	// Ranged tells: a red aim line in the last part of the windup (that's when the aim locks)
-	if ((winding === 'blast' || winding === 'saw' || winding === 'chain') && progress > 0.4) {
+	if ((windTell === 'aim' || winding === 'charge') && progress > 0.4) {
 		const ox = x + e.dir * 8 * s;
 		const oy = y - RED_HAND_LIFT;
 		ctx.save();
@@ -171,7 +175,8 @@ export function drawRedLantern(ctx: CanvasRenderingContext2D, e: Enemy, x: numbe
 		ctx.lineDashOffset = -time * 40;
 		ctx.beginPath();
 		ctx.moveTo(ox, oy);
-		ctx.lineTo(ox + b.aimX * 120, oy + b.aimY * 120);
+		const reach = winding === 'beam' || winding === 'spikes' || winding === 'charge' ? 260 : 120;
+		ctx.lineTo(ox + b.aimX * reach, oy + b.aimY * reach);
 		ctx.stroke();
 		ctx.restore();
 	}
@@ -200,14 +205,14 @@ export function drawRedLantern(ctx: CanvasRenderingContext2D, e: Enemy, x: numbe
 		ctx.fillRect(x - w / 2, top, w * (e.hp / e.maxHp), 4);
 	}
 	// Close-attack warning above the head
-	if (winding === 'claws' || winding === 'slam' || winding === 'roar') {
+	if (bodyTell) {
 		ctx.save();
 		ctx.font = '900 16px system-ui, sans-serif';
 		ctx.textAlign = 'center';
 		ctx.lineWidth = 4;
 		ctx.strokeStyle = 'rgba(0,0,0,0.7)';
 		ctx.fillStyle = tell ? '#ffffff' : RED;
-		const mark = winding === 'claws' ? '!' : '!!';
+		const mark = windTell === 'strike' ? '!' : '!!';
 		ctx.strokeText(mark, x, top - 6);
 		ctx.fillText(mark, x, top - 6);
 		ctx.restore();

@@ -2,6 +2,7 @@
 // Lanterns, and when it's beaten the next, bigger one comes.
 
 import type { Role } from './enemies/enemies';
+import { randomKit } from './enemies/redConstructs';
 import type { Game } from './game';
 import { boxOverlap } from './physics';
 
@@ -79,6 +80,7 @@ export class Waves {
 			const e = game.spawnEnemy('rageGrunt', x, y, role);
 			e.hp = e.maxHp = e.brain.lastHp = Math.round(e.maxHp * this.toughness);
 			e.brain.grit = this.toughness;
+			e.brain.kit = randomKit(role);
 		});
 	}
 }

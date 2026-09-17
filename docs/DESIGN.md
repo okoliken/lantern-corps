@@ -188,6 +188,10 @@ Skarr Vell → Manhunters → Dex-Starr → Atrocitus.
         Pack AI: own reaction times, targets split between Lanterns, spots around the target, max 2 in melee,
         ranged pacing, stagger on burst damage. Walls block red shots, Fortress keeps them out, roars shred shields/turrets.
   - [x] AI partner (an InputSource that plays Hal or John) and /lab/demo: co-op waves of up to 4 Red Lanterns
+  - [x] 15 red constructs (claws, Blood Scythe, Rage Roar, Rage Charge, Rage Slam, Barbed Chain, Napalm Vomit, Blood Spikes,
+        Rage Prison, Rage Blast, Rage Saw, Blood Spears, Rage Meteors, Rage Beam, Skull Seekers); every enemy gets a random
+        4-construct kit shaped by its role; `might` damage multiplier
+  - [x] /trailer: self-playing 16:9 gameplay trailer (scenes.ts): Hal vs 5 in Coast City, Hal + John in space
 - [ ] **M6** First mission: objective, win/lose, HUD, restart
 
 **Phase 1.5: Characters** (before enemies, by request)

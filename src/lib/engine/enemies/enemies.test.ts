@@ -345,4 +345,63 @@ describe('Red Lantern constructs', () => {
 		run(w, [p], 1);
 		expect(p.health).toBe(p.maxHealth);
 	});
+
+	it('Rage Meteors mark the ground first, then hit whoever stays in the circle', () => {
+		const e = grunt(400, 0, 'gunner');
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		force(e, 'meteors', p);
+		run(w, [p], 0.3);
+		expect(w.red.strikes.filter((s) => s.kind === 'meteor').length).toBe(4);
+		expect(p.health).toBe(p.maxHealth);
+		e.stun = 5;
+		run(w, [p], 1.6);
+		expect(p.health).toBeLessThan(p.maxHealth);
+	});
+
+	it('Rage Prison locks a Lantern in place', () => {
+		const e = grunt(250, 0, 'hunter');
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		force(e, 'cage', p);
+		run(w, [p], 0.6);
+		expect(w.red.cages).toHaveLength(1);
+		p.vx = 500;
+		run(w, [p], 0.2);
+		expect(Math.abs(p.x - w.red.cages[0].x)).toBeLessThan(1);
+	});
+
+	it('an energy wall stops a Rage Beam and burns', () => {
+		const e = grunt(300, 0, 'gunner');
+		const barrier = wall(140, -60);
+		const w = createConstructWorld([barrier], [e]);
+		const p = lantern();
+		force(e, 'beam', p);
+		run(w, [p], 1);
+		expect(p.health).toBe(p.maxHealth);
+		expect(barrier.hp).toBeLessThan(300);
+	});
+
+	it('Rage Charge barrels through a Lantern in its path', () => {
+		const e = grunt(250, 0, 'berserker');
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		force(e, 'charge', p);
+		run(w, [p], 0.6);
+		expect(p.health).toBeLessThan(p.maxHealth);
+		expect(e.x).toBeLessThan(0);
+	});
+
+	it('might makes red constructs hit harder', () => {
+		const hits = [1, 2].map((might) => {
+			const e = grunt(40, 0);
+			e.brain.might = might;
+			const w = createConstructWorld([], [e]);
+			const p = lantern();
+			force(e, 'claws', p);
+			run(w, [p], 0.1);
+			return p.maxHealth - p.health;
+		});
+		expect(hits[1]).toBeCloseTo(hits[0] * 2, 5);
+	});
 });

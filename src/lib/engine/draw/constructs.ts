@@ -1151,6 +1151,9 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 		case 'slamMark':
 		case 'redBlast':
 		case 'redImpact':
+		case 'scythe':
+		case 'spikeBurst':
+		case 'redTrail':
 			drawRedEffect(ctx, e, lift, time);
 			break;
 		case 'text': {

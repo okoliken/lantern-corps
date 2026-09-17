@@ -28,7 +28,7 @@ import {
 } from './draw/constructs';
 import { drawBattery, drawBeam, drawChargeLink, drawCrosshair, drawDownedNotice, drawHud } from './draw/effects';
 import { drawRedLantern } from './draw/enemies';
-import { drawRedChain, drawRedEffect, drawRedShot } from './draw/redConstructs';
+import { drawFallingMeteors, drawRedBeam, drawRedCage, drawRedChain, drawRedEffect, drawRedGround, drawRedShot } from './draw/redConstructs';
 import { AllyInput } from './ally';
 import { RED_HAND_LIFT } from './enemies/redConstructs';
 import { updatePlayerCombat, revivePlayer } from './combat';
@@ -146,6 +146,8 @@ export class Game {
 		}
 	}
 
+	/** Draw the health / willpower / construct bars. */
+	hud = true;
 	/** Draw the Lanterns' names above their heads. */
 	nameTags = true;
 	/** Camera also keeps enemies attacking the Lanterns in shot (for watching/recording). */
@@ -473,6 +475,7 @@ export class Game {
 		// Traps and Fortress rings are markings on the ground: under everything
 		for (const t of cw.traps) drawTrap(ctx, t, this.time);
 		for (const e of cw.effects) if (e.kind === 'slamMark') drawRedEffect(ctx, e, 0, this.time);
+		drawRedGround(ctx, cw.red.puddles, cw.red.strikes, this.time);
 		const inSpace = map.environment === 'space';
 		for (const f of cw.fortresses) drawFortressBack(ctx, f, this.time, inSpace);
 
@@ -604,6 +607,15 @@ export class Game {
 			if (s.kind === 'hook') drawRedChain(ctx, ...this.redHand(s.owner, alpha), x, y - RED_HAND_LIFT, this.time);
 			drawRedShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
 		}
+		for (const bm of cw.red.beams) drawRedBeam(ctx, bm, ...this.redHand(bm.owner, alpha), this.time);
+		for (const c of cw.red.cages) {
+			const t = c.target;
+			const x = lerp(t.prevX, t.x, alpha);
+			const y = lerp(t.prevY, t.y, alpha);
+			const top = y - this.poseFor(t).hoverHeight * t.altitude * 1.35 - FIGURE_HEIGHT;
+			drawRedCage(ctx, c, x, y - this.poseFor(t).hoverHeight * t.altitude * 1.35, top, this.time);
+		}
+		drawFallingMeteors(ctx, cw.red.strikes, this.time);
 		for (const c of cw.red.chains) {
 			const t = c.target;
 			const bodyY = lerp(t.prevY, t.y, alpha) - this.poseFor(t).hoverHeight * t.altitude * 1.35 - FIGURE_HEIGHT * 0.55;
@@ -636,7 +648,7 @@ export class Game {
 		ctx.restore();
 
 		// ---- Screen space ----
-		drawHud(
+		if (this.hud) drawHud(
 			ctx,
 			this.players.map((p, i) => ({
 				name: p.def.name,

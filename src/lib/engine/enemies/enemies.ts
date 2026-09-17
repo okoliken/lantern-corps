@@ -88,7 +88,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 export interface RoleDef {
 	name: string;
 	description: string;
-	/** Constructs it can use, in the order it considers them. */
+	/** Its default kit (random kits are built per enemy with randomKit). */
 	abilities: AbilityId[];
 	/** Distance it keeps from its target while not in close. */
 	range: number;
@@ -135,6 +135,12 @@ export const ENEMY_SPACING = 34;
 
 export interface EnemyBrain {
 	role: Role;
+	/** The red constructs this particular enemy can use. */
+	kit: AbilityId[];
+	/** Damage multiplier: how strong this enemy is. */
+	might: number;
+	/** Lanterns already hit by the current Rage Charge. */
+	struck: Player[];
 	state: EnemyState;
 	/** The construct being wound up or used. */
 	ability: AbilityId | null;
@@ -192,7 +198,14 @@ export function isEnemy(d: Dummy): d is Enemy {
 	return d.kind !== 'dummy' && 'brain' in d;
 }
 
-export function createEnemy(kind: EnemyKind, x: number, y: number, role: Role = 'berserker', rand = Math.random): Enemy {
+export function createEnemy(
+	kind: EnemyKind,
+	x: number,
+	y: number,
+	role: Role = 'berserker',
+	rand = Math.random,
+	kit: AbilityId[] = ROLES[role].abilities
+): Enemy {
 	const def = ENEMIES[kind];
 	const hp = Math.round(def.hp * ROLES[role].hp);
 	// A short, slightly different grace period on every construct, so a pack
@@ -224,6 +237,9 @@ export function createEnemy(kind: EnemyKind, x: number, y: number, role: Role = 
 		dir: -1,
 		brain: {
 			role,
+			kit: [...kit],
+			might: 1,
+			struck: [],
 			state: 'idle',
 			ability: null,
 			timer: 0,
@@ -395,21 +411,22 @@ function decide(e: Enemy, t: Player, pack: readonly Enemy[], w: ConstructWorld, 
 	const role = ROLES[b.role];
 	if (Math.random() < 0.2) b.strafe = b.strafe === 1 ? -1 : 1;
 
-	if (role.abilities.includes('claws') && !b.engaged && b.breather === 0) {
+	const melee = b.kit.some((id) => ABILITIES[id].melee);
+	if (melee && !b.engaged && b.breather === 0) {
 		const holders = pack.filter((o) => o !== e && o.brain.target === t && o.brain.engaged).length;
 		if (holders < MELEE_SLOTS) b.engaged = true;
 	}
 
 	const dist = Math.hypot(t.x - e.x, t.y - e.y);
 	// Least-used first (ties keep the role's order), so each enemy shows off its whole kit
-	const order = [...role.abilities].sort((x, y) => b.uses[x] - b.uses[y]);
+	const order = [...b.kit].sort((x, y) => b.uses[x] - b.uses[y]);
 	for (const id of order) {
 		const a = ABILITIES[id];
 		if (b.cooldowns[id] > 0) continue;
 		if (dist < a.minRange || dist > a.maxRange + DUMMY_HALF_W) continue;
-		if (id === 'claws' && !b.engaged) continue;
-		// Ranged fighters with no claws back off to their range before shooting
-		if (!role.abilities.includes('claws') && dist < role.range * 0.7) continue;
+		if (a.melee && !b.engaged) continue;
+		// Ranged fighters with nothing for close up back off to their range before shooting
+		if (!melee && dist < role.range * 0.7) continue;
 		if (id === 'roar' && !roarWorthIt(e, w, players)) continue;
 		if (!paceAllows(e, t, pack, id, w)) continue;
 		if (Math.random() > Math.min(1, a.chance * w.redTempo)) continue;
@@ -429,8 +446,8 @@ function paceAllows(e: Enemy, t: Player, pack: readonly Enemy[], id: AbilityId, 
 		const other = ABILITIES[o.brain.ability];
 		return !other.melee && other.heavy === a.heavy;
 	}).length;
-	// Showcasing: let an extra one join in
-	const extra = w.redTempo > 1 ? 1 : 0;
+	// Showcasing: let more join in at once
+	const extra = w.redTempo > 1 ? (a.heavy ? 1 : 2) : 0;
 	return busy < (a.heavy ? 1 : RANGED_SLOTS) + extra;
 }
 

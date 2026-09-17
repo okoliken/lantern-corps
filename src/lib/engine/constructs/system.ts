@@ -121,7 +121,10 @@ export interface Effect {
 		| 'roar'
 		| 'slamMark'
 		| 'redBlast'
-		| 'redImpact';
+		| 'redImpact'
+		| 'scythe'
+		| 'spikeBurst'
+		| 'redTrail';
 	x: number;
 	y: number;
 	age: number;
@@ -210,7 +213,7 @@ export interface ConstructWorld {
 }
 
 export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[], space = false): ConstructWorld {
-	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], pillarStrikes: [], effects: [], space, events: [], red: { shots: [], chains: [] }, redTempo: 1 };
+	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], pillarStrikes: [], effects: [], space, events: [], red: { shots: [], chains: [], strikes: [], puddles: [], beams: [], cages: [] }, redTempo: 1 };
 }
 
 // --------------------------------------------------------------- tuning

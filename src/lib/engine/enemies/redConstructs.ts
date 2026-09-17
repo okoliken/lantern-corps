@@ -1,25 +1,56 @@
 // Red Lantern constructs. Red rings run on rage, so their constructs are
-// crude and brutal: claws, blasts, saws, barbed chains, and raw fury.
+// crude and brutal: claws, scythes, spears, meteors, napalm and raw fury.
+//
+// Every Red Lantern gets its own random KIT from this list (see randomKit),
+// so no two fight quite the same way.
 //
 // They play by the same rules as the Green Lanterns' constructs, from the
 // other side:
 //  - Bubble shields soak them up, and a Fortress dome keeps them out.
-//  - Energy walls block red projectiles, but take damage (saws most of all).
-//  - Turrets can be shot down, and a Rage Roar tears them apart.
+//  - Energy walls block red projectiles and beams, but take damage.
+//  - Turrets can be shot down, and big blasts tear them apart.
 
+import { castBeam } from '../beam';
 import { damagePlayer } from '../combat';
 import { absorbWithShield, removeObstacle, type ConstructWorld } from '../constructs/system';
 import { DUMMY_HALF_W, isStanding } from '../dummy';
 import type { Obstacle } from '../map';
 import { boxOverlap, type Solid } from '../physics';
 import type { Player } from '../player';
-import { ENEMIES, face, steer, type Enemy } from './enemies';
+import { ENEMIES, face, steer, type Enemy, type Role } from './enemies';
 
-export type AbilityId = 'claws' | 'blast' | 'saw' | 'chain' | 'slam' | 'roar';
+export type AbilityId =
+	| 'claws'
+	| 'scythe'
+	| 'roar'
+	| 'charge'
+	| 'slam'
+	| 'chain'
+	| 'vomit'
+	| 'spikes'
+	| 'cage'
+	| 'blast'
+	| 'saw'
+	| 'spears'
+	| 'meteors'
+	| 'beam'
+	| 'skulls';
+
+/** How far away a construct is used from. Kits take some of each. */
+export type Band = 'close' | 'mid' | 'long';
+
+/**
+ * What the windup looks like:
+ * strike = body flashes, "!"   heavy = body flashes, "!!"
+ * aim = orb in the hand and an aim line   sky = orb raised overhead, "!!"
+ */
+export type Tell = 'strike' | 'heavy' | 'aim' | 'sky';
 
 export interface AbilityDef {
 	id: AbilityId;
 	name: string;
+	band: Band;
+	tell: Tell;
 	/** Seconds of tell before it happens. */
 	windup: number;
 	/** Seconds the construct lasts once it starts (at most, for chains). */
@@ -30,6 +61,7 @@ export interface AbilityDef {
 	/** Only used on targets between these distances. */
 	minRange: number;
 	maxRange: number;
+	/** Per hit (per second for the beam). */
 	damage: number;
 	knockback: number;
 	/** Close-range, limited by melee slots. */
@@ -42,37 +74,111 @@ export interface AbilityDef {
 	radius?: number;
 }
 
+const def = (d: AbilityDef) => d;
+
 export const ABILITIES: Record<AbilityId, AbilityDef> = {
-	claws: {
-		id: 'claws', name: 'Rage Claws', windup: 0.42, active: 0.18, recover: 0.45, cooldown: 0.9,
+	// ---- close ----
+	claws: def({
+		id: 'claws', name: 'Rage Claws', band: 'close', tell: 'strike', windup: 0.42, active: 0.18, recover: 0.45, cooldown: 0.9,
 		minRange: 0, maxRange: 56, damage: 12, knockback: 320, melee: true, heavy: false, chance: 1
-	},
-	// Three bolts in quick succession
-	blast: {
-		id: 'blast', name: 'Rage Blast', windup: 0.5, active: 0.45, recover: 0.35, cooldown: 2.2,
-		minRange: 90, maxRange: 460, damage: 7, knockback: 90, melee: false, heavy: false, chance: 0.8, speed: 540
-	},
-	// Flies out, then comes back to the thrower, hitting on the way out AND back
-	saw: {
-		id: 'saw', name: 'Rage Saw', windup: 0.55, active: 0.2, recover: 0.45, cooldown: 5,
-		minRange: 90, maxRange: 340, damage: 12, knockback: 160, melee: false, heavy: false, chance: 0.55, speed: 470
-	},
-	// Hooks a Lantern and yanks them in for a clawing
-	chain: {
-		id: 'chain', name: 'Barbed Chain', windup: 0.5, active: 1.2, recover: 0.3, cooldown: 6.5,
-		minRange: 120, maxRange: 340, damage: 6, knockback: 0, melee: false, heavy: false, chance: 0.6, speed: 950
-	},
-	// Leaps and crashes down where the target WAS when it jumped
-	slam: {
-		id: 'slam', name: 'Rage Slam', windup: 0.35, active: 0.7, recover: 0.7, cooldown: 7,
-		minRange: 110, maxRange: 300, damage: 22, knockback: 480, melee: false, heavy: true, chance: 0.45, radius: 72
-	},
+	}),
+	// A huge blade swung all the way round
+	scythe: def({
+		id: 'scythe', name: 'Blood Scythe', band: 'close', tell: 'heavy', windup: 0.55, active: 0.35, recover: 0.55, cooldown: 3.5,
+		minRange: 0, maxRange: 85, damage: 20, knockback: 520, melee: true, heavy: false, chance: 0.9, radius: 95
+	}),
 	// A blast of fury all around: shreds shields, turrets and walls
-	roar: {
-		id: 'roar', name: 'Rage Roar', windup: 0.6, active: 0.15, recover: 0.6, cooldown: 10,
+	roar: def({
+		id: 'roar', name: 'Rage Roar', band: 'close', tell: 'heavy', windup: 0.6, active: 0.15, recover: 0.6, cooldown: 10,
 		minRange: 0, maxRange: 140, damage: 8, knockback: 560, melee: false, heavy: true, chance: 0.7, radius: 160
-	}
+	}),
+	// Barrels straight through whoever's in the way; crashing into a wall dazes it
+	charge: def({
+		id: 'charge', name: 'Rage Charge', band: 'close', tell: 'heavy', windup: 0.6, active: 0.45, recover: 0.8, cooldown: 6,
+		minRange: 120, maxRange: 340, damage: 22, knockback: 600, melee: false, heavy: true, chance: 0.7, speed: 780
+	}),
+
+	// ---- mid ----
+	// Leaps and crashes down where the target WAS when it jumped
+	slam: def({
+		id: 'slam', name: 'Rage Slam', band: 'mid', tell: 'heavy', windup: 0.35, active: 0.7, recover: 0.7, cooldown: 7,
+		minRange: 110, maxRange: 300, damage: 22, knockback: 480, melee: false, heavy: true, chance: 0.45, radius: 72
+	}),
+	// Hooks a Lantern and yanks them in
+	chain: def({
+		id: 'chain', name: 'Barbed Chain', band: 'mid', tell: 'aim', windup: 0.5, active: 1.2, recover: 0.3, cooldown: 6.5,
+		minRange: 120, maxRange: 340, damage: 6, knockback: 0, melee: false, heavy: false, chance: 0.6, speed: 950
+	}),
+	// The Red Lanterns' signature: a torrent of burning plasma that leaves fire behind
+	vomit: def({
+		id: 'vomit', name: 'Napalm Vomit', band: 'mid', tell: 'aim', windup: 0.45, active: 1, recover: 0.5, cooldown: 6,
+		minRange: 30, maxRange: 190, damage: 5, knockback: 40, melee: false, heavy: false, chance: 0.8, speed: 330
+	}),
+	// A line of spikes bursting out of the ground toward the target
+	spikes: def({
+		id: 'spikes', name: 'Blood Spikes', band: 'mid', tell: 'aim', windup: 0.5, active: 0.6, recover: 0.45, cooldown: 5,
+		minRange: 90, maxRange: 420, damage: 16, knockback: 260, melee: false, heavy: false, chance: 0.75, radius: 30
+	}),
+	// An orb that locks a Lantern in a cage of red bars
+	cage: def({
+		id: 'cage', name: 'Rage Prison', band: 'mid', tell: 'aim', windup: 0.55, active: 0.2, recover: 0.4, cooldown: 9,
+		minRange: 120, maxRange: 380, damage: 6, knockback: 0, melee: false, heavy: false, chance: 0.6, speed: 620
+	}),
+
+	// ---- long ----
+	// Three bolts in quick succession
+	blast: def({
+		id: 'blast', name: 'Rage Blast', band: 'long', tell: 'aim', windup: 0.5, active: 0.45, recover: 0.35, cooldown: 2.2,
+		minRange: 90, maxRange: 460, damage: 7, knockback: 90, melee: false, heavy: false, chance: 0.8, speed: 540
+	}),
+	// Flies out, then comes back to the thrower, hitting on the way out AND back
+	saw: def({
+		id: 'saw', name: 'Rage Saw', band: 'long', tell: 'aim', windup: 0.55, active: 0.2, recover: 0.45, cooldown: 5,
+		minRange: 90, maxRange: 340, damage: 12, knockback: 160, melee: false, heavy: false, chance: 0.55, speed: 470
+	}),
+	// A fan of five jagged spears
+	spears: def({
+		id: 'spears', name: 'Blood Spears', band: 'long', tell: 'aim', windup: 0.6, active: 0.15, recover: 0.45, cooldown: 4.5,
+		minRange: 120, maxRange: 460, damage: 10, knockback: 180, melee: false, heavy: false, chance: 0.75, speed: 720
+	}),
+	// Marks the ground, then red meteors rain down on the marks
+	meteors: def({
+		id: 'meteors', name: 'Rage Meteors', band: 'long', tell: 'sky', windup: 0.7, active: 0.3, recover: 0.6, cooldown: 8,
+		minRange: 150, maxRange: 520, damage: 24, knockback: 380, melee: false, heavy: true, chance: 0.7, radius: 58
+	}),
+	// A burning ray that follows its target (damage is per second)
+	beam: def({
+		id: 'beam', name: 'Rage Beam', band: 'long', tell: 'aim', windup: 0.7, active: 1.1, recover: 0.6, cooldown: 7,
+		minRange: 150, maxRange: 480, damage: 34, knockback: 60, melee: false, heavy: false, chance: 0.7
+	}),
+	// Slow red skulls that hunt their target down
+	skulls: def({
+		id: 'skulls', name: 'Skull Seekers', band: 'long', tell: 'aim', windup: 0.6, active: 0.4, recover: 0.5, cooldown: 7,
+		minRange: 150, maxRange: 520, damage: 11, knockback: 200, melee: false, heavy: false, chance: 0.7, speed: 260
+	})
 };
+
+export const ABILITY_LIST = Object.keys(ABILITIES) as AbilityId[];
+
+/** Which bands each role's kit is built from ('any' = a random band). */
+const KIT_PLAN: Record<Role, (Band | 'any')[]> = {
+	berserker: ['close', 'close', 'mid', 'any'],
+	hunter: ['close', 'mid', 'long', 'any'],
+	gunner: ['long', 'long', 'mid', 'any']
+};
+
+/** A random kit of four different constructs that suits the role. */
+export function randomKit(role: Role, rand = Math.random): AbilityId[] {
+	const kit: AbilityId[] = [];
+	const bands: Band[] = ['close', 'mid', 'long'];
+	for (const slot of KIT_PLAN[role]) {
+		const band = slot === 'any' ? bands[Math.floor(rand() * bands.length)] : slot;
+		let pool = ABILITY_LIST.filter((id) => ABILITIES[id].band === band && !kit.includes(id));
+		if (pool.length === 0) pool = ABILITY_LIST.filter((id) => !kit.includes(id));
+		kit.push(pool[Math.floor(rand() * pool.length)]);
+	}
+	return kit;
+}
 
 /** How high above the ground red projectiles fly (about hand height on a hovering Red Lantern). */
 export const RED_HAND_LIFT = 50;
@@ -84,15 +190,19 @@ const CHAIN_PULL_TIME = 0.4;
 const CHAIN_STOP_DISTANCE = 46;
 /** Extra shield damage from a Rage Roar, on top of its normal damage. */
 const ROAR_SHIELD_DAMAGE = 24;
-const ROAR_TURRET_DAMAGE = 70;
-const ROAR_WALL_DAMAGE = 90;
-const SLAM_TURRET_DAMAGE = 40;
-const SLAM_WALL_DAMAGE = 60;
+const CAGE_TIME = 1.4;
+const BEAM_LENGTH = 520;
+/** The beam damages this often (a Lantern's hit invulnerability would swallow faster ticks). */
+const BEAM_TICK = 0.36;
+const BEAM_TURN_RATE = 1.4;
+const SKULL_TURN_RATE = 2.6;
+const PUDDLE_TICK = 0.4;
 /** How high a Rage Slam leap goes, in px (drawing uses this). */
 export const SLAM_HEIGHT = 70;
 
 export interface RedShot {
-	kind: 'bolt' | 'saw' | 'hook';
+	/** bolt: Rage Blast · saw · hook: Barbed Chain · spear · skull · plasma: Napalm Vomit · orb: Rage Prison */
+	kind: 'bolt' | 'saw' | 'hook' | 'spear' | 'skull' | 'plasma' | 'orb';
 	owner: Enemy;
 	x: number;
 	y: number;
@@ -101,7 +211,7 @@ export interface RedShot {
 	vx: number;
 	vy: number;
 	life: number;
-	/** Cruising speed (saws keep it while turning back). */
+	/** Cruising speed (saws and skulls keep it while turning). */
 	speed: number;
 	damage: number;
 	knockback: number;
@@ -122,13 +232,66 @@ export interface RedChain {
 	time: number;
 }
 
+/** Something about to hit the ground: a meteor, or one spike in a line. */
+export interface RedStrike {
+	kind: 'meteor' | 'spike';
+	x: number;
+	y: number;
+	radius: number;
+	/** Seconds until it lands. */
+	delay: number;
+	/** Seconds of warning it started with (meteors draw a filling circle). */
+	warning: number;
+	damage: number;
+	knockback: number;
+}
+
+/** Burning plasma on the ground. */
+export interface RedPuddle {
+	x: number;
+	y: number;
+	radius: number;
+	life: number;
+	maxLife: number;
+	tick: number;
+	damage: number;
+}
+
+export interface RedBeam {
+	owner: Enemy;
+	angle: number;
+	/** How far it reaches this tick (stopped by walls and domes). */
+	length: number;
+	time: number;
+	tick: number;
+	dps: number;
+}
+
+/** A Lantern locked in a Rage Prison. */
+export interface RedCage {
+	target: Player;
+	x: number;
+	y: number;
+	time: number;
+	maxTime: number;
+}
+
 export interface RedWorld {
 	shots: RedShot[];
 	chains: RedChain[];
+	strikes: RedStrike[];
+	puddles: RedPuddle[];
+	beams: RedBeam[];
+	cages: RedCage[];
 }
 
 export function createRedWorld(): RedWorld {
-	return { shots: [], chains: [] };
+	return { shots: [], chains: [], strikes: [], puddles: [], beams: [], cages: [] };
+}
+
+/** Damage for one hit of a construct: angrier and mightier enemies hit harder. */
+function power(e: Enemy, a: AbilityDef): number {
+	return a.damage * e.brain.might * (1 + 0.5 * e.brain.rage);
 }
 
 // --------------------------------------------------------------- using them
@@ -140,6 +303,9 @@ export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Play
 	b.state = 'act';
 	b.timer = a.active;
 	b.elapsed = 0;
+	b.fired = 0;
+	b.hitDone = false;
+	b.struck = [];
 
 	switch (a.id) {
 		case 'claws':
@@ -147,12 +313,23 @@ export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Play
 			e.vy += b.aimY * 340;
 			w.effects.push({ kind: 'claw', x: e.x, y: e.y, age: 0, life: 0.3, angle: Math.atan2(b.aimY, b.aimX), lift: 40 * ENEMIES[e.kind].scale, radius: a.maxRange });
 			break;
+		case 'scythe':
+			w.effects.push({ kind: 'scythe', x: e.x, y: e.y, age: 0, life: 0.45, angle: Math.atan2(b.aimY, b.aimX), radius: a.radius, lift: 34 });
+			break;
 		case 'saw':
 			fire(e, w, 'saw', a, b.aimX, b.aimY);
 			break;
 		case 'chain':
 			fire(e, w, 'hook', a, b.aimX, b.aimY);
 			break;
+		case 'cage':
+			fire(e, w, 'orb', a, b.aimX, b.aimY);
+			break;
+		case 'spears': {
+			const base = Math.atan2(b.aimY, b.aimX);
+			for (let i = -2; i <= 2; i++) fire(e, w, 'spear', a, Math.cos(base + i * 0.18), Math.sin(base + i * 0.18));
+			break;
+		}
 		case 'slam': {
 			// Cover the distance to the mark over the length of the leap
 			e.vx = (b.markX - e.x) / a.active;
@@ -163,6 +340,16 @@ export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Play
 		case 'roar':
 			roar(e, a, w, players);
 			break;
+		case 'spikes':
+			spikeLine(e, a, w);
+			break;
+		case 'meteors':
+			meteorShower(e, a, w);
+			break;
+		case 'beam': {
+			w.red.beams.push({ owner: e, angle: Math.atan2(b.aimY, b.aimX), length: 0, time: a.active, tick: 0, dps: a.damage * b.might });
+			break;
+		}
 	}
 }
 
@@ -170,6 +357,7 @@ export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Play
 export function updateAbility(e: Enemy, w: ConstructWorld, players: readonly Player[], dt: number): boolean {
 	const b = e.brain;
 	const a = ABILITIES[b.ability!];
+	const accel = ENEMIES[e.kind].accel;
 	b.elapsed += dt;
 	b.timer -= dt;
 
@@ -180,61 +368,104 @@ export function updateAbility(e: Enemy, w: ConstructWorld, players: readonly Pla
 				clawHit(e, a, w, players);
 			}
 			break;
-		case 'blast': {
-			steer(e, 0, 0, ENEMIES[e.kind].accel, dt);
+		case 'scythe':
+			steer(e, 0, 0, accel, dt);
+			if (!b.hitDone) {
+				b.hitDone = true;
+				areaHit(e, a, w, players, e.x, e.y, a.radius ?? 90, 40, 60);
+			}
+			break;
+		case 'blast':
+			steer(e, 0, 0, accel, dt);
 			if (b.fired < 3 && b.elapsed >= b.fired * 0.15) {
-				// Each bolt re-aims a little toward the target, so strafing sideways still matters
-				const t = b.target;
-				if (t) {
-					const dx = t.x - e.x;
-					const dy = t.y - e.y;
-					const len = Math.hypot(dx, dy) || 1;
-					b.aimX += (dx / len - b.aimX) * 0.4;
-					b.aimY += (dy / len - b.aimY) * 0.4;
-					const n = Math.hypot(b.aimX, b.aimY) || 1;
-					b.aimX /= n;
-					b.aimY /= n;
-					face(e, dx);
-				}
+				track(e, 0.4);
 				fire(e, w, 'bolt', a, b.aimX, b.aimY);
 				b.fired++;
 			}
 			break;
-		}
+		case 'skulls':
+			steer(e, 0, 0, accel, dt);
+			if (b.fired < 3 && b.elapsed >= b.fired * 0.12) {
+				const spread = (b.fired - 1) * 0.5;
+				const angle = Math.atan2(b.aimY, b.aimX) + spread;
+				fire(e, w, 'skull', a, Math.cos(angle), Math.sin(angle));
+				b.fired++;
+			}
+			break;
+		case 'vomit':
+			steer(e, 0, 0, accel, dt);
+			// A spray of burning blobs, every few hundredths of a second
+			while (b.fired < b.elapsed / 0.05) {
+				track(e, 0.05);
+				const angle = Math.atan2(b.aimY, b.aimX) + (Math.random() - 0.5) * 0.7;
+				const shot = fire(e, w, 'plasma', a, Math.cos(angle), Math.sin(angle));
+				const k = 0.8 + Math.random() * 0.4;
+				shot.vx *= k;
+				shot.vy *= k;
+				shot.life = (a.maxRange / a.speed!) * (0.55 + Math.random() * 0.45);
+				b.fired++;
+			}
+			break;
 		case 'chain': {
-			steer(e, 0, 0, ENEMIES[e.kind].accel * 2, dt);
+			steer(e, 0, 0, accel * 2, dt);
 			const busy = w.red.shots.some((s) => s.owner === e && s.kind === 'hook') || w.red.chains.some((c) => c.owner === e);
 			if (!busy && b.elapsed > 0.05) b.timer = 0;
 			break;
 		}
+		case 'charge':
+			updateCharge(e, a, w, players, dt);
+			break;
 		case 'slam': {
 			const progress = Math.min(1, b.elapsed / a.active);
 			b.air = Math.sin(progress * Math.PI);
 			if (b.timer <= 0) {
 				b.air = 0;
 				e.vx = e.vy = 0;
-				slamImpact(e, a, w, players);
+				areaHit(e, a, w, players, e.x, e.y, a.radius ?? 70, 40, 60);
+				w.effects.push({ kind: 'redBlast', x: e.x, y: e.y, age: 0, life: 0.55, radius: a.radius });
 			}
 			break;
 		}
+		case 'beam': {
+			steer(e, 0, 0, accel * 2, dt);
+			if (!w.red.beams.some((bm) => bm.owner === e)) b.timer = 0;
+			break;
+		}
 		default:
-			steer(e, 0, 0, ENEMIES[e.kind].accel, dt);
+			steer(e, 0, 0, accel, dt);
 	}
 	return b.timer <= 0;
 }
 
-/** Interrupted: reel in any hooks and chains (saws and bolts already thrown keep going). */
+/** Interrupted: hooks, chains and beams stop (thrown things and meteors already on the way keep going). */
 export function cancelAbility(e: Enemy, w: ConstructWorld) {
 	w.red.shots = w.red.shots.filter((s) => !(s.owner === e && s.kind === 'hook'));
 	w.red.chains = w.red.chains.filter((c) => c.owner !== e);
+	w.red.beams = w.red.beams.filter((bm) => bm.owner !== e);
 	e.brain.air = 0;
 }
 
-function fire(e: Enemy, w: ConstructWorld, kind: RedShot['kind'], a: AbilityDef, dx: number, dy: number) {
+/** Turn the aim part of the way toward the target. */
+function track(e: Enemy, amount: number) {
+	const b = e.brain;
+	const t = b.target;
+	if (!t) return;
+	const dx = t.x - e.x;
+	const dy = t.y - e.y;
+	const len = Math.hypot(dx, dy) || 1;
+	b.aimX += (dx / len - b.aimX) * amount;
+	b.aimY += (dy / len - b.aimY) * amount;
+	const n = Math.hypot(b.aimX, b.aimY) || 1;
+	b.aimX /= n;
+	b.aimY /= n;
+	face(e, dx);
+}
+
+function fire(e: Enemy, w: ConstructWorld, kind: RedShot['kind'], a: AbilityDef, dx: number, dy: number): RedShot {
 	const speed = a.speed ?? 500;
 	const x = e.x + dx * 14;
 	const y = e.y + dy * 14;
-	w.red.shots.push({
+	const shot: RedShot = {
 		kind,
 		owner: e,
 		x,
@@ -243,21 +474,22 @@ function fire(e: Enemy, w: ConstructWorld, kind: RedShot['kind'], a: AbilityDef,
 		prevY: y,
 		vx: dx * speed,
 		vy: dy * speed,
-		life: kind === 'saw' ? 3 : (a.maxRange + 60) / speed,
+		life: kind === 'saw' ? 3 : kind === 'skull' ? 3.2 : (a.maxRange + 60) / speed,
 		speed,
-		damage: a.damage,
+		damage: power(e, a),
 		knockback: a.knockback,
 		ignore: w.obstacles.filter((o) => boxOverlap(x, y, 1, 1, o)),
 		hit: [],
 		travelled: 0,
 		out: a.maxRange,
 		returning: false
-	});
+	};
+	w.red.shots.push(shot);
+	return shot;
 }
 
 function clawHit(e: Enemy, a: AbilityDef, w: ConstructWorld, players: readonly Player[]) {
 	const b = e.brain;
-	const damage = a.damage * (1 + 0.5 * b.rage);
 	for (const p of players) {
 		if (p.downed) continue;
 		const dx = p.x - e.x;
@@ -266,19 +498,17 @@ function clawHit(e: Enemy, a: AbilityDef, w: ConstructWorld, players: readonly P
 		if (dist > a.maxRange + DUMMY_HALF_W + 10) continue;
 		// In front of the swipe (within about 70 degrees of the aim)
 		if (dist > 12 && (dx * b.aimX + dy * b.aimY) / dist < 0.35) continue;
-		damagePlayer(w, p, damage, e.x, e.y, a.knockback);
+		damagePlayer(w, p, power(e, a), e.x, e.y, a.knockback);
 	}
 }
 
-function slamImpact(e: Enemy, a: AbilityDef, w: ConstructWorld, players: readonly Player[]) {
-	const r = a.radius ?? 70;
-	const damage = a.damage * (1 + 0.5 * e.brain.rage);
+/** Hurt every Lantern, turret and energy wall in a circle. */
+function areaHit(e: Enemy, a: AbilityDef, w: ConstructWorld, players: readonly Player[], x: number, y: number, r: number, turretDamage: number, wallDamage: number) {
 	for (const p of players) {
-		if (!p.downed && Math.hypot(p.x - e.x, p.y - e.y) <= r + 10) damagePlayer(w, p, damage, e.x, e.y, a.knockback);
+		if (!p.downed && Math.hypot(p.x - x, p.y - y) <= r + 10) damagePlayer(w, p, power(e, a), x, y, a.knockback);
 	}
-	for (const t of w.turrets) if (Math.hypot(t.x - e.x, t.y - e.y) <= r) t.hp -= SLAM_TURRET_DAMAGE;
-	for (const o of wallsNear(w, e.x, e.y, r)) damageWall(w, o, SLAM_WALL_DAMAGE);
-	w.effects.push({ kind: 'redBlast', x: e.x, y: e.y, age: 0, life: 0.55, radius: r });
+	for (const t of w.turrets) if (Math.hypot(t.x - x, t.y - y) <= r + 10) t.hp -= turretDamage;
+	for (const o of wallsNear(w, x, y, r)) damageWall(w, o, wallDamage);
 }
 
 function roar(e: Enemy, a: AbilityDef, w: ConstructWorld, players: readonly Player[]) {
@@ -290,55 +520,211 @@ function roar(e: Enemy, a: AbilityDef, w: ConstructWorld, players: readonly Play
 		const dist = Math.hypot(dx, dy);
 		if (dist > r + 10) continue;
 		// Tears into bubble shields first, then hits whatever's left
-		if (w.shields.some((s) => s.target === p)) absorbWithShield(w, p, ROAR_SHIELD_DAMAGE);
-		damagePlayer(w, p, a.damage, e.x, e.y, 0);
+		if (w.shields.some((s) => s.target === p)) absorbWithShield(w, p, ROAR_SHIELD_DAMAGE * e.brain.might);
+		damagePlayer(w, p, power(e, a), e.x, e.y, 0);
 		// Blown back even if a shield took the hit (not from inside a Fortress)
-		if (!w.fortresses.some((f) => Math.hypot(p.x - f.x, p.y - f.y) <= f.radius)) {
+		if (!inFortress(w, p.x, p.y)) {
 			const len = dist || 1;
 			p.vx += (dx / len) * a.knockback;
 			p.vy += (dy / len) * a.knockback;
 		}
 	}
-	for (const t of w.turrets) if (Math.hypot(t.x - e.x, t.y - e.y) <= r + 10) t.hp -= ROAR_TURRET_DAMAGE;
-	for (const o of wallsNear(w, e.x, e.y, r)) damageWall(w, o, ROAR_WALL_DAMAGE);
+	for (const t of w.turrets) if (Math.hypot(t.x - e.x, t.y - e.y) <= r + 10) t.hp -= 70;
+	for (const o of wallsNear(w, e.x, e.y, r)) damageWall(w, o, 90);
 	w.effects.push({ kind: 'roar', x: e.x, y: e.y, age: 0, life: 0.6, radius: r, lift: 36 });
+}
+
+function updateCharge(e: Enemy, a: AbilityDef, w: ConstructWorld, players: readonly Player[], dt: number) {
+	const b = e.brain;
+	const speed = a.speed ?? 700;
+	// Something tall stopped us last tick (movement zeroes velocity on a collision): crash
+	if (b.elapsed > 0.05 && Math.hypot(e.vx, e.vy) < speed * 0.4) {
+		const wall = w.obstacles.find((o) => o.kind === 'wall' && boxOverlap(e.x, e.y, DUMMY_HALF_W + 8, DUMMY_HALF_W + 8, o));
+		if (wall) damageWall(w, wall, 140);
+		e.stun = 0.7;
+		b.timer = 0;
+		w.effects.push({ kind: 'redBlast', x: e.x, y: e.y, age: 0, life: 0.4, radius: 40 });
+		return;
+	}
+	e.vx = b.aimX * speed;
+	e.vy = b.aimY * speed;
+	if (Math.random() < 0.6) w.effects.push({ kind: 'redTrail', x: e.x, y: e.y, age: 0, life: 0.35, angle: Math.atan2(b.aimY, b.aimX), lift: 34 });
+	for (const p of players) {
+		if (p.downed || b.struck.includes(p) || Math.hypot(p.x - e.x, p.y - e.y) > 34) continue;
+		b.struck.push(p);
+		damagePlayer(w, p, power(e, a), e.x - b.aimX * 20, e.y - b.aimY * 20, a.knockback);
+	}
+	// Skid to a stop at the end
+	if (b.timer <= dt) {
+		e.vx *= 0.25;
+		e.vy *= 0.25;
+	}
+}
+
+/** Nine spikes erupting one after another along the aim. An energy wall stops the line. */
+function spikeLine(e: Enemy, a: AbilityDef, w: ConstructWorld) {
+	const b = e.brain;
+	for (let i = 0; i < 9; i++) {
+		const x = e.x + b.aimX * (40 + i * 44);
+		const y = e.y + b.aimY * (40 + i * 44);
+		const wall = w.obstacles.find((o) => o.kind === 'wall' && boxOverlap(x, y, 10, 10, o));
+		if (wall) {
+			damageWall(w, wall, 60);
+			w.effects.push({ kind: 'redImpact', x, y, age: 0, life: 0.3, lift: 10 });
+			break;
+		}
+		w.red.strikes.push({ kind: 'spike', x, y, radius: a.radius ?? 30, delay: 0.04 + i * 0.055, warning: 0, damage: power(e, a), knockback: a.knockback });
+	}
+}
+
+/** One meteor right on the target, three more scattered around it. */
+function meteorShower(e: Enemy, a: AbilityDef, w: ConstructWorld) {
+	const t = e.brain.target;
+	const cx = t ? t.x : e.brain.markX;
+	const cy = t ? t.y : e.brain.markY;
+	for (let i = 0; i < 4; i++) {
+		const angle = Math.random() * Math.PI * 2;
+		const r = i === 0 ? 0 : 50 + Math.random() * 80;
+		const warning = 0.95 + i * 0.14;
+		w.red.strikes.push({
+			kind: 'meteor',
+			x: cx + Math.cos(angle) * r,
+			y: cy + Math.sin(angle) * r,
+			radius: a.radius ?? 58,
+			delay: warning,
+			warning,
+			damage: power(e, a),
+			knockback: a.knockback
+		});
+	}
 }
 
 // -------------------------------------------------------------- world tick
 
-/** Move red projectiles and pull chains. Called once per tick after the brains. */
+/** Move red projectiles, beams, chains, cages, falling strikes and fire. Called once per tick after the brains. */
 export function updateRedConstructs(w: ConstructWorld, players: readonly Player[], dt: number) {
-	const alive: RedShot[] = [];
-	for (const s of w.red.shots) {
-		if (updateShot(s, w, players, dt)) alive.push(s);
-	}
-	w.red.shots = alive;
+	const red = w.red;
+	red.shots = red.shots.filter((s) => updateShot(s, w, players, dt));
+	red.chains = red.chains.filter((c) => updateChain(c, dt));
+	red.beams = red.beams.filter((bm) => updateBeam(bm, w, players, dt));
+	red.strikes = red.strikes.filter((s) => updateStrike(s, w, players, dt));
 
-	const pulling: RedChain[] = [];
-	for (const c of w.red.chains) {
+	red.cages = red.cages.filter((c) => {
 		c.time -= dt;
-		const e = c.owner;
 		const p = c.target;
-		const dx = e.x - p.x;
-		const dy = e.y - p.y;
-		const dist = Math.hypot(dx, dy);
-		const holding = isStanding(e) && e.caged === 0 && e.stun === 0 && !p.downed && !p.dash;
-		if (!holding || c.time <= 0 || dist <= CHAIN_STOP_DISTANCE) {
-			if (holding) {
-				// Reeled in: straight into the claws
-				p.vx *= 0.3;
-				p.vy *= 0.3;
-				e.brain.engaged = true;
-				e.brain.cooldowns.claws = 0;
-				e.brain.think = 0;
+		if (c.time <= 0 || p.downed || p.dash) return false;
+		p.x = c.x;
+		p.y = c.y;
+		p.vx = p.vy = 0;
+		return true;
+	});
+
+	red.puddles = red.puddles.filter((pd) => {
+		pd.life -= dt;
+		pd.tick -= dt;
+		if (pd.tick <= 0) {
+			pd.tick = PUDDLE_TICK;
+			for (const p of players) {
+				if (!p.downed && Math.hypot(p.x - pd.x, p.y - pd.y) <= pd.radius) damagePlayer(w, p, pd.damage, pd.x, pd.y, 0);
 			}
-			continue;
 		}
-		p.vx = (dx / dist) * CHAIN_PULL_SPEED;
-		p.vy = (dy / dist) * CHAIN_PULL_SPEED;
-		pulling.push(c);
+		return pd.life > 0;
+	});
+}
+
+function updateChain(c: RedChain, dt: number): boolean {
+	c.time -= dt;
+	const e = c.owner;
+	const p = c.target;
+	const dx = e.x - p.x;
+	const dy = e.y - p.y;
+	const dist = Math.hypot(dx, dy);
+	const holding = isStanding(e) && e.caged === 0 && e.stun === 0 && !p.downed && !p.dash;
+	if (!holding || c.time <= 0 || dist <= CHAIN_STOP_DISTANCE) {
+		if (holding) {
+			// Reeled in: straight into whatever it hits up close with
+			p.vx *= 0.3;
+			p.vy *= 0.3;
+			e.brain.engaged = true;
+			e.brain.cooldowns.claws = 0;
+			e.brain.cooldowns.scythe = 0;
+			e.brain.think = 0;
+		}
+		return false;
 	}
-	w.red.chains = pulling;
+	p.vx = (dx / dist) * CHAIN_PULL_SPEED;
+	p.vy = (dy / dist) * CHAIN_PULL_SPEED;
+	return true;
+}
+
+function updateBeam(bm: RedBeam, w: ConstructWorld, players: readonly Player[], dt: number): boolean {
+	const e = bm.owner;
+	bm.time -= dt;
+	if (bm.time <= 0 || !isStanding(e) || e.stun > 0 || e.caged > 0) return false;
+
+	// Sweep slowly toward the target
+	const t = e.brain.target;
+	if (t) {
+		const want = Math.atan2(t.y - e.y, t.x - e.x);
+		const diff = Math.atan2(Math.sin(want - bm.angle), Math.cos(want - bm.angle));
+		bm.angle += Math.max(-BEAM_TURN_RATE * dt, Math.min(BEAM_TURN_RATE * dt, diff));
+		face(e, t.x - e.x);
+	}
+	const dx = Math.cos(bm.angle);
+	const dy = Math.sin(bm.angle);
+	e.brain.aimX = dx;
+	e.brain.aimY = dy;
+
+	// Stopped by energy walls (which burn) and tall things
+	const blockers = w.obstacles.filter((o) => o.kind === 'wall' || o.blocksFlying);
+	const { length, hit } = castBeam<Obstacle>(e.x, e.y, dx, dy, blockers, BEAM_LENGTH);
+	bm.length = length;
+	// ...and by a Fortress dome it's pointed into from outside
+	for (const f of w.fortresses) {
+		if (Math.hypot(e.x - f.x, e.y - f.y) <= f.radius) continue;
+		const along = (f.x - e.x) * dx + (f.y - e.y) * dy;
+		const off = Math.hypot(f.x - (e.x + dx * along), f.y - (e.y + dy * along));
+		if (along > 0 && off < f.radius) bm.length = Math.min(bm.length, along - Math.sqrt(f.radius ** 2 - off ** 2));
+	}
+
+	bm.tick -= dt;
+	if (bm.tick > 0) return true;
+	bm.tick = BEAM_TICK;
+	if (hit && hit.kind === 'wall') damageWall(w, hit, bm.dps * BEAM_TICK * 1.5);
+	for (const p of players) {
+		if (p.downed) continue;
+		const along = (p.x - e.x) * dx + (p.y - e.y) * dy;
+		if (along < 0 || along > bm.length) continue;
+		const off = Math.abs((p.x - e.x) * dy - (p.y - e.y) * dx);
+		if (off <= PLAYER_HIT_RADIUS + 4) damagePlayer(w, p, bm.dps * BEAM_TICK, e.x, e.y, ABILITIES.beam.knockback);
+	}
+	for (const tr of w.turrets) {
+		const along = (tr.x - e.x) * dx + (tr.y - e.y) * dy;
+		if (along > 0 && along < bm.length && Math.abs((tr.x - e.x) * dy - (tr.y - e.y) * dx) < 16) tr.hp -= bm.dps * BEAM_TICK;
+	}
+	return true;
+}
+
+function updateStrike(s: RedStrike, w: ConstructWorld, players: readonly Player[], dt: number): boolean {
+	s.delay -= dt;
+	if (s.delay > 0) return true;
+	for (const p of players) {
+		if (!p.downed && Math.hypot(p.x - s.x, p.y - s.y) <= s.radius + 8) damagePlayer(w, p, s.damage, s.x, s.y, s.knockback);
+	}
+	for (const t of w.turrets) if (Math.hypot(t.x - s.x, t.y - s.y) <= s.radius + 8) t.hp -= s.kind === 'meteor' ? 40 : 20;
+	for (const o of wallsNear(w, s.x, s.y, s.radius)) damageWall(w, o, s.kind === 'meteor' ? 60 : 30);
+	if (s.kind === 'meteor') {
+		w.effects.push({ kind: 'redBlast', x: s.x, y: s.y, age: 0, life: 0.6, radius: s.radius * 1.2 });
+		if (Math.random() < 0.5) addPuddle(w, s.x, s.y, 34, s.damage * 0.25);
+	} else {
+		w.effects.push({ kind: 'spikeBurst', x: s.x, y: s.y, age: 0, life: 0.55, radius: s.radius });
+	}
+	return false;
+}
+
+function addPuddle(w: ConstructWorld, x: number, y: number, radius: number, damage: number) {
+	if (w.red.puddles.length > 40) w.red.puddles.shift();
+	w.red.puddles.push({ x, y, radius, life: 3.5, maxLife: 3.5, tick: 0.2, damage });
 }
 
 /** Returns false when the shot is used up. */
@@ -350,7 +736,6 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 	if (s.kind === 'hook' && !ownerUp) return false;
 
 	if (s.kind === 'saw') {
-		const speed = s.speed;
 		if (!s.returning && s.travelled >= s.out) startReturn(s);
 		if (s.returning && ownerUp) {
 			// Home back in on the thrower
@@ -358,8 +743,20 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 			const dy = owner.y - s.y;
 			const dist = Math.hypot(dx, dy);
 			if (dist < 22) return false;
-			s.vx += ((dx / dist) * speed - s.vx) * Math.min(1, 8 * dt);
-			s.vy += ((dy / dist) * speed - s.vy) * Math.min(1, 8 * dt);
+			s.vx += ((dx / dist) * s.speed - s.vx) * Math.min(1, 8 * dt);
+			s.vy += ((dy / dist) * s.speed - s.vy) * Math.min(1, 8 * dt);
+		}
+	} else if (s.kind === 'skull') {
+		// Hunt the nearest Lantern who's still up
+		let prey: Player | null = null;
+		for (const p of players) if (!p.downed && (!prey || Math.hypot(p.x - s.x, p.y - s.y) < Math.hypot(prey.x - s.x, prey.y - s.y))) prey = p;
+		if (prey) {
+			const current = Math.atan2(s.vy, s.vx);
+			const want = Math.atan2(prey.y - s.y, prey.x - s.x);
+			const diff = Math.atan2(Math.sin(want - current), Math.cos(want - current));
+			const angle = current + Math.max(-SKULL_TURN_RATE * dt, Math.min(SKULL_TURN_RATE * dt, diff));
+			s.vx = Math.cos(angle) * s.speed;
+			s.vy = Math.sin(angle) * s.speed;
 		}
 	}
 
@@ -367,7 +764,11 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 	s.y += s.vy * dt;
 	s.travelled += Math.hypot(s.vx, s.vy) * dt;
 	s.life -= dt;
-	if (s.life <= 0) return false;
+	if (s.life <= 0) {
+		// Plasma that falls short splatters into a burning puddle
+		if (s.kind === 'plasma' && Math.random() < 0.3) addPuddle(w, s.x, s.y, 24, s.damage * 1.6);
+		return false;
+	}
 
 	// Solid things. Energy walls take the hit (and stop it); saws bounce back once.
 	const solid = w.obstacles.find((o) => !s.ignore.includes(o) && boxOverlap(s.x, s.y, 3, 3, o));
@@ -401,21 +802,27 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 	for (const p of players) {
 		if (p.downed || s.hit.includes(p)) continue;
 		if (Math.hypot(p.x - s.x, p.y - s.y) > PLAYER_HIT_RADIUS) continue;
-		if (s.kind === 'saw') {
-			s.hit.push(p);
-			damagePlayer(w, p, s.damage, s.x - s.vx, s.y - s.vy, s.knockback);
-			impact(w, s);
-			continue;
+		const shielded = w.shields.some((sh) => sh.target === p) || inFortress(w, p.x, p.y);
+		switch (s.kind) {
+			case 'saw':
+				s.hit.push(p);
+				damagePlayer(w, p, s.damage, s.x - s.vx, s.y - s.vy, s.knockback);
+				impact(w, s);
+				continue;
+			case 'hook':
+				// A shield or Fortress breaks the hook off; otherwise it bites in and pulls
+				damagePlayer(w, p, s.damage, s.x - s.vx, s.y - s.vy, 0);
+				if (!shielded && !p.dash) w.red.chains.push({ owner, target: p, time: CHAIN_PULL_TIME });
+				break;
+			case 'orb':
+				damagePlayer(w, p, s.damage, s.x - s.vx, s.y - s.vy, 0);
+				if (!shielded && !p.dash && !w.red.cages.some((c) => c.target === p)) {
+					w.red.cages.push({ target: p, x: p.x, y: p.y, time: CAGE_TIME, maxTime: CAGE_TIME });
+				}
+				break;
+			default:
+				damagePlayer(w, p, s.damage, s.x - s.vx, s.y - s.vy, s.knockback);
 		}
-		if (s.kind === 'hook') {
-			// A shield or Fortress breaks the hook off; otherwise it bites in and pulls
-			const protectedBy = w.shields.some((sh) => sh.target === p) || w.fortresses.some((f) => Math.hypot(p.x - f.x, p.y - f.y) <= f.radius);
-			damagePlayer(w, p, s.damage, s.x - s.vx, s.y - s.vy, 0);
-			if (!protectedBy && !p.dash) w.red.chains.push({ owner, target: p, time: CHAIN_PULL_TIME });
-			impact(w, s);
-			return false;
-		}
-		damagePlayer(w, p, s.damage, s.x - s.vx, s.y - s.vy, s.knockback);
 		impact(w, s);
 		return false;
 	}
@@ -430,6 +837,8 @@ function startReturn(s: RedShot) {
 function impact(w: ConstructWorld, s: RedShot) {
 	w.effects.push({ kind: 'redImpact', x: s.x, y: s.y, age: 0, life: 0.2, lift: RED_HAND_LIFT });
 }
+
+const inFortress = (w: ConstructWorld, x: number, y: number) => w.fortresses.some((f) => Math.hypot(x - f.x, y - f.y) <= f.radius);
 
 function wallsNear(w: ConstructWorld, x: number, y: number, r: number): Obstacle[] {
 	return w.obstacles.filter((o) => o.kind === 'wall' && Math.hypot(o.x + o.w / 2 - x, o.y + o.h / 2 - y) <= r + Math.max(o.w, o.h) / 2);
