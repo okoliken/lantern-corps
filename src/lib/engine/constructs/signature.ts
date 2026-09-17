@@ -155,7 +155,9 @@ function runJet(p: Player, dt: number, w: ConstructWorld) {
 		d.hit.push(t);
 		// Knock them away from the jet's line, not just backward
 		const side = (t.x - p.x) * -d.dy + (t.y - p.y) * d.dx >= 0 ? 1 : -1;
-		hitDummyWithFx(w, t, damage, knockback, t.x + d.dy * side * 20 - d.dx * 10, t.y - d.dx * side * 20 - d.dy * 10, null);
+		const fx = t.x + d.dy * side * 20 - d.dx * 10;
+		const fy = t.y - d.dx * side * 20 - d.dy * 10;
+		hitDummyWithFx(w, t, damage, knockback, fx, fy, p, damage, false);
 	}
 	for (const o of breakables(w)) {
 		const [cx, cy] = center(o);

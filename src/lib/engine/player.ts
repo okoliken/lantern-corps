@@ -55,8 +55,12 @@ export interface Player {
 	protectTarget: Target | null;
 
 	// ---- Willpower ----
-	/** 0..MAX_WILLPOWER. Powers every construct. */
+	/** 0..maxWillpower. Powers every construct. */
 	willpower: number;
+	/** 100, plus the Willpower upgrade. */
+	maxWillpower: number;
+	/** Recovery speed multiplier from the Recovery upgrade. */
+	regenMultiplier: number;
 	/** Ran dry; nothing works until recovered to RESTART_THRESHOLD. */
 	exhausted: boolean;
 	/** Seconds until passive recovery starts. */
@@ -169,6 +173,8 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		downed: false,
 		victoryTimer: 0,
 		willpower: MAX_WILLPOWER,
+		maxWillpower: MAX_WILLPOWER,
+		regenMultiplier: 1,
 		exhausted: false,
 		recoverDelay: 0,
 		charging: false,

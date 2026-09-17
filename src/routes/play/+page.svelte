@@ -16,6 +16,7 @@
 	import { isEnvironmentKind } from '$lib/engine/environment';
 	import { LANTERNS, isLanternId } from '$lib/engine/lanterns';
 	import { settings } from '$lib/settings.svelte';
+	import { profiles } from '$lib/profiles.svelte';
 
 	const as = $derived(page.url.searchParams.get('as'));
 	const lantern = $derived(isLanternId(as) ? as : null);
@@ -31,7 +32,10 @@
 			? new Game({
 					players: [{ lantern, keys: 'solo' }],
 					environment,
-					settings: untrack(() => settings.snapshot())
+					settings: untrack(() => settings.snapshot()),
+					profiles: untrack(() => profiles.snapshot()),
+					// Save XP and level-ups as they happen
+					onProgress: (id, profile) => profiles.update(id, profile)
 				})
 			: null
 	);
@@ -79,6 +83,7 @@
 				onResume={() => setPaused(false)}
 				links={[
 					{ href: '/play', label: '← Change Lantern' },
+					{ href: `/hq?as=${lantern}`, label: 'Corps HQ (upgrades)' },
 					{ href: '/', label: 'Main menu' }
 				]}
 			/>
@@ -91,7 +96,7 @@
 			{#each Object.values(LANTERNS) as def (def.id)}
 				<a class="card" href="/play?as={def.id}">
 					<LanternPortrait {def} />
-					<h2>{def.name}</h2>
+					<h2>{def.name} <span class="card-lv">Lv {profiles.current[def.id].level}</span></h2>
 					<p class="title">{def.title}</p>
 					<p class="blurb">{def.blurb}</p>
 					<dl>
@@ -103,7 +108,10 @@
 				</a>
 			{/each}
 		</div>
-		<a class="menu" href="/">← Menu</a>
+		<nav class="below">
+			<a class="menu" href="/">← Menu</a>
+			<a class="menu" href="/hq">Corps HQ (upgrades) →</a>
+		</nav>
 	</main>
 {/if}
 
@@ -224,6 +232,15 @@
 		display: block;
 		height: 100%;
 		background: var(--green);
+	}
+	.card-lv {
+		font-size: 0.8rem;
+		opacity: 0.7;
+		font-weight: 600;
+	}
+	.below {
+		display: flex;
+		gap: 1.5rem;
 	}
 	.menu {
 		font-size: 0.9rem;

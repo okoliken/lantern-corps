@@ -1120,6 +1120,19 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			}
 			break;
 		}
+		case 'text': {
+			// Small floating note, e.g. "+25 XP"
+			ctx.globalAlpha = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
+			ctx.font = '700 12px system-ui, sans-serif';
+			ctx.textAlign = 'center';
+			ctx.lineWidth = 3;
+			ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+			ctx.fillStyle = '#b8ffcf';
+			const ty = e.y - lift - easeOut(t) * 26;
+			ctx.strokeText(e.text ?? '', e.x, ty);
+			ctx.fillText(e.text ?? '', e.x, ty);
+			break;
+		}
 		case 'pillars': {
 			if (space) drawViceCrush(ctx, e, time);
 			else drawPillarDrop(ctx, e, time);

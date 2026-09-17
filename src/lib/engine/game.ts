@@ -54,6 +54,7 @@ import {
 	type LayoutName
 } from './input';
 import { defaultSettings, type Settings } from './settings';
+import { XP_PER_DEFEAT, addXp, applyProgression, type Profile, type Profiles } from './progression';
 import { LANTERNS, type LanternId } from './lanterns';
 import { buildTestMap, seededRandom, type GameMap, type Obstacle } from './map';
 import { FEET_HALF_H, FEET_HALF_W, clampToBounds, createPlayer, updatePlayer, type Player, type WorldRules } from './player';
@@ -79,6 +80,13 @@ export interface GameOptions {
 	showSlots?: boolean;
 	/** Key bindings and accessibility options. Defaults if not given. */
 	settings?: Settings;
+	/**
+	 * Hal's and John's saved progress. With it, upgrades apply and defeating
+	 * enemies earns XP; without it (labs), there's no progression.
+	 */
+	profiles?: Profiles;
+	/** Called whenever a profile changes (XP earned, level gained), so it can be saved. */
+	onProgress?: (lantern: LanternId, profile: Profile, levelsGained: number) => void;
 }
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -112,13 +120,25 @@ export class Game {
 
 	private rules: WorldRules;
 	private inputs: BindingInput[];
+	private profiles: Profiles | null;
+	private onProgress: GameOptions['onProgress'];
 	private starLayers;
 	private showSlots: boolean;
 	private view: View = { width: 0, height: 0 };
 	private started = false;
 
-	constructor({ players, environment = 'space', map, showSlots = false, settings = defaultSettings() }: GameOptions) {
+	constructor({
+		players,
+		environment = 'space',
+		map,
+		showSlots = false,
+		settings = defaultSettings(),
+		profiles,
+		onProgress
+	}: GameOptions) {
 		this.settings = settings;
+		this.profiles = profiles ?? null;
+		this.onProgress = onProgress;
 		this.map = map ?? buildTestMap(environment);
 		const env = ENVIRONMENT_RULES[this.map.environment];
 		this.rules = { solids: this.map.obstacles, alwaysFlying: env.alwaysFlying };
@@ -138,6 +158,10 @@ export class Game {
 			if (env.alwaysFlying) {
 				p.flying = true;
 				p.altitude = 1;
+			}
+			if (profiles) {
+				applyProgression(p, LANTERNS[cfg.lantern], profiles[cfg.lantern]);
+				p.willpower = p.maxWillpower;
 			}
 			return p;
 		});
@@ -246,6 +270,7 @@ export class Game {
 
 		updateConstructWorld(this.constructs, dt);
 		updateSignatureWorld(this.constructs, dt);
+		this.handleEvents();
 		for (const d of this.dummies) {
 			updateDummy(d, dt, map.obstacles);
 			d.x = Math.min(Math.max(d.x, DUMMY_HALF_W), map.width - DUMMY_HALF_W);
@@ -254,6 +279,26 @@ export class Game {
 
 		const [tx, ty] = this.cameraTarget();
 		this.camera.follow(tx, ty, dt, this.view, map.width, map.height);
+	}
+
+	/** React to what happened this tick: XP and level-ups for defeats. */
+	private handleEvents() {
+		const cw = this.constructs;
+		for (const event of cw.events) {
+			if (event.type !== 'defeat' || !this.profiles) continue;
+			const p = event.by;
+			const id = p.def.id;
+			const profile = this.profiles[id];
+			const gained = addXp(profile, XP_PER_DEFEAT);
+			const headY = p.y - FIGURE_HEIGHT - this.poseFor(p).hoverHeight * p.altitude * 1.35;
+			cw.effects.push({ kind: 'text', x: p.x, y: headY - 6, age: 0, life: 1.1, text: `+${XP_PER_DEFEAT} XP` });
+			if (gained > 0) {
+				cw.effects.push({ kind: 'callout', x: p.x, y: p.y, age: 0, life: 1.6, text: 'LEVEL UP!', owner: p });
+				// New points are spent at Corps HQ; the level shows in the HUD right away
+			}
+			this.onProgress?.(id, profile, gained);
+		}
+		cw.events.length = 0;
 	}
 
 	/** The middle of all players. With one player that's just them. */
@@ -481,7 +526,9 @@ export class Game {
 			this.players.map((p, i) => ({
 				name: p.def.name,
 				slot: p.slot,
+				level: this.profiles ? this.profiles[p.def.id].level : null,
 				willpower: p.willpower,
+				maxWillpower: p.maxWillpower,
 				exhausted: p.exhausted,
 				charging: p.charging,
 				selected: p.selected,

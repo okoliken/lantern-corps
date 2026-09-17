@@ -8,6 +8,7 @@
 //  - Run dry and you're EXHAUSTED: nothing works until you've recovered to
 //    RESTART_THRESHOLD, so constructs don't flicker on and off at 0.
 
+/** Base willpower cap, before the Willpower upgrade. */
 export const MAX_WILLPOWER = 100;
 /** Exhausted Lanterns need this much back before any construct works again. */
 export const RESTART_THRESHOLD = 15;
@@ -36,6 +37,10 @@ export interface WillpowerUser {
 	y: number;
 	flying: boolean;
 	willpower: number;
+	/** The cap (100, more with the Willpower upgrade). */
+	maxWillpower: number;
+	/** Passive recovery speed multiplier (Recovery upgrade). */
+	regenMultiplier: number;
 	/** Ran dry; locked out until back to RESTART_THRESHOLD. */
 	exhausted: boolean;
 	/** Seconds until passive recovery starts. */
@@ -63,19 +68,19 @@ export function inBatteryRange(p: { x: number; y: number }, b: Battery): boolean
 export function updateWillpower(p: WillpowerUser, dt: number, batteries: Battery[] = []) {
 	p.recoverDelay = Math.max(0, p.recoverDelay - dt);
 	if (p.recoverDelay === 0) {
-		p.willpower += (p.flying ? REGEN_AIR : REGEN_GROUND) * dt;
+		p.willpower += (p.flying ? REGEN_AIR : REGEN_GROUND) * p.regenMultiplier * dt;
 	}
 
 	p.charging = false;
 	for (const b of batteries) {
-		if (p.willpower >= MAX_WILLPOWER || b.charge <= 0 || !inBatteryRange(p, b)) continue;
-		const give = Math.min(BATTERY_RATE * dt, MAX_WILLPOWER - p.willpower, b.charge);
+		if (p.willpower >= p.maxWillpower || b.charge <= 0 || !inBatteryRange(p, b)) continue;
+		const give = Math.min(BATTERY_RATE * dt, p.maxWillpower - p.willpower, b.charge);
 		p.willpower += give;
 		b.charge -= give;
 		p.charging = true;
 	}
 
-	p.willpower = Math.min(p.willpower, MAX_WILLPOWER);
+	p.willpower = Math.min(p.willpower, p.maxWillpower);
 	if (p.exhausted && p.willpower >= RESTART_THRESHOLD) p.exhausted = false;
 }
 

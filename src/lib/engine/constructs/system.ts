@@ -113,7 +113,8 @@ export interface Effect {
 		| 'pop'
 		| 'callout'
 		| 'snipe'
-		| 'pillars';
+		| 'pillars'
+		| 'text';
 	x: number;
 	y: number;
 	age: number;
@@ -167,6 +168,13 @@ export interface Fortress {
 	turrets: { angle: number; aim: number; cooldown: number }[];
 }
 
+/** Something happened that the rest of the game (XP, missions, lines) may care about. */
+export interface WorldEvent {
+	type: 'defeat';
+	/** The Lantern who landed the defeating hit. */
+	by: Player;
+}
+
 export interface ConstructWorld {
 	obstacles: Obstacle[];
 	dummies: Dummy[];
@@ -181,10 +189,12 @@ export interface ConstructWorld {
 	effects: Effect[];
 	/** In space, ground-based constructs take their space forms (drones float, etc.). */
 	space: boolean;
+	/** Events since the Game last read them (it empties this each tick). */
+	events: WorldEvent[];
 }
 
 export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[], space = false): ConstructWorld {
-	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], pillarStrikes: [], effects: [], space };
+	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], pillarStrikes: [], effects: [], space, events: [] };
 }
 
 // --------------------------------------------------------------- tuning
@@ -780,7 +790,7 @@ function projectileHit(w: ConstructWorld, pr: Projectile, dummy: Dummy | null, s
 	if (pr.kind === 'hook') {
 		const target = dummy ?? (solid?.movable ? solid : null);
 		if (target) {
-			if (dummy) hitDummyWithFx(w, dummy, pr.damage, 0, pr.x, pr.y, surgeCredit(pr));
+			if (dummy) hitDummyWithFx(w, dummy, pr.damage, 0, pr.x, pr.y, pr.owner, pr.damage, !pr.noSurge);
 			w.tethers.push({ owner: pr.owner, target, time: TETHER_TIME });
 		} else {
 			w.effects.push({ kind: 'impact', x: pr.x, y: pr.y, age: 0, life: 0.15, owner: pr.owner, lift: pr.lift });
@@ -789,19 +799,17 @@ function projectileHit(w: ConstructWorld, pr: Projectile, dummy: Dummy | null, s
 	}
 
 	// Bolt or bullet
-	if (dummy) hitDummyWithFx(w, dummy, pr.damage, pr.knockback, pr.x - pr.vx, pr.y - pr.vy, surgeCredit(pr));
+	if (dummy) hitDummyWithFx(w, dummy, pr.damage, pr.knockback, pr.x - pr.vx, pr.y - pr.vy, pr.owner, pr.damage, !pr.noSurge);
 	if (solid) damageObstacle(w, solid, pr.damage);
 	w.effects.push({ kind: 'impact', x: pr.x, y: pr.y, age: 0, life: 0.12, owner: pr.owner, lift: pr.lift });
 }
 
 /** A cannon shell bursts, hurting everything in its splash radius. */
-const surgeCredit = (pr: Projectile) => (pr.noSurge ? null : pr.owner);
-
 function explode(w: ConstructWorld, pr: Projectile) {
 	const r = pr.def.radius ?? 50;
 	for (const d of w.dummies) {
 		if (isStanding(d) && Math.hypot(d.x - pr.x, d.y - pr.y) <= r + DUMMY_HALF_W) {
-			hitDummyWithFx(w, d, pr.damage, pr.knockback, pr.x, pr.y, surgeCredit(pr));
+			hitDummyWithFx(w, d, pr.damage, pr.knockback, pr.x, pr.y, pr.owner, pr.damage, !pr.noSurge);
 		}
 	}
 	for (const o of breakables(w)) {
@@ -983,7 +991,11 @@ function castAtTargets(x: number, y: number, dx: number, dy: number, range: numb
 	return castBeam<BeamTarget>(x, y, dx, dy, targets, range);
 }
 
-/** Hit a dummy with damage numbers and effects. `by` gets surge credit (null = no credit). */
+/**
+ * Hit a dummy with damage numbers and effects.
+ * `by` is who dealt it: they get the XP if it's defeated, and surge unless
+ * `surge` is false (signature ability damage doesn't refill the meter).
+ */
 export function hitDummyWithFx(
 	w: ConstructWorld,
 	d: Dummy,
@@ -992,11 +1004,13 @@ export function hitDummyWithFx(
 	fromX: number,
 	fromY: number,
 	by: Player | null,
-	shown = damage
+	shown = damage,
+	surge = true
 ) {
 	if (!isStanding(d)) return;
-	if (by) gainSurge(by, damage * SURGE_PER_DAMAGE);
+	if (by && surge) gainSurge(by, damage * SURGE_PER_DAMAGE);
 	const broke = hitDummy(d, damage, knockback, fromX, fromY);
+	if (broke && by) w.events.push({ type: 'defeat', by });
 	if (shown >= 1) w.effects.push({ kind: 'number', x: d.x, y: d.y, age: 0, life: 1, value: Math.round(shown) });
 	if (broke) w.effects.push({ kind: 'burst', x: d.x, y: d.y - 20, age: 0, life: 0.65 });
 }

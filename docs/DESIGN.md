@@ -64,6 +64,15 @@ used (+2) and allies shielded (+6). Signature damage doesn't refill it. Full = p
 - **John: Fortress.** A dome (radius 120) where he stands for 9s × durability. Enemies are pushed out,
   anyone inside takes no damage, and 3 rim turrets shoot enemies within 380px.
 
+## Progression
+Kept simple (`src/lib/engine/progression.ts`, saved per Lantern in the browser):
+- Defeating an enemy gives **+25 XP**. Level n → n+1 needs 100 × n XP. Max level 10.
+- Each level gives **1 upgrade point**. Four upgrades, 5 ranks each, taking effect right away:
+  **Willpower** (+10 max), **Recovery** (+15% regen), **Power** (+6% construct damage),
+  **Focus** (−5% cooldowns). Health comes in M5 when Lanterns can be hurt.
+- Points are spent at **Corps HQ** (`/hq`), from the menu, character select or pause menu.
+  Refunds are free. Labs don't use progression.
+
 ## Bubble shield
 Every Lantern has it, on its own key (E). It shields you, or a locked ally within 450px. It absorbs
 damage until broken or expired (12s × durability, 120 hp × durability), costs 12 willpower, and casting
@@ -180,7 +189,7 @@ Skarr Vell → Manhunters → Dex-Starr → Atrocitus.
 - [x] **C1** Controls & accessibility: mouse aim, free ring shot, remappable bindings, pause menu, options, first-time card
 - [x] **C2** Art & animation: skeleton (animation.ts), detailed Hal/John, idle/walk/take-off/fly/shoot/cast/hurt/downed/victory, /lab/animation
 - [x] **C3** Signature abilities: surge meter; Hal "Jet Strike", John "Fortress" (constructs/signature.ts)
-- [ ] **C4** Stats & progression: XP, levels, upgrades, unlocks, Corps HQ screen, per-character save
+- [x] **C4** Stats & progression: XP, levels (max 10), 4 upgrades, Corps HQ (/hq), per-character save (progression.ts)
 - [ ] **C5** Story & personality: bios, intro cards, combat lines, co-op banter
 
 **Phase 2: Couch co-op**

@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { Game } from './game';
 import { IDLE, type Intent } from './input';
 import { CRATE_HP, type GameMap, type Obstacle } from './map';
+import { XP_PER_DEFEAT, newProfiles } from './progression';
 
 const crate = (x: number, y: number): Obstacle => ({
 	kind: 'crate',
@@ -68,5 +69,44 @@ describe('beam in the game', () => {
 		const map = tinyPlanet([wall]);
 		run(gameWith(map, fireRight), 2);
 		expect(map.obstacles).toContain(wall);
+	});
+});
+
+describe('progression in the game', () => {
+	it('defeating a dummy earns XP and reports the change', () => {
+		const dummyMap = tinyPlanet([]);
+		dummyMap.dummies = [{ x: 1100, y: 1000 }];
+		const profiles = newProfiles();
+		const reports: number[] = [];
+		const game = new Game({
+			players: [{ lantern: 'hal', keys: 'solo' }],
+			map: dummyMap,
+			profiles,
+			onProgress: (_id, profile) => reports.push(profile.xp)
+		});
+		game.setView({ width: 800, height: 600 });
+		game.players[0].input = { read: () => ({ ...IDLE, construct: true }) };
+		game.infiniteWillpower = true;
+		run(game, 5);
+		expect(profiles.hal.xp).toBeGreaterThanOrEqual(XP_PER_DEFEAT);
+		expect(reports.length).toBeGreaterThan(0);
+	});
+
+	it('upgrades from the profile apply when the game starts', () => {
+		const profiles = newProfiles();
+		profiles.john.level = 3;
+		profiles.john.ranks.willpower = 2;
+		const game = new Game({ players: [{ lantern: 'john', keys: 'solo' }], map: tinyPlanet([]), profiles });
+		expect(game.players[0].maxWillpower).toBe(120);
+		expect(game.players[0].willpower).toBe(120);
+	});
+
+	it('labs without profiles earn nothing and change nothing', () => {
+		const dummyMap = tinyPlanet([]);
+		dummyMap.dummies = [{ x: 1100, y: 1000 }];
+		const game = gameWith(dummyMap, { ...IDLE, construct: true });
+		game.infiniteWillpower = true;
+		run(game, 5);
+		expect(game.players[0].maxWillpower).toBe(100);
 	});
 });

@@ -1,7 +1,7 @@
 // Ring energy and the things around it: the beam, the Lantern battery,
 // the recharge link, and the HUD.
 
-import { BATTERY_MAX_CHARGE, MAX_WILLPOWER, RESTART_THRESHOLD, type Battery } from '../willpower';
+import { BATTERY_MAX_CHARGE, RESTART_THRESHOLD, type Battery } from '../willpower';
 import { GREEN } from './lantern';
 
 const BOTTLE_GREEN = '#0F4F34';
@@ -227,7 +227,10 @@ export interface HudSlot {
 export interface HudPlayer {
 	name: string;
 	slot: number;
+	/** Shown next to the name when progression is on. */
+	level: number | null;
 	willpower: number;
+	maxWillpower: number;
 	exhausted: boolean;
 	charging: boolean;
 	slots: HudSlot[];
@@ -268,7 +271,8 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		ctx.textBaseline = 'bottom';
 		ctx.fillStyle = 'rgba(216, 245, 224, 0.9)';
 		ctx.textAlign = 'left';
-		ctx.fillText(`${p.name} · ${p.slots[p.selected].name}`, x, labelY);
+		const level = p.level !== null ? ` · Lv ${p.level}` : '';
+		ctx.fillText(`${p.name}${level} · ${p.slots[p.selected].name}`, x, labelY);
 		ctx.font = '11px ui-monospace, monospace';
 		ctx.textAlign = 'right';
 		ctx.fillStyle = low ? '#ffb86b' : 'rgba(216, 245, 224, 0.7)';
@@ -283,11 +287,11 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		ctx.fillStyle = blink ? '#ffb86b' : GREEN;
 		ctx.shadowColor = GREEN;
 		ctx.shadowBlur = low ? 0 : 8;
-		ctx.fillRect(x, barY, barW * (p.willpower / MAX_WILLPOWER), barH);
+		ctx.fillRect(x, barY, barW * (p.willpower / p.maxWillpower), barH);
 		ctx.shadowBlur = 0;
 		// Tick where exhaustion lifts
 		ctx.fillStyle = 'rgba(216, 245, 224, 0.5)';
-		ctx.fillRect(x + barW * (RESTART_THRESHOLD / MAX_WILLPOWER), barY, 1.5, barH);
+		ctx.fillRect(x + barW * (RESTART_THRESHOLD / p.maxWillpower), barY, 1.5, barH);
 
 		// ---- Surge meter: thin bar under willpower; glows and names the ability when full ----
 		const ready = p.surge.fill >= 1;

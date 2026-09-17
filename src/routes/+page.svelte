@@ -10,6 +10,7 @@
 
 	<nav>
 		<a class="btn" href="/play">Play</a>
+		<a class="btn" href="/hq">Corps HQ</a>
 		{#if dev}
 			<a class="btn lab" href="/lab">Lab (dev only)</a>
 		{/if}

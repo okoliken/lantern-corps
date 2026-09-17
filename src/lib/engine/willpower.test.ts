@@ -22,6 +22,8 @@ const lantern = (willpower = MAX_WILLPOWER, flying = false): WillpowerUser => ({
 	y: 0,
 	flying,
 	willpower,
+	maxWillpower: MAX_WILLPOWER,
+	regenMultiplier: 1,
 	exhausted: false,
 	recoverDelay: 0,
 	charging: false
