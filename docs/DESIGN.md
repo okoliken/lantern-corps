@@ -14,10 +14,15 @@ builds constructs, willpower powers them, and the Lantern battery recharges them
 | Constructs | Build faster, hit harder, break sooner | Sturdier; structures (walls, turrets) cost less |
 | Role in co-op | Damage, pressure | Defense, area control |
 
+## View
+Same as project-7: the **world is seen from above** (move up/down/left/right freely), but
+**characters are drawn side-on**, standing upright, facing left or right, legs animating, with a
+ground shadow. Positions are the characters' feet, and lower on screen is drawn in front.
+
 ## Movement: ground and air
 The Lanterns have two states, not a full height system.
 - **Ground:** blocked by walls and buildings, can interact and rescue, recharges willpower faster.
-- **Air:** faster, passes over obstacles, can be hit by flying enemies. Shown with a shadow and a larger sprite.
+- **Air:** faster, passes over obstacles, can be hit by flying enemies. Shown by the body lifting above its ground shadow.
 
 ## Willpower
 One resource powers every construct. Bigger or stronger constructs cost more.

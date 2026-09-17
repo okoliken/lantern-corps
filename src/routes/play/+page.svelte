@@ -36,8 +36,8 @@
 					<dl>
 						<dt>Speed</dt>
 						<dd><span style:width="{(def.maxSpeed / 340) * 100}%"></span></dd>
-						<dt>Handling</dt>
-						<dd><span style:width="{(def.turnRate / 15) * 100}%"></span></dd>
+						<dt>Agility</dt>
+						<dd><span style:width="{(def.accel / 2800) * 100}%"></span></dd>
 					</dl>
 				</a>
 			{/each}

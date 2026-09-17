@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { IDLE, type Intent } from './input';
 import { LANTERNS, type LanternId } from './lanterns';
-import { clampToBounds, createPlayer, updatePlayer, wrapAngle } from './player';
+import { clampToBounds, createPlayer, updatePlayer } from './player';
 
 const DT = 1 / 60;
 const RIGHT: Intent = { moveX: 1, moveY: 0 };
@@ -50,10 +50,27 @@ describe('updatePlayer', () => {
 		expect(hal.x).toBeGreaterThan(john.x);
 	});
 
-	it('turns to face the direction of movement', () => {
+	it('faces left or right based on horizontal input', () => {
 		const p = make();
-		hold(p, DOWN, 1);
-		expect(p.facing).toBeCloseTo(Math.PI / 2);
+		hold(p, { moveX: -1, moveY: 0 }, 0.2);
+		expect(p.dir).toBe(-1);
+		hold(p, RIGHT, 0.2);
+		expect(p.dir).toBe(1);
+	});
+
+	it('keeps facing the same way when moving straight up or down', () => {
+		const p = make();
+		hold(p, { moveX: -1, moveY: 0 }, 0.2);
+		hold(p, DOWN, 0.5);
+		expect(p.dir).toBe(-1);
+	});
+
+	it('animates legs while moving and resets when stopped', () => {
+		const p = make();
+		hold(p, RIGHT, 0.5);
+		expect(p.walkPhase).toBeGreaterThan(0);
+		hold(p, IDLE, 1);
+		expect(p.walkPhase).toBe(0);
 	});
 
 	it('remembers the previous position for smooth rendering', () => {
@@ -62,13 +79,6 @@ describe('updatePlayer', () => {
 		const before = p.x;
 		updatePlayer(p, RIGHT, DT);
 		expect(p.prevX).toBe(before);
-	});
-});
-
-describe('wrapAngle', () => {
-	it('keeps angles in -PI..PI so turns take the short way', () => {
-		expect(wrapAngle(Math.PI * 1.5)).toBeCloseTo(-Math.PI / 2);
-		expect(wrapAngle(-Math.PI * 1.5)).toBeCloseTo(Math.PI / 2);
 	});
 });
 

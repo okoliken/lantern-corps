@@ -14,11 +14,11 @@ export interface LanternDef {
 	accel: number;
 	/** How fast they stop when no key is held, in px/s². */
 	decel: number;
-	/** How fast they turn to face a new direction, in radians/s. */
-	turnRate: number;
 	look: {
 		skin: string;
 		hair: string;
+		/** Hal's hair sits up with a side sweep; John's is cropped short. */
+		hairStyle: 'swept' | 'cropped';
 	};
 }
 
@@ -31,8 +31,7 @@ export const LANTERNS: Record<LanternId, LanternDef> = {
 		maxSpeed: 320,
 		accel: 2600,
 		decel: 2000,
-		turnRate: 14,
-		look: { skin: '#e2b48e', hair: '#5b3a21' }
+		look: { skin: '#e2b48e', hair: '#5b3a21', hairStyle: 'swept' }
 	},
 	john: {
 		id: 'john',
@@ -42,8 +41,7 @@ export const LANTERNS: Record<LanternId, LanternDef> = {
 		maxSpeed: 280,
 		accel: 2200,
 		decel: 2600,
-		turnRate: 11,
-		look: { skin: '#6e4529', hair: '#171310' }
+		look: { skin: '#6e4529', hair: '#171310', hairStyle: 'cropped' }
 	}
 };
 

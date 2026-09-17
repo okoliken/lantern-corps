@@ -15,13 +15,13 @@
 
 	// Live readout. Polling a few times a second is plenty for a debug panel,
 	// and it keeps Svelte out of the 60-tick game loop.
-	let rows = $state<{ name: string; speed: number; facing: number }[]>([]);
+	let rows = $state<{ name: string; speed: number; dir: string }[]>([]);
 	onMount(() => {
 		const id = setInterval(() => {
 			rows = game.players.map((p) => ({
 				name: `P${p.slot + 1} ${p.def.name}`,
 				speed: Math.round(Math.hypot(p.vx, p.vy)),
-				facing: Math.round((p.facing * 180) / Math.PI)
+				dir: p.dir === 1 ? '→' : '←'
 			}));
 		}, 100);
 		return () => clearInterval(id);
@@ -33,7 +33,7 @@
 		<span><kbd>WASD</kbd> Hal</span>
 		<span><kbd>Arrows</kbd> John</span>
 		{#each rows as row (row.name)}
-			<span class="readout">{row.name}: {row.speed} px/s · {row.facing}°</span>
+			<span class="readout">{row.name}: {row.speed} px/s · facing {row.dir}</span>
 		{/each}
 	</div>
 	<div class="stage">

@@ -15,25 +15,20 @@ export interface Player {
 	prevY: number;
 	vx: number;
 	vy: number;
-	/** Direction faced, in radians. 0 = right, PI/2 = down. */
-	facing: number;
-	prevFacing: number;
+	/** Which way the Lantern faces on screen: 1 = right, -1 = left. */
+	dir: 1 | -1;
+	/** Advances while moving; drives the leg swing animation. */
+	walkPhase: number;
 }
 
 export function createPlayer(slot: number, def: LanternDef, input: InputSource, x: number, y: number): Player {
-	const facing = -Math.PI / 2; // start facing up
-	return { slot, def, input, x, y, prevX: x, prevY: y, vx: 0, vy: 0, facing, prevFacing: facing };
+	return { slot, def, input, x, y, prevX: x, prevY: y, vx: 0, vy: 0, dir: 1, walkPhase: 0 };
 }
 
 /** Move `current` toward `target` by at most `maxDelta`. */
 function approach(current: number, target: number, maxDelta: number): number {
 	if (current < target) return Math.min(current + maxDelta, target);
 	return Math.max(current - maxDelta, target);
-}
-
-/** Wraps an angle into -PI..PI, so turning always takes the short way round. */
-export function wrapAngle(a: number): number {
-	return Math.atan2(Math.sin(a), Math.cos(a));
 }
 
 /**
@@ -43,9 +38,8 @@ export function wrapAngle(a: number): number {
 export function updatePlayer(p: Player, intent: Intent, dt: number) {
 	p.prevX = p.x;
 	p.prevY = p.y;
-	p.prevFacing = p.facing;
 
-	const { maxSpeed, accel, decel, turnRate } = p.def;
+	const { maxSpeed, accel, decel } = p.def;
 	const moving = intent.moveX !== 0 || intent.moveY !== 0;
 
 	// Steer velocity toward where the input points. Speeding up uses accel,
@@ -60,12 +54,13 @@ export function updatePlayer(p: Player, intent: Intent, dt: number) {
 	p.x += p.vx * dt;
 	p.y += p.vy * dt;
 
-	if (moving) {
-		const want = Math.atan2(intent.moveY, intent.moveX);
-		const diff = wrapAngle(want - p.facing);
-		const maxTurn = turnRate * dt;
-		p.facing = wrapAngle(p.facing + Math.max(-maxTurn, Math.min(maxTurn, diff)));
-	}
+	// Only left/right input flips the character. Moving straight up or down
+	// keeps whichever way they were already facing.
+	if (intent.moveX !== 0) p.dir = intent.moveX > 0 ? 1 : -1;
+
+	// Legs cycle faster the faster you go.
+	const speed = Math.hypot(p.vx, p.vy);
+	p.walkPhase = speed > 5 ? p.walkPhase + speed * dt * 0.045 : 0;
 }
 
 /** Keep a player inside a rectangle, killing velocity into the wall. */

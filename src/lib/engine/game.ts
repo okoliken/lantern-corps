@@ -3,10 +3,10 @@
 // /lab page, and in tests.
 
 import type { View } from './canvas';
-import { GREEN, LANTERN_RADIUS, drawLantern, drawNameTag } from './draw/lantern';
+import { FIGURE_HALF_WIDTH, FIGURE_HEIGHT, GREEN, drawLantern, drawNameTag } from './draw/lantern';
 import { KeyboardInput, KeyboardState, LAYOUTS, type LayoutName } from './input';
 import { LANTERNS, type LanternId } from './lanterns';
-import { clampToBounds, createPlayer, updatePlayer, wrapAngle, type Player } from './player';
+import { clampToBounds, createPlayer, updatePlayer, type Player } from './player';
 
 export const LANTERN_GREEN = GREEN;
 
@@ -69,10 +69,11 @@ export class Game {
 
 		if (!this.spawned) this.spawn(width, height);
 
-		const pad = LANTERN_RADIUS;
+		// Positions are the Lantern's feet, so leave room above for the body.
+		const padX = FIGURE_HALF_WIDTH;
 		for (const p of this.players) {
 			updatePlayer(p, p.input.read(), dt);
-			clampToBounds(p, pad, pad, width - pad, height - pad);
+			clampToBounds(p, padX, FIGURE_HEIGHT + 4, width - padX, height - 6);
 		}
 	}
 
@@ -110,11 +111,13 @@ export class Game {
 		this.drawEmblem(ctx, width / 2, height / 2, Math.min(width, height) * 0.12, 0.25);
 
 		if (!this.spawned) return;
-		for (const p of this.players) {
+		// Painter's order: whoever is lower on screen is closer to the viewer,
+		// so draw them last (on top).
+		const byDepth = [...this.players].sort((a, b) => a.y - b.y);
+		for (const p of byDepth) {
 			const x = lerp(p.prevX, p.x, alpha);
 			const y = lerp(p.prevY, p.y, alpha);
-			const facing = p.prevFacing + wrapAngle(p.facing - p.prevFacing) * alpha;
-			drawLantern(ctx, p.def, x, y, facing, this.time);
+			drawLantern(ctx, p.def, x, y, p, this.time);
 			const tag = this.showSlots ? `P${p.slot + 1} · ${p.def.name}` : p.def.name;
 			drawNameTag(ctx, tag, x, y);
 		}
