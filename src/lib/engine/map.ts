@@ -12,7 +12,12 @@ export interface Obstacle extends Solid {
 	height: number;
 	/** Per-obstacle random number, so each one looks a little different. */
 	seed: number;
+	/** Breakable things have health; the beam wears it down. No hp = unbreakable. */
+	hp?: number;
 }
+
+/** How much beam a crate can take. */
+export const CRATE_HP = 60;
 
 export interface GameMap {
 	name: string;
@@ -20,8 +25,13 @@ export interface GameMap {
 	width: number;
 	height: number;
 	spawn: { x: number; y: number };
+	/** Where the Lantern battery stands. */
+	battery: { x: number; y: number };
 	obstacles: Obstacle[];
 }
+
+/** The battery sits just above where players start, inside the clear spawn zone. */
+const batteryFor = (spawn: { x: number; y: number }) => ({ x: spawn.x, y: spawn.y - 110 });
 
 /**
  * Small seeded random generator (mulberry32). Same seed = same numbers,
@@ -89,13 +99,14 @@ export function buildPlanetTestMap(): GameMap {
 				h: size * (crate ? 0.7 : 0.55),
 				height: crate ? 28 : 12 + size * 0.2,
 				blocksFlying: false,
-				seed: rand()
+				seed: rand(),
+				hp: crate ? CRATE_HP : undefined
 			},
 			30
 		);
 	}
 
-	return { name: 'Coast City Outskirts', environment: 'planet', width, height, spawn, obstacles };
+	return { name: 'Coast City Outskirts', environment: 'planet', width, height, spawn, battery: batteryFor(spawn), obstacles };
 }
 
 /** An asteroid field. Asteroids are big enough to block flyers, which is everyone in space. */
@@ -125,7 +136,7 @@ export function buildSpaceTestMap(): GameMap {
 		);
 	}
 
-	return { name: 'Asteroid Belt, Sector 2814', environment: 'space', width, height, spawn, obstacles };
+	return { name: 'Asteroid Belt, Sector 2814', environment: 'space', width, height, spawn, battery: batteryFor(spawn), obstacles };
 }
 
 export function buildTestMap(environment: EnvironmentKind): GameMap {

@@ -12,7 +12,7 @@ import {
 } from './player';
 
 const DT = 1 / 60;
-const move = (moveX: number, moveY: number): Intent => ({ moveX, moveY, toggleFly: false });
+const move = (moveX: number, moveY: number): Intent => ({ ...IDLE, moveX, moveY });
 const RIGHT = move(1, 0);
 const LEFT = move(-1, 0);
 const DOWN = move(0, 1);

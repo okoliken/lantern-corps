@@ -48,6 +48,45 @@ export interface LanternPose {
 	glow: boolean;
 	/** Draw a shadow on the ground below (false in space: nothing to land on). */
 	shadow: boolean;
+	/** Beam on: the ring arm points along (aimX, aimY) and the body stops leaning. */
+	firing: boolean;
+	aimX: number;
+	aimY: number;
+}
+
+/** Shoulder of the ring arm, in local (unscaled, facing-right) coordinates. */
+const SHOULDER_X = 2;
+const SHOULDER_Y = -31;
+/** How far a fully extended ring arm reaches. */
+const ARM_REACH = 13;
+
+/**
+ * How far the body is raised: up with altitude (plus a slow hover bob), and
+ * on the ground either a bounce with each step or gentle breathing.
+ * Negative = up. Unscaled local px.
+ */
+function bodyLift(pose: LanternPose, time: number): number {
+	const air = pose.altitude;
+	const walking = air <= 0.5 && pose.walkPhase !== 0;
+	const hover = (-pose.hoverHeight + Math.sin(time * 2.2) * 1.6) * air;
+	const groundBob = walking ? Math.abs(Math.sin(pose.walkPhase)) * -1.5 : Math.sin(time * 2) * 0.6;
+	return hover + groundBob * (1 - air);
+}
+
+/** The ring arm's hand when aiming, in local coordinates. */
+function aimedHand(pose: LanternPose): [number, number] {
+	// Local space is mirrored when facing left, so flip the aim's x to match.
+	return [SHOULDER_X + pose.aimX * pose.dir * ARM_REACH, SHOULDER_Y + pose.aimY * ARM_REACH];
+}
+
+/**
+ * Where the ring is in WORLD coordinates while firing. The beam starts here,
+ * so it always comes out of the hand, whatever the pose.
+ */
+export function ringPosition(x: number, y: number, pose: LanternPose, time: number, scale = 1): [number, number] {
+	const s = FIGURE_SCALE * scale;
+	const [hx, hy] = aimedHand(pose);
+	return [x + hx * pose.dir * s, y + (bodyLift(pose, time) + hy) * s];
 }
 
 export function drawLantern(
@@ -79,12 +118,8 @@ export function drawLantern(
 		ctx.fill();
 	}
 
-	// Height of the body: rises with altitude (plus a slow hover bob), and
-	// on the ground either bounces with each step or gently breathes.
 	const walking = !flying && pose.walkPhase !== 0;
-	const hover = (-pose.hoverHeight + Math.sin(time * 2.2) * 1.6) * air;
-	const groundBob = walking ? Math.abs(Math.sin(pose.walkPhase)) * -1.5 : Math.sin(time * 2) * 0.6;
-	const lift = hover + groundBob * (1 - air);
+	const lift = bodyLift(pose, time);
 
 	if (pose.glow && air > 0) {
 		const aura = ctx.createRadialGradient(0, -24 + lift, 4, 0, -24 + lift, 36);
@@ -101,8 +136,9 @@ export function drawLantern(
 	ctx.lineCap = 'round';
 	ctx.lineJoin = 'round';
 
-	if (flying) {
+	if (flying && !pose.firing) {
 		// Lean forward from the hips, like a superhero in flight.
+		// (Firing, they straighten up to aim.)
 		ctx.translate(0, -15);
 		ctx.rotate(pose.lean * 0.9);
 		ctx.translate(0, 15);
@@ -182,12 +218,13 @@ export function drawLantern(
 		ctx.fillRect(3.8, -44.2, 2.6, 0.8);
 	}
 
-	// Front arm: the ring hand
-	limb(ctx, SUIT_BLACK, 4, 2, -31, frontArm[0], frontArm[1]);
+	// Front arm: the ring hand. Firing overrides it to point along the aim.
+	if (pose.firing) frontArm = aimedHand(pose);
+	limb(ctx, SUIT_BLACK, 4, SHOULDER_X, SHOULDER_Y, frontArm[0], frontArm[1]);
 	glove(ctx, frontArm[0], frontArm[1]);
 
-	// The ring. Glows while flying; just a small light while walking.
-	const ringGlow = pose.glow && flying;
+	// The ring. Glows while flying or firing; just a small light otherwise.
+	const ringGlow = (pose.glow && flying) || pose.firing;
 	ctx.save();
 	if (ringGlow) {
 		ctx.shadowColor = GREEN;
@@ -195,7 +232,8 @@ export function drawLantern(
 	}
 	ctx.fillStyle = ringGlow ? '#d9ffe3' : '#8fdca8';
 	ctx.beginPath();
-	ctx.arc(frontArm[0] + 1, frontArm[1], ringGlow ? 1.8 : 1.4, 0, Math.PI * 2);
+	const ringX = pose.firing ? frontArm[0] : frontArm[0] + 1;
+	ctx.arc(ringX, frontArm[1], pose.firing ? 2.4 : ringGlow ? 1.8 : 1.4, 0, Math.PI * 2);
 	ctx.fill();
 	ctx.restore();
 

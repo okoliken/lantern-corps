@@ -5,7 +5,7 @@
 // A keyboard, a gamepad, or (in Phase 5) a network connection can all
 // produce Intents, so the player code never changes when we add them.
 
-/** What a player wants to do this tick. More actions (constructs...) come later. */
+/** What a player wants to do this tick. More construct actions come in M4. */
 export interface Intent {
 	/** -1 (left) .. 1 (right) */
 	moveX: number;
@@ -13,9 +13,11 @@ export interface Intent {
 	moveY: number;
 	/** The take-off / land key was PRESSED (not held) since the last tick. */
 	toggleFly: boolean;
+	/** The fire key is HELD (the beam fires for as long as it's down). */
+	fire: boolean;
 }
 
-export const IDLE: Intent = { moveX: 0, moveY: 0, toggleFly: false };
+export const IDLE: Intent = { moveX: 0, moveY: 0, toggleFly: false, fire: false };
 
 export interface InputSource {
 	read(): Intent;
@@ -30,16 +32,19 @@ export interface KeyLayout {
 	right: string[];
 	/** Take off / land. */
 	fly: string[];
+	/** Hold to fire the ring. */
+	fire: string[];
 }
 
 export const LAYOUTS = {
-	wasd: { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], fly: ['Space'] },
+	wasd: { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], fly: ['Space'], fire: ['KeyF'] },
 	arrows: {
 		up: ['ArrowUp'],
 		down: ['ArrowDown'],
 		left: ['ArrowLeft'],
 		right: ['ArrowRight'],
-		fly: ['ShiftRight', 'Enter']
+		fly: ['ShiftRight'],
+		fire: ['Enter']
 	},
 	/** Single player: either set of keys works. */
 	both: {
@@ -47,7 +52,8 @@ export const LAYOUTS = {
 		down: ['KeyS', 'ArrowDown'],
 		left: ['KeyA', 'ArrowLeft'],
 		right: ['KeyD', 'ArrowRight'],
-		fly: ['Space']
+		fly: ['Space'],
+		fire: ['KeyJ', 'KeyF']
 	}
 } satisfies Record<string, KeyLayout>;
 
@@ -66,7 +72,7 @@ export function intentFromKeys(held: ReadonlySet<string>, layout: KeyLayout): In
 		x *= Math.SQRT1_2;
 		y *= Math.SQRT1_2;
 	}
-	return { moveX: x, moveY: y, toggleFly: false };
+	return { moveX: x, moveY: y, toggleFly: false, fire: any(layout.fire) };
 }
 
 /** Tracks which keys are held, and counts presses. One per game, shared by all keyboard players. */
@@ -79,7 +85,7 @@ export class KeyboardState {
 	 */
 	private presses = new Map<string, number>();
 	/** Keys the game uses; we stop the browser scrolling the page with them. */
-	private gameKeys = new Set([...Object.values(LAYOUTS.both).flat(), ...LAYOUTS.arrows.fly]);
+	private gameKeys = new Set(Object.values(LAYOUTS).flatMap((layout) => Object.values(layout).flat()));
 
 	/** Call when a key goes down. Exposed so tests can simulate presses. */
 	press(code: string) {

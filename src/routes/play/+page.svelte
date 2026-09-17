@@ -29,7 +29,8 @@
 		<a class="back" href="/play">← Change Lantern</a>
 		<a class="env" href="/play?as={lantern}&env={otherEnv}">Test on {otherEnv} →</a>
 		<div class="hint">
-			Move: WASD or arrow keys{environment === 'planet' ? ' · Space: take off / land' : ''}
+			Move: WASD or arrows · Fire: hold J or F{environment === 'planet' ? ' · Space: take off / land' : ''}
+			· Stand by the Lantern to recharge
 		</div>
 	</div>
 {:else}
@@ -76,11 +77,15 @@
 		text-decoration: none;
 		opacity: 0.7;
 	}
+	/* Top centre, under the links: the bottom corners belong to the willpower HUD. */
 	.hint {
 		position: absolute;
-		bottom: 12px;
+		top: 36px;
 		left: 50%;
 		translate: -50% 0;
+		width: max-content;
+		max-width: calc(100% - 32px);
+		text-align: center;
 		font-size: 0.8rem;
 		opacity: 0.5;
 		pointer-events: none;

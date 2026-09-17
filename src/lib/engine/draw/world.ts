@@ -6,7 +6,6 @@
 // FRONT FACE filling the gap. That gives a simple 3/4 look.
 
 import type { Obstacle } from '../map';
-import { GREEN } from './lantern';
 
 /** The part of the world currently on screen, in world coordinates. */
 export interface WorldRect {
@@ -69,37 +68,6 @@ export function drawStarfield(
 		}
 	}
 	ctx.globalAlpha = 1;
-}
-
-/** A giant faint Corps emblem painted into space at a world position. */
-export function drawEmblem(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, opacity: number, time: number) {
-	const pulse = 0.75 + 0.25 * Math.sin(time * 3);
-	ctx.save();
-	ctx.strokeStyle = GREEN;
-	ctx.shadowColor = GREEN;
-	ctx.shadowBlur = 30 * pulse;
-	ctx.globalAlpha = pulse * opacity;
-
-	ctx.lineWidth = r * 0.14;
-	ctx.beginPath();
-	ctx.arc(x, y, r, 0, Math.PI * 2);
-	ctx.stroke();
-
-	const barW = r * 1.9;
-	const barGap = r * 0.42;
-	ctx.lineWidth = r * 0.16;
-	ctx.beginPath();
-	ctx.moveTo(x - barW / 2, y - barGap);
-	ctx.lineTo(x + barW / 2, y - barGap);
-	ctx.moveTo(x - barW / 2, y + barGap);
-	ctx.lineTo(x + barW / 2, y + barGap);
-	ctx.stroke();
-
-	ctx.lineWidth = r * 0.12;
-	ctx.beginPath();
-	ctx.arc(x, y, r * 0.3, 0, Math.PI * 2);
-	ctx.stroke();
-	ctx.restore();
 }
 
 // --------------------------------------------------------------- planet

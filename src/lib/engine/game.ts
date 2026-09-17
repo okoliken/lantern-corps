@@ -2,8 +2,10 @@
 // It's plain TypeScript, with no Svelte, so it can run in /play, in any
 // /lab page, and in tests.
 
+import { BEAM_DPS, BEAM_RANGE, castBeam } from './beam';
 import { Camera } from './camera';
 import type { View } from './canvas';
+import { BURST_LIFETIME, drawBattery, drawBeam, drawBurst, drawChargeLink, drawHud, type Burst } from './draw/effects';
 import {
 	FIGURE_HALF_WIDTH,
 	FIGURE_HEIGHT,
@@ -11,14 +13,17 @@ import {
 	HOVER_PLANET,
 	HOVER_SPACE,
 	drawLantern,
-	drawNameTag
+	drawNameTag,
+	ringPosition,
+	type LanternPose
 } from './draw/lantern';
-import { drawEmblem, drawObstacle, drawPlanetGround, drawStarfield, makeStars, type WorldRect } from './draw/world';
+import { drawObstacle, drawPlanetGround, drawStarfield, makeStars, type WorldRect } from './draw/world';
 import { ENVIRONMENT_RULES, type EnvironmentKind } from './environment';
 import { KeyboardInput, KeyboardState, LAYOUTS, type LayoutName } from './input';
 import { LANTERNS, type LanternId } from './lanterns';
 import { buildTestMap, seededRandom, type GameMap } from './map';
 import { FEET_HALF_H, FEET_HALF_W, clampToBounds, createPlayer, updatePlayer, type Player, type WorldRules } from './player';
+import { BATTERY_MAX_CHARGE, updateBattery, updateWillpower, type Battery } from './willpower';
 
 export const LANTERN_GREEN = GREEN;
 
@@ -50,10 +55,12 @@ export class Game {
 	readonly players: Player[];
 	readonly map: GameMap;
 	readonly camera = new Camera();
+	readonly batteries: Battery[];
 	/** Draw collision boxes. Toggled from the lab. */
 	debug = false;
 
 	private rules: WorldRules;
+	private bursts: Burst[] = [];
 	private starLayers;
 	private showSlots: boolean;
 	private view: View = { width: 0, height: 0 };
@@ -63,6 +70,7 @@ export class Game {
 		this.map = map ?? buildTestMap(environment);
 		const env = ENVIRONMENT_RULES[this.map.environment];
 		this.rules = { solids: this.map.obstacles, alwaysFlying: env.alwaysFlying };
+		this.batteries = [{ ...this.map.battery, charge: BATTERY_MAX_CHARGE }];
 
 		// Spawn side by side around the map's spawn point
 		const gap = 170; // wide enough that name tags don't overlap
@@ -101,11 +109,19 @@ export class Game {
 		if (width === 0) return; // canvas not measured yet
 
 		const { map } = this;
+		for (const b of this.batteries) updateBattery(b, dt);
+
 		for (const p of this.players) {
-			updatePlayer(p, p.input.read(), dt, this.rules);
+			const intent = p.input.read();
+			updatePlayer(p, intent, dt, this.rules);
 			// Keep feet inside the map, with room above for the body
 			clampToBounds(p, FIGURE_HALF_WIDTH, FIGURE_HEIGHT, map.width - FIGURE_HALF_WIDTH, map.height - 6);
+			updateWillpower(p, intent.fire, dt, this.batteries);
+			this.updateBeam(p, dt);
 		}
+
+		for (const b of this.bursts) b.age += dt;
+		this.bursts = this.bursts.filter((b) => b.age < BURST_LIFETIME);
 
 		const [tx, ty] = this.cameraTarget();
 		if (!this.started) {
@@ -113,6 +129,32 @@ export class Game {
 			this.started = true;
 		} else {
 			this.camera.follow(tx, ty, dt, this.view, map.width, map.height);
+		}
+	}
+
+	/**
+	 * Cast the beam and damage what it touches.
+	 *
+	 * The beam is drawn from the ring hand, but it's CAST along the ground
+	 * plane from the Lantern's feet. Obstacles are footprints on the ground,
+	 * so that's where "what am I pointing at" lives in this view.
+	 */
+	private updateBeam(p: Player, dt: number) {
+		if (!p.firing) {
+			p.beamLength = 0;
+			return;
+		}
+		const { length, hit } = castBeam(p.x, p.y, p.aimX, p.aimY, this.map.obstacles);
+		p.beamLength = length;
+
+		if (hit?.hp !== undefined) {
+			hit.hp -= BEAM_DPS * dt;
+			if (hit.hp <= 0) {
+				// Removing it from map.obstacles also removes it from collisions,
+				// since the world rules share that same array.
+				this.map.obstacles.splice(this.map.obstacles.indexOf(hit), 1);
+				this.bursts.push({ x: hit.x + hit.w / 2, y: hit.y + hit.h / 2 - hit.height, age: 0 });
+			}
 		}
 	}
 
@@ -125,6 +167,18 @@ export class Game {
 			y += p.y - CAMERA_AIM_UP;
 		}
 		return [x / this.players.length, y / this.players.length];
+	}
+
+	private poseFor(p: Player): LanternPose {
+		const env = ENVIRONMENT_RULES[this.map.environment];
+		return {
+			...p,
+			// Lean comes from horizontal speed: flying sideways fast = full lean.
+			lean: p.flying ? Math.min(Math.abs(p.vx) / p.def.maxSpeed, 1) : 0,
+			hoverHeight: this.map.environment === 'space' ? HOVER_SPACE : HOVER_PLANET,
+			glow: true,
+			shadow: env.hasGround
+		};
 	}
 
 	/**
@@ -158,11 +212,7 @@ export class Game {
 			bottom: camY + height / 2 / zoom
 		};
 
-		if (map.environment === 'space') {
-			drawEmblem(ctx, map.width / 2, map.height / 2, 260, 0.12, this.time);
-		} else {
-			drawPlanetGround(ctx, visible, map.width, map.height);
-		}
+		if (map.environment === 'planet') drawPlanetGround(ctx, visible, map.width, map.height);
 
 		// ---- Everything with depth, sorted back to front ----
 		// Ground things sort by their base y: lower on screen = in front.
@@ -177,20 +227,32 @@ export class Game {
 			if (o.y - o.height > visible.bottom || o.y + o.h < visible.top) continue;
 			ground.push({ baseY: o.y + o.h, draw: () => drawObstacle(ctx, o) });
 		}
+		for (const b of this.batteries) {
+			ground.push({ baseY: b.y, draw: () => drawBattery(ctx, b, env.hasGround, this.time) });
+		}
 
-		const hoverHeight = map.environment === 'space' ? HOVER_SPACE : HOVER_PLANET;
+		const overlays: (() => void)[] = [];
 		const tags: (() => void)[] = [];
 		for (const p of this.players) {
 			const x = lerp(p.prevX, p.x, alpha);
 			const y = lerp(p.prevY, p.y, alpha);
-			// Lean comes from horizontal speed: flying sideways fast = full lean.
-			const lean = p.flying ? Math.min(Math.abs(p.vx) / p.def.maxSpeed, 1) : 0;
-			const pose = { ...p, lean, hoverHeight, glow: true, shadow: env.hasGround };
+			const pose = this.poseFor(p);
 			const list = p.altitude > 0.5 ? air : ground;
 			list.push({ baseY: y, draw: () => drawLantern(ctx, p.def, x, y, pose, this.time) });
 
+			if (p.charging) {
+				const chestY = y - (pose.hoverHeight * p.altitude + 28) * 1.35;
+				for (const b of this.batteries) {
+					overlays.push(() => drawChargeLink(ctx, b, env.hasGround, x, chestY, this.time));
+				}
+			}
+			if (p.firing) {
+				const [rx, ry] = ringPosition(x, y, pose, this.time);
+				overlays.push(() => drawBeam(ctx, rx, ry, p.aimX, p.aimY, p.beamLength, p.beamLength < BEAM_RANGE, this.time));
+			}
+
 			const tag = this.showSlots ? `P${p.slot + 1} · ${p.def.name}` : p.def.name;
-			const lift = hoverHeight * p.altitude * 1.35;
+			const lift = pose.hoverHeight * p.altitude * 1.35;
 			tags.push(() => drawNameTag(ctx, tag, x, y, lift));
 		}
 
@@ -198,10 +260,21 @@ export class Game {
 			list.sort((a, b) => a.baseY - b.baseY);
 			for (const d of list) d.draw();
 		}
+		for (const o of overlays) o();
+		for (const b of this.bursts) drawBurst(ctx, b);
 		for (const t of tags) t();
 
 		if (this.debug) this.drawDebug(ctx);
 		ctx.restore();
+
+		// ---- Screen space ----
+		drawHud(
+			ctx,
+			this.players.map((p) => ({ name: p.def.name, slot: p.slot, willpower: p.willpower, charging: p.charging })),
+			width,
+			height,
+			this.time
+		);
 	}
 
 	/** Collision footprints (red = blocks walkers only, orange = blocks flyers too) and feet boxes. */

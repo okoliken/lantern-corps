@@ -2,6 +2,7 @@
 
 import type { InputSource, Intent } from './input';
 import type { LanternDef } from './lanterns';
+import { MAX_WILLPOWER } from './willpower';
 
 export interface Player {
 	/** 0 = player 1, 1 = player 2. */
@@ -24,6 +25,17 @@ export interface Player {
 	flying: boolean;
 	/** 0 = on the ground, 1 = fully airborne. Eases between them on take-off/landing. */
 	altitude: number;
+	/** Direction the ring points (unit vector): the last direction you moved in. */
+	aimX: number;
+	aimY: number;
+	/** 0..MAX_WILLPOWER. Powers every construct. */
+	willpower: number;
+	/** The beam is on right now. */
+	firing: boolean;
+	/** How far the beam reached this tick (for drawing). */
+	beamLength: number;
+	/** Drawing power from a Lantern battery this tick (for drawing the link). */
+	charging: boolean;
 }
 
 /**
@@ -50,6 +62,8 @@ const OPEN_WORLD: WorldRules = { solids: [], alwaysFlying: false };
 
 /** Flying is faster than walking. */
 export const FLY_SPEED_BONUS = 1.25;
+/** Holding the beam steady slows you down. */
+export const FIRING_SPEED_FACTOR = 0.55;
 /** Seconds to rise from the ground to full height (and back down). */
 export const TAKEOFF_TIME = 0.25;
 /** The collision box around a Lantern's anchor (their feet): 16 x 10 px. */
@@ -70,7 +84,13 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		dir: 1,
 		walkPhase: 0,
 		flying: false,
-		altitude: 0
+		altitude: 0,
+		aimX: 1,
+		aimY: 0,
+		willpower: MAX_WILLPOWER,
+		firing: false,
+		beamLength: 0,
+		charging: false
 	};
 }
 
@@ -110,7 +130,7 @@ export function updatePlayer(p: Player, intent: Intent, dt: number, world: World
 
 	// ---- Steering ----
 	const { accel, decel } = p.def;
-	const maxSpeed = p.def.maxSpeed * (p.flying ? FLY_SPEED_BONUS : 1);
+	const maxSpeed = p.def.maxSpeed * (p.flying ? FLY_SPEED_BONUS : 1) * (p.firing ? FIRING_SPEED_FACTOR : 1);
 	const moving = intent.moveX !== 0 || intent.moveY !== 0;
 
 	// Steer velocity toward where the input points. Speeding up uses accel,
@@ -129,6 +149,12 @@ export function updatePlayer(p: Player, intent: Intent, dt: number, world: World
 	// Only left/right input flips the character. Moving straight up or down
 	// keeps whichever way they were already facing.
 	if (intent.moveX !== 0) p.dir = intent.moveX > 0 ? 1 : -1;
+
+	// The ring aims wherever you last pushed. Input is already normalized.
+	if (moving) {
+		p.aimX = intent.moveX;
+		p.aimY = intent.moveY;
+	}
 
 	// Walking legs cycle faster the faster you go. Flying Lanterns don't walk.
 	const speed = Math.hypot(p.vx, p.vy);

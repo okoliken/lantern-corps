@@ -20,11 +20,13 @@ Same as project-7: the **world is seen from above** (move up/down/left/right fre
 ground shadow. Positions are the characters' feet, and lower on screen is drawn in front.
 
 ## Controls
-| | Move | Take off / land |
-|---|---|---|
-| Single player | WASD or arrows | Space |
-| Co-op P1 | WASD | Space |
-| Co-op P2 | Arrows | Right Shift (or Enter) |
+| | Move | Take off / land | Fire (hold) |
+|---|---|---|---|
+| Single player | WASD or arrows | Space | J or F |
+| Co-op P1 | WASD | Space | F |
+| Co-op P2 | Arrows | Right Shift | Enter |
+
+The ring aims in the last direction you moved (8 directions).
 
 ## Obstacles
 Obstacles have a **footprint** on the ground (used for collision) and a visual **height**.
@@ -51,8 +53,11 @@ The Lanterns have two states, not a full height system.
 - **Air:** faster, passes over obstacles, can be hit by flying enemies. Shown by the body lifting above its ground shadow.
 
 ## Willpower
-One resource powers every construct. Bigger or stronger constructs cost more.
-The **Lantern battery** recharges the ring, so players have to choose their moments.
+One resource (0–100) powers every construct. Numbers live in `src/lib/engine/willpower.ts`.
+- The beam drains 22/s. At 0 it cuts out and won't restart until you're back to 15.
+- Passive recovery: 6/s on the ground, 2/s flying, none while firing.
+- **Lantern battery:** stand within 90px to refill at 45/s. The battery holds 400 charge and
+  only recovers 4/s, so you can't camp it through a long fight.
 
 ## Constructs
 Every construct, whether preset or custom, uses one of 8 **behavior types**:
@@ -100,7 +105,7 @@ Parallax (final boss).
 **Phase 1: Single-player core**
 - [x] **M1** Character select (Hal/John), top-down movement, input sources
 - [x] **M2** Test maps (planet city + asteroid field), collisions, take-off/landing, following camera with zoom
-- [ ] **M3** Willpower + Lantern battery, first construct (beam)
+- [x] **M3** Willpower + Lantern battery, first construct (beam), breakable crates, HUD
 - [ ] **M4** Construct system: 8 behavior types, Hal and John preset sets on hotkeys
 - [ ] **M5** Manhunter enemies: AI, health, damage, death
 - [ ] **M6** First mission: objective, win/lose, HUD, restart

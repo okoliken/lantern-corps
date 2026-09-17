@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { KeyboardInput, KeyboardState, LAYOUTS, intentFromKeys } from './input';
 
 const keys = (...codes: string[]) => new Set(codes);
-const still = { moveX: 0, moveY: 0, toggleFly: false };
+const still = { moveX: 0, moveY: 0, toggleFly: false, fire: false };
 
 describe('intentFromKeys', () => {
 	it('no keys means no movement', () => {
@@ -31,6 +31,18 @@ describe('intentFromKeys', () => {
 	it('the "both" layout accepts either set', () => {
 		expect(intentFromKeys(keys('KeyA'), LAYOUTS.both).moveX).toBe(-1);
 		expect(intentFromKeys(keys('ArrowLeft'), LAYOUTS.both).moveX).toBe(-1);
+	});
+});
+
+describe('fire key', () => {
+	it('fire is held while the key is down', () => {
+		expect(intentFromKeys(keys('KeyF'), LAYOUTS.wasd).fire).toBe(true);
+		expect(intentFromKeys(keys(), LAYOUTS.wasd).fire).toBe(false);
+	});
+
+	it('each co-op player has their own fire key', () => {
+		expect(intentFromKeys(keys('Enter'), LAYOUTS.wasd).fire).toBe(false);
+		expect(intentFromKeys(keys('Enter'), LAYOUTS.arrows).fire).toBe(true);
 	});
 });
 
