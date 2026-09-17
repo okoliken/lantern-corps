@@ -45,7 +45,7 @@ export const LANTERNS: Record<LanternId, LanternDef> = {
 		accel: 2600,
 		decel: 2000,
 		// Hits harder and faster, but what he builds doesn't last
-		traits: { power: 1.2, durability: 0.75, cooldown: 0.85, structureCost: 1 },
+		traits: { power: 1.2, durability: 0.85, cooldown: 0.85, structureCost: 1 },
 		look: { skin: '#e2b48e', hair: '#5b3a21', hairStyle: 'swept', mask: true }
 	},
 	john: {

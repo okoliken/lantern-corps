@@ -12,17 +12,17 @@ export const MAX_WILLPOWER = 100;
 /** Exhausted Lanterns need this much back before any construct works again. */
 export const RESTART_THRESHOLD = 15;
 /** Seconds after using a construct before passive recovery kicks in. */
-export const RECOVER_DELAY = 0.6;
+export const RECOVER_DELAY = 0.4;
 /** Passive recovery per second. */
-export const REGEN_GROUND = 6;
-export const REGEN_AIR = 2;
+export const REGEN_GROUND = 12;
+export const REGEN_AIR = 6;
 
 /** Battery: how close you need to be, and how fast it refills you. */
 export const BATTERY_RADIUS = 90;
-export const BATTERY_RATE = 45;
+export const BATTERY_RATE = 60;
 export const BATTERY_MAX_CHARGE = 400;
 /** How fast a battery's own charge comes back, per second. */
-export const BATTERY_REGEN = 4;
+export const BATTERY_REGEN = 8;
 
 export interface Battery {
 	x: number;

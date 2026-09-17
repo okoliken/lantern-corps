@@ -100,7 +100,7 @@ export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[]): C
 // --------------------------------------------------------------- tuning
 
 /** How long the arm stays in its action pose after a one-shot construct. */
-const ACTION_POSE_TIME = 0.25;
+const ACTION_POSE_TIME = 0.45;
 /** Energy walls: how far in front of you they go up, and how thick they are. */
 const WALL_DISTANCE = 70;
 const WALL_THICKNESS = 18;
@@ -110,7 +110,7 @@ const SLASH_HALF_ANGLE = (55 * Math.PI) / 180;
 /** Beam damage numbers pop up this often while it's on target. */
 const BEAM_NUMBER_EVERY = 0.25;
 /** Unused traps fizzle after this long (before durability). */
-const TRAP_LIFE = 20;
+const TRAP_LIFE = 60;
 /** The chain stops pulling once the target is this close. */
 const TETHER_STOP_DISTANCE = 45;
 const TETHER_PULL_SPEED = 650;

@@ -65,39 +65,39 @@ export interface ConstructDef {
 export const CONSTRUCTS = {
 	beam: {
 		id: 'beam', name: 'Beam', behavior: 'beam', shape: 'beam',
-		cost: 22, cooldown: 0, damage: 80, knockback: 0, range: 420
+		cost: 10, cooldown: 0, damage: 80, knockback: 0, range: 420
 	},
 	minigun: {
 		id: 'minigun', name: 'Minigun', behavior: 'rapid', shape: 'minigun',
-		cost: 1.3, cooldown: 0.08, damage: 5, knockback: 30, range: 460, speed: 950
+		cost: 0.6, cooldown: 0.08, damage: 5, knockback: 30, range: 460, speed: 950
 	},
 	cannon: {
 		id: 'cannon', name: 'Cannon', behavior: 'heavy', shape: 'cannon',
-		cost: 18, cooldown: 0.9, damage: 34, knockback: 420, range: 520, speed: 540, radius: 60
+		cost: 10, cooldown: 0.9, damage: 34, knockback: 420, range: 520, speed: 540, radius: 60
 	},
 	sword: {
 		id: 'sword', name: 'Sword', behavior: 'slash', shape: 'sword',
-		cost: 5, cooldown: 0.3, damage: 16, knockback: 160, range: 75
+		cost: 3, cooldown: 0.3, damage: 16, knockback: 160, range: 75
 	},
 	fist: {
 		id: 'fist', name: 'Giant Fist', behavior: 'smash', shape: 'fist',
-		cost: 18, cooldown: 0.8, damage: 38, knockback: 560, range: 70, radius: 42, windup: 0.16
+		cost: 10, cooldown: 0.8, damage: 38, knockback: 560, range: 70, radius: 42, windup: 0.16
 	},
 	wall: {
 		id: 'wall', name: 'Energy Wall', behavior: 'barrier', shape: 'wall',
-		cost: 25, cooldown: 1.2, damage: 0, knockback: 0, range: 120, duration: 8, hp: 150
+		cost: 15, cooldown: 1.2, damage: 0, knockback: 0, range: 120, duration: 25, hp: 300
 	},
 	chain: {
 		id: 'chain', name: 'Chain', behavior: 'grab', shape: 'chain',
-		cost: 10, cooldown: 0.7, damage: 6, knockback: 0, range: 340, speed: 1000
+		cost: 6, cooldown: 0.7, damage: 6, knockback: 0, range: 340, speed: 1000
 	},
 	cage: {
 		id: 'cage', name: 'Cage', behavior: 'trap', shape: 'cage',
-		cost: 22, cooldown: 1.5, damage: 0, knockback: 0, range: 100, radius: 40, duration: 3
+		cost: 12, cooldown: 1.5, damage: 0, knockback: 0, range: 100, radius: 40, duration: 7
 	},
 	shockwave: {
 		id: 'shockwave', name: 'Shockwave', behavior: 'area', shape: 'shockwave',
-		cost: 35, cooldown: 2.5, damage: 22, knockback: 480, range: 150
+		cost: 20, cooldown: 2.5, damage: 22, knockback: 480, range: 150
 	}
 } satisfies Record<string, ConstructDef>;
 
