@@ -6,7 +6,7 @@
 // are built as Path2D objects in local space, so the same shape can be
 // filled, stroked, and clipped without redrawing the path each time.
 
-import { AUTO_TURRET_HEAD, FIST_OUT_TIME, type Effect, type Projectile, type Shield, type Trap, type Turret } from '../constructs/system';
+import { AUTO_TURRET_HEAD, FIST_OUT_TIME, SENTRY_DRONE_HOVER, type Effect, type Projectile, type Shield, type Trap, type Turret } from '../constructs/system';
 import { DUMMY_HP, isStanding, type Dummy } from '../dummy';
 import type { Target } from '../targeting';
 import { GREEN } from './lantern';
@@ -287,8 +287,9 @@ export function drawLaserSight(
 	ctx.restore();
 }
 
-/** An Auto-Turret construct: tripod legs, a body, and twin barrels that track targets. */
-export function drawAutoTurret(ctx: CanvasRenderingContext2D, t: Turret, time: number) {
+/** An Auto-Turret construct: tripod legs, a body, and twin barrels that track targets. In space, a Sentry Drone. */
+export function drawAutoTurret(ctx: CanvasRenderingContext2D, t: Turret, time: number, space = false) {
+	if (space) return drawSentryDrone(ctx, t, time);
 	const fading = t.life < 1.5;
 	const alpha = fading ? 0.5 + 0.5 * Math.sin(time * 20) : 1;
 	const grow = Math.min(1, (t.maxLife - t.life) / 0.25);
@@ -839,7 +840,7 @@ export function drawDummy(
  * One-off visuals. `lift` raises effects tied to a Lantern (slashes,
  * punches) to their hand height.
  */
-export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: number, time: number) {
+export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: number, time: number, space = false) {
 	const t = e.age / e.life; // 0..1
 	ctx.save();
 
@@ -1120,7 +1121,8 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			break;
 		}
 		case 'pillars': {
-			drawPillarDrop(ctx, e, time);
+			if (space) drawViceCrush(ctx, e, time);
+			else drawPillarDrop(ctx, e, time);
 			break;
 		}
 		case 'number': {
@@ -1140,6 +1142,153 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 		}
 	}
 	ctx.restore();
+}
+
+/**
+ * The Auto-Turret's SPACE form: a Sentry Drone. Nothing to stand a tripod on,
+ * so it hovers: a core with twin barrels, a spinning stabiliser ring, and
+ * little thruster flames underneath.
+ */
+function drawSentryDrone(ctx: CanvasRenderingContext2D, t: Turret, time: number) {
+	const fading = t.life < 1.5;
+	const alpha = fading ? 0.5 + 0.5 * Math.sin(time * 20) : 1;
+	const grow = Math.min(1, (t.maxLife - t.life) / 0.25);
+	const bob = Math.sin(time * 3 + t.x) * 2.5;
+	ctx.save();
+	ctx.globalAlpha = alpha;
+	ctx.translate(t.x, t.y - SENTRY_DRONE_HOVER + bob);
+	ctx.scale(grow, grow);
+
+	// Thrusters
+	const flame = 4 + Math.sin(time * 40) * 1.5;
+	ctx.fillStyle = 'rgba(61, 255, 110, 0.6)';
+	for (const side of [-1, 1]) {
+		ctx.beginPath();
+		ctx.moveTo(side * 7 - 2, 6);
+		ctx.lineTo(side * 7, 6 + flame + 4);
+		ctx.lineTo(side * 7 + 2, 6);
+		ctx.closePath();
+		ctx.fill();
+	}
+
+	// Spinning stabiliser ring
+	const ring = new Path2D();
+	ring.ellipse(0, 2, 16, 5, 0, 0, Math.PI * 2);
+	energy(ctx, ring, { time, edge: 1.4, body: 0 });
+	ctx.fillStyle = CORE;
+	const spin = time * 6;
+	ctx.beginPath();
+	ctx.arc(Math.cos(spin) * 16, 2 + Math.sin(spin) * 5, 1.8, 0, TAU);
+	ctx.fill();
+
+	// Core and barrels, turned toward the target
+	ctx.rotate(t.aim);
+	if (Math.cos(t.aim) < 0) ctx.scale(1, -1);
+	const body = new Path2D();
+	body.arc(0, 0, 8, 0, Math.PI * 2);
+	body.rect(6, -5, 13, 3);
+	body.rect(6, 2, 13, 3);
+	energy(ctx, body, { time, edge: 1.6 });
+	ctx.fillStyle = CORE;
+	ctx.beginPath();
+	ctx.arc(2, 0, 2.5, 0, TAU);
+	ctx.fill();
+	if (t.cooldown > 0.25) {
+		ctx.shadowColor = GREEN;
+		ctx.shadowBlur = 12;
+		ctx.beginPath();
+		ctx.arc(21, -3.5, 3, 0, TAU);
+		ctx.arc(21, 3.5, 3, 0, TAU);
+		ctx.fill();
+	}
+	ctx.restore();
+
+	// Time left
+	ctx.save();
+	ctx.globalAlpha = alpha * 0.8;
+	ctx.strokeStyle = 'rgba(234, 255, 240, 0.6)';
+	ctx.lineWidth = 2;
+	ctx.beginPath();
+	ctx.arc(t.x, t.y - SENTRY_DRONE_HOVER + bob, 22, Math.PI * 0.2, Math.PI * 0.2 + Math.PI * 0.6 * (t.life / t.maxLife));
+	ctx.stroke();
+	ctx.restore();
+}
+
+/**
+ * Pillar Drop's SPACE form: Vice Crush. Nothing falls in space, so two giant
+ * construct slabs appear on either side of the target and slam together.
+ *  1. A lock-on reticle closes in (the warning time).
+ *  2. The slabs rush in from both sides and meet with a flash.
+ *  3. They hold, then break apart into sparks.
+ */
+function drawViceCrush(ctx: CanvasRenderingContext2D, e: Effect, time: number) {
+	const r = e.radius ?? 75;
+	const warning = e.life - 0.9;
+	const cy = e.y - 30;
+
+	if (e.age < warning) {
+		const k = e.age / warning;
+		ctx.save();
+		ctx.translate(e.x, cy);
+		ctx.shadowColor = GREEN;
+		ctx.shadowBlur = 10;
+		ctx.strokeStyle = `rgba(61, 255, 110, ${0.6 + 0.4 * Math.sin(time * 20)})`;
+		ctx.lineWidth = 2;
+		// Brackets closing in on the target
+		const gap = r * (1.3 - 0.5 * k);
+		for (const side of [-1, 1]) {
+			ctx.beginPath();
+			ctx.moveTo(side * gap, -r * 0.6);
+			ctx.lineTo(side * (gap + 10), -r * 0.6);
+			ctx.lineTo(side * (gap + 10), r * 0.6);
+			ctx.lineTo(side * gap, r * 0.6);
+			ctx.stroke();
+		}
+		ctx.setLineDash([6, 6]);
+		ctx.lineDashOffset = -time * 40;
+		ctx.beginPath();
+		ctx.ellipse(0, 30, r, r * 0.5, 0, 0, TAU);
+		ctx.stroke();
+		ctx.restore();
+		return;
+	}
+
+	const after = e.age - warning;
+	const close = Math.min(1, after / 0.08);
+	const fade = after < 0.45 ? 1 : 1 - (after - 0.45) / 0.45;
+	const slabW = 26;
+	const slabH = r * 1.4;
+	// Slab inner edges start far apart and meet a little either side of centre
+	const gap = 6 + (1 - easeOut(close)) * (r + 90);
+
+	ctx.save();
+	ctx.globalAlpha = Math.max(0, fade);
+	for (const side of [-1, 1]) {
+		ctx.save();
+		ctx.translate(e.x + side * (gap + slabW / 2), cy);
+		const slab = new Path2D();
+		slab.roundRect(-slabW / 2, -slabH / 2, slabW, slabH, 4);
+		// Grip ridges on the inside face
+		for (let i = -2; i <= 2; i++) slab.rect(-side * (slabW / 2) - (side > 0 ? 0 : 4), i * 12 - 2, 4, 4);
+		energy(ctx, slab, { time, edge: 2.2 });
+		ctx.restore();
+	}
+	ctx.restore();
+
+	// Flash where they meet
+	if (close >= 1 && after < 0.35) {
+		const k = (after - 0.08) / 0.27;
+		ctx.save();
+		ctx.globalAlpha = Math.max(0, 1 - k);
+		ctx.shadowColor = GREEN;
+		ctx.shadowBlur = 24;
+		ctx.fillStyle = CORE;
+		ctx.beginPath();
+		ctx.ellipse(e.x, cy, 10 + k * 20, slabH * 0.5 * (1 - k * 0.5), 0, 0, TAU);
+		ctx.fill();
+		ctx.restore();
+	}
+	if (fade < 1) sparks(ctx, e.x, cy, r * 0.6, 10, time, e.x);
 }
 
 /** Stars circling a stunned target's head. */

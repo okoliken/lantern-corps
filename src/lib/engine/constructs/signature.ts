@@ -219,6 +219,8 @@ function startFortress(p: Player, w: ConstructWorld) {
 
 /** Height of a turret's barrel above the ground (matches drawTurret). */
 export const TURRET_HEAD_HEIGHT = 14;
+/** In space the Fortress is a sphere and its turrets are drones floating around it. */
+export const FORTRESS_DRONE_HOVER = 34;
 
 /** Where a Fortress turret sits, on the dome's rim (flattened like the ground). */
 export function turretPosition(f: Fortress, angle: number): { x: number; y: number } {
@@ -261,8 +263,8 @@ export function updateSignatureWorld(w: ConstructWorld, dt: number) {
 			t.cooldown = FORTRESS.turretRate;
 			const bolt = launch(f.owner, TURRET_BOLT, 'bolt', Math.cos(t.aim), Math.sin(t.aim), w, pos);
 			bolt.noSurge = true;
-			// Fired from the turret head, not the owner's ring
-			bolt.lift = TURRET_HEAD_HEIGHT;
+			// Fired from the turret head (or the floating drone, in space), not the owner's ring
+			bolt.lift = w.space ? FORTRESS_DRONE_HOVER : TURRET_HEAD_HEIGHT;
 		}
 	}
 }

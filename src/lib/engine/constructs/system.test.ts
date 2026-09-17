@@ -8,7 +8,7 @@ import { LANTERNS, type LanternId } from '../lanterns';
 import { CRATE_HP, type Obstacle } from '../map';
 import { createPlayer, type Player } from '../player';
 import { MAX_WILLPOWER, RESTART_THRESHOLD } from '../willpower';
-import { BUBBLE_SHIELD, RING_SHOT, CONSTRUCTS, LOADOUTS, MAX_TRAPS_PER_PLAYER, MAX_TURRETS_PER_PLAYER, type ConstructId } from './defs';
+import { BUBBLE_SHIELD, RING_SHOT, CONSTRUCTS, LOADOUTS, constructLabel, MAX_TRAPS_PER_PLAYER, MAX_TURRETS_PER_PLAYER, type ConstructDef, type ConstructId } from './defs';
 import {
 	absorbWithShield,
 	costOf,
@@ -550,5 +550,39 @@ describe('John: Pillar Drop', () => {
 		run(p, w, FIRE, DT);
 		const s = w.pillarStrikes[0];
 		expect(Math.hypot(s.x, s.y)).toBeLessThanOrEqual(CONSTRUCTS.pillars.range + 1e-6);
+	});
+});
+
+describe('constructs adapt to space', () => {
+	it('ground-based constructs take a space form (same job, different name and look)', () => {
+		expect(constructLabel(CONSTRUCTS.wall, false).name).toBe('Energy Wall');
+		expect(constructLabel(CONSTRUCTS.wall, true).name).toBe('Force Field');
+		expect(constructLabel(CONSTRUCTS.turret, true).name).toBe('Sentry Drone');
+		expect(constructLabel(CONSTRUCTS.pillars, true).name).toBe('Vice Crush');
+	});
+
+	it('constructs that already work anywhere keep their name in space', () => {
+		expect(constructLabel(CONSTRUCTS.sniper, true).name).toBe('Sniper Rifle');
+		expect(constructLabel(CONSTRUCTS.fist, true).name).toBe('Giant Fist');
+	});
+
+	it('every construct in a loadout either works anywhere or has a space form', () => {
+		// Behaviors that depend on standing on the ground need a space form
+		const groundBound = new Set(['barrier', 'turret', 'pillars', 'trap']);
+		for (const id of [...LOADOUTS.hal, ...LOADOUTS.john]) {
+			const def: ConstructDef = CONSTRUCTS[id];
+			if (groundBound.has(def.behavior)) expect(def.space, `${id} needs a space form`).toBeDefined();
+		}
+	});
+
+	it('a Sentry Drone fires from higher up than a ground turret', () => {
+		const planet = setup('john', 'turret', [createDummy(300, 0)]);
+		const space = setup('john', 'turret', [createDummy(300, 0)]);
+		space.w.space = true;
+		press(planet.p, planet.w, 1);
+		press(space.p, space.w, 1);
+		const planetBolt = planet.w.projectiles.find((pr) => pr.kind === 'bolt');
+		const spaceBolt = space.w.projectiles.find((pr) => pr.kind === 'bolt');
+		expect(spaceBolt!.lift).toBeGreaterThan(planetBolt!.lift);
 	});
 });

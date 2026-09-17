@@ -57,7 +57,7 @@ import { defaultSettings, type Settings } from './settings';
 import { LANTERNS, type LanternId } from './lanterns';
 import { buildTestMap, seededRandom, type GameMap, type Obstacle } from './map';
 import { FEET_HALF_H, FEET_HALF_W, clampToBounds, createPlayer, updatePlayer, type Player, type WorldRules } from './player';
-import { BUBBLE_SHIELD } from './constructs/defs';
+import { BUBBLE_SHIELD, constructLabel } from './constructs/defs';
 import { autoReach, sameTarget, targetPosition, updateTargeting, type Target, type TargetWorld } from './targeting';
 import { BATTERY_MAX_CHARGE, canSpend, updateBattery, updateWillpower, type Battery } from './willpower';
 
@@ -126,7 +126,7 @@ export class Game {
 		this.dummies = this.map.dummies.map((d) => createDummy(d.x, d.y));
 		// The construct world shares the map's obstacle array, so walls a
 		// Lantern builds block movement, and crates it breaks stop blocking.
-		this.constructs = createConstructWorld(this.map.obstacles, this.dummies);
+		this.constructs = createConstructWorld(this.map.obstacles, this.dummies, this.map.environment === 'space');
 
 		// Spawn side by side around the map's spawn point
 		const gap = 170; // wide enough that name tags don't overlap
@@ -330,7 +330,8 @@ export class Game {
 		if (map.environment === 'planet') drawPlanetGround(ctx, visible, map.width, map.height);
 		// Traps and Fortress rings are markings on the ground: under everything
 		for (const t of cw.traps) drawTrap(ctx, t, this.time);
-		for (const f of cw.fortresses) drawFortressBack(ctx, f, this.time);
+		const inSpace = map.environment === 'space';
+		for (const f of cw.fortresses) drawFortressBack(ctx, f, this.time, inSpace);
 
 		// ---- Everything with depth, sorted back to front ----
 		// Ground things sort by their base y: lower on screen = in front.
@@ -343,13 +344,13 @@ export class Game {
 			// Skip anything well off screen (tall things poke up, so pad the top)
 			if (o.x > visible.right || o.x + o.w < visible.left) continue;
 			if (o.y - o.height > visible.bottom || o.y + o.h < visible.top) continue;
-			ground.push({ baseY: o.y + o.h, draw: () => drawObstacle(ctx, o, this.time) });
+			ground.push({ baseY: o.y + o.h, draw: () => drawObstacle(ctx, o, this.time, inSpace) });
 		}
 		for (const b of this.batteries) {
 			ground.push({ baseY: b.y, draw: () => drawBattery(ctx, b, env.hasGround, this.time) });
 		}
 		for (const t of cw.turrets) {
-			ground.push({ baseY: t.y, draw: () => drawAutoTurret(ctx, t, this.time) });
+			ground.push({ baseY: t.y, draw: () => drawAutoTurret(ctx, t, this.time, inSpace) });
 		}
 		for (const d of this.dummies) {
 			const x = lerp(d.prevX, d.x, alpha);
@@ -415,7 +416,7 @@ export class Game {
 			drawJet(ctx, x, bodyY, p.dash.dx, p.dash.dy, this.time, p.def);
 		}
 		// Fortress domes go over whoever is inside (they're see-through)
-		for (const f of cw.fortresses) drawFortressFront(ctx, f, this.time);
+		for (const f of cw.fortresses) drawFortressFront(ctx, f, this.time, inSpace);
 
 		// Chains: from the hand to the flying hook, or to whatever it caught
 		for (const pr of cw.projectiles) {
@@ -467,7 +468,7 @@ export class Game {
 				drawEffect(ctx, { ...e, radius: FIGURE_HEIGHT * 0.66 }, bodyMid, this.time);
 				continue;
 			}
-			drawEffect(ctx, e, e.lift ?? 0, this.time);
+			drawEffect(ctx, e, e.lift ?? 0, this.time, inSpace);
 		}
 		for (const t of tags) t();
 
@@ -485,8 +486,7 @@ export class Game {
 				charging: p.charging,
 				selected: p.selected,
 				slots: p.loadout.map((def, s) => ({
-					name: def.name,
-					short: def.short ?? def.name,
+					...constructLabel(def, cw.space),
 					key: shortLabel(this.inputs[i].bindings[SLOT_ACTIONS[s]]),
 					cooldown: def.cooldown > 0 ? Math.min(1, p.cooldowns[s] / (def.cooldown * p.def.traits.cooldown)) : 0,
 					affordable: canSpend(p, def.behavior === 'beam' ? 15 : costOf(p, def))

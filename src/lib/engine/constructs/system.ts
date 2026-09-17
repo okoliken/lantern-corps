@@ -179,10 +179,12 @@ export interface ConstructWorld {
 	turrets: Turret[];
 	pillarStrikes: PillarStrike[];
 	effects: Effect[];
+	/** In space, ground-based constructs take their space forms (drones float, etc.). */
+	space: boolean;
 }
 
-export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[]): ConstructWorld {
-	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], pillarStrikes: [], effects: [] };
+export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[], space = false): ConstructWorld {
+	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], pillarStrikes: [], effects: [], space };
 }
 
 // --------------------------------------------------------------- tuning
@@ -883,6 +885,8 @@ function updateTethers(w: ConstructWorld, dt: number) {
 
 /** Turret barrel height above the ground (matches drawAutoTurret). */
 export const AUTO_TURRET_HEAD = 18;
+/** In space it's a Sentry Drone, hovering higher (matches drawSentryDrone). */
+export const SENTRY_DRONE_HOVER = 40;
 
 function updateTurrets(w: ConstructWorld, dt: number) {
 	const alive: Turret[] = [];
@@ -917,7 +921,7 @@ function updateTurrets(w: ConstructWorld, dt: number) {
 			x: t.x + Math.cos(t.aim) * 16,
 			y: t.y + Math.sin(t.aim) * 8
 		});
-		bolt.lift = AUTO_TURRET_HEAD;
+		bolt.lift = w.space ? SENTRY_DRONE_HOVER : AUTO_TURRET_HEAD;
 	}
 	w.turrets = alive;
 }

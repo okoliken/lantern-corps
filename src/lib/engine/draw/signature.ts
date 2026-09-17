@@ -4,7 +4,7 @@
 
 import type { Fortress } from '../constructs/system';
 import type { LanternDef } from '../lanterns';
-import { turretPosition } from '../constructs/signature';
+import { FORTRESS_DRONE_HOVER, TURRET_HEAD_HEIGHT, turretPosition } from '../constructs/signature';
 import { GREEN } from './lantern';
 
 const CORE = '#eafff0';
@@ -132,16 +132,40 @@ export function drawJet(
 
 // --------------------------------------------------------------- fortress
 
+/** In space the Fortress is a full sphere, centred on John's body instead of sitting on the ground. */
+const SPHERE_LIFT = 38;
+
 /**
  * The back half of the dome and its ground ring. Drawn BEFORE characters,
- * so John stands inside it.
+ * so John stands inside it. In space: the back of a sphere.
  */
-export function drawFortressBack(ctx: CanvasRenderingContext2D, f: Fortress, time: number) {
+export function drawFortressBack(ctx: CanvasRenderingContext2D, f: Fortress, time: number, space = false) {
 	const fade = Math.min(1, f.life / 1.5);
 	const grow = Math.min(1, (f.maxLife - f.life) / 0.35);
 	const r = f.radius * easeOut(grow);
 	ctx.save();
 	ctx.globalAlpha = fade;
+
+	if (space) {
+		const cy = f.y - SPHERE_LIFT;
+		const back = ctx.createRadialGradient(f.x, cy, r * 0.3, f.x, cy, r);
+		back.addColorStop(0, 'rgba(61, 255, 110, 0.03)');
+		back.addColorStop(1, 'rgba(61, 255, 110, 0.14)');
+		ctx.fillStyle = back;
+		ctx.beginPath();
+		ctx.arc(f.x, cy, r, 0, TAU);
+		ctx.fill();
+		// Back half of the equator ring, turning
+		ctx.strokeStyle = 'rgba(234, 255, 240, 0.25)';
+		ctx.lineWidth = 1.5;
+		ctx.setLineDash([6, 8]);
+		ctx.lineDashOffset = time * 20;
+		ctx.beginPath();
+		ctx.ellipse(f.x, cy, r, r * 0.3, 0, Math.PI, TAU);
+		ctx.stroke();
+		ctx.restore();
+		return;
+	}
 
 	// Glowing ring on the ground with turning tick marks
 	ctx.shadowColor = GREEN;
@@ -171,13 +195,19 @@ export function drawFortressBack(ctx: CanvasRenderingContext2D, f: Fortress, tim
 }
 
 /** The front of the dome (see-through lattice), its turrets, and the timer. Drawn AFTER characters. */
-export function drawFortressFront(ctx: CanvasRenderingContext2D, f: Fortress, time: number) {
+export function drawFortressFront(ctx: CanvasRenderingContext2D, f: Fortress, time: number, space = false) {
 	const fade = Math.min(1, f.life / 1.5);
 	const grow = Math.min(1, (f.maxLife - f.life) / 0.35);
 	const r = f.radius * easeOut(grow);
 	const blink = f.life < 2 && Math.sin(time * 16) > 0 ? 0.55 : 1;
 	ctx.save();
 	ctx.globalAlpha = fade * blink;
+
+	if (space) {
+		drawFortressSphere(ctx, f, r, grow, time);
+		ctx.restore();
+		return;
+	}
 
 	// Dome shell: a half-ellipse rising from the ground ring
 	const dome = new Path2D();
@@ -244,9 +274,108 @@ export function drawFortressFront(ctx: CanvasRenderingContext2D, f: Fortress, ti
 	ctx.restore();
 }
 
+/** Space Fortress: a lattice sphere around John, with turret drones floating around its equator. */
+function drawFortressSphere(ctx: CanvasRenderingContext2D, f: Fortress, r: number, grow: number, time: number) {
+	const cy = f.y - SPHERE_LIFT;
+	const sphere = new Path2D();
+	sphere.arc(f.x, cy, r, 0, TAU);
+
+	const shell = ctx.createRadialGradient(f.x - r * 0.35, cy - r * 0.4, r * 0.1, f.x, cy, r);
+	shell.addColorStop(0, 'rgba(234, 255, 240, 0.12)');
+	shell.addColorStop(0.7, 'rgba(61, 255, 110, 0.06)');
+	shell.addColorStop(1, 'rgba(61, 255, 110, 0.22)');
+	ctx.fillStyle = shell;
+	ctx.fill(sphere);
+
+	// Lattice: latitude rings and turning longitude rings
+	ctx.save();
+	ctx.clip(sphere);
+	ctx.strokeStyle = 'rgba(234, 255, 240, 0.2)';
+	ctx.lineWidth = 1.2;
+	for (let i = -2; i <= 2; i++) {
+		const k = i / 3;
+		const rr = r * Math.sqrt(1 - k * k);
+		ctx.beginPath();
+		ctx.ellipse(f.x, cy + r * k, rr, rr * 0.3, 0, 0, Math.PI);
+		ctx.stroke();
+	}
+	for (let i = 0; i < 6; i++) {
+		const a = (i / 6) * Math.PI + time * 0.35;
+		ctx.beginPath();
+		ctx.ellipse(f.x, cy, Math.abs(r * Math.cos(a)), r, 0, 0, TAU);
+		ctx.stroke();
+	}
+	ctx.restore();
+
+	// Rim and a glint
+	ctx.shadowColor = GREEN;
+	ctx.shadowBlur = 18;
+	ctx.strokeStyle = GREEN;
+	ctx.lineWidth = 2.5;
+	ctx.stroke(sphere);
+	ctx.shadowBlur = 0;
+	ctx.strokeStyle = 'rgba(234, 255, 240, 0.6)';
+	ctx.lineWidth = 2;
+	ctx.beginPath();
+	ctx.arc(f.x, cy, r * 0.85, -2.4, -1.7);
+	ctx.stroke();
+
+	// Front half of the equator ring
+	ctx.strokeStyle = 'rgba(234, 255, 240, 0.5)';
+	ctx.lineWidth = 1.5;
+	ctx.beginPath();
+	ctx.ellipse(f.x, cy, r, r * 0.3, 0, 0, Math.PI);
+	ctx.stroke();
+
+	if (grow >= 1) {
+		for (const t of f.turrets) {
+			const pos = turretPosition(f, t.angle);
+			drawTurretDrone(ctx, pos.x, pos.y - FORTRESS_DRONE_HOVER, t.aim, t.cooldown, time);
+		}
+	}
+
+	// Time left, as an arc under the sphere
+	ctx.strokeStyle = 'rgba(234, 255, 240, 0.7)';
+	ctx.lineWidth = 3;
+	ctx.beginPath();
+	ctx.arc(f.x, cy, r + 8, Math.PI * 0.3, Math.PI * 0.3 + Math.PI * 0.4 * (f.life / f.maxLife));
+	ctx.stroke();
+}
+
+/** A small floating gun drone (the Fortress's turrets in space). */
+function drawTurretDrone(ctx: CanvasRenderingContext2D, x: number, y: number, aim: number, cooldown: number, time: number) {
+	ctx.save();
+	ctx.translate(x, y + Math.sin(time * 3 + x) * 2);
+	ctx.shadowColor = GREEN;
+	ctx.shadowBlur = 10;
+	ctx.strokeStyle = GREEN;
+	ctx.fillStyle = 'rgba(61, 255, 110, 0.3)';
+	ctx.lineWidth = 2;
+	// Stabiliser ring
+	ctx.beginPath();
+	ctx.ellipse(0, 0, 11, 4, 0, 0, TAU);
+	ctx.stroke();
+	ctx.rotate(aim);
+	ctx.beginPath();
+	ctx.arc(0, 0, 6, 0, TAU);
+	ctx.fill();
+	ctx.stroke();
+	ctx.beginPath();
+	ctx.rect(4, -2, 13, 4);
+	ctx.fill();
+	ctx.stroke();
+	if (cooldown > 0.24) {
+		ctx.fillStyle = CORE;
+		ctx.beginPath();
+		ctx.arc(19, 0, 3, 0, TAU);
+		ctx.fill();
+	}
+	ctx.restore();
+}
+
 function drawTurret(ctx: CanvasRenderingContext2D, x: number, y: number, aim: number, cooldown: number, time: number) {
 	ctx.save();
-	ctx.translate(x, y - 14);
+	ctx.translate(x, y - TURRET_HEAD_HEIGHT);
 	// Post
 	ctx.strokeStyle = GREEN;
 	ctx.lineWidth = 3;

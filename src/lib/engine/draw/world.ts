@@ -117,7 +117,7 @@ export function drawPlanetGround(ctx: CanvasRenderingContext2D, visible: WorldRe
 
 // ------------------------------------------------------------ obstacles
 
-export function drawObstacle(ctx: CanvasRenderingContext2D, o: Obstacle, time = 0) {
+export function drawObstacle(ctx: CanvasRenderingContext2D, o: Obstacle, time = 0, space = false) {
 	switch (o.kind) {
 		case 'building':
 			return drawBlock(ctx, o, '#6a6d74', '#3d4047', true);
@@ -128,8 +128,118 @@ export function drawObstacle(ctx: CanvasRenderingContext2D, o: Obstacle, time = 
 		case 'asteroid':
 			return drawAsteroid(ctx, o);
 		case 'wall':
-			return drawEnergyWall(ctx, o, time);
+			return space ? drawForceField(ctx, o, time) : drawEnergyWall(ctx, o, time);
 	}
+}
+
+/**
+ * The Energy Wall's SPACE form: a Force Field. There's no ground to stand on,
+ * so it's a floating sheet of energy stretched between two glowing emitter
+ * nodes, rippling. It blocks exactly like the wall.
+ */
+function drawForceField(ctx: CanvasRenderingContext2D, o: Obstacle, time: number) {
+	const health = o.hp !== undefined && o.maxHp ? o.hp / o.maxHp : 1;
+	const age = (o.maxLife ?? 0) - (o.life ?? 0);
+	const grow = Math.min(1, age / 0.25);
+	const fading = (o.life ?? 99) < 2;
+	const flicker = fading && Math.sin(time * 30) > 0 ? 0.35 : 1;
+	const bob = Math.sin(time * 2 + o.seed * 10) * 2;
+
+	// The sheet runs along the footprint's long side, floating above it.
+	// Running left-right it's seen face-on (a wide panel). Running up-down the
+	// screen it's seen edge-on, so it's drawn as a narrower panel tilted in depth.
+	const across = o.h > o.w;
+	const cx = o.x + o.w / 2;
+	const cy = o.y + o.h / 2 - 30 + bob;
+	const tall = 44;
+	const steps = 10;
+	const sheet = new Path2D();
+	let ends: [number, number][];
+
+	if (!across) {
+		const half = (o.w / 2) * grow;
+		const [ax, bx] = [cx - half, cx + half];
+		ends = [
+			[ax, cy],
+			[bx, cy]
+		];
+		sheet.moveTo(ax, cy - tall / 2);
+		// Rippling top and bottom edges
+		for (let i = 1; i <= steps; i++) {
+			const k = i / steps;
+			sheet.lineTo(ax + (bx - ax) * k, cy - tall / 2 + Math.sin(k * Math.PI * 3 - time * 6) * 2.5);
+		}
+		for (let i = steps; i >= 0; i--) {
+			const k = i / steps;
+			sheet.lineTo(ax + (bx - ax) * k, cy + tall / 2 + Math.sin(k * Math.PI * 3 - time * 6 + 1) * 2.5);
+		}
+	} else {
+		const half = (o.h / 2) * grow;
+		const depth = 14; // how wide the edge-on panel looks
+		const [ay, by] = [cy - half * 0.6, cy + half * 0.6];
+		ends = [
+			[cx - depth, ay],
+			[cx + depth, by]
+		];
+		// A parallelogram leaning back into the screen, rippling along its long edges
+		sheet.moveTo(cx - depth, ay - tall / 2);
+		for (let i = 1; i <= steps; i++) {
+			const k = i / steps;
+			sheet.lineTo(cx - depth + 2 * depth * k + Math.sin(k * Math.PI * 3 - time * 6) * 2, ay + (by - ay) * k - tall / 2);
+		}
+		for (let i = steps; i >= 0; i--) {
+			const k = i / steps;
+			sheet.lineTo(cx - depth + 2 * depth * k + Math.sin(k * Math.PI * 3 - time * 6 + 1) * 2, ay + (by - ay) * k + tall / 2);
+		}
+	}
+	sheet.closePath();
+
+	ctx.save();
+	ctx.globalAlpha = flicker;
+
+	ctx.fillStyle = `rgba(61, 255, 110, ${0.12 + 0.14 * health})`;
+	ctx.fill(sheet);
+
+	// Hex lattice inside the sheet
+	ctx.save();
+	ctx.clip(sheet);
+	ctx.strokeStyle = `rgba(234, 255, 240, ${0.15 + 0.15 * health})`;
+	ctx.lineWidth = 1;
+	const hex = 7;
+	const minX = Math.min(ends[0][0], ends[1][0]) - tall;
+	const maxX = Math.max(ends[0][0], ends[1][0]) + tall;
+	const minY = Math.min(ends[0][1], ends[1][1]) - tall;
+	const maxY = Math.max(ends[0][1], ends[1][1]) + tall;
+	for (let hx = minX; hx < maxX; hx += hex * 1.5) {
+		const col = Math.round((hx - minX) / (hex * 1.5));
+		for (let hy = minY; hy < maxY; hy += hex * 1.732) {
+			const yy = hy + (col % 2 ? hex * 0.866 : 0);
+			ctx.beginPath();
+			for (let k = 0; k < 6; k++) {
+				const a = (k / 6) * Math.PI * 2;
+				ctx.lineTo(hx + Math.cos(a) * hex * 0.9, yy + Math.sin(a) * hex * 0.9);
+			}
+			ctx.closePath();
+			ctx.stroke();
+		}
+	}
+	ctx.restore();
+
+	ctx.shadowColor = '#3dff6e';
+	ctx.shadowBlur = 14;
+	ctx.strokeStyle = '#3dff6e';
+	ctx.lineWidth = 2;
+	ctx.stroke(sheet);
+
+	// Emitter nodes at both ends
+	for (const [nx, ny] of ends) {
+		ctx.fillStyle = '#eafff0';
+		ctx.beginPath();
+		ctx.arc(nx, ny - tall / 2, 3.5, 0, Math.PI * 2);
+		ctx.arc(nx, ny + tall / 2, 3.5, 0, Math.PI * 2);
+		ctx.fill();
+	}
+	ctx.restore();
 }
 
 /**

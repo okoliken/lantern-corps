@@ -3,7 +3,7 @@
 	// environment, and turn on infinite willpower to test freely.
 	import { onMount, untrack } from 'svelte';
 	import GameCanvas from '$lib/components/GameCanvas.svelte';
-	import { CONSTRUCTS, LOADOUTS } from '$lib/engine/constructs/defs';
+	import { CONSTRUCTS, LOADOUTS, constructLabel } from '$lib/engine/constructs/defs';
 	import type { EnvironmentKind } from '$lib/engine/environment';
 	import { Game } from '$lib/engine/game';
 	import { LANTERNS, type LanternId } from '$lib/engine/lanterns';
@@ -31,7 +31,7 @@
 			const def = p.loadout[p.selected];
 			const cw = game.constructs;
 			readout =
-				`${def.name} (${def.behavior}) · willpower ${Math.floor(p.willpower)}` +
+				`${constructLabel(def, environment === 'space').name} (${def.behavior}) · willpower ${Math.floor(p.willpower)}` +
 				` · projectiles ${cw.projectiles.length} · traps ${cw.traps.length}` +
 				` · walls ${game.map.obstacles.filter((o) => o.kind === 'wall').length}`;
 		}, 100);
@@ -62,7 +62,7 @@
 		>
 		<span class="loadout">
 			{#each LOADOUTS[lantern] as id, i (id)}
-				<span><kbd>{i + 1}</kbd> {CONSTRUCTS[id].name}</span>
+				<span><kbd>{i + 1}</kbd> {constructLabel(CONSTRUCTS[id], environment === 'space').name}</span>
 			{/each}
 		</span>
 	</div>

@@ -45,6 +45,12 @@ export interface ConstructDef {
 	name: string;
 	/** Short label for the HUD slot, if the name is too long. */
 	short?: string;
+	/**
+	 * How this construct looks and is named in SPACE, when its planet form
+	 * depends on the ground (a wall standing on it, pillars falling onto it).
+	 * Same key, same job, same numbers: only the form changes.
+	 */
+	space?: { name: string; short?: string };
 	behavior: Behavior;
 	shape: ConstructShape;
 	/** Willpower per use. For `beam` it's per second. */
@@ -99,7 +105,7 @@ export const CONSTRUCTS = {
 		cost: 10, cooldown: 0.8, damage: 38, knockback: 560, range: 70, radius: 42, windup: 0.16
 	},
 	wall: {
-		id: 'wall', name: 'Energy Wall', short: 'Wall', behavior: 'barrier', shape: 'wall',
+		id: 'wall', name: 'Energy Wall', short: 'Wall', space: { name: 'Force Field', short: 'Field' }, behavior: 'barrier', shape: 'wall',
 		cost: 15, cooldown: 1.2, damage: 0, knockback: 0, range: 120, duration: 25, hp: 300
 	},
 	chain: {
@@ -121,18 +127,24 @@ export const CONSTRUCTS = {
 	},
 	// range = how far ahead it's built; duration/hp before John's durability
 	turret: {
-		id: 'turret', name: 'Auto-Turret', short: 'Turret', behavior: 'turret', shape: 'turret',
+		id: 'turret', name: 'Auto-Turret', short: 'Turret', space: { name: 'Sentry Drone', short: 'Drone' }, behavior: 'turret', shape: 'turret',
 		cost: 18, cooldown: 1.5, damage: 9, knockback: 60, range: 60, speed: 900,
 		duration: 14, hp: 80, radius: 360
 	},
 	// range = furthest target distance; radius = impact area; charge = warning time
 	pillars: {
-		id: 'pillars', name: 'Pillar Drop', short: 'Pillars', behavior: 'pillars', shape: 'pillars',
+		id: 'pillars', name: 'Pillar Drop', short: 'Pillars', space: { name: 'Vice Crush', short: 'Crush' }, behavior: 'pillars', shape: 'pillars',
 		cost: 16, cooldown: 2.2, damage: 40, knockback: 120, range: 320, radius: 75, charge: 0.55, stun: 1.5
 	}
 } satisfies Record<string, ConstructDef>;
 
 export type ConstructId = keyof typeof CONSTRUCTS;
+
+/** The name a construct goes by where you are: its space form in space, otherwise its normal name. */
+export function constructLabel(def: ConstructDef, inSpace: boolean): { name: string; short: string } {
+	const form = inSpace && def.space ? def.space : def;
+	return { name: form.name, short: form.short ?? form.name };
+}
 
 /**
  * The ring's basic shot: quick green bolts, on their own button. FREE: it

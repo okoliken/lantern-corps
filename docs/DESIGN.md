@@ -121,6 +121,16 @@ Every construct, whether preset or custom, uses one of 8 **behavior types**:
     whole line), Energy Wall, **Auto-Turret** (builds a turret that fights on its own, max 2), **Pillar Drop**
     (warning circle, then pillars slam down: damage + stun)
   - Cannon, Cage and Shockwave stay defined for the Ring Forge (M8) but aren't in a loadout.
+- **Constructs work in every environment.** Anything that depends on standing on the ground has a
+  **space form**: same key, same job, same numbers, only the look and name change
+  (`space` on the construct definition):
+  | Planet | Space |
+  |---|---|
+  | Energy Wall | Force Field (floating energy sheet between emitters) |
+  | Auto-Turret (tripod) | Sentry Drone (hovering) |
+  | Pillar Drop (pillars fall) | Vice Crush (two slabs slam together) |
+  | Fortress (dome on the ground) | Fortress (sphere, turrets become drones) |
+  A test checks that every ground-bound construct in a loadout has a space form.
 - The **beam** is the ring's basic hold-to-fire construct, on top of the 8 types. Beam and rapid are
   held; everything else fires once per press, with a cooldown.
 - **Traits** (in `lanterns.ts`): Hal ×1.2 power, ×0.85 cooldowns, ×0.75 durability. John ×1.4
