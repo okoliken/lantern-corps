@@ -13,7 +13,9 @@ import type { LanternDef } from '../lanterns';
 
 export const GREEN = '#3dff6e';
 const SUIT_BLACK = '#101412';
-const SUIT_GREEN = '#2fd35c';
+/** Classic bottle green: the darker, traditional comic suit shade.
+ *  Ring energy (GREEN above) stays bright so it still glows. */
+const SUIT_GREEN = '#0F4F34';
 
 /** Size multiplier for the whole figure. */
 const FIGURE_SCALE = 1.35;
