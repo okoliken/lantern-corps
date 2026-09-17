@@ -2,9 +2,14 @@
 // lunge and flinch the same way), but look like what they are: black and
 // blood-red suits, glowing red eyes, fanged mouths dripping rage plasma, and
 // a flickering red aura that burns hotter as they get angrier.
+//
+// Every red construct has a tell drawn here: claws flare, a red orb or saw
+// forms in the hand with an aim line, the body crouches before a slam, and
+// red rings pull inward before a roar.
 
 import { computeSkeleton, type LanternPose, type Point, type Skeleton } from '../animation';
-import { ENEMIES, type Enemy, type EnemyKind } from '../enemies/enemies';
+import { ENEMIES, type Enemy, type Role } from '../enemies/enemies';
+import { ABILITIES, RED_HAND_LIFT, SLAM_HEIGHT } from '../enemies/redConstructs';
 import { isStanding } from '../dummy';
 import { segment, poly } from './lantern';
 
@@ -15,52 +20,78 @@ const BLACK = '#140808';
 const BLACK_LIT = '#2a1414';
 const OUTLINE = '#050101';
 const FIGURE_SCALE = 1.35;
+const TAU = Math.PI * 2;
 /** Red Lanterns hover a little off the ground. */
 const HOVER = 12;
 
-/** Per-kind looks: each Red Lantern is a different alien. */
-const LOOKS: Record<EnemyKind, { skin: string; hump: number; horns: boolean }> = {
-	rageGrunt: { skin: '#6b5a78', hump: 0, horns: false },
-	plasmaSpitter: { skin: '#7c8a4a', hump: 2, horns: false },
-	rageBrute: { skin: '#7a3a2e', hump: 3, horns: true }
+interface Look {
+	skin: string;
+	hump: number;
+	crest: 'spikes' | 'fin' | 'mohawk' | 'horns';
+}
+
+/** Each role is a different alien, so you can tell them apart at a glance. */
+const ROLE_LOOKS: Record<Role, Look> = {
+	berserker: { skin: '#6b5a78', hump: 1.5, crest: 'spikes' },
+	hunter: { skin: '#4f6572', hump: 0, crest: 'fin' },
+	gunner: { skin: '#80704a', hump: 0, crest: 'mohawk' }
 };
+
+function lookFor(e: Enemy): Look {
+	if (e.kind === 'plasmaSpitter') return { skin: '#7c8a4a', hump: 2, crest: 'spikes' };
+	if (e.kind === 'rageBrute') return { skin: '#7a3a2e', hump: 3, crest: 'horns' };
+	return ROLE_LOOKS[e.brain.role];
+}
+
+/** 0..1 through the current windup. */
+const windupProgress = (e: Enemy) =>
+	e.brain.state === 'windup' && e.brain.ability ? 1 - e.brain.timer / ABILITIES[e.brain.ability].windup : 0;
 
 export function enemyPose(e: Enemy, hasGround: boolean, time: number): LanternPose {
 	const def = ENEMIES[e.kind];
 	const b = e.brain;
-	const attacking = b.state === 'windup' || b.state === 'attack';
+	const busy = b.state === 'windup' || b.state === 'act';
+	const a = busy ? b.ability : null;
+	const s = FIGURE_SCALE * def.scale;
+	let cast = 0;
+	if (a === 'claws') cast = b.state === 'act' ? 1 : 0.35 + 0.15 * Math.sin(time * 30);
+	else if (a === 'roar') cast = b.state === 'act' ? 1 : 0.5 + 0.2 * Math.sin(time * 40);
+	else if (a) cast = b.state === 'act' ? 0.8 : 0.3 * windupProgress(e);
 	return {
 		dir: e.dir,
 		walkPhase: 0,
 		altitude: 1,
-		hoverHeight: HOVER,
+		hoverHeight: HOVER + (b.air * SLAM_HEIGHT) / s,
 		lean: Math.min(1, Math.hypot(e.vx, e.vy) / (def.speed * 1.5)) * 0.7,
 		glow: false,
 		shadow: hasGround,
-		firing: attacking,
-		// Claws go where the attack is aimed, in the enemy's facing space
+		firing: a !== null && a !== 'roar' && a !== 'slam',
 		aimX: b.aimX,
 		aimY: b.aimY,
-		cast: b.state === 'attack' ? 1 : b.state === 'windup' ? 0.35 + 0.15 * Math.sin(time * 30) : 0,
-		hurt: e.flash > 0 ? 0.8 : e.stun > 0 ? 0.3 : 0,
+		cast,
+		// Crouching before a slam reads as a coiled spring
+		hurt: e.flash > 0 ? 0.8 : e.stun > 0 ? 0.3 : a === 'slam' && b.state === 'windup' ? 0.6 : 0,
 		downed: !isStanding(e)
 	};
 }
 
 /** How high above its anchor an enemy's chest is (for effects and bars). */
 export function enemyChestLift(e: Enemy): number {
-	return (HOVER + 34) * FIGURE_SCALE * ENEMIES[e.kind].scale * 0.75;
+	return (HOVER + 34) * FIGURE_SCALE * ENEMIES[e.kind].scale * 0.75 + e.brain.air * SLAM_HEIGHT;
 }
 
 export function drawRedLantern(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number) {
 	const def = ENEMIES[e.kind];
-	const look = LOOKS[e.kind];
+	const look = lookFor(e);
 	const pose = enemyPose(e, hasGround, time);
 	const sk = computeSkeleton(pose, time);
 	const s = FIGURE_SCALE * def.scale;
 	const b = e.brain;
 	const defeated = !isStanding(e);
 	const fade = defeated ? Math.min(1, e.down / 0.5) : 1;
+	const winding = b.state === 'windup' ? b.ability : null;
+	const acting = b.state === 'act' ? b.ability : null;
+	const progress = windupProgress(e);
 
 	ctx.save();
 	ctx.globalAlpha = fade;
@@ -68,18 +99,20 @@ export function drawRedLantern(ctx: CanvasRenderingContext2D, e: Enemy, x: numbe
 	ctx.scale(s, s);
 
 	if (pose.shadow) {
-		ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+		// The shadow shrinks while leaping
+		const k = 1 - b.air * 0.5;
+		ctx.fillStyle = `rgba(0, 0, 0, ${0.4 * k})`;
 		ctx.beginPath();
-		ctx.ellipse(0, 0, 12, 3.8, 0, 0, Math.PI * 2);
+		ctx.ellipse(0, 0, 12 * k, 3.8 * k, 0, 0, TAU);
 		ctx.fill();
 	}
 
 	ctx.scale(pose.dir, 1);
 
-	// Rage aura: a flickering, jagged red halo that grows with rage and flares on attack
+	// Rage aura: a flickering, jagged red halo that grows with rage and flares on a windup
 	if (!defeated) {
 		const [cx, cy] = [(sk.hip[0] + sk.neck[0]) / 2, (sk.hip[1] + sk.neck[1]) / 2];
-		const heat = 0.18 + 0.25 * b.rage + (b.state === 'windup' ? 0.25 : 0);
+		const heat = 0.18 + 0.25 * b.rage + (winding ? 0.25 : 0);
 		const flicker = 0.8 + 0.2 * Math.sin(time * 23 + x);
 		const aura = ctx.createRadialGradient(cx, cy, 3, cx, cy, 24 + 4 * b.rage);
 		aura.addColorStop(0, `rgba(255, 42, 42, ${heat * flicker})`);
@@ -87,7 +120,7 @@ export function drawRedLantern(ctx: CanvasRenderingContext2D, e: Enemy, x: numbe
 		ctx.fillStyle = aura;
 		ctx.beginPath();
 		for (let i = 0; i < 14; i++) {
-			const a = (i / 14) * Math.PI * 2;
+			const a = (i / 14) * TAU;
 			const r = (21 + 4 * b.rage) * (i % 2 === 0 ? 1.1 : 0.85) + Math.sin(time * 9 + i) * 2;
 			ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
 		}
@@ -98,42 +131,143 @@ export function drawRedLantern(ctx: CanvasRenderingContext2D, e: Enemy, x: numbe
 	ctx.lineJoin = 'round';
 	ctx.lineCap = 'round';
 
-	// Windup tell: the whole body flashes hot
-	const tell = b.state === 'windup' && Math.sin(time * 30) > 0;
+	// Windup tell: the whole body flashes hot for close attacks
+	const tell = (winding === 'claws' || winding === 'slam' || winding === 'roar') && Math.sin(time * 30) > 0;
 	const flash = e.flash > 0 || tell;
+	const claws = b.ability === 'claws' && (winding !== null || acting !== null);
 
 	drawArm(ctx, sk.back, true, flash, false);
 	drawLeg(ctx, sk.back, true, flash);
 	drawTorso(ctx, sk, look.hump, flash);
+	if (b.role === 'hunter' && e.kind === 'rageGrunt') drawChainCoil(ctx, sk, time);
 	drawLeg(ctx, sk.front, false, flash);
-	drawHead(ctx, sk, look, b.state === 'windup' || b.state === 'attack', time, flash);
-	drawArm(ctx, sk.front, false, flash, b.state === 'windup' || b.state === 'attack');
+	drawHead(ctx, sk, look, winding !== null || acting !== null, time, flash);
+	drawArm(ctx, sk.front, false, flash, claws);
+
+	// Something forming in the hand
+	if (!defeated) {
+		const [hx, hy] = sk.front.hand;
+		if (winding === 'blast' || winding === 'chain') drawHandOrb(ctx, hx, hy, 1.5 + progress * 3.5, time);
+		else if (winding === 'saw') drawSawShape(ctx, hx, hy, 2 + progress * 5, time * 20);
+		else if (e.kind === 'rageGrunt' && b.role === 'gunner') drawHandOrb(ctx, hx, hy, 1.4, time);
+	}
 
 	ctx.restore();
 
-	if (!defeated) {
-		// Health bar once hurt
-		const top = y - (HOVER + 52) * s;
-		if (e.hp < e.maxHp) {
-			const w = 36 * Math.sqrt(def.scale);
-			ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
-			ctx.fillRect(x - w / 2 - 1, top - 1, w + 2, 6);
-			ctx.fillStyle = RED;
-			ctx.fillRect(x - w / 2, top, w * (e.hp / e.maxHp), 4);
-		}
-		// Windup warning above the head
-		if (b.state === 'windup') {
-			ctx.save();
-			ctx.font = '900 16px system-ui, sans-serif';
-			ctx.textAlign = 'center';
-			ctx.lineWidth = 4;
-			ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-			ctx.fillStyle = tell ? '#ffffff' : RED;
-			ctx.strokeText('!', x, top - 6);
-			ctx.fillText('!', x, top - 6);
-			ctx.restore();
-		}
+	if (defeated) return;
+
+	const air = b.air * SLAM_HEIGHT;
+	const top = y - (HOVER + 52) * s - air;
+
+	// Ranged tells: a red aim line in the last part of the windup (that's when the aim locks)
+	if ((winding === 'blast' || winding === 'saw' || winding === 'chain') && progress > 0.4) {
+		const ox = x + e.dir * 8 * s;
+		const oy = y - RED_HAND_LIFT;
+		ctx.save();
+		ctx.globalAlpha = (progress - 0.4) / 0.6;
+		ctx.strokeStyle = RED;
+		ctx.lineWidth = 1.5;
+		ctx.setLineDash([6, 5]);
+		ctx.lineDashOffset = -time * 40;
+		ctx.beginPath();
+		ctx.moveTo(ox, oy);
+		ctx.lineTo(ox + b.aimX * 120, oy + b.aimY * 120);
+		ctx.stroke();
+		ctx.restore();
 	}
+
+	// Roar tell: rings of red closing in on the body
+	if (winding === 'roar') {
+		ctx.save();
+		ctx.strokeStyle = RED;
+		for (let i = 0; i < 2; i++) {
+			const k = (progress * 2 + i * 0.5) % 1;
+			ctx.globalAlpha = k * 0.8;
+			ctx.lineWidth = 2;
+			ctx.beginPath();
+			ctx.ellipse(x, y - 30 * s, 70 * (1 - k) + 10, (70 * (1 - k) + 10) * 0.55, 0, 0, TAU);
+			ctx.stroke();
+		}
+		ctx.restore();
+	}
+
+	// Health bar once hurt
+	if (e.hp < e.maxHp) {
+		const w = 36 * Math.sqrt(def.scale);
+		ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+		ctx.fillRect(x - w / 2 - 1, top - 1, w + 2, 6);
+		ctx.fillStyle = RED;
+		ctx.fillRect(x - w / 2, top, w * (e.hp / e.maxHp), 4);
+	}
+	// Close-attack warning above the head
+	if (winding === 'claws' || winding === 'slam' || winding === 'roar') {
+		ctx.save();
+		ctx.font = '900 16px system-ui, sans-serif';
+		ctx.textAlign = 'center';
+		ctx.lineWidth = 4;
+		ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+		ctx.fillStyle = tell ? '#ffffff' : RED;
+		const mark = winding === 'claws' ? '!' : '!!';
+		ctx.strokeText(mark, x, top - 6);
+		ctx.fillText(mark, x, top - 6);
+		ctx.restore();
+	}
+}
+
+function drawHandOrb(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, time: number) {
+	ctx.save();
+	ctx.shadowColor = RED;
+	ctx.shadowBlur = 10;
+	ctx.fillStyle = RED;
+	ctx.beginPath();
+	ctx.arc(x, y, r * (1 + 0.12 * Math.sin(time * 25)), 0, TAU);
+	ctx.fill();
+	ctx.fillStyle = '#ffd0d0';
+	ctx.beginPath();
+	ctx.arc(x, y, r * 0.45, 0, TAU);
+	ctx.fill();
+	ctx.restore();
+}
+
+/** A jagged red disc: the Rage Saw (in the hand, and flying). */
+export function drawSawShape(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, spin: number) {
+	ctx.save();
+	ctx.translate(x, y);
+	ctx.rotate(spin);
+	ctx.shadowColor = RED;
+	ctx.shadowBlur = 10;
+	ctx.fillStyle = RED;
+	ctx.beginPath();
+	const teeth = 8;
+	for (let i = 0; i < teeth * 2; i++) {
+		const a = (i / (teeth * 2)) * TAU;
+		const rr = i % 2 === 0 ? r : r * 0.62;
+		ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+	}
+	ctx.closePath();
+	ctx.fill();
+	ctx.fillStyle = BLACK;
+	ctx.beginPath();
+	ctx.arc(0, 0, r * 0.3, 0, TAU);
+	ctx.fill();
+	ctx.restore();
+}
+
+/** Hunters carry their Barbed Chain looped at the hip. */
+function drawChainCoil(ctx: CanvasRenderingContext2D, sk: Skeleton, time: number) {
+	const [hx, hy] = sk.hip;
+	ctx.save();
+	ctx.strokeStyle = RED_DEEP;
+	ctx.lineWidth = 1.2;
+	ctx.shadowColor = RED;
+	ctx.shadowBlur = 4 + 2 * Math.sin(time * 4);
+	ctx.beginPath();
+	ctx.ellipse(hx - 3, hy - 2, 3.4, 4.2, 0.3, 0, TAU);
+	ctx.stroke();
+	ctx.beginPath();
+	ctx.ellipse(hx - 4.5, hy + 1, 3, 3.6, -0.2, 0, TAU);
+	ctx.stroke();
+	ctx.restore();
 }
 
 // ------------------------------------------------------------------ parts
@@ -242,7 +376,7 @@ function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, hump: number, fl
 function drawHead(
 	ctx: CanvasRenderingContext2D,
 	sk: Skeleton,
-	look: (typeof LOOKS)[EnemyKind],
+	look: Look,
 	snarling: boolean,
 	time: number,
 	flash: boolean
@@ -269,12 +403,30 @@ function drawHead(
 	ctx.lineWidth = 0.8;
 	ctx.stroke(head);
 
-	if (look.horns) {
+	if (look.crest === 'horns') {
 		ctx.fillStyle = '#2a1a14';
 		ctx.beginPath();
 		ctx.moveTo(-1, -R + 0.5);
 		ctx.quadraticCurveTo(-5, -R - 5, -8, -R - 3);
 		ctx.quadraticCurveTo(-4, -R - 1, -3, -R + 1.5);
+		ctx.closePath();
+		ctx.fill();
+	} else if (look.crest === 'fin') {
+		// Swept-back fin, built for speed
+		ctx.fillStyle = RED_DEEP;
+		ctx.beginPath();
+		ctx.moveTo(2, -R + 0.6);
+		ctx.quadraticCurveTo(-3, -R - 3.5, -9, -R - 1.5);
+		ctx.quadraticCurveTo(-5, -R + 0.5, -3.5, -R + 2.5);
+		ctx.closePath();
+		ctx.fill();
+	} else if (look.crest === 'mohawk') {
+		ctx.fillStyle = RED_DEEP;
+		ctx.beginPath();
+		ctx.moveTo(-3.5, -R + 1);
+		ctx.lineTo(-1.5, -R - 4.2);
+		ctx.lineTo(1.5, -R - 3.2);
+		ctx.lineTo(2.5, -R + 0.8);
 		ctx.closePath();
 		ctx.fill();
 	} else {
@@ -284,7 +436,7 @@ function drawHead(
 			const bx = -3 + i * 2.6;
 			ctx.beginPath();
 			ctx.moveTo(bx - 1.2, -R + 0.8);
-			ctx.lineTo(bx - 0.4, -R - 3 - (i === 1 ? 1 : 0));
+			ctx.lineTo(bx - 0.4, -R - 3 - (i === 1 ? 1.5 : 0.5));
 			ctx.lineTo(bx + 1.2, -R + 0.8);
 			ctx.closePath();
 			ctx.fill();

@@ -13,6 +13,7 @@
 import { castBeam, castThrough } from '../beam';
 import { DUMMY_HALF_H, DUMMY_HALF_W, dummyBox, hitDummy, isStanding, type Dummy } from '../dummy';
 import type { Intent } from '../input';
+import type { RedWorld } from '../enemies/redConstructs';
 import type { Obstacle } from '../map';
 import { boxOverlap, type Solid } from '../physics';
 import type { Player } from '../player';
@@ -115,7 +116,12 @@ export interface Effect {
 		| 'snipe'
 		| 'pillars'
 		| 'text'
-		| 'claw';
+		| 'claw'
+		// Red Lantern constructs (see enemies/redConstructs.ts)
+		| 'roar'
+		| 'slamMark'
+		| 'redBlast'
+		| 'redImpact';
 	x: number;
 	y: number;
 	age: number;
@@ -194,10 +200,12 @@ export interface ConstructWorld {
 	space: boolean;
 	/** Events since the Game last read them (it empties this each tick). */
 	events: WorldEvent[];
+	/** Red Lantern projectiles and chains. */
+	red: RedWorld;
 }
 
 export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[], space = false): ConstructWorld {
-	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], pillarStrikes: [], effects: [], space, events: [] };
+	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], pillarStrikes: [], effects: [], space, events: [], red: { shots: [], chains: [] } };
 }
 
 // --------------------------------------------------------------- tuning
@@ -1025,7 +1033,7 @@ export function damageObstacle(w: ConstructWorld, o: Obstacle, damage: number) {
 }
 
 /** Removing from w.obstacles also removes it from collisions: they share the array. */
-function removeObstacle(w: ConstructWorld, o: Obstacle, effect: 'burst' | 'fizzle') {
+export function removeObstacle(w: ConstructWorld, o: Obstacle, effect: 'burst' | 'fizzle') {
 	const i = w.obstacles.indexOf(o);
 	if (i === -1) return;
 	w.obstacles.splice(i, 1);

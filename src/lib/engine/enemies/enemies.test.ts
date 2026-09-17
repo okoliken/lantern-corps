@@ -4,18 +4,43 @@ import { createConstructWorld, type ConstructWorld } from '../constructs/system'
 import { isStanding, updateDummy } from '../dummy';
 import { IDLE } from '../input';
 import { LANTERNS } from '../lanterns';
-import { createPlayer, type Player } from '../player';
-import { ENEMIES, ENEMY_SPACING, createEnemy, updateEnemies, type Enemy } from './enemies';
+import { createPlayer, updatePlayer, type Player } from '../player';
+import { ENEMIES, ENEMY_SPACING, MELEE_SLOTS, createEnemy, updateEnemies, type Enemy, type Role } from './enemies';
+import { ABILITIES, type AbilityId } from './redConstructs';
 
 const DT = 1 / 60;
 const lantern = (x = 0, y = 0) => createPlayer(0, LANTERNS.hal, { read: () => IDLE }, x, y);
 
-function run(w: ConstructWorld, players: Player[], seconds: number) {
+function run(w: ConstructWorld, players: Player[], seconds: number, each?: () => void) {
 	for (let i = 0; i < Math.round(seconds * 60); i++) {
-		for (const p of players) updatePlayerCombat(p, DT);
+		for (const p of players) {
+			updatePlayerCombat(p, DT);
+			updatePlayer(p, IDLE, DT);
+		}
 		updateEnemies(w, players, DT);
-		for (const d of w.dummies) updateDummy(d, DT, [], false);
+		for (const d of w.dummies) updateDummy(d, DT, w.obstacles, false);
+		each?.();
 	}
+}
+
+/** A grunt of a role, ready to act right away (no spawn grace). */
+function grunt(x: number, y: number, role: Role = 'berserker'): Enemy {
+	const e = createEnemy('rageGrunt', x, y, role);
+	for (const id in e.brain.cooldowns) e.brain.cooldowns[id as AbilityId] = 0;
+	e.brain.think = 0;
+	return e;
+}
+
+/** Skip straight to the end of a windup: the construct starts next tick. */
+function force(e: Enemy, id: AbilityId, t: Player) {
+	const b = e.brain;
+	const dx = t.x - e.x;
+	const dy = t.y - e.y;
+	const len = Math.hypot(dx, dy) || 1;
+	Object.assign(b, { state: 'windup', ability: id, timer: 1e-6, target: t, aimX: dx / len, aimY: dy / len });
+	const reach = Math.min(len, ABILITIES[id].maxRange);
+	b.markX = e.x + (dx / len) * reach;
+	b.markY = e.y + (dy / len) * reach;
 }
 
 describe('Lanterns taking damage', () => {
@@ -69,93 +94,245 @@ describe('Lanterns taking damage', () => {
 	});
 });
 
-describe('Rage Grunt', () => {
-	const setup = (distance = 300) => {
-		const g = createEnemy('rageGrunt', distance, 0);
-		const w = createConstructWorld([], [g]);
-		const p = lantern();
-		return { g, w, p };
-	};
-
+describe('Red Lantern brains', () => {
 	it('notices a Lantern in sight and closes in', () => {
-		const { g, w, p } = setup(400);
-		run(w, [p], 0.8);
-		expect(g.brain.state).not.toBe('idle');
-		expect(g.x).toBeLessThan(380);
+		const e = createEnemy('rageGrunt', 500, 0);
+		const w = createConstructWorld([], [e]);
+		run(w, [lantern()], 0.8);
+		expect(e.brain.state).not.toBe('idle');
+		expect(e.x).toBeLessThan(480);
 	});
 
 	it('ignores Lanterns out of sight', () => {
-		const { g, w, p } = setup(ENEMIES.rageGrunt.sight + 200);
-		run(w, [p], 1);
-		expect(g.brain.state).toBe('idle');
+		const e = createEnemy('rageGrunt', ENEMIES.rageGrunt.sight + 200, 0);
+		const w = createConstructWorld([], [e]);
+		run(w, [lantern()], 1);
+		expect(e.brain.state).toBe('idle');
 	});
 
 	it('does not attack the instant it appears (short grace period)', () => {
-		const { g, w, p } = setup(40);
-		run(w, [p], 0.1);
-		expect(g.brain.state).not.toBe('windup');
+		const e = createEnemy('rageGrunt', 40, 0);
+		const w = createConstructWorld([], [e]);
+		run(w, [lantern()], 0.1);
+		expect(e.brain.state).not.toBe('windup');
 	});
 
-	it('winds up (a visible tell) before the claws land', () => {
-		const { g, w, p } = setup(40);
-		g.brain.cooldown = 0;
+	it('winds up its claws (a visible tell) before they land', () => {
+		const e = grunt(40, 0);
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
 		run(w, [p], 0.05);
-		expect(g.brain.state).toBe('windup');
+		expect(e.brain.state).toBe('windup');
+		expect(e.brain.ability).toBe('claws');
 		expect(p.health).toBe(p.maxHealth);
-		run(w, [p], ENEMIES.rageGrunt.windup + 0.1);
+		run(w, [p], ABILITIES.claws.windup + 0.1);
 		expect(p.health).toBeLessThan(p.maxHealth);
 	});
 
 	it('can be dodged: moving away during the windup avoids the hit', () => {
-		const { g, w, p } = setup(40);
-		g.brain.cooldown = 0;
+		const e = grunt(40, 0);
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
 		run(w, [p], 0.05);
-		expect(g.brain.state).toBe('windup');
-		p.x = -300; // dashed away
-		run(w, [p], ENEMIES.rageGrunt.windup + 0.1);
+		expect(e.brain.state).toBe('windup');
+		p.x = -300;
+		run(w, [p], ABILITIES.claws.windup + 0.1);
 		expect(p.health).toBe(p.maxHealth);
 	});
 
-	it('stunned grunts stop attacking', () => {
-		const { g, w, p } = setup(40);
-		g.stun = 2;
+	it('a burst of damage during a windup staggers it out of the attack', () => {
+		const e = grunt(40, 0);
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		run(w, [p], 0.05);
+		expect(e.brain.state).toBe('windup');
+		e.hp -= ENEMIES.rageGrunt.poise + 5;
+		run(w, [p], ABILITIES.claws.windup + 0.1);
+		expect(p.health).toBe(p.maxHealth);
+	});
+
+	it('stunned enemies stop attacking', () => {
+		const e = grunt(40, 0);
+		e.stun = 2;
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
 		run(w, [p], 1.5);
 		expect(p.health).toBe(p.maxHealth);
 	});
 
-	it('gets faster as it gets hurt (rage)', () => {
-		const calm = setup(500);
-		const angry = setup(500);
-		angry.g.hp = angry.g.maxHp * 0.2;
-		run(calm.w, [calm.p], 0.6);
-		run(angry.w, [angry.p], 0.6);
-		expect(angry.g.x).toBeLessThan(calm.g.x);
-	});
-
-	it('does not go after downed Lanterns', () => {
-		const { g, w, p } = setup(200);
-		p.downed = true;
-		run(w, [p], 1);
-		expect(g.brain.state).toBe('idle');
+	it(`only ${MELEE_SLOTS} get in close on one Lantern at a time; the rest wait their turn`, () => {
+		const pack = [0, 1, 2, 3].map((i) => grunt(Math.cos(i * 1.6) * 160, Math.sin(i * 1.6) * 160));
+		const w = createConstructWorld([], pack);
+		const p = lantern();
+		let most = 0;
+		run(w, [p], 4, () => {
+			p.invuln = 1; // keep them fighting
+			most = Math.max(most, pack.filter((e) => e.brain.engaged).length);
+		});
+		expect(most).toBeGreaterThan(0);
+		expect(most).toBeLessThanOrEqual(MELEE_SLOTS);
 	});
 
 	it('a pack spreads out instead of stacking on one spot', () => {
-		const pack = [createEnemy('rageGrunt', 200, 0), createEnemy('rageGrunt', 200, 0), createEnemy('rageGrunt', 200, 0)];
+		const pack = [grunt(200, 0), grunt(200, 0), grunt(200, 0)];
 		const w = createConstructWorld([], pack);
-		run(w, [lantern()], 1.5);
-		for (let i = 0; i < pack.length; i++)
-			for (let j = i + 1; j < pack.length; j++)
-				expect(Math.hypot(pack[i].x - pack[j].x, pack[i].y - pack[j].y)).toBeGreaterThan(ENEMY_SPACING * 0.6);
+		const p = lantern();
+		run(w, [p], 1, () => (p.invuln = 1));
+		// A lunge can briefly bring two together; on average over a second they stay apart
+		let total = 0;
+		let samples = 0;
+		run(w, [p], 1, () => {
+			p.invuln = 1;
+			for (let i = 0; i < pack.length; i++)
+				for (let j = i + 1; j < pack.length; j++) total += Math.hypot(pack[i].x - pack[j].x, pack[i].y - pack[j].y);
+			samples += 3;
+		});
+		expect(total / samples).toBeGreaterThan(ENEMY_SPACING);
+	});
+
+	it('splits up between two Lanterns instead of all chasing one', () => {
+		const pack = [grunt(0, -40), grunt(0, 0), grunt(0, 40), grunt(10, 20)];
+		const w = createConstructWorld([], pack);
+		const hal = lantern(-150, 0);
+		const john = createPlayer(1, LANTERNS.john, { read: () => IDLE }, 150, 0);
+		run(w, [hal, john], 0.5, () => (hal.invuln = john.invuln = 1));
+		expect(pack.filter((e) => e.brain.target === hal).length).toBeGreaterThan(0);
+		expect(pack.filter((e) => e.brain.target === john).length).toBeGreaterThan(0);
+	});
+
+	it('gunners keep their distance', () => {
+		const e = grunt(90, 0, 'gunner');
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		run(w, [p], 2.5, () => (p.invuln = 1));
+		expect(Math.hypot(e.x - p.x, e.y - p.y)).toBeGreaterThan(180);
+	});
+
+	it('gets faster as it gets hurt (rage)', () => {
+		const calm = createEnemy('rageGrunt', 600, 0);
+		const angry = createEnemy('rageGrunt', 600, 0);
+		angry.hp = angry.maxHp * 0.2;
+		angry.brain.lastHp = angry.hp;
+		const w1 = createConstructWorld([], [calm]);
+		const w2 = createConstructWorld([], [angry]);
+		run(w1, [lantern()], 0.6);
+		run(w2, [lantern()], 0.6);
+		expect(angry.x).toBeLessThan(calm.x);
+	});
+
+	it('does not go after downed Lanterns', () => {
+		const e = grunt(200, 0);
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		p.downed = true;
+		p.downTimer = 99;
+		run(w, [p], 1);
+		expect(e.brain.state).toBe('idle');
 	});
 
 	it('stays defeated and then leaves the world (no respawning like dummies)', () => {
-		const g: Enemy = createEnemy('rageGrunt', 0, 0);
-		g.hp = 1;
-		const w = createConstructWorld([], [g]);
-		g.hp = 0;
-		g.down = 0.1;
-		expect(isStanding(g)).toBe(false);
+		const e: Enemy = createEnemy('rageGrunt', 0, 0);
+		const w = createConstructWorld([], [e]);
+		e.hp = 0;
+		e.down = 0.1;
+		expect(isStanding(e)).toBe(false);
 		run(w, [], 0.2);
-		expect(g.gone).toBe(true);
+		expect(e.gone).toBe(true);
+	});
+});
+
+describe('Red Lantern constructs', () => {
+	const wall = (x: number, y: number) => ({
+		kind: 'wall' as const, x, y, w: 18, h: 120, height: 46, blocksFlying: true, seed: 0, hp: 300, maxHp: 300, life: 20, maxLife: 20
+	});
+
+	it('Rage Blast fires a burst of bolts that hurt', () => {
+		const e = grunt(250, 0, 'gunner');
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		force(e, 'blast', p);
+		run(w, [p], 1);
+		expect(p.health).toBeLessThan(p.maxHealth);
+	});
+
+	it('an energy wall blocks red bolts, and takes the damage instead', () => {
+		const e = grunt(250, 0, 'gunner');
+		const shield = wall(100, -60);
+		const w = createConstructWorld([shield], [e]);
+		const p = lantern();
+		force(e, 'blast', p);
+		run(w, [p], 1);
+		expect(p.health).toBe(p.maxHealth);
+		expect(shield.hp).toBeLessThan(300);
+	});
+
+	it('Rage Saw cuts on the way out AND on the way back', () => {
+		const e = grunt(200, 0, 'gunner');
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		force(e, 'saw', p);
+		run(w, [p], 0.05);
+		e.stun = 5; // stays put, so the saw flies straight back through the Lantern
+		run(w, [p], 2.5);
+		expect(p.health).toBeCloseTo(p.maxHealth - 2 * ABILITIES.saw.damage, 5);
+	});
+
+	it('Barbed Chain drags a Lantern in', () => {
+		const e = grunt(260, 0, 'hunter');
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		force(e, 'chain', p);
+		run(w, [p], 0.5);
+		expect(p.x).toBeGreaterThan(100);
+	});
+
+	it('a bubble shield breaks the Barbed Chain off', () => {
+		const e = grunt(260, 0, 'hunter');
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		w.shields.push({ owner: p, target: p, hp: 120, maxHp: 120, life: 10, maxLife: 10, ripple: 0 });
+		force(e, 'chain', p);
+		run(w, [p], 0.5);
+		expect(Math.abs(p.x)).toBeLessThan(20);
+	});
+
+	it('Rage Slam lands where the Lantern WAS: moving out of the circle avoids it', () => {
+		const stay = lantern();
+		const e1 = grunt(200, 0);
+		const w1 = createConstructWorld([], [e1]);
+		force(e1, 'slam', stay);
+		run(w1, [stay], ABILITIES.slam.active + 0.1);
+		expect(stay.health).toBeLessThan(stay.maxHealth);
+
+		const dodge = lantern();
+		const e2 = grunt(200, 0);
+		const w2 = createConstructWorld([], [e2]);
+		force(e2, 'slam', dodge);
+		run(w2, [dodge], 0.05);
+		dodge.x = -200;
+		run(w2, [dodge], ABILITIES.slam.active + 0.1);
+		expect(dodge.health).toBe(dodge.maxHealth);
+	});
+
+	it('Rage Roar shreds shields and turrets nearby', () => {
+		const e = grunt(60, 0);
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		w.shields.push({ owner: p, target: p, hp: 30, maxHp: 120, life: 10, maxLife: 10, ripple: 0 });
+		w.turrets.push({ owner: p, def: {} as never, x: 90, y: 30, aim: 0, cooldown: 99, life: 10, maxLife: 10, hp: 60, maxHp: 80 });
+		force(e, 'roar', p);
+		run(w, [p], 0.1);
+		expect(w.shields.length).toBe(0);
+		expect(w.turrets[0]?.hp ?? 0).toBeLessThanOrEqual(0);
+	});
+
+	it("red shots can't get into John's Fortress", () => {
+		const e = grunt(300, 0, 'gunner');
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		w.fortresses.push({ owner: p, x: 0, y: 0, radius: 120, life: 10, maxLife: 10, turrets: [] });
+		force(e, 'blast', p);
+		run(w, [p], 1);
+		expect(p.health).toBe(p.maxHealth);
 	});
 });

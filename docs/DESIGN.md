@@ -183,6 +183,11 @@ Skarr Vell → Manhunters → Dex-Starr → Atrocitus.
 - [x] **M4** Construct system: beam + 8 behavior types, Hal/John loadouts on keys 1–5, traits, training dummies, constructs lab
 - [x] **M4.5** Feedback pass: tuning (cheaper, longer-lasting), targeting + lock-on, bubble shield, construct art pass
 - [ ] **M5** First enemies (Red Lanterns, per STORY.md): Lantern health + damage, Rage Grunt → Plasma Spitter → Rage Brute
+  - [x] Stage 1: Lantern health, downed/revive. Rage Grunts in three roles, each with red constructs:
+        Berserker (Rage Claws, Rage Slam, Rage Roar), Hunter (Barbed Chain, Rage Claws), Gunner (Rage Blast, Rage Saw).
+        Pack AI: own reaction times, targets split between Lanterns, spots around the target, max 2 in melee,
+        ranged pacing, stagger on burst damage. Walls block red shots, Fortress keeps them out, roars shred shields/turrets.
+  - [x] AI partner (an InputSource that plays Hal or John) and /lab/demo: co-op waves of up to 4 Red Lanterns
 - [ ] **M6** First mission: objective, win/lose, HUD, restart
 
 **Phase 1.5: Characters** (before enemies, by request)

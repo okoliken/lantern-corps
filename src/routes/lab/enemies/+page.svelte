@@ -3,7 +3,7 @@
 	// brains, turn on god mode, and see what state each one is in.
 	import { onMount, untrack } from 'svelte';
 	import GameCanvas from '$lib/components/GameCanvas.svelte';
-	import { ENEMIES, isEnemy, type EnemyKind } from '$lib/engine/enemies/enemies';
+	import { ENEMIES, ROLES, ROLE_LIST, isEnemy, type EnemyKind, type Role } from '$lib/engine/enemies/enemies';
 	import type { EnvironmentKind } from '$lib/engine/environment';
 	import { Game } from '$lib/engine/game';
 	import { LANTERNS, type LanternId } from '$lib/engine/lanterns';
@@ -11,6 +11,7 @@
 
 	/** Enemies built so far. The rest arrive in the next stages. */
 	const READY: EnemyKind[] = ['rageGrunt'];
+	const COMING: EnemyKind[] = ['plasmaSpitter', 'rageBrute'];
 
 	let lantern = $state<LanternId>('hal');
 	let environment = $state<EnvironmentKind>('planet');
@@ -35,12 +36,12 @@
 	});
 
 	/** Spawn around the player, a few hundred px away, in a spread. */
-	function spawn(kind: EnemyKind, count = 1) {
+	function spawn(kind: EnemyKind, roles: Role[]) {
 		const p = game.players[0];
-		for (let i = 0; i < count; i++) {
-			const angle = -Math.PI / 2 + (i - (count - 1) / 2) * 0.5 + (Math.random() - 0.5) * 0.3;
-			game.spawnEnemy(kind, p.x + Math.cos(angle) * 360, p.y + Math.sin(angle) * 220 - 40);
-		}
+		roles.forEach((role, i) => {
+			const angle = -Math.PI / 2 + (i - (roles.length - 1) / 2) * 0.6 + (Math.random() - 0.5) * 0.3;
+			game.spawnEnemy(kind, p.x + Math.cos(angle) * 360, p.y + Math.sin(angle) * 260 - 40, role);
+		});
 	}
 
 	function clearEnemies() {
@@ -53,7 +54,7 @@
 		const id = setInterval(() => {
 			const p = game.players[0];
 			const enemies = game.dummies.filter(isEnemy);
-			const states = enemies.map((e) => e.brain.state).join(', ');
+			const states = enemies.map((e) => `${ROLES[e.brain.role].name} ${e.brain.ability ?? e.brain.state}`).join(', ');
 			readout = `${p.def.name}: health ${Math.ceil(p.health)}/${p.maxHealth}${p.downed ? ' (DOWN)' : ''} · willpower ${Math.floor(p.willpower)} · enemies ${enemies.length}${states ? ` [${states}]` : ''}`;
 		}, 150);
 		return () => clearInterval(id);
@@ -78,12 +79,18 @@
 		<label><input type="checkbox" bind:checked={debug} /> Show AI states</label>
 	</div>
 	<div class="controls">
-		{#each Object.values(ENEMIES) as def (def.kind)}
-			{@const ready = READY.includes(def.kind)}
-			<span class="spawn" title={def.description}>
-				<button disabled={!ready} onclick={() => spawn(def.kind)}>+ {def.name}</button>
-				<button disabled={!ready} onclick={() => spawn(def.kind, 3)}>×3</button>
-				{#if !ready}<small>coming next</small>{/if}
+		{#each READY as kind (kind)}
+			{#each ROLE_LIST as role (role)}
+				<span class="spawn" title={ROLES[role].description}>
+					<button onclick={() => spawn(kind, [role])}>+ {ROLES[role].name}</button>
+				</span>
+			{/each}
+			<button onclick={() => spawn(kind, ['berserker', 'hunter', 'gunner', 'gunner'])}>+ Pack of 4</button>
+		{/each}
+		{#each COMING as kind (kind)}
+			<span class="spawn" title={ENEMIES[kind].description}>
+				<button disabled>+ {ENEMIES[kind].name}</button>
+				<small>coming next</small>
 			</span>
 		{/each}
 		<button onclick={clearEnemies}>Clear enemies</button>

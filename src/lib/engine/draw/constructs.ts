@@ -7,6 +7,7 @@
 // filled, stroked, and clipped without redrawing the path each time.
 
 import { AUTO_TURRET_HEAD, FIST_OUT_TIME, SENTRY_DRONE_HOVER, type Effect, type Projectile, type Shield, type Trap, type Turret } from '../constructs/system';
+import { drawRedEffect } from './redConstructs';
 import { isStanding, type Dummy } from '../dummy';
 import type { Target } from '../targeting';
 import { GREEN } from './lantern';
@@ -1146,6 +1147,12 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			}
 			break;
 		}
+		case 'roar':
+		case 'slamMark':
+		case 'redBlast':
+		case 'redImpact':
+			drawRedEffect(ctx, e, lift, time);
+			break;
 		case 'text': {
 			// Small floating note, e.g. "+25 XP"
 			ctx.globalAlpha = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;

@@ -28,8 +28,11 @@ import {
 } from './draw/constructs';
 import { drawBattery, drawBeam, drawChargeLink, drawCrosshair, drawDownedNotice, drawHud } from './draw/effects';
 import { drawRedLantern } from './draw/enemies';
+import { drawRedChain, drawRedEffect, drawRedShot } from './draw/redConstructs';
+import { AllyInput } from './ally';
+import { RED_HAND_LIFT } from './enemies/redConstructs';
 import { updatePlayerCombat, revivePlayer } from './combat';
-import { ENEMIES, createEnemy, isEnemy, updateEnemies, type EnemyKind } from './enemies/enemies';
+import { ENEMIES, ROLES, createEnemy, isEnemy, updateEnemies, type Enemy, type EnemyKind, type Role } from './enemies/enemies';
 import {
 	FIGURE_HALF_WIDTH,
 	FIGURE_HEIGHT,
@@ -71,6 +74,8 @@ export interface PlayerConfig {
 	lantern: LanternId;
 	/** Which keys control this player. */
 	keys: LayoutName;
+	/** Controlled by the computer (an AI partner) instead of keys. */
+	ai?: boolean;
 }
 
 export interface GameOptions {
@@ -124,6 +129,8 @@ export class Game {
 	godMode = false;
 	/** Enemies stand still and don't attack. Toggled from the enemy lab. */
 	freezeEnemies = false;
+	/** Runs the fight: sends waves of enemies (the demo), later missions. */
+	director: { update(game: Game, dt: number): void } | null = null;
 
 	private rules: WorldRules;
 	private inputs: BindingInput[];
@@ -161,7 +168,12 @@ export class Game {
 		this.inputs = players.map((cfg) => new BindingInput(this.buttons, settings.bindings[cfg.keys]));
 		this.layouts = players.map((cfg) => cfg.keys);
 		this.players = players.map((cfg, slot) => {
-			const p = createPlayer(slot, LANTERNS[cfg.lantern], this.inputs[slot], startX + slot * gap, this.map.spawn.y);
+			const ally = cfg.ai ? new AllyInput(this) : null;
+			const p = createPlayer(slot, LANTERNS[cfg.lantern], ally ?? this.inputs[slot], startX + slot * gap, this.map.spawn.y);
+			if (ally) {
+				ally.me = p;
+				this.aiSlots.add(slot);
+			}
 			if (env.alwaysFlying) {
 				p.flying = true;
 				p.altitude = 1;
@@ -183,6 +195,8 @@ export class Game {
 	}
 
 	private layouts: LayoutName[];
+	/** Players driven by an AI partner. */
+	private aiSlots = new Set<number>();
 
 	/**
 	 * Use new settings (e.g. after changing them in the pause menu) without
@@ -303,13 +317,23 @@ export class Game {
 			if (this.dummies[i].gone) this.dummies.splice(i, 1);
 		}
 
+		this.director?.update(this, dt);
+
 		const [tx, ty] = this.cameraTarget();
 		this.camera.follow(tx, ty, dt, this.view, map.width, map.height);
 	}
 
-	/** Put an enemy into the world (enemy lab, and later mission spawners). */
-	spawnEnemy(kind: EnemyKind, x: number, y: number) {
-		this.dummies.push(createEnemy(kind, x, y));
+	/** Put an enemy into the world (labs, the demo, and later mission spawners). */
+	spawnEnemy(kind: EnemyKind, x: number, y: number, role: Role = 'berserker'): Enemy {
+		const e = createEnemy(kind, x, y, role);
+		this.dummies.push(e);
+		this.constructs.effects.push({ kind: 'roar', x, y, age: 0, life: 0.5, radius: 50, lift: 30 });
+		return e;
+	}
+
+	/** Enemies still standing. */
+	get enemies(): Enemy[] {
+		return this.dummies.filter((d): d is Enemy => isEnemy(d) && isStanding(d));
 	}
 
 	/** React to what happened this tick: XP and level-ups for defeats. */
@@ -406,6 +430,7 @@ export class Game {
 		if (map.environment === 'planet') drawPlanetGround(ctx, visible, map.width, map.height);
 		// Traps and Fortress rings are markings on the ground: under everything
 		for (const t of cw.traps) drawTrap(ctx, t, this.time);
+		for (const e of cw.effects) if (e.kind === 'slamMark') drawRedEffect(ctx, e, 0, this.time);
 		const inSpace = map.environment === 'space';
 		for (const f of cw.fortresses) drawFortressBack(ctx, f, this.time, inSpace);
 
@@ -474,7 +499,8 @@ export class Game {
 				}
 			}
 
-			const tag = this.showSlots ? `P${p.slot + 1} · ${p.def.name}` : p.def.name;
+			const who = this.aiSlots.has(p.slot) ? 'AI' : `P${p.slot + 1}`;
+			const tag = this.showSlots ? `${who} · ${p.def.name}` : p.def.name;
 			const lift = pose.hoverHeight * p.altitude * 1.35;
 			tags.push(() => drawNameTag(ctx, tag, x, y, lift));
 		}
@@ -529,8 +555,22 @@ export class Game {
 				drawReticle(ctx, t, tx, ty, sameTarget(t, p.lock), this.time);
 			}
 		}
+		// Red Lantern projectiles, and Barbed Chains from the hand to the hook or the Lantern caught
+		for (const s of cw.red.shots) {
+			const x = lerp(s.prevX, s.x, alpha);
+			const y = lerp(s.prevY, s.y, alpha);
+			if (s.kind === 'hook') drawRedChain(ctx, ...this.redHand(s.owner, alpha), x, y - RED_HAND_LIFT, this.time);
+			drawRedShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
+		}
+		for (const c of cw.red.chains) {
+			const t = c.target;
+			const bodyY = lerp(t.prevY, t.y, alpha) - this.poseFor(t).hoverHeight * t.altitude * 1.35 - FIGURE_HEIGHT * 0.55;
+			drawRedChain(ctx, ...this.redHand(c.owner, alpha), lerp(t.prevX, t.x, alpha), bodyY, this.time);
+		}
+
 		for (const e of cw.effects) {
 			if (e.kind === 'number' && !this.settings.damageNumbers) continue;
+			if (e.kind === 'slamMark') continue; // drawn on the ground, above
 			if (e.kind === 'callout') {
 				// Follow the Lantern who shouted it, above their head
 				const o = e.owner;
@@ -602,6 +642,11 @@ export class Game {
 		if (this.usesMouse && this.pointer.active && !this.paused) drawCrosshair(ctx, this.pointer.x, this.pointer.y, this.time);
 	}
 
+	/** A Red Lantern's hand, where its chains start. */
+	private redHand(e: Enemy, alpha: number): [number, number] {
+		return [lerp(e.prevX, e.x, alpha) + e.dir * 12, lerp(e.prevY, e.y, alpha) - RED_HAND_LIFT];
+	}
+
 	/** Where to draw a target marker, smoothed like everything else. */
 	private targetDrawPosition(t: Target, alpha: number): [number, number] {
 		if (t.kind === 'enemy') return [lerp(t.dummy.prevX, t.dummy.x, alpha), lerp(t.dummy.prevY, t.dummy.y, alpha)];
@@ -642,18 +687,23 @@ export class Game {
 			ctx.strokeRect(d.x - DUMMY_HALF_W, d.y - DUMMY_HALF_H, DUMMY_HALF_W * 2, DUMMY_HALF_H * 2);
 			if (!isEnemy(d)) continue;
 			// AI state and attack range, for the enemy lab
-			const def = ENEMIES[d.kind];
+			const b = d.brain;
 			ctx.save();
-			ctx.strokeStyle = 'rgba(255, 90, 90, 0.35)';
-			ctx.setLineDash([4, 4]);
-			ctx.beginPath();
-			ctx.ellipse(d.x, d.y, def.attackRange, def.attackRange * 0.5, 0, 0, Math.PI * 2);
-			ctx.stroke();
-			ctx.setLineDash([]);
 			ctx.font = '600 10px ui-monospace, monospace';
 			ctx.textAlign = 'center';
 			ctx.fillStyle = '#ffd0d0';
-			ctx.fillText(`${d.brain.state}${d.brain.rage > 0.05 ? ` rage ${Math.round(d.brain.rage * 100)}%` : ''}`, d.x, d.y + 16);
+			const doing = b.ability ? `${b.state} ${b.ability}` : b.state;
+			ctx.fillText(`${ROLES[b.role].name}: ${doing}${b.engaged ? ' ⚔' : ''}`, d.x, d.y + 16);
+			if (b.rage > 0.05) ctx.fillText(`rage ${Math.round(b.rage * 100)}%`, d.x, d.y + 28);
+			// A line to who it's after
+			if (b.target) {
+				ctx.strokeStyle = 'rgba(255, 90, 90, 0.25)';
+				ctx.setLineDash([3, 5]);
+				ctx.beginPath();
+				ctx.moveTo(d.x, d.y);
+				ctx.lineTo(b.target.x, b.target.y);
+				ctx.stroke();
+			}
 			ctx.restore();
 		}
 	}
