@@ -17,7 +17,7 @@ import type { Obstacle } from '../map';
 import { boxOverlap, type Solid } from '../physics';
 import type { Player } from '../player';
 import { RESTART_THRESHOLD, canSpend, spend } from '../willpower';
-import { HELD_BEHAVIORS, MAX_TRAPS_PER_PLAYER, STRUCTURE_BEHAVIORS, type ConstructDef } from './defs';
+import { BUBBLE_SHIELD, HELD_BEHAVIORS, MAX_TRAPS_PER_PLAYER, STRUCTURE_BEHAVIORS, type ConstructDef } from './defs';
 
 // ------------------------------------------------------------ world state
 
@@ -66,9 +66,22 @@ export interface PendingSmash {
 	knockback: number;
 }
 
+/** A bubble shield around a Lantern (and in M6, civilians). */
+export interface Shield {
+	owner: Player;
+	/** Who's inside the bubble. */
+	target: Player;
+	hp: number;
+	maxHp: number;
+	life: number;
+	maxLife: number;
+	/** Seconds left on the ripple after absorbing a hit. */
+	ripple: number;
+}
+
 /** Visual-only things that play out and disappear. */
 export interface Effect {
-	kind: 'slash' | 'fist' | 'shockwave' | 'blast' | 'burst' | 'fizzle' | 'impact' | 'number' | 'snap';
+	kind: 'slash' | 'fist' | 'shockwave' | 'blast' | 'burst' | 'fizzle' | 'impact' | 'number' | 'snap' | 'pop';
 	x: number;
 	y: number;
 	age: number;
@@ -90,11 +103,12 @@ export interface ConstructWorld {
 	tethers: Tether[];
 	traps: Trap[];
 	pending: PendingSmash[];
+	shields: Shield[];
 	effects: Effect[];
 }
 
 export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[]): ConstructWorld {
-	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], effects: [] };
+	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], effects: [] };
 }
 
 // --------------------------------------------------------------- tuning
@@ -120,8 +134,11 @@ const TETHER_TIME = 0.45;
 
 export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w: ConstructWorld) {
 	p.cooldowns = p.cooldowns.map((c) => Math.max(0, c - dt));
+	p.shieldCooldown = Math.max(0, p.shieldCooldown - dt);
 	p.actionTimer = Math.max(0, p.actionTimer - dt);
 	if (p.actionTimer === 0) p.actionShape = null;
+
+	if (intent.shield) castShield(p, w);
 
 	// ---- Switching constructs ----
 	const before = p.selected;
@@ -339,6 +356,61 @@ function shockwave(p: Player, def: ConstructDef, w: ConstructWorld) {
 	w.effects.push({ kind: 'shockwave', x: p.x, y: p.y, age: 0, life: 0.45, radius: def.range, owner: p });
 }
 
+// ----------------------------------------------------------------- shield
+
+/** Who a Lantern's shield would go on right now: a locked ally in reach, else themselves. */
+export function shieldRecipient(p: Player): Player {
+	const ally = p.protectTarget?.kind === 'ally' ? p.protectTarget.player : null;
+	if (ally && Math.hypot(ally.x - p.x, ally.y - p.y) <= BUBBLE_SHIELD.range) return ally;
+	return p;
+}
+
+function castShield(p: Player, w: ConstructWorld) {
+	if (p.shieldCooldown > 0 || !canSpend(p, BUBBLE_SHIELD.cost)) return;
+	const target = shieldRecipient(p);
+	const hp = durable(p, BUBBLE_SHIELD.hp ?? 100);
+	const life = durable(p, BUBBLE_SHIELD.duration ?? 10);
+
+	// One bubble per person: casting again refreshes it
+	const existing = w.shields.find((s) => s.target === target);
+	if (existing) {
+		Object.assign(existing, { owner: p, hp, maxHp: hp, life, maxLife: life, ripple: 0.3 });
+	} else {
+		w.shields.push({ owner: p, target, hp, maxHp: hp, life, maxLife: life, ripple: 0.3 });
+	}
+
+	spend(p, BUBBLE_SHIELD.cost);
+	p.shieldCooldown = BUBBLE_SHIELD.cooldown * p.def.traits.cooldown;
+	w.effects.push({ kind: 'snap', x: target.x, y: target.y, age: 0, life: 0.35, radius: 40 });
+	if (target !== p) {
+		// Reach toward the ally you're protecting
+		const dx = target.x - p.x;
+		const dy = target.y - p.y;
+		const len = Math.hypot(dx, dy) || 1;
+		p.aimX = dx / len;
+		p.aimY = dy / len;
+		p.actionTimer = 0.35;
+		p.actionShape = 'bubble';
+	}
+}
+
+/**
+ * Damage aimed at a Lantern hits their bubble first. Returns what gets
+ * through. (Enemies start using this in M5.)
+ */
+export function absorbWithShield(w: ConstructWorld, target: Player, damage: number): number {
+	const shield = w.shields.find((s) => s.target === target);
+	if (!shield) return damage;
+	const absorbed = Math.min(shield.hp, damage);
+	shield.hp -= absorbed;
+	shield.ripple = 0.25;
+	if (shield.hp <= 0) {
+		w.shields.splice(w.shields.indexOf(shield), 1);
+		w.effects.push({ kind: 'pop', x: target.x, y: target.y, age: 0, life: 0.45, owner: target });
+	}
+	return damage - absorbed;
+}
+
 // ----------------------------------------------------------- world tick
 
 export function updateConstructWorld(w: ConstructWorld, dt: number) {
@@ -346,6 +418,15 @@ export function updateConstructWorld(w: ConstructWorld, dt: number) {
 	updatePending(w, dt);
 	updateTethers(w, dt);
 	updateTraps(w, dt);
+
+	for (const s of [...w.shields]) {
+		s.life -= dt;
+		s.ripple = Math.max(0, s.ripple - dt);
+		if (s.life <= 0) {
+			w.shields.splice(w.shields.indexOf(s), 1);
+			w.effects.push({ kind: 'pop', x: s.target.x, y: s.target.y, age: 0, life: 0.45, owner: s.target });
+		}
+	}
 
 	// Energy walls fade away
 	for (const o of [...w.obstacles]) {

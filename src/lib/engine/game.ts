@@ -38,6 +38,7 @@ import { KeyboardInput, KeyboardState, LAYOUTS, type LayoutName } from './input'
 import { LANTERNS, type LanternId } from './lanterns';
 import { buildTestMap, seededRandom, type GameMap, type Obstacle } from './map';
 import { FEET_HALF_H, FEET_HALF_W, clampToBounds, createPlayer, updatePlayer, type Player, type WorldRules } from './player';
+import { updateTargeting, type TargetWorld } from './targeting';
 import { BATTERY_MAX_CHARGE, canSpend, updateBattery, updateWillpower, type Battery } from './willpower';
 
 export const LANTERN_GREEN = GREEN;
@@ -118,6 +119,11 @@ export class Game {
 		];
 	}
 
+	/** What targeting can see: everything you might attack or protect. */
+	get targetWorld(): TargetWorld {
+		return { dummies: this.dummies, obstacles: this.map.obstacles, players: this.players };
+	}
+
 	get environment(): EnvironmentKind {
 		return this.map.environment;
 	}
@@ -141,6 +147,7 @@ export class Game {
 			updatePlayer(p, intent, dt, this.rules);
 			// Keep feet inside the map, with room above for the body
 			clampToBounds(p, FIGURE_HALF_WIDTH, FIGURE_HEIGHT, map.width - FIGURE_HALF_WIDTH, map.height - 6);
+			updateTargeting(p, intent.target, this.targetWorld);
 			updateWillpower(p, dt, this.batteries);
 			updatePlayerConstructs(p, intent, dt, this.constructs);
 			if (this.infiniteWillpower) {

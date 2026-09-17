@@ -8,8 +8,16 @@ import { LANTERNS, type LanternId } from '../lanterns';
 import { CRATE_HP, type Obstacle } from '../map';
 import { createPlayer, type Player } from '../player';
 import { MAX_WILLPOWER, RESTART_THRESHOLD } from '../willpower';
-import { CONSTRUCTS, LOADOUTS, MAX_TRAPS_PER_PLAYER, type ConstructId } from './defs';
-import { costOf, createConstructWorld, updateConstructWorld, updatePlayerConstructs, type ConstructWorld } from './system';
+import { BUBBLE_SHIELD, CONSTRUCTS, LOADOUTS, MAX_TRAPS_PER_PLAYER, type ConstructId } from './defs';
+import {
+	absorbWithShield,
+	costOf,
+	createConstructWorld,
+	shieldRecipient,
+	updateConstructWorld,
+	updatePlayerConstructs,
+	type ConstructWorld
+} from './system';
 
 const DT = 1 / 60;
 const FIRE: Intent = { ...IDLE, fire: true, firePressed: true };
@@ -282,5 +290,63 @@ describe('Hal vs John traits', () => {
 
 	it(`John's cages hold longer`, () => {
 		expect(LANTERNS.john.traits.durability).toBeGreaterThan(LANTERNS.hal.traits.durability);
+	});
+});
+
+describe('bubble shield', () => {
+	const SHIELD: Intent = { ...IDLE, shield: true };
+
+	it('goes on yourself when no ally is locked', () => {
+		const { p, w } = setup('hal', 'beam');
+		run(p, w, SHIELD, DT);
+		expect(w.shields).toHaveLength(1);
+		expect(w.shields[0].target).toBe(p);
+		expect(p.willpower).toBeLessThan(MAX_WILLPOWER);
+	});
+
+	it('goes on a locked ally in reach', () => {
+		const { p, w } = setup('john', 'beam');
+		const partner = createPlayer(1, LANTERNS.hal, { read: () => IDLE }, 150, 0);
+		p.protectTarget = { kind: 'ally', player: partner };
+		run(p, w, SHIELD, DT);
+		expect(w.shields[0].target).toBe(partner);
+	});
+
+	it('falls back to yourself if the ally is too far away', () => {
+		const { p, w } = setup('john', 'beam');
+		const partner = createPlayer(1, LANTERNS.hal, { read: () => IDLE }, BUBBLE_SHIELD.range + 100, 0);
+		p.protectTarget = { kind: 'ally', player: partner };
+		expect(shieldRecipient(p)).toBe(p);
+	});
+
+	it('absorbs damage until it breaks, then lets the rest through', () => {
+		const { p, w } = setup('hal', 'beam');
+		run(p, w, SHIELD, DT);
+		const hp = w.shields[0].hp;
+		expect(absorbWithShield(w, p, 10)).toBe(0);
+		expect(absorbWithShield(w, p, hp)).toBe(10);
+		expect(w.shields).toHaveLength(0);
+	});
+
+	it('with no shield, all damage gets through', () => {
+		const { p, w } = setup('hal', 'beam');
+		expect(absorbWithShield(w, p, 25)).toBe(25);
+	});
+
+	it('casting again refreshes the bubble instead of stacking', () => {
+		const { p, w } = setup('hal', 'beam');
+		run(p, w, SHIELD, DT);
+		absorbWithShield(w, p, 30);
+		run(p, w, IDLE, 1.5);
+		run(p, w, SHIELD, DT);
+		expect(w.shields).toHaveLength(1);
+		expect(w.shields[0].hp).toBe(w.shields[0].maxHp);
+	});
+
+	it('pops when it runs out of time', () => {
+		const { p, w } = setup('john', 'beam');
+		run(p, w, SHIELD, DT);
+		run(p, w, IDLE, BUBBLE_SHIELD.duration! * LANTERNS.john.traits.durability + 0.5);
+		expect(w.shields).toHaveLength(0);
 	});
 });

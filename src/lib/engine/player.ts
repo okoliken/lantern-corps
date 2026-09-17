@@ -3,6 +3,7 @@
 import { CONSTRUCTS, LOADOUTS, type ConstructDef } from './constructs/defs';
 import type { InputSource, Intent } from './input';
 import type { LanternDef } from './lanterns';
+import type { Target } from './targeting';
 import { approach, boxOverlap, moveBody, type Solid } from './physics';
 import { MAX_WILLPOWER } from './willpower';
 
@@ -29,9 +30,20 @@ export interface Player {
 	flying: boolean;
 	/** 0 = on the ground, 1 = fully airborne. Eases between them on take-off/landing. */
 	altitude: number;
-	/** Direction the ring points (unit vector): the last direction you moved in. */
+	/** Direction you last moved in (unit vector). */
+	faceX: number;
+	faceY: number;
+	/** Direction the ring points: at the target if there is one, otherwise where you face. */
 	aimX: number;
 	aimY: number;
+
+	// ---- Targeting (see targeting.ts) ----
+	/** What the Target key has locked onto, if anything. */
+	lock: Target | null;
+	/** What attacks aim at this tick: the lock, or an automatic pick. */
+	attackTarget: Target | null;
+	/** Who the bubble shield goes on: a locked ally, or null for yourself. */
+	protectTarget: Target | null;
 
 	// ---- Willpower ----
 	/** 0..MAX_WILLPOWER. Powers every construct. */
@@ -58,6 +70,8 @@ export interface Player {
 	actionTimer: number;
 	/** Which construct that action was, for drawing. */
 	actionShape: ConstructDef['shape'] | null;
+	/** Seconds until the bubble shield can be cast again. */
+	shieldCooldown: number;
 }
 
 /** What the player needs to know about the world to move through it. */
@@ -95,8 +109,14 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		walkPhase: 0,
 		flying: false,
 		altitude: 0,
+		faceX: 1,
+		faceY: 0,
 		aimX: 1,
 		aimY: 0,
+		lock: null,
+		attackTarget: null,
+		protectTarget: null,
+		shieldCooldown: 0,
 		willpower: MAX_WILLPOWER,
 		exhausted: false,
 		recoverDelay: 0,
@@ -158,11 +178,14 @@ export function updatePlayer(p: Player, intent: Intent, dt: number, world: World
 	// keeps whichever way they were already facing.
 	if (intent.moveX !== 0) p.dir = intent.moveX > 0 ? 1 : -1;
 
-	// The ring aims wherever you last pushed. Input is already normalized.
+	// Facing follows movement. Input is already normalized. The ring's aim
+	// starts here too; targeting may then point it at a target instead.
 	if (moving) {
-		p.aimX = intent.moveX;
-		p.aimY = intent.moveY;
+		p.faceX = intent.moveX;
+		p.faceY = intent.moveY;
 	}
+	p.aimX = p.faceX;
+	p.aimY = p.faceY;
 
 	// Walking legs cycle faster the faster you go. Flying Lanterns don't walk.
 	const speed = Math.hypot(p.vx, p.vy);

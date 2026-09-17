@@ -21,9 +21,13 @@ export interface Intent {
 	select: number;
 	/** The cycle key was pressed: move to the next construct. */
 	cycle: boolean;
+	/** The Target key was pressed: lock on / cycle lock. */
+	target: boolean;
+	/** The Shield key was pressed: bubble shield. */
+	shield: boolean;
 }
 
-export const IDLE: Intent = { moveX: 0, moveY: 0, toggleFly: false, fire: false, firePressed: false, select: -1, cycle: false };
+export const IDLE: Intent = { moveX: 0, moveY: 0, toggleFly: false, fire: false, firePressed: false, select: -1, cycle: false, target: false, shield: false };
 
 export interface InputSource {
 	read(): Intent;
@@ -44,6 +48,10 @@ export interface KeyLayout {
 	slots: string[][];
 	/** Next construct. */
 	cycle: string[];
+	/** Lock onto / cycle targets. */
+	target: string[];
+	/** Bubble shield. */
+	shield: string[];
 }
 
 const digits = (...n: number[]) => n.map((d) => [`Digit${d}`]);
@@ -57,7 +65,9 @@ export const LAYOUTS = {
 		fly: ['Space'],
 		fire: ['KeyF'],
 		slots: digits(1, 2, 3, 4, 5),
-		cycle: ['KeyQ']
+		cycle: ['KeyQ'],
+		target: ['Tab'],
+		shield: ['KeyE']
 	},
 	arrows: {
 		up: ['ArrowUp'],
@@ -68,7 +78,9 @@ export const LAYOUTS = {
 		fire: ['Enter'],
 		// Top-row 6-0, so it works on laptops without a number pad
 		slots: digits(6, 7, 8, 9, 0),
-		cycle: ['Slash']
+		cycle: ['Slash'],
+		target: ['Period'],
+		shield: ['Comma']
 	},
 	/** Single player: either set of keys works. */
 	both: {
@@ -79,7 +91,9 @@ export const LAYOUTS = {
 		fly: ['Space'],
 		fire: ['KeyJ', 'KeyF'],
 		slots: digits(1, 2, 3, 4, 5),
-		cycle: ['KeyQ']
+		cycle: ['KeyQ'],
+		target: ['Tab'],
+		shield: ['KeyE']
 	}
 } satisfies Record<string, KeyLayout>;
 
@@ -175,6 +189,8 @@ export class KeyboardInput implements InputSource {
 		intent.toggleFly = this.keyboard.consumePress(this.layout.fly);
 		intent.firePressed = this.keyboard.consumePress(this.layout.fire);
 		intent.cycle = this.keyboard.consumePress(this.layout.cycle);
+		intent.target = this.keyboard.consumePress(this.layout.target);
+		intent.shield = this.keyboard.consumePress(this.layout.shield);
 		intent.select = this.layout.slots.findIndex((codes) => this.keyboard.consumePress(codes));
 		return intent;
 	}

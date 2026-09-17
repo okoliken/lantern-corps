@@ -17,7 +17,8 @@ export type Behavior =
 	| 'barrier' // press: place a wall that blocks movement
 	| 'grab' // press: fire a tether that pulls a target in
 	| 'trap' // press: place a cage that catches whatever walks in
-	| 'area'; // press: shockwave all around you
+	| 'area' // press: shockwave all around you
+	| 'shield'; // press: bubble shield on yourself or an ally
 
 /** Drawing style for a construct. Forge constructs will add their own. */
 export type ConstructShape =
@@ -29,7 +30,8 @@ export type ConstructShape =
 	| 'wall'
 	| 'chain'
 	| 'cage'
-	| 'shockwave';
+	| 'shockwave'
+	| 'bubble';
 
 export interface ConstructDef {
 	id: string;
@@ -102,6 +104,26 @@ export const CONSTRUCTS = {
 } satisfies Record<string, ConstructDef>;
 
 export type ConstructId = keyof typeof CONSTRUCTS;
+
+/**
+ * Every Lantern can raise a bubble shield, on its own key rather than a
+ * slot. It goes on you, or on the ally you've locked onto, and soaks up
+ * damage until it breaks or runs out.
+ */
+export const BUBBLE_SHIELD: ConstructDef = {
+	id: 'bubble',
+	name: 'Bubble Shield',
+	behavior: 'shield',
+	shape: 'bubble',
+	cost: 12,
+	cooldown: 1,
+	damage: 0,
+	knockback: 0,
+	/** Furthest away an ally can be and still get the shield. */
+	range: 450,
+	duration: 12,
+	hp: 120
+};
 
 /** Hold-to-use behaviors. Everything else fires once per key press. */
 export const HELD_BEHAVIORS: ReadonlySet<Behavior> = new Set(['beam', 'rapid']);
