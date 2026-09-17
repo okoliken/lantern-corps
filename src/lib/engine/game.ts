@@ -2,12 +2,23 @@
 // It's plain TypeScript, with no Svelte, so it can run in /play, in any
 // /lab page, and in tests.
 
+import { Camera } from './camera';
 import type { View } from './canvas';
-import { FIGURE_HALF_WIDTH, FIGURE_HEIGHT, GREEN, drawLantern, drawNameTag } from './draw/lantern';
+import {
+	FIGURE_HALF_WIDTH,
+	FIGURE_HEIGHT,
+	GREEN,
+	HOVER_PLANET,
+	HOVER_SPACE,
+	drawLantern,
+	drawNameTag
+} from './draw/lantern';
+import { drawEmblem, drawObstacle, drawPlanetGround, drawStarfield, makeStars, type WorldRect } from './draw/world';
 import { ENVIRONMENT_RULES, type EnvironmentKind } from './environment';
 import { KeyboardInput, KeyboardState, LAYOUTS, type LayoutName } from './input';
 import { LANTERNS, type LanternId } from './lanterns';
-import { clampToBounds, createPlayer, updatePlayer, type Player } from './player';
+import { buildTestMap, seededRandom, type GameMap } from './map';
+import { FEET_HALF_H, FEET_HALF_W, clampToBounds, createPlayer, updatePlayer, type Player, type WorldRules } from './player';
 
 export const LANTERN_GREEN = GREEN;
 
@@ -19,57 +30,63 @@ export interface PlayerConfig {
 
 export interface GameOptions {
 	players: PlayerConfig[];
-	/** Space: always flying. Planet: walking (flying comes in M2). Defaults to space. */
+	/** Space: always flying. Planet: walk, take off, land. Defaults to space. */
 	environment?: EnvironmentKind;
+	/** A specific map. Defaults to the test map for the environment. */
+	map?: GameMap;
 	/** Show "P1"/"P2" under the name tags. */
 	showSlots?: boolean;
 }
 
-interface Star {
-	x: number; // 0..1 across the screen
-	y: number; // 0..1 down the screen
-	size: number;
-	twinkle: number; // phase offset so stars don't blink in unison
-}
-
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+/** Aim the camera at the Lantern's chest, not their feet. */
+const CAMERA_AIM_UP = 30;
 
 export class Game {
 	/** Seconds of simulated time. Only update() changes it. */
 	time = 0;
 	readonly keyboard = new KeyboardState();
 	readonly players: Player[];
+	readonly map: GameMap;
+	readonly camera = new Camera();
+	/** Draw collision boxes. Toggled from the lab. */
+	debug = false;
 
-	readonly environment: EnvironmentKind;
-	private stars: Star[];
-	/** Ground speckles for planet missions (placeholder until M2 maps). */
-	private pebbles: Star[];
+	private rules: WorldRules;
+	private starLayers;
 	private showSlots: boolean;
-	/** The drawable area. Until the world has a map (M2), the screen is the arena. */
 	private view: View = { width: 0, height: 0 };
-	private spawned = false;
+	private started = false;
 
-	constructor({ players, environment = 'space', showSlots = false }: GameOptions) {
-		this.environment = environment;
-		const rules = ENVIRONMENT_RULES[environment];
+	constructor({ players, environment = 'space', map, showSlots = false }: GameOptions) {
+		this.map = map ?? buildTestMap(environment);
+		const env = ENVIRONMENT_RULES[this.map.environment];
+		this.rules = { solids: this.map.obstacles, alwaysFlying: env.alwaysFlying };
+
+		// Spawn side by side around the map's spawn point
+		const gap = 170; // wide enough that name tags don't overlap
+		const startX = this.map.spawn.x - (gap * (players.length - 1)) / 2;
 		this.players = players.map((cfg, slot) => {
-			const p = createPlayer(slot, LANTERNS[cfg.lantern], new KeyboardInput(this.keyboard, LAYOUTS[cfg.keys]), 0, 0);
-			p.flying = rules.alwaysFlying;
+			const input = new KeyboardInput(this.keyboard, LAYOUTS[cfg.keys]);
+			const p = createPlayer(slot, LANTERNS[cfg.lantern], input, startX + slot * gap, this.map.spawn.y);
+			if (env.alwaysFlying) {
+				p.flying = true;
+				p.altitude = 1;
+			}
 			return p;
 		});
+
 		this.showSlots = showSlots;
-		this.stars = Array.from({ length: 180 }, () => ({
-			x: Math.random(),
-			y: Math.random(),
-			size: Math.random() * 1.6 + 0.3,
-			twinkle: Math.random() * Math.PI * 2
-		}));
-		this.pebbles = Array.from({ length: 260 }, () => ({
-			x: Math.random(),
-			y: Math.random(),
-			size: Math.random() * 3 + 1,
-			twinkle: Math.random()
-		}));
+		const rand = seededRandom(1);
+		this.starLayers = [
+			{ stars: makeStars(160, rand), parallax: 0.08 },
+			{ stars: makeStars(70, rand), parallax: 0.25 }
+		];
+	}
+
+	get environment(): EnvironmentKind {
+		return this.map.environment;
 	}
 
 	/** GameCanvas hands over its live View object (it's updated on resize). */
@@ -80,28 +97,34 @@ export class Game {
 	/** One fixed tick of simulation. */
 	update(dt: number) {
 		this.time += dt;
-		const { width, height } = this.view;
+		const { width } = this.view;
 		if (width === 0) return; // canvas not measured yet
 
-		if (!this.spawned) this.spawn(width, height);
-
-		// Positions are the Lantern's feet, so leave room above for the body.
-		const padX = FIGURE_HALF_WIDTH;
+		const { map } = this;
 		for (const p of this.players) {
-			updatePlayer(p, p.input.read(), dt);
-			clampToBounds(p, padX, FIGURE_HEIGHT + 4, width - padX, height - 6);
+			updatePlayer(p, p.input.read(), dt, this.rules);
+			// Keep feet inside the map, with room above for the body
+			clampToBounds(p, FIGURE_HALF_WIDTH, FIGURE_HEIGHT, map.width - FIGURE_HALF_WIDTH, map.height - 6);
+		}
+
+		const [tx, ty] = this.cameraTarget();
+		if (!this.started) {
+			this.camera.snapTo(tx, ty, this.view, map.width, map.height);
+			this.started = true;
+		} else {
+			this.camera.follow(tx, ty, dt, this.view, map.width, map.height);
 		}
 	}
 
-	/** Place players side by side in the middle of the screen. */
-	private spawn(width: number, height: number) {
-		const gap = 170; // wide enough that name tags don't overlap
-		const startX = width / 2 - (gap * (this.players.length - 1)) / 2;
-		this.players.forEach((p, i) => {
-			p.x = p.prevX = startX + i * gap;
-			p.y = p.prevY = height / 2 + 80;
-		});
-		this.spawned = true;
+	/** The middle of all players. With one player that's just them. */
+	private cameraTarget(): [number, number] {
+		let x = 0;
+		let y = 0;
+		for (const p of this.players) {
+			x += p.x;
+			y += p.y - CAMERA_AIM_UP;
+		}
+		return [x / this.players.length, y / this.players.length];
 	}
 
 	/**
@@ -111,88 +134,86 @@ export class Game {
 	 */
 	render(ctx: CanvasRenderingContext2D, alpha = 1) {
 		const { width, height } = this.view;
+		const { camera, map } = this;
+		const env = ENVIRONMENT_RULES[map.environment];
+		const camX = lerp(camera.prevX, camera.x, alpha);
+		const camY = lerp(camera.prevY, camera.y, alpha);
+		const zoom = camera.zoom;
 
-		if (this.environment === 'space') this.drawSpace(ctx, width, height);
-		else this.drawPlanet(ctx, width, height);
+		if (map.environment === 'space') {
+			drawStarfield(ctx, this.starLayers, camX, camY, width, height, this.time);
+		}
 
-		if (!this.spawned) return;
-		const { hasGround } = ENVIRONMENT_RULES[this.environment];
-		// Painter's order: whoever is lower on screen is closer to the viewer,
-		// so draw them last (on top).
-		const byDepth = [...this.players].sort((a, b) => a.y - b.y);
-		for (const p of byDepth) {
+		// ---- Switch to world coordinates ----
+		// Put the camera point at the centre of the screen, scaled by zoom.
+		ctx.save();
+		ctx.translate(width / 2, height / 2);
+		ctx.scale(zoom, zoom);
+		ctx.translate(-camX, -camY);
+
+		const visible: WorldRect = {
+			left: camX - width / 2 / zoom,
+			top: camY - height / 2 / zoom,
+			right: camX + width / 2 / zoom,
+			bottom: camY + height / 2 / zoom
+		};
+
+		if (map.environment === 'space') {
+			drawEmblem(ctx, map.width / 2, map.height / 2, 260, 0.12, this.time);
+		} else {
+			drawPlanetGround(ctx, visible, map.width, map.height);
+		}
+
+		// ---- Everything with depth, sorted back to front ----
+		// Ground things sort by their base y: lower on screen = in front.
+		// Flying Lanterns are above it all, so they're drawn after.
+		type Drawable = { baseY: number; draw: () => void };
+		const ground: Drawable[] = [];
+		const air: Drawable[] = [];
+
+		for (const o of map.obstacles) {
+			// Skip anything well off screen (tall things poke up, so pad the top)
+			if (o.x > visible.right || o.x + o.w < visible.left) continue;
+			if (o.y - o.height > visible.bottom || o.y + o.h < visible.top) continue;
+			ground.push({ baseY: o.y + o.h, draw: () => drawObstacle(ctx, o) });
+		}
+
+		const hoverHeight = map.environment === 'space' ? HOVER_SPACE : HOVER_PLANET;
+		const tags: (() => void)[] = [];
+		for (const p of this.players) {
 			const x = lerp(p.prevX, p.x, alpha);
 			const y = lerp(p.prevY, p.y, alpha);
 			// Lean comes from horizontal speed: flying sideways fast = full lean.
-			const lean = Math.min(Math.abs(p.vx) / p.def.maxSpeed, 1);
-			// Glow whenever flying; shadow whenever there's ground under them.
-			drawLantern(ctx, p.def, x, y, { ...p, lean, glow: p.flying, shadow: hasGround }, this.time);
+			const lean = p.flying ? Math.min(Math.abs(p.vx) / p.def.maxSpeed, 1) : 0;
+			const pose = { ...p, lean, hoverHeight, glow: true, shadow: env.hasGround };
+			const list = p.altitude > 0.5 ? air : ground;
+			list.push({ baseY: y, draw: () => drawLantern(ctx, p.def, x, y, pose, this.time) });
+
 			const tag = this.showSlots ? `P${p.slot + 1} · ${p.def.name}` : p.def.name;
-			drawNameTag(ctx, tag, x, y);
+			const lift = hoverHeight * p.altitude * 1.35;
+			tags.push(() => drawNameTag(ctx, tag, x, y, lift));
 		}
-	}
 
-	private drawSpace(ctx: CanvasRenderingContext2D, width: number, height: number) {
-		ctx.fillStyle = '#03060a';
-		ctx.fillRect(0, 0, width, height);
-
-		for (const s of this.stars) {
-			const glow = 0.5 + 0.5 * Math.sin(this.time * 2 + s.twinkle);
-			ctx.globalAlpha = 0.3 + glow * 0.7;
-			ctx.fillStyle = '#e8fff0';
-			ctx.fillRect(s.x * width, s.y * height, s.size, s.size);
+		for (const list of [ground, air]) {
+			list.sort((a, b) => a.baseY - b.baseY);
+			for (const d of list) d.draw();
 		}
-		ctx.globalAlpha = 1;
+		for (const t of tags) t();
 
-		// Faint Corps emblem in the background
-		this.drawEmblem(ctx, width / 2, height / 2, Math.min(width, height) * 0.12, 0.25);
-	}
-
-	/** Placeholder planet surface: dusty ground with pebbles. Real maps come in M2. */
-	private drawPlanet(ctx: CanvasRenderingContext2D, width: number, height: number) {
-		ctx.fillStyle = '#3b3a2e';
-		ctx.fillRect(0, 0, width, height);
-
-		for (const p of this.pebbles) {
-			ctx.fillStyle = p.twinkle > 0.5 ? 'rgba(20, 18, 12, 0.35)' : 'rgba(120, 112, 88, 0.35)';
-			ctx.beginPath();
-			ctx.ellipse(p.x * width, p.y * height, p.size, p.size * 0.6, 0, 0, Math.PI * 2);
-			ctx.fill();
-		}
-	}
-
-	private drawEmblem(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, opacity: number) {
-		const pulse = 0.75 + 0.25 * Math.sin(this.time * 3);
-
-		ctx.save();
-		ctx.strokeStyle = GREEN;
-		ctx.shadowColor = GREEN;
-		ctx.shadowBlur = 30 * pulse;
-		ctx.lineWidth = r * 0.14;
-		ctx.globalAlpha = pulse * opacity;
-
-		// Outer ring
-		ctx.beginPath();
-		ctx.arc(x, y, r, 0, Math.PI * 2);
-		ctx.stroke();
-
-		// The two bars through the middle of the Corps symbol
-		const barW = r * 1.9;
-		const barGap = r * 0.42;
-		ctx.lineWidth = r * 0.16;
-		ctx.beginPath();
-		ctx.moveTo(x - barW / 2, y - barGap);
-		ctx.lineTo(x + barW / 2, y - barGap);
-		ctx.moveTo(x - barW / 2, y + barGap);
-		ctx.lineTo(x + barW / 2, y + barGap);
-		ctx.stroke();
-
-		// Inner circle between the bars
-		ctx.lineWidth = r * 0.12;
-		ctx.beginPath();
-		ctx.arc(x, y, r * 0.3, 0, Math.PI * 2);
-		ctx.stroke();
-
+		if (this.debug) this.drawDebug(ctx);
 		ctx.restore();
+	}
+
+	/** Collision footprints (red = blocks walkers only, orange = blocks flyers too) and feet boxes. */
+	private drawDebug(ctx: CanvasRenderingContext2D) {
+		ctx.lineWidth = 1.5;
+		for (const o of this.map.obstacles) {
+			ctx.strokeStyle = o.blocksFlying ? 'orange' : 'red';
+			ctx.strokeRect(o.x, o.y, o.w, o.h);
+		}
+		for (const p of this.players) {
+			ctx.strokeStyle = p.flying ? GREEN : 'cyan';
+			ctx.strokeRect(p.x - FEET_HALF_W, p.y - FEET_HALF_H, FEET_HALF_W * 2, FEET_HALF_H * 2);
+		}
 	}
 }

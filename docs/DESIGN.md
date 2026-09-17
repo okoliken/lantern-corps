@@ -19,6 +19,19 @@ Same as project-7: the **world is seen from above** (move up/down/left/right fre
 **characters are drawn side-on**, standing upright, facing left or right, legs animating, with a
 ground shadow. Positions are the characters' feet, and lower on screen is drawn in front.
 
+## Controls
+| | Move | Take off / land |
+|---|---|---|
+| Single player | WASD or arrows | Space |
+| Co-op P1 | WASD | Space |
+| Co-op P2 | Arrows | Right Shift (or Enter) |
+
+## Obstacles
+Obstacles have a **footprint** on the ground (used for collision) and a visual **height**.
+- Walking: every obstacle blocks you. You slide along walls.
+- Flying: you pass over buildings, rocks and crates. **Asteroids block flyers too.**
+- You can't land on top of an obstacle.
+
 ## Environments
 Every mission is either **space** or **planet**:
 - **Space:** Lanterns are always flying. They hover, lean into the direction of travel with the ring
@@ -86,7 +99,7 @@ Parallax (final boss).
 
 **Phase 1: Single-player core**
 - [x] **M1** Character select (Hal/John), top-down movement, input sources
-- [ ] **M2** Test map with obstacles, fly/land states, following camera
+- [x] **M2** Test maps (planet city + asteroid field), collisions, take-off/landing, following camera with zoom
 - [ ] **M3** Willpower + Lantern battery, first construct (beam)
 - [ ] **M4** Construct system: 8 behavior types, Hal and John preset sets on hotkeys
 - [ ] **M5** Manhunter enemies: AI, health, damage, death

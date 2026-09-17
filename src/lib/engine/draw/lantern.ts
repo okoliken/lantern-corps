@@ -25,10 +25,11 @@ const SUIT_GREEN = '#0F4F34';
 
 /** Size multiplier for the whole figure. */
 const FIGURE_SCALE = 1.35;
-/** How high a flying Lantern floats above their anchor, before scaling. */
-const HOVER_LIFT = 8;
-/** Rough height from anchor to top of head, in world pixels (flying is taller). */
-export const FIGURE_HEIGHT = (50 + HOVER_LIFT) * FIGURE_SCALE;
+/** Height from feet to top of head, in world pixels, when standing. */
+export const FIGURE_HEIGHT = 50 * FIGURE_SCALE;
+/** How high Lanterns float, before scaling. Over a planet they fly higher so it reads as airborne. */
+export const HOVER_SPACE = 8;
+export const HOVER_PLANET = 26;
 /** Half the figure's width, used to keep them on screen. */
 export const FIGURE_HALF_WIDTH = 10 * FIGURE_SCALE;
 
@@ -37,10 +38,13 @@ export interface LanternPose {
 	dir: 1 | -1;
 	/** Walk cycle angle. 0 when standing still or flying. */
 	walkPhase: number;
-	flying: boolean;
+	/** 0 = standing on the ground, 1 = fully airborne. In between during take-off/landing. */
+	altitude: number;
+	/** How high (unscaled px) they float at altitude 1. */
+	hoverHeight: number;
 	/** 0..1, how hard a flying Lantern leans forward (from horizontal speed). */
 	lean: number;
-	/** Green aura and glowing ring. On whenever the Lantern is flying. */
+	/** Green aura and glowing ring while airborne. Fades in with altitude. */
 	glow: boolean;
 	/** Draw a shadow on the ground below (false in space: nothing to land on). */
 	shadow: boolean;
@@ -57,6 +61,9 @@ export function drawLantern(
 ) {
 	const s = FIGURE_SCALE * scale;
 	const pulse = 0.75 + 0.25 * Math.sin(time * 4);
+	const air = pose.altitude;
+	// Past halfway up, switch to the flying pose.
+	const flying = air > 0.5;
 
 	ctx.save();
 	ctx.translate(x, y);
@@ -65,24 +72,23 @@ export function drawLantern(
 	if (pose.shadow) {
 		// Ground shadow. Not mirrored, not bobbing: it belongs to the floor.
 		// Flying over ground, it shrinks and fades, which sells the height.
-		const k = pose.flying ? 0.7 : 1;
+		const k = 1 - 0.35 * air;
 		ctx.fillStyle = `rgba(0, 0, 0, ${0.45 * k})`;
 		ctx.beginPath();
 		ctx.ellipse(0, 0, 11 * k, 3.5 * k, 0, 0, Math.PI * 2);
 		ctx.fill();
 	}
 
-	// Where the body is lifted to (flying) or bouncing (walking)
-	const walking = !pose.flying && pose.walkPhase !== 0;
-	const lift = pose.flying
-		? -HOVER_LIFT + Math.sin(time * 2.2) * 1.6 // slow hover bob
-		: walking
-			? Math.abs(Math.sin(pose.walkPhase)) * -1.5 // step bounce
-			: Math.sin(time * 2) * 0.6; // idle breathing
+	// Height of the body: rises with altitude (plus a slow hover bob), and
+	// on the ground either bounces with each step or gently breathes.
+	const walking = !flying && pose.walkPhase !== 0;
+	const hover = (-pose.hoverHeight + Math.sin(time * 2.2) * 1.6) * air;
+	const groundBob = walking ? Math.abs(Math.sin(pose.walkPhase)) * -1.5 : Math.sin(time * 2) * 0.6;
+	const lift = hover + groundBob * (1 - air);
 
-	if (pose.glow) {
+	if (pose.glow && air > 0) {
 		const aura = ctx.createRadialGradient(0, -24 + lift, 4, 0, -24 + lift, 36);
-		aura.addColorStop(0, `rgba(61, 255, 110, ${0.26 * pulse})`);
+		aura.addColorStop(0, `rgba(61, 255, 110, ${0.26 * pulse * air})`);
 		aura.addColorStop(1, 'rgba(61, 255, 110, 0)');
 		ctx.fillStyle = aura;
 		ctx.beginPath();
@@ -95,7 +101,7 @@ export function drawLantern(
 	ctx.lineCap = 'round';
 	ctx.lineJoin = 'round';
 
-	if (pose.flying) {
+	if (flying) {
 		// Lean forward from the hips, like a superhero in flight.
 		ctx.translate(0, -15);
 		ctx.rotate(pose.lean * 0.9);
@@ -108,7 +114,7 @@ export function drawLantern(
 	let backLeg: [number, number];
 	let frontLeg: [number, number];
 
-	if (pose.flying) {
+	if (flying) {
 		const dangle = Math.sin(time * 1.6) * 1.2 * (1 - pose.lean);
 		// Idle: arms relaxed at the sides. Fast: ring arm punches forward.
 		backArm = [-2.5, -19];
@@ -181,14 +187,15 @@ export function drawLantern(
 	glove(ctx, frontArm[0], frontArm[1]);
 
 	// The ring. Glows while flying; just a small light while walking.
+	const ringGlow = pose.glow && flying;
 	ctx.save();
-	if (pose.glow) {
+	if (ringGlow) {
 		ctx.shadowColor = GREEN;
 		ctx.shadowBlur = 10 * pulse;
 	}
-	ctx.fillStyle = pose.glow ? '#d9ffe3' : '#8fdca8';
+	ctx.fillStyle = ringGlow ? '#d9ffe3' : '#8fdca8';
 	ctx.beginPath();
-	ctx.arc(frontArm[0] + 1, frontArm[1], pose.glow ? 1.8 : 1.4, 0, Math.PI * 2);
+	ctx.arc(frontArm[0] + 1, frontArm[1], ringGlow ? 1.8 : 1.4, 0, Math.PI * 2);
 	ctx.fill();
 	ctx.restore();
 
@@ -246,13 +253,13 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 	ctx.roundRect(x, y, w, h, r);
 }
 
-/** Name tag above a Lantern's head. */
-export function drawNameTag(ctx: CanvasRenderingContext2D, label: string, x: number, y: number) {
+/** Name tag above a Lantern's head. `lift` is how high they're floating (world px). */
+export function drawNameTag(ctx: CanvasRenderingContext2D, label: string, x: number, y: number, lift = 0) {
 	ctx.save();
 	ctx.font = '600 11px system-ui, sans-serif';
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'bottom';
 	ctx.fillStyle = 'rgba(216, 245, 224, 0.85)';
-	ctx.fillText(label, x, y - FIGURE_HEIGHT - 8);
+	ctx.fillText(label, x, y - lift - FIGURE_HEIGHT - 8);
 	ctx.restore();
 }

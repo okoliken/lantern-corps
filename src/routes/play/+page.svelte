@@ -28,7 +28,9 @@
 		{/key}
 		<a class="back" href="/play">← Change Lantern</a>
 		<a class="env" href="/play?as={lantern}&env={otherEnv}">Test on {otherEnv} →</a>
-		<div class="hint">Move: WASD or arrow keys</div>
+		<div class="hint">
+			Move: WASD or arrow keys{environment === 'planet' ? ' · Space: take off / land' : ''}
+		</div>
 	</div>
 {:else}
 	<main class="select">

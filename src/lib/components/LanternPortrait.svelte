@@ -2,7 +2,7 @@
 	// A small animated preview of a Lantern for menus. It reuses the engine's
 	// drawLantern, so the menu always matches what you see in game.
 	import { onMount } from 'svelte';
-	import { drawLantern } from '$lib/engine/draw/lantern';
+	import { HOVER_SPACE, drawLantern } from '$lib/engine/draw/lantern';
 	import type { LanternDef } from '$lib/engine/lanterns';
 
 	interface Props {
@@ -27,7 +27,7 @@
 			ctx.clearRect(0, 0, size, size);
 			// Hovering in space with the glow on, facing right.
 			const scale = size / 90;
-			const pose = { dir: 1, walkPhase: 0, flying: true, lean: 0, glow: true, shadow: false } as const;
+			const pose = { dir: 1, walkPhase: 0, altitude: 1, hoverHeight: HOVER_SPACE, lean: 0, glow: true, shadow: false } as const;
 			drawLantern(ctx, def, size / 2, size * 0.88, pose, t, scale);
 			raf = requestAnimationFrame(frame);
 		};

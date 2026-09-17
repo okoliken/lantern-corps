@@ -7,6 +7,8 @@
 	import { Game } from '$lib/engine/game';
 
 	let environment = $state<EnvironmentKind>('space');
+	let zoom = $state(1.6);
+	let debug = $state(false);
 
 	// A fresh Game whenever the environment changes.
 	const game = $derived(
@@ -20,15 +22,22 @@
 		})
 	);
 
+	// Push the controls into the engine whenever they (or the game) change.
+	$effect(() => {
+		game.camera.zoom = zoom;
+		game.debug = debug;
+	});
+
 	// Live readout. Polling a few times a second is plenty for a debug panel,
 	// and it keeps Svelte out of the 60-tick game loop.
-	let rows = $state<{ name: string; speed: number; dir: string }[]>([]);
+	let rows = $state<{ name: string; speed: number; dir: string; state: string }[]>([]);
 	onMount(() => {
 		const id = setInterval(() => {
 			rows = game.players.map((p) => ({
 				name: `P${p.slot + 1} ${p.def.name}`,
 				speed: Math.round(Math.hypot(p.vx, p.vy)),
-				dir: p.dir === 1 ? '→' : '←'
+				dir: p.dir === 1 ? '→' : '←',
+				state: p.flying ? 'flying' : 'walking'
 			}));
 		}, 100);
 		return () => clearInterval(id);
@@ -42,10 +51,15 @@
 				<button class:on={environment === env} onclick={() => (environment = env)}>{env}</button>
 			{/each}
 		</span>
-		<span><kbd>WASD</kbd> Hal</span>
-		<span><kbd>Arrows</kbd> John</span>
+		<span><kbd>WASD</kbd> + <kbd>Space</kbd> Hal</span>
+		<span><kbd>Arrows</kbd> + <kbd>Right Shift</kbd> John</span>
+		<label>
+			Zoom {zoom.toFixed(1)}×
+			<input type="range" min="0.5" max="3" step="0.1" bind:value={zoom} />
+		</label>
+		<label><input type="checkbox" bind:checked={debug} /> Collision boxes</label>
 		{#each rows as row (row.name)}
-			<span class="readout">{row.name}: {row.speed} px/s · facing {row.dir}</span>
+			<span class="readout">{row.name}: {row.state} · {row.speed} px/s · facing {row.dir}</span>
 		{/each}
 	</div>
 	<div class="stage">
@@ -67,6 +81,14 @@
 		gap: 0.5rem 1.25rem;
 		padding: 0.75rem 1rem;
 		font-size: 0.85rem;
+	}
+	label {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+	input[type='range'] {
+		width: 7rem;
 	}
 	.readout {
 		font-family: ui-monospace, monospace;
