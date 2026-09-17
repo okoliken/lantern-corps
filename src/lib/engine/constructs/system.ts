@@ -114,7 +114,8 @@ export interface Effect {
 		| 'callout'
 		| 'snipe'
 		| 'pillars'
-		| 'text';
+		| 'text'
+		| 'claw';
 	x: number;
 	y: number;
 	age: number;
@@ -127,6 +128,8 @@ export interface Effect {
 	value?: number;
 	/** Big shout-out text (signature ability names). */
 	text?: string;
+	/** A damage number for damage TAKEN by a Lantern (shown red). */
+	hurt?: boolean;
 	/** Height it's drawn above the ground plane, fixed when it was created. */
 	lift?: number;
 	/** Who made it: effects at hand height are drawn at that Lantern's ring height. */
@@ -243,8 +246,8 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
 	p.actionTimer = Math.max(0, p.actionTimer - dt);
 	if (p.actionTimer === 0) p.actionShape = null;
 
-	// Mid Jet Strike, Hal is busy flying the jet
-	if (p.dash) {
+	// Mid Jet Strike, Hal is busy flying the jet. Downed, nobody can use the ring.
+	if (p.dash || p.downed) {
 		p.firing = false;
 		p.beamLength = 0;
 		return;

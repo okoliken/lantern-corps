@@ -7,7 +7,7 @@
 // filled, stroked, and clipped without redrawing the path each time.
 
 import { AUTO_TURRET_HEAD, FIST_OUT_TIME, SENTRY_DRONE_HOVER, type Effect, type Projectile, type Shield, type Trap, type Turret } from '../constructs/system';
-import { DUMMY_HP, isStanding, type Dummy } from '../dummy';
+import { isStanding, type Dummy } from '../dummy';
 import type { Target } from '../targeting';
 import { GREEN } from './lantern';
 
@@ -822,11 +822,11 @@ export function drawDummy(
 	ctx.arc(x, cy - 22, 7, 0, TAU);
 	ctx.fill();
 
-	if (d.hp < DUMMY_HP) {
+	if (d.hp < d.maxHp) {
 		ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
 		ctx.fillRect(x - 16, cy - 38, 32, 4);
 		ctx.fillStyle = '#e8c86a';
-		ctx.fillRect(x - 16, cy - 38, 32 * (d.hp / DUMMY_HP), 4);
+		ctx.fillRect(x - 16, cy - 38, 32 * (d.hp / d.maxHp), 4);
 	}
 	ctx.restore();
 
@@ -1120,6 +1120,32 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			}
 			break;
 		}
+		case 'claw': {
+			// Three red slash marks raking across the aim direction
+			const a = e.angle ?? 0;
+			const reach = (e.radius ?? 50) * 0.9;
+			const hy = e.y - lift;
+			ctx.globalAlpha = 1 - t;
+			ctx.shadowColor = '#ff2a2a';
+			ctx.shadowBlur = 14;
+			ctx.strokeStyle = t < 0.3 ? '#ffffff' : '#ff2a2a';
+			ctx.lineCap = 'round';
+			for (let i = -1; i <= 1; i++) {
+				ctx.lineWidth = 3.5 * (1 - t) + 1;
+				const off = i * 9;
+				const nx = -Math.sin(a) * off;
+				const ny = Math.cos(a) * off;
+				const sweep = easeOut(Math.min(1, t * 3));
+				ctx.beginPath();
+				ctx.moveTo(e.x + nx + Math.cos(a - 0.6) * reach * 0.3, hy + ny + Math.sin(a - 0.6) * reach * 0.3);
+				ctx.lineTo(
+					e.x + nx + Math.cos(a - 0.6 + 1.2 * sweep) * reach,
+					hy + ny + Math.sin(a - 0.6 + 1.2 * sweep) * reach
+				);
+				ctx.stroke();
+			}
+			break;
+		}
 		case 'text': {
 			// Small floating note, e.g. "+25 XP"
 			ctx.globalAlpha = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
@@ -1148,7 +1174,7 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			ctx.textAlign = 'center';
 			ctx.lineWidth = 3.5;
 			ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
-			ctx.fillStyle = (e.value ?? 0) >= 30 ? '#ffe066' : '#fff3b0';
+			ctx.fillStyle = e.hurt ? '#ff5a5a' : (e.value ?? 0) >= 30 ? '#ffe066' : '#fff3b0';
 			ctx.strokeText(String(e.value), 0, 0);
 			ctx.fillText(String(e.value), 0, 0);
 			break;

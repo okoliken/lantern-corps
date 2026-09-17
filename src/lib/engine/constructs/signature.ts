@@ -111,7 +111,7 @@ export function updateSignature(p: Player, intent: Intent, dt: number, w: Constr
 		runJet(p, dt, w);
 		return;
 	}
-	if (!intent.signature || p.surge < SURGE_MAX) return;
+	if (!intent.signature || p.surge < SURGE_MAX || p.downed) return;
 
 	p.surge = 0;
 	if (SIGNATURES[p.def.id].id === 'jetStrike') startJet(p, w);

@@ -4,6 +4,7 @@
 		{ href: '/lab/loop', name: 'Game loop', about: 'Fixed timestep: fps vs ups, simulated lag.' },
 		{ href: '/lab/movement', name: 'Movement & world', about: 'Both Lanterns, test maps, flying/landing, camera zoom, collision boxes.' },
 		{ href: '/lab/animation', name: 'Animation', about: 'Every Lantern animation up close, slow motion, skeleton view.' },
+		{ href: '/lab/enemies', name: 'Enemies', about: 'Fight Red Lanterns: spawn them, god mode, freeze AI, see their states.' },
 		{ href: '/lab/constructs', name: 'Constructs', about: 'Every construct on training dummies. Switch Lantern, infinite willpower.' }
 	];
 </script>

@@ -229,6 +229,10 @@ export interface HudPlayer {
 	slot: number;
 	/** Shown next to the name when progression is on. */
 	level: number | null;
+	health: number;
+	maxHealth: number;
+	downed: boolean;
+	downTimer: number;
 	willpower: number;
 	maxWillpower: number;
 	exhausted: boolean;
@@ -261,7 +265,8 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		const slotsY = height - margin - box;
 		const surgeY = slotsY - 11;
 		const barY = surgeY - 8 - barH;
-		const labelY = barY - 5;
+		const healthY = barY - 9;
+		const labelY = healthY - 5;
 		const low = p.exhausted || p.willpower < RESTART_THRESHOLD;
 
 		ctx.save();
@@ -277,6 +282,15 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		ctx.textAlign = 'right';
 		ctx.fillStyle = low ? '#ffb86b' : 'rgba(216, 245, 224, 0.7)';
 		ctx.fillText(`${p.charging ? '⚡ ' : ''}${p.exhausted ? 'EXHAUSTED ' : ''}${Math.floor(p.willpower)}`, x + barW, labelY);
+
+		// ---- Health bar: thin, red, above willpower ----
+		const hurtFrac = p.health / p.maxHealth;
+		ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+		ctx.fillRect(x - 1, healthY - 1, barW + 2, 7);
+		ctx.fillStyle = '#3a0c0c';
+		ctx.fillRect(x, healthY, barW, 5);
+		ctx.fillStyle = hurtFrac < 0.3 && Math.sin(time * 10) > 0 ? '#ff9a9a' : '#ff3b3b';
+		ctx.fillRect(x, healthY, barW * hurtFrac, 5);
 
 		// ---- Willpower bar ----
 		ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
@@ -434,5 +448,25 @@ export function drawCrosshair(ctx: CanvasRenderingContext2D, x: number, y: numbe
 	ctx.beginPath();
 	ctx.arc(x, y, 1.8, 0, Math.PI * 2);
 	ctx.fill();
+	ctx.restore();
+}
+
+/** Big centred notice while a Lantern is down. */
+export function drawDownedNotice(ctx: CanvasRenderingContext2D, name: string, secondsLeft: number, width: number, height: number) {
+	ctx.save();
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'middle';
+	ctx.fillStyle = 'rgba(40, 0, 0, 0.25)';
+	ctx.fillRect(0, 0, width, height);
+	ctx.font = '900 28px system-ui, sans-serif';
+	ctx.lineWidth = 6;
+	ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+	ctx.fillStyle = '#ff5a5a';
+	ctx.strokeText(`${name.toUpperCase()} IS DOWN`, width / 2, height * 0.38);
+	ctx.fillText(`${name.toUpperCase()} IS DOWN`, width / 2, height * 0.38);
+	ctx.font = '600 15px system-ui, sans-serif';
+	ctx.fillStyle = '#ffe0e0';
+	ctx.strokeText(`Back up in ${Math.ceil(secondsLeft)}…`, width / 2, height * 0.38 + 30);
+	ctx.fillText(`Back up in ${Math.ceil(secondsLeft)}…`, width / 2, height * 0.38 + 30);
 	ctx.restore();
 }

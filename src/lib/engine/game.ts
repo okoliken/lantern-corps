@@ -26,7 +26,10 @@ import {
 	drawShield,
 	drawTrap
 } from './draw/constructs';
-import { drawBattery, drawBeam, drawChargeLink, drawCrosshair, drawHud } from './draw/effects';
+import { drawBattery, drawBeam, drawChargeLink, drawCrosshair, drawDownedNotice, drawHud } from './draw/effects';
+import { drawRedLantern } from './draw/enemies';
+import { updatePlayerCombat, revivePlayer } from './combat';
+import { ENEMIES, createEnemy, isEnemy, updateEnemies, type EnemyKind } from './enemies/enemies';
 import {
 	FIGURE_HALF_WIDTH,
 	FIGURE_HEIGHT,
@@ -117,6 +120,10 @@ export class Game {
 	infiniteWillpower = false;
 	/** Signature ability always ready. Toggled from the lab. */
 	infiniteSurge = false;
+	/** Lanterns can't be hurt. Toggled from the enemy lab. */
+	godMode = false;
+	/** Enemies stand still and don't attack. Toggled from the enemy lab. */
+	freezeEnemies = false;
 
 	private rules: WorldRules;
 	private inputs: BindingInput[];
@@ -245,6 +252,12 @@ export class Game {
 
 		for (const p of this.players) {
 			const intent = p.input.read();
+			if (this.godMode) p.invuln = Math.max(p.invuln, 0.1);
+			if (updatePlayerCombat(p, dt)) {
+				// Back on their feet next to the battery
+				const b = this.batteries[0] ?? map.spawn;
+				revivePlayer(p, b.x + 40 * (p.slot === 0 ? -1 : 1), b.y + 60);
+			}
 			updatePlayer(p, intent, dt, this.rules);
 			// Keep feet inside the map, with room above for the body (and the flying height)
 			const top = FIGURE_HEIGHT + this.poseFor(p).hoverHeight * p.altitude * 1.35;
@@ -268,17 +281,35 @@ export class Game {
 			if (this.infiniteSurge && !p.dash) p.surge = 100;
 		}
 
+		if (!this.freezeEnemies) updateEnemies(this.constructs, this.players, dt);
 		updateConstructWorld(this.constructs, dt);
 		updateSignatureWorld(this.constructs, dt);
 		this.handleEvents();
+		// Red Lanterns fly, so only tall things (asteroids, energy walls) block them
+		const flyerSolids = map.obstacles.filter((o) => o.blocksFlying);
 		for (const d of this.dummies) {
-			updateDummy(d, dt, map.obstacles);
+			const enemy = isEnemy(d);
+			if (enemy && this.freezeEnemies) {
+				d.vx = d.vy = 0;
+				d.brain.state = 'idle';
+			}
+			updateDummy(d, dt, enemy ? flyerSolids : map.obstacles, !enemy);
 			d.x = Math.min(Math.max(d.x, DUMMY_HALF_W), map.width - DUMMY_HALF_W);
 			d.y = Math.min(Math.max(d.y, DUMMY_HALF_H), map.height - DUMMY_HALF_H);
+		}
+		// Defeated enemies that finished fading out leave the world (same array
+		// the construct system and targeting use, so it's removed everywhere)
+		for (let i = this.dummies.length - 1; i >= 0; i--) {
+			if (this.dummies[i].gone) this.dummies.splice(i, 1);
 		}
 
 		const [tx, ty] = this.cameraTarget();
 		this.camera.follow(tx, ty, dt, this.view, map.width, map.height);
+	}
+
+	/** Put an enemy into the world (enemy lab, and later mission spawners). */
+	spawnEnemy(kind: EnemyKind, x: number, y: number) {
+		this.dummies.push(createEnemy(kind, x, y));
 	}
 
 	/** React to what happened this tick: XP and level-ups for defeats. */
@@ -402,7 +433,9 @@ export class Game {
 			const y = lerp(d.prevY, d.y, alpha);
 			ground.push({
 				baseY: y,
-				draw: () => drawDummy(ctx, d, x, y, env.hasGround, this.time, this.settings.reduceFlashing)
+				draw: isEnemy(d)
+					? () => drawRedLantern(ctx, d, x, y, env.hasGround, this.time)
+					: () => drawDummy(ctx, d, x, y, env.hasGround, this.time, this.settings.reduceFlashing)
 			});
 		}
 
@@ -527,6 +560,10 @@ export class Game {
 				name: p.def.name,
 				slot: p.slot,
 				level: this.profiles ? this.profiles[p.def.id].level : null,
+				health: p.health,
+				maxHealth: p.maxHealth,
+				downed: p.downed,
+				downTimer: p.downTimer,
 				willpower: p.willpower,
 				maxWillpower: p.maxWillpower,
 				exhausted: p.exhausted,
@@ -557,6 +594,11 @@ export class Game {
 			this.time
 		);
 
+		// Solo: a big notice while down. (Co-op shows it per player in M7.)
+		if (this.players.length === 1 && this.players[0].downed) {
+			drawDownedNotice(ctx, this.players[0].def.name, this.players[0].downTimer, width, height);
+		}
+
 		if (this.usesMouse && this.pointer.active && !this.paused) drawCrosshair(ctx, this.pointer.x, this.pointer.y, this.time);
 	}
 
@@ -569,7 +611,14 @@ export class Game {
 
 	/** Short HUD text for what a Lantern is aiming at / protecting. */
 	private targetLabel(p: Player): string {
-		const name = (t: Target) => (t.kind === 'enemy' ? 'Dummy' : t.kind === 'ally' ? t.player.def.name : 'Crate');
+		const name = (t: Target) =>
+			t.kind === 'enemy'
+				? isEnemy(t.dummy)
+					? ENEMIES[t.dummy.kind].name
+					: 'Dummy'
+				: t.kind === 'ally'
+					? t.player.def.name
+					: 'Crate';
 		const parts: string[] = [];
 		if (p.attackTarget) parts.push(`${sameTarget(p.attackTarget, p.lock) ? '🔒 ' : ''}${name(p.attackTarget)}`);
 		if (p.protectTarget) parts.push(`🛡 ${name(p.protectTarget)}`);
@@ -589,7 +638,23 @@ export class Game {
 		}
 		ctx.strokeStyle = 'yellow';
 		for (const d of this.dummies) {
-			if (isStanding(d)) ctx.strokeRect(d.x - DUMMY_HALF_W, d.y - DUMMY_HALF_H, DUMMY_HALF_W * 2, DUMMY_HALF_H * 2);
+			if (!isStanding(d)) continue;
+			ctx.strokeRect(d.x - DUMMY_HALF_W, d.y - DUMMY_HALF_H, DUMMY_HALF_W * 2, DUMMY_HALF_H * 2);
+			if (!isEnemy(d)) continue;
+			// AI state and attack range, for the enemy lab
+			const def = ENEMIES[d.kind];
+			ctx.save();
+			ctx.strokeStyle = 'rgba(255, 90, 90, 0.35)';
+			ctx.setLineDash([4, 4]);
+			ctx.beginPath();
+			ctx.ellipse(d.x, d.y, def.attackRange, def.attackRange * 0.5, 0, 0, Math.PI * 2);
+			ctx.stroke();
+			ctx.setLineDash([]);
+			ctx.font = '600 10px ui-monospace, monospace';
+			ctx.textAlign = 'center';
+			ctx.fillStyle = '#ffd0d0';
+			ctx.fillText(`${d.brain.state}${d.brain.rage > 0.05 ? ` rage ${Math.round(d.brain.rage * 100)}%` : ''}`, d.x, d.y + 16);
+			ctx.restore();
 		}
 	}
 }

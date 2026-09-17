@@ -55,6 +55,14 @@ export interface Player {
 	protectTarget: Target | null;
 
 	// ---- Willpower ----
+	// ---- Health (see combat.ts) ----
+	health: number;
+	maxHealth: number;
+	/** Seconds of invulnerability left (just hit, or just got back up). */
+	invuln: number;
+	/** Seconds until a downed Lantern gets back up. */
+	downTimer: number;
+
 	/** 0..maxWillpower. Powers every construct. */
 	willpower: number;
 	/** 100, plus the Willpower upgrade. */
@@ -172,6 +180,10 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		hurtTimer: 0,
 		downed: false,
 		victoryTimer: 0,
+		health: 100,
+		maxHealth: 100,
+		invuln: 0,
+		downTimer: 0,
 		willpower: MAX_WILLPOWER,
 		maxWillpower: MAX_WILLPOWER,
 		regenMultiplier: 1,
@@ -201,6 +213,16 @@ export function feetOverlap(x: number, y: number, s: Solid): boolean {
 export function updatePlayer(p: Player, intent: Intent, dt: number, world: WorldRules = OPEN_WORLD) {
 	p.prevX = p.x;
 	p.prevY = p.y;
+
+	// ---- Downed: no control, just sliding to a stop from the knockback ----
+	if (p.downed) {
+		const keep = Math.exp(-6 * dt);
+		p.vx *= keep;
+		p.vy *= keep;
+		moveBody(p, dt, p.flying ? world.solids.filter((s) => s.blocksFlying) : world.solids, FEET_HALF_W, FEET_HALF_H);
+		p.walkPhase = 0;
+		return;
+	}
 
 	// ---- Take off / land ----
 	if (world.alwaysFlying) {

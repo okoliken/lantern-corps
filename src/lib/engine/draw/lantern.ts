@@ -111,7 +111,7 @@ export function drawLantern(
  * A tapered limb segment: a capsule from a (radius ra) to b (radius rb),
  * outlined so it reads on any background.
  */
-function segment(ctx: CanvasRenderingContext2D, a: Point, b: Point, ra: number, rb: number, fill: string | CanvasGradient) {
+export function segment(ctx: CanvasRenderingContext2D, a: Point, b: Point, ra: number, rb: number, fill: string | CanvasGradient) {
 	const dx = b[0] - a[0];
 	const dy = b[1] - a[1];
 	const len = Math.hypot(dx, dy) || 1;
@@ -442,7 +442,7 @@ export function drawSkeletonDebug(ctx: CanvasRenderingContext2D, pose: LanternPo
 const mid = (a: Point, b: Point): Point => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
 const lerpP = (a: Point, b: Point, t: number): Point => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 
-function poly(points: Point[]): Path2D {
+export function poly(points: Point[]): Path2D {
 	const p = new Path2D();
 	points.forEach(([x, y], i) => (i === 0 ? p.moveTo(x, y) : p.lineTo(x, y)));
 	p.closePath();
