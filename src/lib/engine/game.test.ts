@@ -33,7 +33,7 @@ function tinyPlanet(obstacles: Obstacle[]): GameMap {
 }
 
 function gameWith(map: GameMap, intent: Intent) {
-	const game = new Game({ players: [{ lantern: 'hal', keys: 'both' }], map });
+	const game = new Game({ players: [{ lantern: 'hal', keys: 'solo' }], map });
 	game.setView({ width: 800, height: 600 });
 	game.players[0].input = { read: () => intent };
 	return game;
@@ -44,7 +44,7 @@ const run = (game: Game, seconds: number) => {
 };
 
 describe('beam in the game', () => {
-	const fireRight: Intent = { ...IDLE, fire: true };
+	const fireRight: Intent = { ...IDLE, construct: true };
 
 	it('breaks a crate it is pointed at, and the crate stops blocking', () => {
 		const target = crate(1100, 986);

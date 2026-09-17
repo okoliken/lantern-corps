@@ -20,17 +20,36 @@ Same as project-7: the **world is seen from above** (move up/down/left/right fre
 ground shadow. Positions are the characters' feet, and lower on screen is drawn in front.
 
 ## Controls
-| | Move | Take off / land | Use construct | Pick construct | Lock target | Bubble shield |
-|---|---|---|---|---|---|---|
-| Single player | WASD or arrows | Space | J or F | 1–5, Q next | Tab | E |
-| Co-op P1 | WASD | Space | F | 1–5, Q next | Tab | E |
-| Co-op P2 | Arrows | Right Shift | Enter | 6–0, / next | . | , |
+Everything can be remapped in the pause menu (**Esc → Controls**), including mouse buttons and the
+scroll wheel. Settings are saved in the browser.
+
+| Action | Single player | Co-op P1 | Co-op P2 |
+|---|---|---|---|
+| Move | WASD or arrows | WASD | Arrows |
+| Aim | Mouse | Mouse | Auto-target |
+| Ring shot (free) | Left click or J | Left click or F | . |
+| Use construct | Right click or K | Right click or G | / |
+| Previous / next construct | Scroll, or Q / E | Scroll, or Q / E | ; / ' |
+| Pick construct | 1–5 | 1–5 | 6–0 |
+| Bubble shield | Left Shift or L | Left Shift | Right Shift |
+| Take off / land | Space | Space | Enter |
+| Lock target | Tab | Tab | , |
+| Pause, controls, options | Esc | Esc | Esc |
+
+**Ring shot:** a free basic attack. Quick green bolts (about 5 a second, 9 damage) that cost no
+willpower and work even when exhausted. Constructs are the special moves that cost willpower.
+
+**Accessibility options:** aim assist on/off, toggle ring shot (tap to start and stop instead of
+holding), damage numbers on/off, reduce flashing. A first-time "How to play" card shows the current
+bindings.
 
 ## Targeting (context awareness)
 The ring works out what you mean to hit or protect (`src/lib/engine/targeting.ts`):
-- **Auto-target:** with nothing locked, attacks aim at the nearest enemy in front of you that you can
-  **see** (no building in the way) and **reach** with the construct in hand. If there's no enemy, a nearby
-  breakable object. With nothing to target, it aims where you're facing.
+- **Mouse aim:** shots go where the crosshair points. Aim assist nudges them onto an enemy only if
+  it's within 10° of that line.
+- **Keyboard aim:** attacks aim at the nearest enemy in a 30° cone ahead that you can **see** and
+  **reach** with the construct in hand; otherwise straight where you face. "See" uses each
+  obstacle's whole on-screen silhouette, so enemies hidden under a roof aren't picked.
 - **Lock on (Tab):** cycles enemies, then allies, then objects, then back to no lock. Locks break
   when the target is destroyed or you move far away. A locked target gets a rotating reticle.
 - **Protect:** lock an ally and your **bubble shield** goes on them; attacks keep auto-targeting enemies.
@@ -132,6 +151,13 @@ Parallax (final boss).
 - [x] **M4.5** Feedback pass: tuning (cheaper, longer-lasting), targeting + lock-on, bubble shield, construct art pass
 - [ ] **M5** Manhunter enemies: AI, health, damage, death
 - [ ] **M6** First mission: objective, win/lose, HUD, restart
+
+**Phase 1.5: Characters** (before enemies, by request)
+- [x] **C1** Controls & accessibility: mouse aim, free ring shot, remappable bindings, pause menu, options, first-time card
+- [ ] **C2** Art & animation: detailed Hal/John, idle/walk/take-off/fly/shoot/cast/hurt/downed/victory
+- [ ] **C3** Signature abilities: super meter; Hal "Jet Strike", John "Fortress"
+- [ ] **C4** Stats & progression: XP, levels, upgrades, unlocks, Corps HQ screen, per-character save
+- [ ] **C5** Story & personality: bios, intro cards, combat lines, co-op banter
 
 **Phase 2: Couch co-op**
 - [ ] **M7** Player 2 joins (keyboard/gamepad), shared camera, revive a downed partner

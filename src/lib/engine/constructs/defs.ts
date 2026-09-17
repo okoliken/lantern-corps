@@ -31,7 +31,8 @@ export type ConstructShape =
 	| 'chain'
 	| 'cage'
 	| 'shockwave'
-	| 'bubble';
+	| 'bubble'
+	| 'bolt';
 
 export interface ConstructDef {
 	id: string;
@@ -104,6 +105,25 @@ export const CONSTRUCTS = {
 } satisfies Record<string, ConstructDef>;
 
 export type ConstructId = keyof typeof CONSTRUCTS;
+
+/**
+ * The ring's basic shot: quick green bolts, on their own button. FREE: it
+ * costs no willpower and works even when exhausted, so a Lantern can always
+ * fight back. Constructs are the special moves that cost willpower.
+ */
+export const RING_SHOT: ConstructDef = {
+	id: 'ringShot',
+	name: 'Ring Shot',
+	behavior: 'rapid',
+	shape: 'bolt',
+	cost: 0,
+	/** About five shots a second. */
+	cooldown: 0.2,
+	damage: 9,
+	knockback: 60,
+	range: 520,
+	speed: 950
+};
 
 /**
  * Every Lantern can raise a bubble shield, on its own key rather than a

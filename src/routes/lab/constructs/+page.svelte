@@ -1,19 +1,20 @@
 <script lang="ts">
 	// Try every construct on the training dummies. Switch Lantern and
 	// environment, and turn on infinite willpower to test freely.
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import GameCanvas from '$lib/components/GameCanvas.svelte';
 	import { CONSTRUCTS, LOADOUTS } from '$lib/engine/constructs/defs';
 	import type { EnvironmentKind } from '$lib/engine/environment';
 	import { Game } from '$lib/engine/game';
 	import { LANTERNS, type LanternId } from '$lib/engine/lanterns';
+	import { settings } from '$lib/settings.svelte';
 
 	let lantern = $state<LanternId>('hal');
 	let environment = $state<EnvironmentKind>('planet');
 	let infinite = $state(true);
 	let debug = $state(false);
 
-	const game = $derived(new Game({ players: [{ lantern, keys: 'both' }], environment }));
+	const game = $derived(new Game({ players: [{ lantern, keys: 'solo' }], environment, settings: untrack(() => settings.snapshot()) }));
 
 	$effect(() => {
 		game.infiniteWillpower = infinite;
@@ -53,8 +54,8 @@
 	</div>
 	<div class="controls keys">
 		<span
-			><kbd>1</kbd>–<kbd>5</kbd> pick · <kbd>Q</kbd> next · <kbd>J</kbd>/<kbd>F</kbd> use · <kbd>Tab</kbd> lock target ·
-			<kbd>E</kbd> shield</span
+			>Mouse aim · <kbd>Left click</kbd> ring shot · <kbd>Right click</kbd> construct · <kbd>Scroll</kbd>/<kbd>1</kbd>–<kbd>5</kbd> pick ·
+			<kbd>Shift</kbd> shield · <kbd>Tab</kbd> lock</span
 		>
 		<span class="loadout">
 			{#each LOADOUTS[lantern] as id, i (id)}

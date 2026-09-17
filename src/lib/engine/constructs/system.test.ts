@@ -8,7 +8,7 @@ import { LANTERNS, type LanternId } from '../lanterns';
 import { CRATE_HP, type Obstacle } from '../map';
 import { createPlayer, type Player } from '../player';
 import { MAX_WILLPOWER, RESTART_THRESHOLD } from '../willpower';
-import { BUBBLE_SHIELD, CONSTRUCTS, LOADOUTS, MAX_TRAPS_PER_PLAYER, type ConstructId } from './defs';
+import { BUBBLE_SHIELD, RING_SHOT, CONSTRUCTS, LOADOUTS, MAX_TRAPS_PER_PLAYER, type ConstructId } from './defs';
 import {
 	absorbWithShield,
 	costOf,
@@ -20,8 +20,8 @@ import {
 } from './system';
 
 const DT = 1 / 60;
-const FIRE: Intent = { ...IDLE, fire: true, firePressed: true };
-const HOLD: Intent = { ...IDLE, fire: true };
+const FIRE: Intent = { ...IDLE, construct: true, constructPressed: true };
+const HOLD: Intent = { ...IDLE, construct: true };
 
 /** A Lantern at (0, 0) aiming right, holding the given construct. */
 function setup(id: LanternId, construct: ConstructId, dummies: Dummy[] = [], obstacles: Obstacle[] = []) {
@@ -60,7 +60,7 @@ describe('choosing constructs', () => {
 
 	it('the cycle key moves to the next one and wraps around', () => {
 		const { p, w } = setup('hal', 'chain');
-		run(p, w, { ...IDLE, cycle: true }, DT);
+		run(p, w, { ...IDLE, cycle: 1 }, DT);
 		expect(p.selected).toBe(0);
 	});
 
@@ -348,5 +348,57 @@ describe('bubble shield', () => {
 		run(p, w, SHIELD, DT);
 		run(p, w, IDLE, BUBBLE_SHIELD.duration! * LANTERNS.john.traits.durability + 0.5);
 		expect(w.shields).toHaveLength(0);
+	});
+});
+
+describe('ring shot (free)', () => {
+	const SHOT: Intent = { ...IDLE, shot: true };
+
+	it('fires bolts that damage a dummy', () => {
+		const d = createDummy(200, 0);
+		const { p, w } = setup('hal', 'beam', [d]);
+		run(p, w, SHOT, 1);
+		expect(d.hp).toBeLessThan(DUMMY_HP);
+	});
+
+	it('costs no willpower at all', () => {
+		const { p, w } = setup('hal', 'beam');
+		run(p, w, SHOT, 2);
+		expect(p.willpower).toBe(MAX_WILLPOWER);
+	});
+
+	it('still works when exhausted', () => {
+		const { p, w } = setup('hal', 'beam');
+		p.willpower = 0;
+		p.exhausted = true;
+		run(p, w, SHOT, DT);
+		expect(w.projectiles.some((pr) => pr.kind === 'bolt')).toBe(true);
+	});
+
+	it('is rate limited to about five shots a second', () => {
+		const { p, w } = setup('john', 'beam');
+		let fired = 0;
+		for (let i = 0; i < 60; i++) {
+			const before = w.projectiles.length;
+			updatePlayerConstructs(p, SHOT, DT, w);
+			if (w.projectiles.length > before) fired++;
+		}
+		expect(fired).toBe(Math.ceil(1 / RING_SHOT.cooldown));
+	});
+
+	it('goes straight along the aim', () => {
+		const { p, w } = setup('john', 'beam');
+		p.aimX = 1;
+		p.aimY = 0;
+		run(p, w, SHOT, DT);
+		const bolt = w.projectiles[0];
+		expect(bolt.vy).toBe(0);
+		expect(bolt.vx).toBeGreaterThan(0);
+	});
+
+	it('scroll wheel goes to the previous construct too', () => {
+		const { p, w } = setup('hal', 'beam');
+		run(p, w, { ...IDLE, cycle: -1 }, DT);
+		expect(p.loadout[p.selected].id).toBe('chain');
 	});
 });

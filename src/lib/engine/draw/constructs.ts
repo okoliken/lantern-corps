@@ -246,7 +246,32 @@ export function drawProjectile(ctx: CanvasRenderingContext2D, pr: Projectile, x:
 	ctx.save();
 	ctx.lineCap = 'round';
 
-	if (pr.kind === 'bullet') {
+	if (pr.kind === 'bolt') {
+		// Ring shot: a bright capsule of energy with a short glowing wake
+		const angle = Math.atan2(uy, ux);
+		ctx.translate(x, dy);
+		ctx.rotate(angle);
+		const wake = ctx.createLinearGradient(-26, 0, 0, 0);
+		wake.addColorStop(0, 'rgba(61, 255, 110, 0)');
+		wake.addColorStop(1, 'rgba(61, 255, 110, 0.55)');
+		ctx.fillStyle = wake;
+		ctx.beginPath();
+		ctx.moveTo(-26, 0);
+		ctx.lineTo(0, -4);
+		ctx.lineTo(0, 4);
+		ctx.closePath();
+		ctx.fill();
+		ctx.shadowColor = GREEN;
+		ctx.shadowBlur = 14;
+		ctx.fillStyle = GREEN;
+		ctx.beginPath();
+		ctx.ellipse(0, 0, 9, 3.6, 0, 0, TAU);
+		ctx.fill();
+		ctx.fillStyle = CORE;
+		ctx.beginPath();
+		ctx.ellipse(1, 0, 5, 1.8, 0, 0, TAU);
+		ctx.fill();
+	} else if (pr.kind === 'bullet') {
 		// Tracer: fading tail, hot head
 		const tail = ctx.createLinearGradient(x - ux * 22, dy - uy * 22, x, dy);
 		tail.addColorStop(0, 'rgba(61, 255, 110, 0)');
@@ -432,14 +457,22 @@ function drawCage(ctx: CanvasRenderingContext2D, x: number, y: number, time: num
 // ---------------------------------------------------------------- shields
 
 /** A bubble shield around a Lantern. (x, y) is their anchor; `lift` raises it to their body. */
-export function drawShield(ctx: CanvasRenderingContext2D, s: Shield, x: number, y: number, lift: number, time: number) {
+export function drawShield(
+	ctx: CanvasRenderingContext2D,
+	s: Shield,
+	x: number,
+	y: number,
+	lift: number,
+	time: number,
+	reduceFlashing = false
+) {
 	const cx = x;
 	const cy = y - lift - 30;
 	const hitRipple = s.ripple / 0.3;
 	const r = 38 + hitRipple * 4 + Math.sin(time * 3) * 1;
 	const health = s.hp / s.maxHp;
-	// Blink in the last two seconds so you know it's about to go
-	const blink = s.life < 2 && Math.sin(time * 18) > 0 ? 0.45 : 1;
+	// Blink in the last two seconds so you know it's about to go (a gentle fade instead, with reduced flashing)
+	const blink = s.life < 2 ? (reduceFlashing ? 0.55 + 0.45 * (s.life / 2) : Math.sin(time * 18) > 0 ? 0.45 : 1) : 1;
 
 	ctx.save();
 	ctx.globalAlpha = blink;
@@ -580,7 +613,15 @@ export function drawReticle(ctx: CanvasRenderingContext2D, t: Target, x: number,
 // ---------------------------------------------------------------- dummies
 
 /** A training dummy: a post with a bullseye. In space it floats instead. */
-export function drawDummy(ctx: CanvasRenderingContext2D, d: Dummy, x: number, y: number, onGround: boolean, time: number) {
+export function drawDummy(
+	ctx: CanvasRenderingContext2D,
+	d: Dummy,
+	x: number,
+	y: number,
+	onGround: boolean,
+	time: number,
+	reduceFlashing = false
+) {
 	ctx.save();
 	if (!isStanding(d)) {
 		// Knocked down: a stump and a ring counting down to respawn
@@ -610,7 +651,7 @@ export function drawDummy(ctx: CanvasRenderingContext2D, d: Dummy, x: number, y:
 	}
 
 	const cy = y - 38 + bob;
-	const flash = d.flash > 0;
+	const flash = d.flash > 0 && !reduceFlashing;
 	ctx.fillStyle = flash ? '#ffffff' : '#c9a55a';
 	ctx.beginPath();
 	ctx.ellipse(x, cy, 12, 16, 0, 0, TAU);

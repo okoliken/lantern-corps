@@ -65,10 +65,11 @@ describe('auto target', () => {
 
 	it('points the ring at the target', () => {
 		const p = lantern();
-		const d = createDummy(100, 100);
+		const d = createDummy(100, 40);
 		updateTargeting(p, false, world([p], [d]));
-		expect(p.aimX).toBeCloseTo(Math.SQRT1_2);
-		expect(p.aimY).toBeCloseTo(Math.SQRT1_2);
+		const len = Math.hypot(100, 40);
+		expect(p.aimX).toBeCloseTo(100 / len);
+		expect(p.aimY).toBeCloseTo(40 / len);
 	});
 
 	it('aims where you face when there is nothing to target', () => {
@@ -137,5 +138,59 @@ describe('lock on', () => {
 		updateTargeting(p, true, w);
 		expect(p.protectTarget).toEqual({ kind: 'ally', player: partner });
 		expect(p.attackTarget).toEqual({ kind: 'enemy', dummy: d });
+	});
+});
+
+describe('mouse aim', () => {
+	it('shoots straight at the crosshair when nothing is near it', () => {
+		const p = lantern();
+		updateTargeting(p, false, world([p]), 460, { pointer: { x: 0, y: -100 } });
+		expect(p.aimX).toBeCloseTo(0);
+		expect(p.aimY).toBeCloseTo(-1);
+	});
+
+	it('does NOT get pulled onto an enemy off to the side', () => {
+		const p = lantern();
+		const d = createDummy(150, 110); // about 36 degrees below the crosshair line
+		updateTargeting(p, false, world([p], [d]), 460, { pointer: { x: 300, y: 0 } });
+		expect(p.attackTarget).toBeNull();
+		expect(p.aimX).toBeCloseTo(1);
+		expect(p.aimY).toBeCloseTo(0);
+	});
+
+	it('aim assist snaps onto an enemy right along the crosshair line', () => {
+		const p = lantern();
+		const d = createDummy(200, 15);
+		updateTargeting(p, false, world([p], [d]), 460, { pointer: { x: 300, y: 0 } });
+		expect(p.attackTarget).toEqual({ kind: 'enemy', dummy: d });
+	});
+
+	it('aim assist can be turned off', () => {
+		const p = lantern();
+		const d = createDummy(200, 15);
+		updateTargeting(p, false, world([p], [d]), 460, { pointer: { x: 300, y: 0 }, aimAssist: false });
+		expect(p.attackTarget).toBeNull();
+	});
+
+	it('the Lantern turns to face the crosshair', () => {
+		const p = lantern();
+		updateTargeting(p, false, world([p]), 460, { pointer: { x: -100, y: 0 } });
+		expect(p.dir).toBe(-1);
+	});
+});
+
+describe('the John bug: keyboard aim pulled onto a hidden target', () => {
+	it('an enemy standing behind a building (under its roof on screen) is not auto-targeted', () => {
+		const p = lantern();
+		// Building footprint to the right and a bit below; its roof is drawn 120px higher
+		const building: Obstacle = { kind: 'building', x: 100, y: 40, w: 150, h: 100, height: 120, blocksFlying: false, seed: 0.1 };
+		const hidden = createDummy(190, 20); // above the footprint, under the drawn roof
+		expect(findAutoTarget(p, world([p], [hidden], [building]))).toBeNull();
+	});
+
+	it('keyboard auto-target only looks in a narrow cone ahead', () => {
+		const p = lantern();
+		const offToSide = createDummy(150, 110); // ~36 degrees off
+		expect(findAutoTarget(p, world([p], [offToSide]))).toBeNull();
 	});
 });

@@ -21,7 +21,7 @@ import {
 	drawShield,
 	drawTrap
 } from './draw/constructs';
-import { drawBattery, drawBeam, drawChargeLink, drawHud } from './draw/effects';
+import { drawBattery, drawBeam, drawChargeLink, drawCrosshair, drawHud } from './draw/effects';
 import {
 	FIGURE_HALF_WIDTH,
 	FIGURE_HEIGHT,
@@ -36,7 +36,17 @@ import {
 import { drawObstacle, drawPlanetGround, drawStarfield, makeStars, type WorldRect } from './draw/world';
 import { DUMMY_HALF_H, DUMMY_HALF_W, createDummy, isStanding, updateDummy, type Dummy } from './dummy';
 import { ENVIRONMENT_RULES, type EnvironmentKind } from './environment';
-import { KeyboardInput, KeyboardState, LAYOUTS, type LayoutName } from './input';
+import {
+	ACTIONS,
+	BindingInput,
+	ButtonState,
+	PointerState,
+	SLOT_ACTIONS,
+	shortLabel,
+	usesMouse,
+	type LayoutName
+} from './input';
+import { defaultSettings, type Settings } from './settings';
 import { LANTERNS, type LanternId } from './lanterns';
 import { buildTestMap, seededRandom, type GameMap, type Obstacle } from './map';
 import { FEET_HALF_H, FEET_HALF_W, clampToBounds, createPlayer, updatePlayer, type Player, type WorldRules } from './player';
@@ -60,12 +70,12 @@ export interface GameOptions {
 	map?: GameMap;
 	/** Show "P1"/"P2" under the name tags. */
 	showSlots?: boolean;
+	/** Key bindings and accessibility options. Defaults if not given. */
+	settings?: Settings;
 }
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-/** "KeyE" -> "E", "Comma" -> ",", for HUD labels. */
-const keyLabel = (code: string) => ({ Comma: ',', Period: '.', Slash: '/' })[code] ?? code.replace(/^(Key|Digit)/, '');
 
 /** Aim the camera at the Lantern's chest, not their feet. */
 const CAMERA_AIM_UP = 30;
@@ -73,7 +83,13 @@ const CAMERA_AIM_UP = 30;
 export class Game {
 	/** Seconds of simulated time. Only update() changes it. */
 	time = 0;
-	readonly keyboard = new KeyboardState();
+	/** Keys, mouse buttons and wheel, shared by every player on this computer. */
+	readonly buttons = new ButtonState();
+	/** Mouse position over the game. */
+	readonly pointer = new PointerState();
+	/** While paused, the world stops but keeps drawing. */
+	paused = false;
+	settings: Settings;
 	readonly players: Player[];
 	readonly map: GameMap;
 	readonly camera = new Camera();
@@ -86,16 +102,14 @@ export class Game {
 	infiniteWillpower = false;
 
 	private rules: WorldRules;
-	/** Label for each player's slot keys, e.g. ["1".."5"] or ["6".."0"]. */
-	private slotKeys: string[][];
-	/** Label for each player's shield key. */
-	private shieldKeys: string[];
+	private inputs: BindingInput[];
 	private starLayers;
 	private showSlots: boolean;
 	private view: View = { width: 0, height: 0 };
 	private started = false;
 
-	constructor({ players, environment = 'space', map, showSlots = false }: GameOptions) {
+	constructor({ players, environment = 'space', map, showSlots = false, settings = defaultSettings() }: GameOptions) {
+		this.settings = settings;
 		this.map = map ?? buildTestMap(environment);
 		const env = ENVIRONMENT_RULES[this.map.environment];
 		this.rules = { solids: this.map.obstacles, alwaysFlying: env.alwaysFlying };
@@ -108,17 +122,17 @@ export class Game {
 		// Spawn side by side around the map's spawn point
 		const gap = 170; // wide enough that name tags don't overlap
 		const startX = this.map.spawn.x - (gap * (players.length - 1)) / 2;
+		this.inputs = players.map((cfg) => new BindingInput(this.buttons, settings.bindings[cfg.keys]));
+		this.layouts = players.map((cfg) => cfg.keys);
 		this.players = players.map((cfg, slot) => {
-			const input = new KeyboardInput(this.keyboard, LAYOUTS[cfg.keys]);
-			const p = createPlayer(slot, LANTERNS[cfg.lantern], input, startX + slot * gap, this.map.spawn.y);
+			const p = createPlayer(slot, LANTERNS[cfg.lantern], this.inputs[slot], startX + slot * gap, this.map.spawn.y);
 			if (env.alwaysFlying) {
 				p.flying = true;
 				p.altitude = 1;
 			}
 			return p;
 		});
-		this.slotKeys = players.map((cfg) => LAYOUTS[cfg.keys].slots.map((codes) => codes[0].replace('Digit', '')));
-		this.shieldKeys = players.map((cfg) => keyLabel(LAYOUTS[cfg.keys].shield[0]));
+		this.applySettings(settings);
 
 		this.showSlots = showSlots;
 		const rand = seededRandom(1);
@@ -126,6 +140,42 @@ export class Game {
 			{ stars: makeStars(160, rand), parallax: 0.08 },
 			{ stars: makeStars(70, rand), parallax: 0.25 }
 		];
+	}
+
+	private layouts: LayoutName[];
+
+	/**
+	 * Use new settings (e.g. after changing them in the pause menu) without
+	 * restarting the game.
+	 */
+	applySettings(settings: Settings) {
+		this.settings = settings;
+		this.buttons.gameButtons.clear();
+		this.inputs.forEach((input, i) => {
+			const bindings = settings.bindings[this.layouts[i]];
+			input.bindings = bindings;
+			input.options = {
+				toggleShot: settings.toggleShot,
+				pointer: usesMouse(bindings)
+					? { state: this.pointer, toWorld: (sx, sy) => this.screenToWorld(sx, sy) }
+					: undefined
+			};
+			for (const action of ACTIONS) for (const code of bindings[action]) this.buttons.gameButtons.add(code);
+		});
+	}
+
+	/** Does any player aim with the mouse? (Then we hide the cursor and draw a crosshair.) */
+	get usesMouse(): boolean {
+		return this.inputs.some((input) => input.options.pointer !== undefined);
+	}
+
+	/** Screen (CSS px over the canvas) to world coordinates, through the camera. */
+	screenToWorld(sx: number, sy: number): { x: number; y: number } {
+		const { zoom } = this.camera;
+		return {
+			x: this.camera.x + (sx - this.view.width / 2) / zoom,
+			y: this.camera.y + (sy - this.view.height / 2) / zoom
+		};
 	}
 
 	/** What targeting can see: everything you might attack or protect. */
@@ -148,6 +198,15 @@ export class Game {
 		const { width } = this.view;
 		if (width === 0) return; // canvas not measured yet
 
+		// Put the camera on the players straight away, even if the game starts
+		// paused (behind the controls card), so the view behind it is right.
+		if (!this.started) {
+			const [tx, ty] = this.cameraTarget();
+			this.camera.snapTo(tx, ty, this.view, this.map.width, this.map.height);
+			this.started = true;
+		}
+		if (this.paused) return;
+
 		const { map } = this;
 		for (const b of this.batteries) updateBattery(b, dt);
 
@@ -156,7 +215,13 @@ export class Game {
 			updatePlayer(p, intent, dt, this.rules);
 			// Keep feet inside the map, with room above for the body
 			clampToBounds(p, FIGURE_HALF_WIDTH, FIGURE_HEIGHT, map.width - FIGURE_HALF_WIDTH, map.height - 6);
-			updateTargeting(p, intent.target, this.targetWorld, autoReach(p.loadout[p.selected]));
+			// The crosshair sits where you SEE the shot land, at ring height. Shots
+			// travel along the ground plane, so drop the aim point by that height.
+			const pointer = intent.pointer && { x: intent.pointer.x, y: intent.pointer.y + this.ringLift(p) };
+			updateTargeting(p, intent.target, this.targetWorld, autoReach(p.loadout[p.selected]), {
+				pointer,
+				aimAssist: this.settings.aimAssist
+			});
 			updateWillpower(p, dt, this.batteries);
 			updatePlayerConstructs(p, intent, dt, this.constructs);
 			if (this.infiniteWillpower) {
@@ -173,12 +238,7 @@ export class Game {
 		}
 
 		const [tx, ty] = this.cameraTarget();
-		if (!this.started) {
-			this.camera.snapTo(tx, ty, this.view, map.width, map.height);
-			this.started = true;
-		} else {
-			this.camera.follow(tx, ty, dt, this.view, map.width, map.height);
-		}
+		this.camera.follow(tx, ty, dt, this.view, map.width, map.height);
 	}
 
 	/** The middle of all players. With one player that's just them. */
@@ -266,7 +326,10 @@ export class Game {
 		for (const d of this.dummies) {
 			const x = lerp(d.prevX, d.x, alpha);
 			const y = lerp(d.prevY, d.y, alpha);
-			ground.push({ baseY: y, draw: () => drawDummy(ctx, d, x, y, env.hasGround, this.time) });
+			ground.push({
+				baseY: y,
+				draw: () => drawDummy(ctx, d, x, y, env.hasGround, this.time, this.settings.reduceFlashing)
+			});
 		}
 
 		const overlays: (() => void)[] = [];
@@ -330,7 +393,7 @@ export class Game {
 		for (const sh of cw.shields) {
 			const t = sh.target;
 			const lift = this.poseFor(t).hoverHeight * t.altitude * 1.35;
-			drawShield(ctx, sh, lerp(t.prevX, t.x, alpha), lerp(t.prevY, t.y, alpha), lift, this.time);
+			drawShield(ctx, sh, lerp(t.prevX, t.x, alpha), lerp(t.prevY, t.y, alpha), lift, this.time, this.settings.reduceFlashing);
 		}
 
 		// Target markers: what each Lantern will hit, and who they're protecting
@@ -342,6 +405,7 @@ export class Game {
 			}
 		}
 		for (const e of cw.effects) {
+			if (e.kind === 'number' && !this.settings.damageNumbers) continue;
 			drawEffect(ctx, e, e.owner ? this.ringLift(e.owner) : 0, this.time);
 		}
 		for (const t of tags) t();
@@ -361,12 +425,12 @@ export class Game {
 				selected: p.selected,
 				slots: p.loadout.map((def, s) => ({
 					name: def.name,
-					key: this.slotKeys[i][s],
+					key: shortLabel(this.inputs[i].bindings[SLOT_ACTIONS[s]]),
 					cooldown: def.cooldown > 0 ? Math.min(1, p.cooldowns[s] / (def.cooldown * p.def.traits.cooldown)) : 0,
 					affordable: canSpend(p, def.behavior === 'beam' ? 15 : costOf(p, def))
 				})),
 				shield: {
-					key: this.shieldKeys[i],
+					key: shortLabel(this.inputs[i].bindings.shield),
 					cooldown: Math.min(1, p.shieldCooldown / (BUBBLE_SHIELD.cooldown * p.def.traits.cooldown)),
 					affordable: canSpend(p, BUBBLE_SHIELD.cost),
 					active: cw.shields.some((sh) => sh.target === p)
@@ -377,6 +441,8 @@ export class Game {
 			height,
 			this.time
 		);
+
+		if (this.usesMouse && this.pointer.active && !this.paused) drawCrosshair(ctx, this.pointer.x, this.pointer.y, this.time);
 	}
 
 	/** Where to draw a target marker, smoothed like everything else. */

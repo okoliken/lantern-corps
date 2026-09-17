@@ -72,6 +72,8 @@ export interface Player {
 	actionShape: ConstructDef['shape'] | null;
 	/** Seconds until the bubble shield can be cast again. */
 	shieldCooldown: number;
+	/** Seconds until the next free ring shot. */
+	shotCooldown: number;
 }
 
 /** What the player needs to know about the world to move through it. */
@@ -117,6 +119,7 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		attackTarget: null,
 		protectTarget: null,
 		shieldCooldown: 0,
+		shotCooldown: 0,
 		willpower: MAX_WILLPOWER,
 		exhausted: false,
 		recoverDelay: 0,

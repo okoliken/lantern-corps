@@ -1,9 +1,10 @@
 // Targeting: the ring knows what you mean to hit or protect.
 //
-//  - AUTO TARGET: with nothing locked, the ring picks the nearest enemy in
-//    front of you (the way you're facing) that you can SEE (no building in
-//    the way) and REACH with the construct in hand. If there's no enemy, a
-//    nearby breakable object. Attacks aim straight at it.
+//  - MOUSE AIM: shots go where the crosshair points. Aim assist nudges them
+//    onto an enemy only if it's right along that line.
+//  - KEYBOARD AIM: with nothing locked, the ring picks the nearest enemy in a
+//    narrow cone ahead that you can SEE and REACH with the construct in hand
+//    (or a breakable object), else it shoots straight where you face.
 //  - LOCK ON: the Target key locks onto something and cycles through
 //    everything in range: enemies first, then allies, then objects, then
 //    back to no lock.
@@ -35,8 +36,6 @@ export const LOCK_RANGE = 600;
 export const AUTO_RANGE = 460;
 /** ...and this far for breakable objects (so crates don't steal your aim across the map). */
 export const AUTO_OBJECT_RANGE = 220;
-/** Auto-target only considers things within this angle either side of where you face. */
-export const AUTO_HALF_ANGLE = (70 * Math.PI) / 180;
 
 export function targetPosition(t: Target): [number, number] {
 	switch (t.kind) {
@@ -122,37 +121,54 @@ export function autoReach(def: ConstructDef): number {
 }
 
 /**
- * Can the player see (x, y)? True unless a solid obstacle's footprint sits
- * between them. `except` is the target itself, and energy walls don't block
- * your own view.
+ * Can the player see (x, y)? Checked against each obstacle's whole on-screen
+ * silhouette (its footprint plus the height drawn above it), not just the
+ * footprint. Otherwise something standing "behind" a building, hidden under
+ * its roof on screen, would still count as visible and pull your aim onto
+ * it. `except` is the target itself; energy walls don't block your view.
  */
 export function hasLineOfSight(p: Player, x: number, y: number, w: TargetWorld, except?: Obstacle): boolean {
 	const dx = x - p.x;
 	const dy = y - p.y;
 	const dist = Math.hypot(dx, dy);
 	if (dist < 1) return true;
-	const blockers = w.obstacles.filter((o) => o !== except && o.kind !== 'wall');
-	const { hit } = castBeam(p.x, p.y, dx / dist, dy / dist, blockers, dist);
+	const silhouettes = w.obstacles
+		.filter((o) => o !== except && o.kind !== 'wall')
+		.map((o) => ({ x: o.x, y: o.y - o.height, w: o.w, h: o.h + o.height, blocksFlying: o.blocksFlying }));
+	const { hit } = castBeam(p.x, p.y, dx / dist, dy / dist, silhouettes, dist);
 	return hit === null;
 }
 
-/** Is (x, y) in front of the player, within `range`? */
-function inFront(p: Player, x: number, y: number, range: number): boolean {
+/** Keyboard aiming: auto-target only within this angle of where you face. */
+export const KEYBOARD_HALF_ANGLE = (30 * Math.PI) / 180;
+/** Mouse aim assist: snap only to something this close to the crosshair direction. */
+export const ASSIST_HALF_ANGLE = (10 * Math.PI) / 180;
+
+/** Is (x, y) within `range` and within `halfAngle` of the direction (dirX, dirY)? */
+function inCone(p: Player, x: number, y: number, range: number, dirX: number, dirY: number, halfAngle: number): boolean {
 	const dx = x - p.x;
 	const dy = y - p.y;
 	const dist = Math.hypot(dx, dy);
 	if (dist > range) return false;
 	if (dist < 20) return true;
-	const cos = (dx * p.faceX + dy * p.faceY) / dist;
-	return cos >= Math.cos(AUTO_HALF_ANGLE);
+	return (dx * dirX + dy * dirY) / dist >= Math.cos(halfAngle);
 }
 
-/** The nearest visible enemy in front of you; failing that, the nearest visible breakable object. */
-export function findAutoTarget(p: Player, w: TargetWorld, reach = AUTO_RANGE): Target | null {
+export interface AutoTargetOptions {
+	/** Direction to look in (unit vector). Defaults to where the player faces. */
+	dirX?: number;
+	dirY?: number;
+	/** How wide to look either side of that direction. */
+	halfAngle?: number;
+}
+
+/** The nearest visible enemy in the cone; failing that, the nearest visible breakable object. */
+export function findAutoTarget(p: Player, w: TargetWorld, reach = AUTO_RANGE, opts: AutoTargetOptions = {}): Target | null {
+	const { dirX = p.faceX, dirY = p.faceY, halfAngle = KEYBOARD_HALF_ANGLE } = opts;
 	let best: Target | null = null;
 	let bestDist = Infinity;
 	for (const d of w.dummies) {
-		if (!isStanding(d) || !inFront(p, d.x, d.y, reach) || !hasLineOfSight(p, d.x, d.y, w)) continue;
+		if (!isStanding(d) || !inCone(p, d.x, d.y, reach, dirX, dirY, halfAngle) || !hasLineOfSight(p, d.x, d.y, w)) continue;
 		const dist = Math.hypot(d.x - p.x, d.y - p.y);
 		if (dist < bestDist) {
 			best = { kind: 'enemy', dummy: d };
@@ -164,7 +180,8 @@ export function findAutoTarget(p: Player, w: TargetWorld, reach = AUTO_RANGE): T
 	for (const o of w.obstacles) {
 		if (o.hp === undefined || o.kind === 'wall') continue;
 		const [x, y] = [o.x + o.w / 2, o.y + o.h / 2];
-		if (!inFront(p, x, y, Math.min(reach, AUTO_OBJECT_RANGE)) || !hasLineOfSight(p, x, y, w, o)) continue;
+		const range = Math.min(reach, AUTO_OBJECT_RANGE);
+		if (!inCone(p, x, y, range, dirX, dirY, halfAngle) || !hasLineOfSight(p, x, y, w, o)) continue;
 		const dist = Math.hypot(x - p.x, y - p.y);
 		if (dist < bestDist) {
 			best = { kind: 'object', obstacle: o };
@@ -174,28 +191,67 @@ export function findAutoTarget(p: Player, w: TargetWorld, reach = AUTO_RANGE): T
 	return best;
 }
 
+export interface TargetingOptions {
+	/** Mouse position in world coordinates, or null when not aiming with a mouse. */
+	pointer?: { x: number; y: number } | null;
+	/** Let mouse aim snap to an enemy right next to the crosshair. */
+	aimAssist?: boolean;
+}
+
 /**
  * One tick of targeting, after movement and before constructs.
  * Sets p.attackTarget, p.protectTarget and the ring's aim.
  * `reach` is how far auto-target looks: see autoReach().
+ *
+ * Aim, in order of priority:
+ *  1. A locked target (Tab).
+ *  2. MOUSE: straight at the crosshair, nudged onto an enemy only if one sits
+ *     right along that line (aim assist).
+ *  3. KEYBOARD: the nearest visible enemy in a narrow cone ahead, otherwise
+ *     straight where you face.
  */
-export function updateTargeting(p: Player, cyclePressed: boolean, w: TargetWorld, reach = AUTO_RANGE) {
+export function updateTargeting(
+	p: Player,
+	cyclePressed: boolean,
+	w: TargetWorld,
+	reach = AUTO_RANGE,
+	{ pointer = null, aimAssist = true }: TargetingOptions = {}
+) {
 	// Locks break when the target is gone or you've moved well away from it
 	if (p.lock && (!isTargetValid(p.lock, w) || distanceTo(p, p.lock) > LOCK_RANGE * 1.25)) p.lock = null;
 	if (cyclePressed) cycleLock(p, w);
 
-	const lockedAttack = p.lock && p.lock.kind !== 'ally' ? p.lock : null;
-
-	// While a construct is running, stick with the current auto target so the
-	// beam doesn't jump between two dummies standing side by side.
-	const busy = p.firing || p.actionTimer > 0;
-	const keepAuto =
-		busy && p.attackTarget && !lockedAttack && isTargetValid(p.attackTarget, w) && distanceTo(p, p.attackTarget) <= reach;
-
-	p.attackTarget = lockedAttack ?? (keepAuto ? p.attackTarget : findAutoTarget(p, w, reach));
 	p.protectTarget = p.lock?.kind === 'ally' ? p.lock : null;
+	const lockedAttack = p.lock && p.lock.kind !== 'ally' ? p.lock : null;
+	const busy = p.firing || p.actionTimer > 0;
 
-	// Aim: at the attack target if there is one, otherwise where you face
+	if (lockedAttack) {
+		p.attackTarget = lockedAttack;
+	} else if (pointer) {
+		const dx = pointer.x - p.x;
+		const dy = pointer.y - p.y;
+		const len = Math.hypot(dx, dy);
+		const dirX = len > 1 ? dx / len : p.faceX;
+		const dirY = len > 1 ? dy / len : p.faceY;
+		p.attackTarget = aimAssist ? findAutoTarget(p, w, reach, { dirX, dirY, halfAngle: ASSIST_HALF_ANGLE }) : null;
+		if (!p.attackTarget) {
+			p.aimX = dirX;
+			p.aimY = dirY;
+		}
+		// With a mouse, the character always looks toward the crosshair
+		if (Math.abs(dx) > 4) p.dir = dx > 0 ? 1 : -1;
+	} else {
+		// While a construct is running, stick with the current auto target so
+		// the beam doesn't jump between two dummies standing side by side.
+		const keep = busy && p.attackTarget && isTargetValid(p.attackTarget, w) && distanceTo(p, p.attackTarget) <= reach;
+		p.attackTarget = keep ? p.attackTarget : findAutoTarget(p, w, reach);
+		if (!p.attackTarget) {
+			p.aimX = p.faceX;
+			p.aimY = p.faceY;
+		}
+	}
+
+	// Aim at the attack target, if there is one
 	if (p.attackTarget) {
 		const [tx, ty] = targetPosition(p.attackTarget);
 		const dx = tx - p.x;
@@ -207,8 +263,5 @@ export function updateTargeting(p: Player, cyclePressed: boolean, w: TargetWorld
 		}
 		// Turn to face what you're attacking while you're attacking it
 		if (busy && Math.abs(dx) > 4) p.dir = dx > 0 ? 1 : -1;
-	} else {
-		p.aimX = p.faceX;
-		p.aimY = p.faceY;
 	}
 }

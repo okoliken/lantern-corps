@@ -14,8 +14,8 @@
 	const game = $derived(
 		new Game({
 			players: [
-				{ lantern: 'hal', keys: 'wasd' },
-				{ lantern: 'john', keys: 'arrows' }
+				{ lantern: 'hal', keys: 'p1' },
+				{ lantern: 'john', keys: 'p2' }
 			],
 			environment,
 			showSlots: true
@@ -51,8 +51,8 @@
 				<button class:on={environment === env} onclick={() => (environment = env)}>{env}</button>
 			{/each}
 		</span>
-		<span><kbd>WASD</kbd> <kbd>Space</kbd> fly <kbd>F</kbd> use <kbd>1-5</kbd> <kbd>Tab</kbd> target <kbd>E</kbd> shield: Hal</span>
-		<span><kbd>Arrows</kbd> <kbd>R-Shift</kbd> fly <kbd>Enter</kbd> use <kbd>6-0</kbd> <kbd>.</kbd> target <kbd>,</kbd> shield: John</span>
+		<span>Hal: <kbd>WASD</kbd> move · mouse aim · <kbd>F</kbd>/click shot · <kbd>G</kbd>/right-click construct · <kbd>L-Shift</kbd> shield · <kbd>Space</kbd> fly</span>
+		<span>John: <kbd>Arrows</kbd> move · <kbd>.</kbd> shot · <kbd>/</kbd> construct · <kbd>R-Shift</kbd> shield · <kbd>Enter</kbd> fly · <kbd>6-0</kbd> pick</span>
 		<label>
 			Zoom {zoom.toFixed(1)}×
 			<input type="range" min="0.5" max="3" step="0.1" bind:value={zoom} />

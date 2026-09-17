@@ -365,3 +365,39 @@ function abbreviate(name: string): string {
 	const last = name.split(' ').pop() ?? name;
 	return last.length > 7 ? last.slice(0, 6) + '.' : last;
 }
+
+/**
+ * The mouse crosshair: a ring with a gap-cross and a centre dot, dark outline
+ * underneath so it stays visible on any background.
+ */
+export function drawCrosshair(ctx: CanvasRenderingContext2D, x: number, y: number, time: number) {
+	const r = 10 + Math.sin(time * 4) * 0.8;
+	ctx.save();
+	ctx.lineCap = 'round';
+	for (const [color, width] of [
+		['rgba(0, 0, 0, 0.7)', 4],
+		[GREEN, 2]
+	] as const) {
+		ctx.strokeStyle = color;
+		ctx.lineWidth = width;
+		ctx.beginPath();
+		ctx.arc(x, y, r, 0, Math.PI * 2);
+		ctx.stroke();
+		ctx.beginPath();
+		for (const [dx, dy] of [
+			[1, 0],
+			[-1, 0],
+			[0, 1],
+			[0, -1]
+		]) {
+			ctx.moveTo(x + dx * (r - 4), y + dy * (r - 4));
+			ctx.lineTo(x + dx * (r + 6), y + dy * (r + 6));
+		}
+		ctx.stroke();
+	}
+	ctx.fillStyle = '#eafff0';
+	ctx.beginPath();
+	ctx.arc(x, y, 1.8, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.restore();
+}

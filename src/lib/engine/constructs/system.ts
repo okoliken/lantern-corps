@@ -17,12 +17,13 @@ import type { Obstacle } from '../map';
 import { boxOverlap, type Solid } from '../physics';
 import type { Player } from '../player';
 import { RESTART_THRESHOLD, canSpend, spend } from '../willpower';
-import { BUBBLE_SHIELD, HELD_BEHAVIORS, MAX_TRAPS_PER_PLAYER, STRUCTURE_BEHAVIORS, type ConstructDef } from './defs';
+import { BUBBLE_SHIELD, RING_SHOT, HELD_BEHAVIORS, MAX_TRAPS_PER_PLAYER, STRUCTURE_BEHAVIORS, type ConstructDef } from './defs';
 
 // ------------------------------------------------------------ world state
 
 export interface Projectile {
-	kind: 'bullet' | 'shell' | 'hook';
+	/** bolt = free ring shot, bullet = minigun, shell = cannon, hook = chain. */
+	kind: 'bolt' | 'bullet' | 'shell' | 'hook';
 	owner: Player;
 	def: ConstructDef;
 	x: number;
@@ -137,29 +138,31 @@ const TETHER_TIME = 0.45;
 export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w: ConstructWorld) {
 	p.cooldowns = p.cooldowns.map((c) => Math.max(0, c - dt));
 	p.shieldCooldown = Math.max(0, p.shieldCooldown - dt);
+	p.shotCooldown = Math.max(0, p.shotCooldown - dt);
 	p.actionTimer = Math.max(0, p.actionTimer - dt);
 	if (p.actionTimer === 0) p.actionShape = null;
 
 	if (intent.shield) castShield(p, w);
+	if (intent.shot) ringShot(p, w);
 
 	// ---- Switching constructs ----
 	const before = p.selected;
 	if (intent.select >= 0 && intent.select < p.loadout.length) p.selected = intent.select;
-	if (intent.cycle) p.selected = (p.selected + 1) % p.loadout.length;
+	if (intent.cycle !== 0) p.selected = (p.selected + intent.cycle + p.loadout.length) % p.loadout.length;
 	if (p.selected !== before) p.firing = false;
 
 	const def = p.loadout[p.selected];
 	const slot = p.selected;
 
 	if (HELD_BEHAVIORS.has(def.behavior)) {
-		if (def.behavior === 'beam') useBeam(p, def, intent.fire, dt, w);
-		else useRapid(p, def, intent.fire, w);
+		if (def.behavior === 'beam') useBeam(p, def, intent.construct, dt, w);
+		else useRapid(p, def, intent.construct, w);
 		return;
 	}
 
 	p.firing = false;
 	p.beamLength = 0;
-	if (!intent.firePressed || p.cooldowns[slot] > 0) return;
+	if (!intent.constructPressed || p.cooldowns[slot] > 0) return;
 
 	const cost = costOf(p, def);
 	if (!canSpend(p, cost)) return;
@@ -359,6 +362,17 @@ function shockwave(p: Player, def: ConstructDef, w: ConstructWorld) {
 	w.effects.push({ kind: 'shockwave', x: p.x, y: p.y, age: 0, life: 0.65, radius: def.range, owner: p });
 }
 
+// -------------------------------------------------------------- ring shot
+
+/** The free basic attack: a bolt straight along the aim, about five a second. */
+function ringShot(p: Player, w: ConstructWorld) {
+	if (p.shotCooldown > 0) return;
+	launch(p, RING_SHOT, 'bolt', p.aimX, p.aimY, w);
+	p.shotCooldown = RING_SHOT.cooldown * p.def.traits.cooldown;
+	// Arm snaps up to point, briefly
+	p.actionTimer = Math.max(p.actionTimer, 0.2);
+}
+
 // ----------------------------------------------------------------- shield
 
 /** Who a Lantern's shield would go on right now: a locked ally in reach, else themselves. */
@@ -482,7 +496,7 @@ function projectileHit(w: ConstructWorld, pr: Projectile, dummy: Dummy | null, s
 		return;
 	}
 
-	// Bullet
+	// Bolt or bullet
 	if (dummy) hitDummyWithFx(w, dummy, pr.damage, pr.knockback, pr.x - pr.vx, pr.y - pr.vy);
 	if (solid) damageObstacle(w, solid, pr.damage);
 	w.effects.push({ kind: 'impact', x: pr.x, y: pr.y, age: 0, life: 0.12, owner: pr.owner });

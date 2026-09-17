@@ -1,111 +1,172 @@
 import { describe, expect, it } from 'vitest';
-import { IDLE, KeyboardInput, KeyboardState, LAYOUTS, intentFromKeys } from './input';
+import {
+	BindingInput,
+	ButtonState,
+	DEFAULT_BINDINGS,
+	PointerState,
+	buttonLabel,
+	moveFromButtons,
+	shortLabel,
+	usesMouse
+} from './input';
 
-const keys = (...codes: string[]) => new Set(codes);
-const still = IDLE;
+function setup(layout: 'solo' | 'p1' | 'p2' = 'solo', options = {}) {
+	const buttons = new ButtonState();
+	const input = new BindingInput(buttons, DEFAULT_BINDINGS[layout], options);
+	return { buttons, input };
+}
 
-describe('intentFromKeys', () => {
-	it('no keys means no movement', () => {
-		expect(intentFromKeys(keys(), LAYOUTS.wasd)).toEqual(still);
+describe('movement', () => {
+	it('no buttons means no movement', () => {
+		const { buttons } = setup();
+		expect(moveFromButtons(buttons, DEFAULT_BINDINGS.solo)).toEqual({ moveX: 0, moveY: 0 });
 	});
 
-	it('maps WASD to directions (y down is positive)', () => {
-		expect(intentFromKeys(keys('KeyD'), LAYOUTS.wasd)).toMatchObject({ moveX: 1, moveY: 0 });
-		expect(intentFromKeys(keys('KeyW'), LAYOUTS.wasd)).toMatchObject({ moveX: 0, moveY: -1 });
-	});
-
-	it('opposite keys cancel out', () => {
-		expect(intentFromKeys(keys('KeyA', 'KeyD'), LAYOUTS.wasd).moveX).toBe(0);
+	it('WASD and arrows both move in single player', () => {
+		const { buttons } = setup();
+		buttons.press('KeyD');
+		expect(moveFromButtons(buttons, DEFAULT_BINDINGS.solo).moveX).toBe(1);
+		buttons.release('KeyD');
+		buttons.press('ArrowUp');
+		expect(moveFromButtons(buttons, DEFAULT_BINDINGS.solo).moveY).toBe(-1);
 	});
 
 	it('diagonals are normalized so they are not faster', () => {
-		const i = intentFromKeys(keys('KeyW', 'KeyD'), LAYOUTS.wasd);
-		expect(Math.hypot(i.moveX, i.moveY)).toBeCloseTo(1);
+		const { buttons } = setup();
+		buttons.press('KeyW');
+		buttons.press('KeyD');
+		const m = moveFromButtons(buttons, DEFAULT_BINDINGS.solo);
+		expect(Math.hypot(m.moveX, m.moveY)).toBeCloseTo(1);
 	});
 
-	it("one player's keys don't move the other player", () => {
-		expect(intentFromKeys(keys('ArrowLeft'), LAYOUTS.wasd)).toEqual(still);
-		expect(intentFromKeys(keys('KeyA'), LAYOUTS.arrows)).toEqual(still);
-	});
-
-	it('the "both" layout accepts either set', () => {
-		expect(intentFromKeys(keys('KeyA'), LAYOUTS.both).moveX).toBe(-1);
-		expect(intentFromKeys(keys('ArrowLeft'), LAYOUTS.both).moveX).toBe(-1);
-	});
-});
-
-describe('fire key', () => {
-	it('fire is held while the key is down', () => {
-		expect(intentFromKeys(keys('KeyF'), LAYOUTS.wasd).fire).toBe(true);
-		expect(intentFromKeys(keys(), LAYOUTS.wasd).fire).toBe(false);
-	});
-
-	it('each co-op player has their own fire key', () => {
-		expect(intentFromKeys(keys('Enter'), LAYOUTS.wasd).fire).toBe(false);
-		expect(intentFromKeys(keys('Enter'), LAYOUTS.arrows).fire).toBe(true);
+	it(`co-op: one player's keys don't move the other`, () => {
+		const buttons = new ButtonState();
+		buttons.press('ArrowLeft');
+		expect(moveFromButtons(buttons, DEFAULT_BINDINGS.p1).moveX).toBe(0);
+		expect(moveFromButtons(buttons, DEFAULT_BINDINGS.p2).moveX).toBe(-1);
 	});
 });
 
-describe('construct keys', () => {
-	it('slot keys select by index, once per press', () => {
-		const kb = new KeyboardState();
-		const input = new KeyboardInput(kb, LAYOUTS.wasd);
-		kb.press('Digit3');
+describe('mouse buttons are bindable like keys', () => {
+	it('left click is the ring shot, right click the construct', () => {
+		const { buttons, input } = setup();
+		buttons.press('Mouse0');
+		buttons.press('Mouse2');
+		const intent = input.read();
+		expect(intent.shot).toBe(true);
+		expect(intent.construct).toBe(true);
+		expect(intent.constructPressed).toBe(true);
+	});
+
+	it('scroll wheel switches construct', () => {
+		const { buttons, input } = setup();
+		buttons.tap('WheelDown');
+		expect(input.read().cycle).toBe(1);
+		buttons.tap('WheelUp');
+		expect(input.read().cycle).toBe(-1);
+		expect(input.read().cycle).toBe(0);
+	});
+});
+
+describe('presses', () => {
+	it('a press is seen once, while held stays true', () => {
+		const { buttons, input } = setup();
+		buttons.press('KeyK');
+		expect(input.read()).toMatchObject({ construct: true, constructPressed: true });
+		expect(input.read()).toMatchObject({ construct: true, constructPressed: false });
+	});
+
+	it('a quick tap between ticks is not lost', () => {
+		const { buttons, input } = setup();
+		buttons.press('Space');
+		buttons.release('Space');
+		expect(input.read().toggleFly).toBe(true);
+	});
+
+	it('key repeat while held does not count as more presses', () => {
+		const { buttons, input } = setup();
+		buttons.press('Space');
+		buttons.press('Space');
+		expect(input.read().toggleFly).toBe(true);
+		expect(input.read().toggleFly).toBe(false);
+	});
+
+	it('slot keys select by index', () => {
+		const { buttons, input } = setup();
+		buttons.press('Digit3');
 		expect(input.read().select).toBe(2);
 		expect(input.read().select).toBe(-1);
 	});
 
 	it('player 2 uses 6-0 for their slots', () => {
-		const kb = new KeyboardState();
-		const p1 = new KeyboardInput(kb, LAYOUTS.wasd);
-		const p2 = new KeyboardInput(kb, LAYOUTS.arrows);
-		kb.press('Digit7');
+		const buttons = new ButtonState();
+		const p1 = new BindingInput(buttons, DEFAULT_BINDINGS.p1);
+		const p2 = new BindingInput(buttons, DEFAULT_BINDINGS.p2);
+		buttons.press('Digit7');
 		expect(p1.read().select).toBe(-1);
 		expect(p2.read().select).toBe(1);
 	});
 
-	it('a fire press is seen once, while held stays true', () => {
-		const kb = new KeyboardState();
-		const input = new KeyboardInput(kb, LAYOUTS.wasd);
-		kb.press('KeyF');
-		expect(input.read()).toMatchObject({ fire: true, firePressed: true });
-		expect(input.read()).toMatchObject({ fire: true, firePressed: false });
+	it('shift is the shield', () => {
+		const { buttons, input } = setup();
+		buttons.press('ShiftLeft');
+		expect(input.read().shield).toBe(true);
 	});
 });
 
-describe('fly key presses', () => {
-	it('a press is reported exactly once, even if the key is still held', () => {
-		const kb = new KeyboardState();
-		const input = new KeyboardInput(kb, LAYOUTS.both);
-		kb.press('Space');
-		expect(input.read().toggleFly).toBe(true);
-		expect(input.read().toggleFly).toBe(false);
+describe('ring shot clicks', () => {
+	it('a quick click fires even if it is released before the next tick', () => {
+		const { buttons, input } = setup();
+		buttons.press('Mouse0');
+		buttons.release('Mouse0');
+		expect(input.read().shot).toBe(true);
+		expect(input.read().shot).toBe(false);
+	});
+});
+
+describe('toggle ring shot (accessibility)', () => {
+	it('tap to start, tap again to stop, no holding', () => {
+		const { buttons, input } = setup('solo', { toggleShot: true });
+		buttons.press('Mouse0');
+		buttons.release('Mouse0');
+		expect(input.read().shot).toBe(true);
+		expect(input.read().shot).toBe(true);
+		buttons.press('Mouse0');
+		buttons.release('Mouse0');
+		expect(input.read().shot).toBe(false);
+	});
+});
+
+describe('pointer', () => {
+	it('reports the mouse in world coordinates once it has moved', () => {
+		const buttons = new ButtonState();
+		const state = new PointerState();
+		const input = new BindingInput(buttons, DEFAULT_BINDINGS.solo, {
+			pointer: { state, toWorld: (sx, sy) => ({ x: sx * 2, y: sy * 2 }) }
+		});
+		expect(input.read().pointer).toBeNull();
+		state.active = true;
+		state.x = 10;
+		state.y = 20;
+		expect(input.read().pointer).toEqual({ x: 20, y: 40 });
 	});
 
-	it('a quick tap between ticks is not lost', () => {
-		const kb = new KeyboardState();
-		const input = new KeyboardInput(kb, LAYOUTS.both);
-		kb.press('Space');
-		kb.release('Space');
-		expect(input.read().toggleFly).toBe(true);
+	it('only mouse layouts aim with the mouse', () => {
+		expect(usesMouse(DEFAULT_BINDINGS.solo)).toBe(true);
+		expect(usesMouse(DEFAULT_BINDINGS.p2)).toBe(false);
+	});
+});
+
+describe('labels', () => {
+	it('names buttons readably', () => {
+		expect(buttonLabel('KeyE')).toBe('E');
+		expect(buttonLabel('Mouse0')).toBe('Left click');
+		expect(buttonLabel('ShiftLeft')).toBe('Left Shift');
+		expect(buttonLabel('Digit7')).toBe('7');
 	});
 
-	it('holding a key down (key repeat) does not count as more presses', () => {
-		const kb = new KeyboardState();
-		const input = new KeyboardInput(kb, LAYOUTS.both);
-		kb.press('Space');
-		kb.press('Space');
-		kb.press('Space');
-		expect(input.read().toggleFly).toBe(true);
-		expect(input.read().toggleFly).toBe(false);
-	});
-
-	it('player 2 flies with their own key', () => {
-		const kb = new KeyboardState();
-		const p1 = new KeyboardInput(kb, LAYOUTS.wasd);
-		const p2 = new KeyboardInput(kb, LAYOUTS.arrows);
-		kb.press('ShiftRight');
-		expect(p1.read().toggleFly).toBe(false);
-		expect(p2.read().toggleFly).toBe(true);
+	it('HUD labels prefer a keyboard key over a mouse button', () => {
+		expect(shortLabel(['Mouse2', 'KeyK'])).toBe('K');
+		expect(shortLabel(['ShiftLeft', 'KeyL'])).toBe('LShift');
 	});
 });

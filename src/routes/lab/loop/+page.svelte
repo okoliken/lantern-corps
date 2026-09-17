@@ -16,7 +16,7 @@
 	}
 
 	// Move Hal around while adding lag: the motion should stay the same speed.
-	const game = new LaggyGame({ players: [{ lantern: 'hal', keys: 'both' }] });
+	const game = new LaggyGame({ players: [{ lantern: 'hal', keys: 'solo' }] });
 	let lag = $state(0);
 
 	$effect(() => {

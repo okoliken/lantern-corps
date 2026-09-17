@@ -21,7 +21,8 @@
 	onMount(() => {
 		const { ctx, view, destroy } = fitCanvas(canvas);
 		game.setView(view);
-		const detachKeys = game.keyboard.attach(window);
+		const detachButtons = game.buttons.attach(window, canvas);
+		const detachPointer = game.pointer.attach(canvas);
 		const stop = startLoop({
 			update: (dt) => game.update(dt),
 			render: (alpha) => game.render(ctx, alpha),
@@ -31,14 +32,16 @@
 		// Returning a function from onMount = cleanup on unmount.
 		return () => {
 			stop();
-			detachKeys();
+			detachButtons();
+			detachPointer();
 			destroy();
 		};
 	});
 </script>
 
 <div class="wrap">
-	<canvas bind:this={canvas}></canvas>
+	<!-- The game draws its own crosshair when someone aims with the mouse -->
+	<canvas bind:this={canvas} class:no-cursor={game.usesMouse}></canvas>
 	{#if showStats}
 		<div class="stats">{stats.fps} fps · {stats.ups} ups</div>
 	{/if}
@@ -54,6 +57,9 @@
 		display: block;
 		width: 100%;
 		height: 100%;
+	}
+	canvas.no-cursor {
+		cursor: none;
 	}
 	.stats {
 		position: absolute;

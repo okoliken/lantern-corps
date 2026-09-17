@@ -6,33 +6,83 @@
 	//
 	// Keeping the choice in the URL means it's shareable, survives a
 	// refresh, and the browser Back button returns to the select screen.
+	import { untrack } from 'svelte';
 	import { page } from '$app/state';
+	import ControlsCard from '$lib/components/ControlsCard.svelte';
 	import GameCanvas from '$lib/components/GameCanvas.svelte';
+	import PauseMenu from '$lib/components/PauseMenu.svelte';
 	import LanternPortrait from '$lib/components/LanternPortrait.svelte';
 	import { Game } from '$lib/engine/game';
 	import { isEnvironmentKind } from '$lib/engine/environment';
 	import { LANTERNS, isLanternId } from '$lib/engine/lanterns';
+	import { settings } from '$lib/settings.svelte';
 
 	const as = $derived(page.url.searchParams.get('as'));
 	const lantern = $derived(isLanternId(as) ? as : null);
 	const envParam = $derived(page.url.searchParams.get('env'));
 	const environment = $derived(isEnvironmentKind(envParam) ? envParam : 'space');
 	const otherEnv = $derived(environment === 'space' ? 'planet' : 'space');
+
+	// A fresh game whenever the Lantern or environment changes. It gets a copy
+	// of the settings, read with untrack() so changing a setting does NOT
+	// restart the game; the pause menu pushes changes in with applySettings().
+	const game = $derived(
+		lantern
+			? new Game({
+					players: [{ lantern, keys: 'solo' }],
+					environment,
+					settings: untrack(() => settings.snapshot())
+				})
+			: null
+	);
+
+	let paused = $state(false);
+	let showIntro = $state(!settings.current.seenControls);
+
+	/** Pause or resume. Buttons are cleared so nothing held carries across. */
+	function setPaused(value: boolean) {
+		paused = value;
+		if (game) {
+			game.paused = value;
+			game.buttons.clear();
+		}
+	}
+
+	$effect(() => {
+		// The intro card pauses the game until dismissed
+		if (game) setPaused(showIntro);
+	});
+
+	function onKeydown(e: KeyboardEvent) {
+		if (e.code !== 'Escape' || !game || showIntro) return;
+		e.preventDefault();
+		setPaused(!paused);
+	}
 </script>
 
-{#if lantern}
+<svelte:window onkeydown={onKeydown} />
+
+{#if lantern && game}
 	<div class="screen">
-		<!-- {#key} throws away the old game and builds a fresh one if the pick changes -->
-		{#key `${lantern}-${environment}`}
-			<GameCanvas game={new Game({ players: [{ lantern, keys: 'both' }], environment })} />
+		<!-- {#key} throws away the old canvas and starts the new game if the pick changes -->
+		{#key game}
+			<GameCanvas {game} />
 		{/key}
-		<a class="back" href="/play">← Change Lantern</a>
+		<button class="pause" onclick={() => setPaused(true)} aria-label="Pause">❚❚ <kbd>Esc</kbd></button>
 		<a class="env" href="/play?as={lantern}&env={otherEnv}">Test on {otherEnv} →</a>
-		<div class="hint">
-			Move: WASD/arrows · 1–5 or Q: construct · J/F: use · Tab: lock target · E: bubble shield{environment === 'planet'
-				? ' · Space: take off / land'
-				: ''} · Stand by the Lantern to recharge
-		</div>
+
+		{#if showIntro}
+			<ControlsCard onClose={() => (showIntro = false)} />
+		{:else if paused}
+			<PauseMenu
+				{game}
+				onResume={() => setPaused(false)}
+				links={[
+					{ href: '/play', label: '← Change Lantern' },
+					{ href: '/', label: 'Main menu' }
+				]}
+			/>
+		{/if}
 	</div>
 {:else}
 	<main class="select">
@@ -62,12 +112,22 @@
 		position: fixed;
 		inset: 0;
 	}
-	.back {
+	.pause {
 		position: absolute;
-		top: 10px;
-		left: 12px;
-		font-size: 0.9rem;
-		text-decoration: none;
+		top: 8px;
+		left: 10px;
+		font: inherit;
+		font-size: 0.85rem;
+		color: var(--green);
+		background: rgba(3, 6, 10, 0.6);
+		border: 1px solid var(--green-dim);
+		border-radius: 6px;
+		padding: 0.25rem 0.6rem;
+		cursor: pointer;
+		opacity: 0.85;
+	}
+	.pause kbd {
+		font-size: 0.7rem;
 		opacity: 0.7;
 	}
 	.env {
@@ -77,19 +137,6 @@
 		font-size: 0.9rem;
 		text-decoration: none;
 		opacity: 0.7;
-	}
-	/* Top centre, under the links: the bottom corners belong to the willpower HUD. */
-	.hint {
-		position: absolute;
-		top: 36px;
-		left: 50%;
-		translate: -50% 0;
-		width: max-content;
-		max-width: calc(100% - 32px);
-		text-align: center;
-		font-size: 0.8rem;
-		opacity: 0.5;
-		pointer-events: none;
 	}
 
 	.select {
