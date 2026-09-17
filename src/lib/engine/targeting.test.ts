@@ -4,7 +4,8 @@ import { IDLE } from './input';
 import { LANTERNS } from './lanterns';
 import { CRATE_HP, type Obstacle } from './map';
 import { createPlayer, type Player } from './player';
-import { AUTO_OBJECT_RANGE, LOCK_RANGE, cycleLock, findAutoTarget, lockCandidates, updateTargeting, type TargetWorld } from './targeting';
+import { CONSTRUCTS } from './constructs/defs';
+import { AUTO_OBJECT_RANGE, LOCK_RANGE, autoReach, cycleLock, findAutoTarget, lockCandidates, updateTargeting, type TargetWorld } from './targeting';
 
 /** A Lantern at (0, 0) facing right. */
 const lantern = (x = 0, y = 0) => createPlayer(0, LANTERNS.hal, { read: () => IDLE }, x, y);
@@ -33,7 +34,8 @@ describe('auto target', () => {
 	it('prefers an enemy over a closer crate', () => {
 		const p = lantern();
 		const d = createDummy(300, 0);
-		expect(findAutoTarget(p, world([p], [d], [crate(80, 0)]))?.kind).toBe('enemy');
+		// Crate is closer but off to the side, so it doesn't block the view
+		expect(findAutoTarget(p, world([p], [d], [crate(80, 60)]))?.kind).toBe('enemy');
 	});
 
 	it('falls back to a nearby breakable object when there are no enemies', () => {
@@ -45,6 +47,20 @@ describe('auto target', () => {
 	it('does not grab objects from across the map', () => {
 		const p = lantern();
 		expect(findAutoTarget(p, world([p], [], [crate(AUTO_OBJECT_RANGE + 60, 0)]))).toBeNull();
+	});
+
+	it(`ignores enemies it can't see behind a building`, () => {
+		const p = lantern();
+		const building: Obstacle = { kind: 'building', x: 80, y: -60, w: 60, h: 120, height: 120, blocksFlying: false, seed: 0.1 };
+		expect(findAutoTarget(p, world([p], [createDummy(250, 0)], [building]))).toBeNull();
+	});
+
+	it('only looks as far as the construct in hand can reach', () => {
+		const p = lantern();
+		const d = createDummy(250, 0);
+		const w = world([p], [d]);
+		expect(findAutoTarget(p, w, autoReach(CONSTRUCTS.sword))).toBeNull();
+		expect(findAutoTarget(p, w, autoReach(CONSTRUCTS.cannon))).not.toBeNull();
 	});
 
 	it('points the ring at the target', () => {

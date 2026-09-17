@@ -29,7 +29,7 @@
 		<a class="back" href="/play">← Change Lantern</a>
 		<a class="env" href="/play?as={lantern}&env={otherEnv}">Test on {otherEnv} →</a>
 		<div class="hint">
-			Move/aim: WASD or arrows · 1–5 or Q: pick construct · J or F: use{environment === 'planet'
+			Move: WASD/arrows · 1–5 or Q: construct · J/F: use · Tab: lock target · E: bubble shield{environment === 'planet'
 				? ' · Space: take off / land'
 				: ''} · Stand by the Lantern to recharge
 		</div>

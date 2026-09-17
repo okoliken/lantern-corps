@@ -45,6 +45,33 @@ export function drawBeam(
 	ctx.lineWidth = 1.6;
 	line(ctx, x, y, ex, ey);
 
+	// Energy spiralling around the beam: a sine wave travelling outward
+	if (length > 10) {
+		const nx = -dy;
+		const ny = dx;
+		ctx.strokeStyle = 'rgba(234, 255, 240, 0.55)';
+		ctx.lineWidth = 1.2;
+		for (const phase of [0, Math.PI]) {
+			ctx.beginPath();
+			for (let d = 0; d <= length; d += 6) {
+				const wave = Math.sin(d * 0.08 - time * 30 + phase) * 4.5;
+				const px = x + dx * d + nx * wave;
+				const py = y + dy * d + ny * wave;
+				if (d === 0) ctx.moveTo(px, py);
+				else ctx.lineTo(px, py);
+			}
+			ctx.stroke();
+		}
+	}
+
+	// Bloom where it leaves the ring
+	ctx.shadowColor = GREEN;
+	ctx.shadowBlur = 18;
+	ctx.fillStyle = '#eafff0';
+	ctx.beginPath();
+	ctx.arc(x, y, 4 + Math.sin(time * 50) * 1, 0, Math.PI * 2);
+	ctx.fill();
+
 	// Impact: a flaring spark where it hits
 	if (hitSomething) {
 		ctx.shadowBlur = 20;
@@ -203,6 +230,9 @@ export interface HudPlayer {
 	charging: boolean;
 	slots: HudSlot[];
 	selected: number;
+	shield: { key: string; cooldown: number; affordable: boolean; active: boolean };
+	/** What they're targeting, e.g. "🔒 Dummy · 🛡 John Stewart". */
+	targetLabel: string;
 }
 
 /**
@@ -213,7 +243,8 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 	const margin = 18;
 	const box = 40;
 	const gap = 5;
-	const slotsW = 5 * box + 4 * gap;
+	// Five construct slots, a gap, then the shield box
+	const slotsW = 6 * box + 5 * gap + 8;
 	const barW = slotsW;
 	const barH = 10;
 
@@ -287,6 +318,43 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 			ctx.fillStyle = 'rgba(216, 245, 224, 0.55)';
 			ctx.fillText(s.key, sx + 3, slotsY + 2);
 		});
+
+		// ---- Shield box ----
+		const shx = x + 5 * (box + gap) + 8;
+		ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+		ctx.fillRect(shx, slotsY, box, box);
+		if (p.shield.cooldown > 0) {
+			ctx.fillStyle = 'rgba(15, 79, 52, 0.85)';
+			ctx.fillRect(shx, slotsY + box * (1 - p.shield.cooldown), box, box * p.shield.cooldown);
+		}
+		// Bubble icon, bright while a shield is up on you
+		ctx.strokeStyle = p.shield.active ? GREEN : p.shield.affordable ? 'rgba(61, 255, 110, 0.7)' : 'rgba(61, 255, 110, 0.25)';
+		ctx.lineWidth = 2;
+		if (p.shield.active) {
+			ctx.shadowColor = GREEN;
+			ctx.shadowBlur = 10;
+		}
+		ctx.beginPath();
+		ctx.arc(shx + box / 2, slotsY + box / 2 + 2, 11, 0, Math.PI * 2);
+		ctx.stroke();
+		ctx.shadowBlur = 0;
+		ctx.strokeStyle = 'rgba(61, 255, 110, 0.4)';
+		ctx.lineWidth = 1;
+		ctx.strokeRect(shx + 0.5, slotsY + 0.5, box - 1, box - 1);
+		ctx.textAlign = 'left';
+		ctx.textBaseline = 'top';
+		ctx.font = '9px ui-monospace, monospace';
+		ctx.fillStyle = 'rgba(216, 245, 224, 0.55)';
+		ctx.fillText(p.shield.key, shx + 3, slotsY + 2);
+
+		// ---- Target line above the name ----
+		if (p.targetLabel) {
+			ctx.font = '11px system-ui, sans-serif';
+			ctx.textAlign = 'left';
+			ctx.textBaseline = 'bottom';
+			ctx.fillStyle = 'rgba(216, 245, 224, 0.75)';
+			ctx.fillText(`◎ ${p.targetLabel}`, x, labelY - 16);
+		}
 
 		ctx.restore();
 	}

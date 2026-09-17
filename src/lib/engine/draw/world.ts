@@ -132,37 +132,94 @@ export function drawObstacle(ctx: CanvasRenderingContext2D, o: Obstacle, time = 
 	}
 }
 
-/** An Energy Wall construct: see-through green block. Flickers as it's about to fade. */
+/**
+ * An Energy Wall construct: a glassy green slab with a hex lattice, bright
+ * top rail, and a shimmer. It grows up out of the ground when placed,
+ * cracks as it takes damage, and flickers just before it fades.
+ */
 function drawEnergyWall(ctx: CanvasRenderingContext2D, o: Obstacle, time: number) {
-	const { x, y, w, h, height } = o;
+	const { x, y, w, h } = o;
 	const health = o.hp !== undefined && o.maxHp ? o.hp / o.maxHp : 1;
-	const fading = (o.life ?? 99) < 1.5;
-	const flicker = fading && Math.sin(time * 30) > 0 ? 0.4 : 1;
+	const age = (o.maxLife ?? 0) - (o.life ?? 0);
+	const grow = Math.min(1, age / 0.25);
+	const height = o.height * (1 - (1 - grow) ** 3);
+	const fading = (o.life ?? 99) < 2;
+	const flicker = fading && Math.sin(time * 30) > 0 ? 0.35 : 1;
 
+	const faceTop = y + h - height;
 	ctx.save();
 	ctx.globalAlpha = flicker;
+
+	// Glow on the ground where it stands
+	ctx.fillStyle = 'rgba(61, 255, 110, 0.18)';
+	ctx.beginPath();
+	ctx.ellipse(x + w / 2, y + h, w / 2 + 10, 8, 0, 0, Math.PI * 2);
+	ctx.fill();
+
+	// Front face and roof as one shape
+	const slab = new Path2D();
+	slab.rect(x, faceTop, w, height);
+	slab.rect(x, y - height, w, h);
+
+	ctx.fillStyle = `rgba(61, 255, 110, ${0.16 + 0.12 * health})`;
+	ctx.fill(slab);
+
+	// Hex lattice + shimmer, clipped inside
+	ctx.save();
+	ctx.clip(slab);
+	ctx.strokeStyle = `rgba(234, 255, 240, ${0.18 + 0.12 * health})`;
+	ctx.lineWidth = 1;
+	const r = 7;
+	for (let hx = x - r; hx < x + w + r; hx += r * 1.5) {
+		const col = Math.round((hx - x) / (r * 1.5));
+		for (let hy = y - height - r; hy < y + h + r; hy += r * 1.732) {
+			const cy = hy + (col % 2 ? r * 0.866 : 0);
+			ctx.beginPath();
+			for (let k = 0; k < 6; k++) {
+				const a = (k / 6) * Math.PI * 2;
+				ctx.lineTo(hx + Math.cos(a) * r * 0.9, cy + Math.sin(a) * r * 0.9);
+			}
+			ctx.closePath();
+			ctx.stroke();
+		}
+	}
+	const sweep = y + h - ((time * 60) % (height + h + 40));
+	const band = ctx.createLinearGradient(0, sweep - 14, 0, sweep + 14);
+	band.addColorStop(0, 'rgba(234, 255, 240, 0)');
+	band.addColorStop(0.5, 'rgba(234, 255, 240, 0.35)');
+	band.addColorStop(1, 'rgba(234, 255, 240, 0)');
+	ctx.fillStyle = band;
+	ctx.fillRect(x, y - height, w, height + h);
+	ctx.restore();
+
+	// Edges: glowing outline, brighter top rail
 	ctx.shadowColor = '#3dff6e';
 	ctx.shadowBlur = 14;
 	ctx.strokeStyle = '#3dff6e';
 	ctx.lineWidth = 2;
-
-	// Front face and top, like the buildings, but glassy
-	ctx.fillStyle = `rgba(61, 255, 110, ${0.14 + 0.1 * health})`;
-	ctx.fillRect(x, y + h - height, w, height);
-	ctx.strokeRect(x, y + h - height, w, height);
-	ctx.fillStyle = `rgba(61, 255, 110, ${0.28 + 0.12 * health})`;
-	ctx.fillRect(x, y - height, w, h);
-	ctx.strokeRect(x, y - height, w, h);
-
-	// Energy grid lines on the face
+	ctx.stroke(slab);
+	ctx.strokeStyle = '#eafff0';
+	ctx.lineWidth = 1.5;
+	ctx.beginPath();
+	ctx.moveTo(x, y - height);
+	ctx.lineTo(x + w, y - height);
+	ctx.stroke();
 	ctx.shadowBlur = 0;
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.35)';
-	ctx.lineWidth = 1;
-	for (let gy = y + h - height + 10; gy < y + h; gy += 10) {
-		ctx.beginPath();
-		ctx.moveTo(x, gy);
-		ctx.lineTo(x + w, gy);
-		ctx.stroke();
+
+	// Cracks once it's taken real damage
+	if (health < 0.6) {
+		ctx.strokeStyle = 'rgba(3, 6, 10, 0.55)';
+		ctx.lineWidth = 1.5;
+		const cracks = health < 0.3 ? 3 : 1;
+		for (let i = 0; i < cracks; i++) {
+			const sx = x + w * (0.25 + 0.25 * i + o.seed * 0.1);
+			ctx.beginPath();
+			ctx.moveTo(sx, faceTop + 3);
+			ctx.lineTo(sx + 5, faceTop + height * 0.35);
+			ctx.lineTo(sx - 3, faceTop + height * 0.6);
+			ctx.lineTo(sx + 4, y + h - 3);
+			ctx.stroke();
+		}
 	}
 	ctx.restore();
 }

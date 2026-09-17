@@ -17,8 +17,10 @@ export interface Obstacle extends Solid {
 	hp?: number;
 	/** Full health, for drawing damage. */
 	maxHp?: number;
-	/** Construct walls fade away: seconds left. */
+	/** Construct walls fade away: seconds left... */
 	life?: number;
+	/** ...out of this many. */
+	maxLife?: number;
 	/** Crates can be dragged by the Chain. */
 	movable?: boolean;
 }

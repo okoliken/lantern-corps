@@ -20,13 +20,25 @@ Same as project-7: the **world is seen from above** (move up/down/left/right fre
 ground shadow. Positions are the characters' feet, and lower on screen is drawn in front.
 
 ## Controls
-| | Move / aim | Take off / land | Use construct | Pick construct |
-|---|---|---|---|---|
-| Single player | WASD or arrows | Space | J or F | 1–5, Q next |
-| Co-op P1 | WASD | Space | F | 1–5, Q next |
-| Co-op P2 | Arrows | Right Shift | Enter | 6–0, / next |
+| | Move | Take off / land | Use construct | Pick construct | Lock target | Bubble shield |
+|---|---|---|---|---|---|---|
+| Single player | WASD or arrows | Space | J or F | 1–5, Q next | Tab | E |
+| Co-op P1 | WASD | Space | F | 1–5, Q next | Tab | E |
+| Co-op P2 | Arrows | Right Shift | Enter | 6–0, / next | . | , |
 
-The ring aims in the last direction you moved (8 directions).
+## Targeting (context awareness)
+The ring works out what you mean to hit or protect (`src/lib/engine/targeting.ts`):
+- **Auto-target:** with nothing locked, attacks aim at the nearest enemy in front of you that you can
+  **see** (no building in the way) and **reach** with the construct in hand. If there's no enemy, a nearby
+  breakable object. With nothing to target, it aims where you're facing.
+- **Lock on (Tab):** cycles enemies, then allies, then objects, then back to no lock. Locks break
+  when the target is destroyed or you move far away. A locked target gets a rotating reticle.
+- **Protect:** lock an ally and your **bubble shield** goes on them; attacks keep auto-targeting enemies.
+
+## Bubble shield
+Every Lantern has it, on its own key (E). It shields you, or a locked ally within 450px. It absorbs
+damage until broken or expired (12s × durability, 120 hp × durability), costs 12 willpower, and casting
+again refreshes it.
 
 ## Obstacles
 Obstacles have a **footprint** on the ground (used for collision) and a visual **height**.
@@ -117,6 +129,7 @@ Parallax (final boss).
 - [x] **M2** Test maps (planet city + asteroid field), collisions, take-off/landing, following camera with zoom
 - [x] **M3** Willpower + Lantern battery, first construct (beam), breakable crates, HUD
 - [x] **M4** Construct system: beam + 8 behavior types, Hal/John loadouts on keys 1–5, traits, training dummies, constructs lab
+- [x] **M4.5** Feedback pass: tuning (cheaper, longer-lasting), targeting + lock-on, bubble shield, construct art pass
 - [ ] **M5** Manhunter enemies: AI, health, damage, death
 - [ ] **M6** First mission: objective, win/lose, HUD, restart
 

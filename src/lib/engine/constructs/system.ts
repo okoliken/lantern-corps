@@ -113,6 +113,8 @@ export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[]): C
 
 // --------------------------------------------------------------- tuning
 
+/** How long the fist stays visible after the wind-up (punch out, hold, fade). */
+export const FIST_OUT_TIME = 0.4;
 /** How long the arm stays in its action pose after a one-shot construct. */
 const ACTION_POSE_TIME = 0.45;
 /** Energy walls: how far in front of you they go up, and how thick they are. */
@@ -244,7 +246,7 @@ function perform(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 			return true;
 		case 'smash':
 			w.pending.push({ owner: p, def, time: def.windup ?? 0, damage: power(p, def.damage), knockback: power(p, def.knockback) });
-			w.effects.push({ kind: 'fist', x: p.x, y: p.y, age: 0, life: (def.windup ?? 0) + 0.25, angle: Math.atan2(p.aimY, p.aimX), radius: def.radius, owner: p });
+			w.effects.push({ kind: 'fist', x: p.x, y: p.y, age: 0, life: (def.windup ?? 0) + FIST_OUT_TIME, angle: Math.atan2(p.aimY, p.aimX), radius: def.radius, owner: p });
 			return true;
 		case 'barrier':
 			return placeWall(p, def, w);
@@ -300,7 +302,7 @@ function slash(p: Player, def: ConstructDef, w: ConstructWorld) {
 		const [cx, cy] = center(o);
 		if (inArc(cx, cy, def.range + Math.max(o.w, o.h) / 2)) damageObstacle(w, o, power(p, def.damage));
 	}
-	w.effects.push({ kind: 'slash', x: p.x, y: p.y, age: 0, life: 0.2, angle: aim, radius: def.range, owner: p });
+	w.effects.push({ kind: 'slash', x: p.x, y: p.y, age: 0, life: 0.35, angle: aim, radius: def.range, owner: p });
 }
 
 function placeWall(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
@@ -322,7 +324,8 @@ function placeWall(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 		seed: Math.random(),
 		hp: durable(p, def.hp ?? 100),
 		maxHp: durable(p, def.hp ?? 100),
-		life: durable(p, def.duration ?? 8)
+		life: durable(p, def.duration ?? 8),
+		maxLife: durable(p, def.duration ?? 8)
 	};
 	// Don't wall anyone (or any dummy) inside it
 	const blocked =
@@ -330,7 +333,7 @@ function placeWall(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 		boxOverlap(p.x, p.y, 8, 5, wall);
 	if (blocked) return false;
 	w.obstacles.push(wall);
-	w.effects.push({ kind: 'snap', x: cx, y: cy, age: 0, life: 0.3, radius: def.range / 2 });
+	w.effects.push({ kind: 'snap', x: cx, y: cy, age: 0, life: 0.4, radius: def.range / 2 });
 	return true;
 }
 
@@ -340,7 +343,7 @@ function placeTrap(p: Player, def: ConstructDef, w: ConstructWorld) {
 	const x = p.x + p.aimX * def.range;
 	const y = p.y + p.aimY * def.range;
 	w.traps.push({ owner: p, x, y, radius: def.radius ?? 40, life: durable(p, TRAP_LIFE), hold: durable(p, def.duration ?? 3) });
-	w.effects.push({ kind: 'snap', x, y, age: 0, life: 0.3, radius: def.radius });
+	w.effects.push({ kind: 'snap', x, y, age: 0, life: 0.4, radius: def.radius });
 }
 
 function shockwave(p: Player, def: ConstructDef, w: ConstructWorld) {
@@ -353,7 +356,7 @@ function shockwave(p: Player, def: ConstructDef, w: ConstructWorld) {
 		const [cx, cy] = center(o);
 		if (Math.hypot(cx - p.x, cy - p.y) <= def.range) damageObstacle(w, o, power(p, def.damage));
 	}
-	w.effects.push({ kind: 'shockwave', x: p.x, y: p.y, age: 0, life: 0.45, radius: def.range, owner: p });
+	w.effects.push({ kind: 'shockwave', x: p.x, y: p.y, age: 0, life: 0.65, radius: def.range, owner: p });
 }
 
 // ----------------------------------------------------------------- shield
@@ -497,7 +500,7 @@ function explode(w: ConstructWorld, pr: Projectile) {
 		const [cx, cy] = center(o);
 		if (Math.hypot(cx - pr.x, cy - pr.y) <= r + Math.max(o.w, o.h) / 2) damageObstacle(w, o, pr.damage);
 	}
-	w.effects.push({ kind: 'blast', x: pr.x, y: pr.y, age: 0, life: 0.35, radius: r, owner: pr.owner });
+	w.effects.push({ kind: 'blast', x: pr.x, y: pr.y, age: 0, life: 0.5, radius: r, owner: pr.owner });
 }
 
 function updatePending(w: ConstructWorld, dt: number) {
@@ -607,8 +610,8 @@ function castAtTargets(x: number, y: number, dx: number, dy: number, range: numb
 
 function hitDummyWithFx(w: ConstructWorld, d: Dummy, damage: number, knockback: number, fromX: number, fromY: number, shown = damage) {
 	const broke = hitDummy(d, damage, knockback, fromX, fromY);
-	if (shown >= 1) w.effects.push({ kind: 'number', x: d.x, y: d.y, age: 0, life: 0.8, value: Math.round(shown) });
-	if (broke) w.effects.push({ kind: 'burst', x: d.x, y: d.y - 20, age: 0, life: 0.5 });
+	if (shown >= 1) w.effects.push({ kind: 'number', x: d.x, y: d.y, age: 0, life: 1, value: Math.round(shown) });
+	if (broke) w.effects.push({ kind: 'burst', x: d.x, y: d.y - 20, age: 0, life: 0.65 });
 }
 
 function damageObstacle(w: ConstructWorld, o: Obstacle, damage: number) {
@@ -623,7 +626,7 @@ function removeObstacle(w: ConstructWorld, o: Obstacle, effect: 'burst' | 'fizzl
 	if (i === -1) return;
 	w.obstacles.splice(i, 1);
 	const [cx, cy] = center(o);
-	w.effects.push({ kind: effect, x: cx, y: cy - o.height, age: 0, life: 0.5 });
+	w.effects.push({ kind: effect, x: cx, y: cy - o.height, age: 0, life: 0.65 });
 }
 
 const breakables = (w: ConstructWorld) => w.obstacles.filter((o) => o.hp !== undefined && o.kind !== 'wall');

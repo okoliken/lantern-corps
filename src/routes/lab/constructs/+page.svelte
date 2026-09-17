@@ -52,7 +52,10 @@
 		<label><input type="checkbox" bind:checked={debug} /> Collision boxes</label>
 	</div>
 	<div class="controls keys">
-		<span><kbd>1</kbd>–<kbd>5</kbd> pick · <kbd>Q</kbd> next · hold <kbd>J</kbd>/<kbd>F</kbd> use · move to aim</span>
+		<span
+			><kbd>1</kbd>–<kbd>5</kbd> pick · <kbd>Q</kbd> next · <kbd>J</kbd>/<kbd>F</kbd> use · <kbd>Tab</kbd> lock target ·
+			<kbd>E</kbd> shield</span
+		>
 		<span class="loadout">
 			{#each LOADOUTS[lantern] as id, i (id)}
 				<span><kbd>{i + 1}</kbd> {CONSTRUCTS[id].name}</span>

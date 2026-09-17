@@ -17,6 +17,8 @@ import {
 	drawEffect,
 	drawHeldConstruct,
 	drawProjectile,
+	drawReticle,
+	drawShield,
 	drawTrap
 } from './draw/constructs';
 import { drawBattery, drawBeam, drawChargeLink, drawHud } from './draw/effects';
@@ -38,7 +40,8 @@ import { KeyboardInput, KeyboardState, LAYOUTS, type LayoutName } from './input'
 import { LANTERNS, type LanternId } from './lanterns';
 import { buildTestMap, seededRandom, type GameMap, type Obstacle } from './map';
 import { FEET_HALF_H, FEET_HALF_W, clampToBounds, createPlayer, updatePlayer, type Player, type WorldRules } from './player';
-import { updateTargeting, type TargetWorld } from './targeting';
+import { BUBBLE_SHIELD } from './constructs/defs';
+import { autoReach, sameTarget, targetPosition, updateTargeting, type Target, type TargetWorld } from './targeting';
 import { BATTERY_MAX_CHARGE, canSpend, updateBattery, updateWillpower, type Battery } from './willpower';
 
 export const LANTERN_GREEN = GREEN;
@@ -61,6 +64,9 @@ export interface GameOptions {
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+/** "KeyE" -> "E", "Comma" -> ",", for HUD labels. */
+const keyLabel = (code: string) => ({ Comma: ',', Period: '.', Slash: '/' })[code] ?? code.replace(/^(Key|Digit)/, '');
+
 /** Aim the camera at the Lantern's chest, not their feet. */
 const CAMERA_AIM_UP = 30;
 
@@ -82,6 +88,8 @@ export class Game {
 	private rules: WorldRules;
 	/** Label for each player's slot keys, e.g. ["1".."5"] or ["6".."0"]. */
 	private slotKeys: string[][];
+	/** Label for each player's shield key. */
+	private shieldKeys: string[];
 	private starLayers;
 	private showSlots: boolean;
 	private view: View = { width: 0, height: 0 };
@@ -110,6 +118,7 @@ export class Game {
 			return p;
 		});
 		this.slotKeys = players.map((cfg) => LAYOUTS[cfg.keys].slots.map((codes) => codes[0].replace('Digit', '')));
+		this.shieldKeys = players.map((cfg) => keyLabel(LAYOUTS[cfg.keys].shield[0]));
 
 		this.showSlots = showSlots;
 		const rand = seededRandom(1);
@@ -147,7 +156,7 @@ export class Game {
 			updatePlayer(p, intent, dt, this.rules);
 			// Keep feet inside the map, with room above for the body
 			clampToBounds(p, FIGURE_HALF_WIDTH, FIGURE_HEIGHT, map.width - FIGURE_HALF_WIDTH, map.height - 6);
-			updateTargeting(p, intent.target, this.targetWorld);
+			updateTargeting(p, intent.target, this.targetWorld, autoReach(p.loadout[p.selected]));
 			updateWillpower(p, dt, this.batteries);
 			updatePlayerConstructs(p, intent, dt, this.constructs);
 			if (this.infiniteWillpower) {
@@ -306,15 +315,31 @@ export class Game {
 			const lift = this.ringLift(pr.owner);
 			if (pr.kind === 'hook') {
 				const [rx, ry] = ringPosition(pr.owner.x, pr.owner.y, { ...this.poseFor(pr.owner), firing: true }, this.time);
-				drawChain(ctx, rx, ry, x, y - lift);
+				drawChain(ctx, rx, ry, x, y - lift, this.time);
 			}
-			drawProjectile(ctx, pr, x, y, lift);
+			drawProjectile(ctx, pr, x, y, lift, this.time);
 		}
 		for (const t of cw.tethers) {
 			const [rx, ry] = ringPosition(t.owner.x, t.owner.y, { ...this.poseFor(t.owner), firing: true }, this.time);
 			const target = t.target;
 			const [tx, ty] = 'homeX' in target ? [target.x, target.y - 38] : [target.x + target.w / 2, target.y - (target as Obstacle).height / 2];
-			drawChain(ctx, rx, ry, tx, ty);
+			drawChain(ctx, rx, ry, tx, ty, this.time);
+		}
+
+		// Bubble shields around whoever they protect
+		for (const sh of cw.shields) {
+			const t = sh.target;
+			const lift = this.poseFor(t).hoverHeight * t.altitude * 1.35;
+			drawShield(ctx, sh, lerp(t.prevX, t.x, alpha), lerp(t.prevY, t.y, alpha), lift, this.time);
+		}
+
+		// Target markers: what each Lantern will hit, and who they're protecting
+		for (const p of this.players) {
+			for (const t of [p.attackTarget, p.protectTarget]) {
+				if (!t) continue;
+				const [tx, ty] = this.targetDrawPosition(t, alpha);
+				drawReticle(ctx, t, tx, ty, sameTarget(t, p.lock), this.time);
+			}
 		}
 		for (const e of cw.effects) {
 			drawEffect(ctx, e, e.owner ? this.ringLift(e.owner) : 0, this.time);
@@ -339,12 +364,35 @@ export class Game {
 					key: this.slotKeys[i][s],
 					cooldown: def.cooldown > 0 ? Math.min(1, p.cooldowns[s] / (def.cooldown * p.def.traits.cooldown)) : 0,
 					affordable: canSpend(p, def.behavior === 'beam' ? 15 : costOf(p, def))
-				}))
+				})),
+				shield: {
+					key: this.shieldKeys[i],
+					cooldown: Math.min(1, p.shieldCooldown / (BUBBLE_SHIELD.cooldown * p.def.traits.cooldown)),
+					affordable: canSpend(p, BUBBLE_SHIELD.cost),
+					active: cw.shields.some((sh) => sh.target === p)
+				},
+				targetLabel: this.targetLabel(p)
 			})),
 			width,
 			height,
 			this.time
 		);
+	}
+
+	/** Where to draw a target marker, smoothed like everything else. */
+	private targetDrawPosition(t: Target, alpha: number): [number, number] {
+		if (t.kind === 'enemy') return [lerp(t.dummy.prevX, t.dummy.x, alpha), lerp(t.dummy.prevY, t.dummy.y, alpha)];
+		if (t.kind === 'ally') return [lerp(t.player.prevX, t.player.x, alpha), lerp(t.player.prevY, t.player.y, alpha)];
+		return targetPosition(t);
+	}
+
+	/** Short HUD text for what a Lantern is aiming at / protecting. */
+	private targetLabel(p: Player): string {
+		const name = (t: Target) => (t.kind === 'enemy' ? 'Dummy' : t.kind === 'ally' ? t.player.def.name : 'Crate');
+		const parts: string[] = [];
+		if (p.attackTarget) parts.push(`${sameTarget(p.attackTarget, p.lock) ? '🔒 ' : ''}${name(p.attackTarget)}`);
+		if (p.protectTarget) parts.push(`🛡 ${name(p.protectTarget)}`);
+		return parts.join('  ·  ');
 	}
 
 	/** Collision footprints (red = blocks walkers only, orange = blocks flyers too) and feet boxes. */
