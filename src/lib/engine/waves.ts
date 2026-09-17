@@ -29,14 +29,12 @@ export class Waves {
 	/** Packs beaten so far. */
 	cleared = 0;
 
-	/**
-	 * @param toughness health multiplier for the pack (the demo makes them
-	 * tougher so fights last long enough to see every red construct).
-	 */
-	constructor(
-		private waves: Role[][] = DEMO_WAVES,
-		private toughness = 1
-	) {}
+	/** Health and stagger-resistance multiplier (the demo makes them tougher so fights last). */
+	toughness = 1;
+	/** Seconds between waves. */
+	breakTime = WAVE_BREAK;
+
+	constructor(private waves: Role[][] = DEMO_WAVES) {}
 
 	update(game: Game, dt: number) {
 		if (this.state === 'countdown') {
@@ -53,7 +51,7 @@ export class Waves {
 			this.cleared++;
 			this.wave++;
 			this.state = 'countdown';
-			this.timer = WAVE_BREAK;
+			this.timer = this.breakTime;
 		}
 	}
 
@@ -80,6 +78,7 @@ export class Waves {
 			}
 			const e = game.spawnEnemy('rageGrunt', x, y, role);
 			e.hp = e.maxHp = e.brain.lastHp = Math.round(e.maxHp * this.toughness);
+			e.brain.grit = this.toughness;
 		});
 	}
 }

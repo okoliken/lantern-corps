@@ -20,6 +20,17 @@ function setup(allyX = 0, partnerX = 400) {
 	return { w, partner: players[0], me: players[1], ally };
 }
 
+const arena = (): GameMap => ({
+	name: 'arena',
+	environment: 'space',
+	width: 2400,
+	height: 2400,
+	spawn: { x: 1200, y: 1200 },
+	battery: { x: 1200, y: 1090 },
+	dummies: [],
+	obstacles: []
+});
+
 describe('AI partner', () => {
 	it('with nothing to fight, it heads over to its partner', () => {
 		const { ally } = setup(0, 400);
@@ -81,18 +92,28 @@ describe('AI partner', () => {
 		expect(ally.read()).toEqual(IDLE);
 	});
 
+	it('in a showcase, both AI Lanterns use every construct in their loadout', () => {
+		const game = new Game({ players: [{ lantern: 'hal', keys: 'solo', ai: true }, { lantern: 'john', keys: 'p2', ai: true }], map: arena() });
+		game.setView({ width: 1400, height: 800 });
+		game.godMode = true;
+		game.showcase = true;
+		const used = new Set<string>();
+		for (let i = 0; i < 60 * 60; i++) {
+			if (game.enemies.length < 3) game.spawnEnemy('rageGrunt', 1200 + Math.cos(i) * 300, 1200 + Math.sin(i) * 300, 'berserker');
+			const before = game.players.map((p) => [...p.cooldowns]);
+			game.update(1 / 60);
+			game.players.forEach((p, k) =>
+				p.loadout.forEach((def, j) => {
+					if (p.cooldowns[j] > before[k][j] + 0.05 || (p.selected === j && p.firing)) used.add(`${p.def.id}:${def.id}`);
+				})
+			);
+		}
+		const all = game.players.flatMap((p) => p.loadout.map((def) => `${p.def.id}:${def.id}`));
+		expect(all.filter((id) => !used.has(id))).toEqual([]);
+	});
+
 	it('in a real game, an AI John fights Red Lanterns and wins', () => {
-		const map: GameMap = {
-			name: 'arena',
-			environment: 'space',
-			width: 2400,
-			height: 2400,
-			spawn: { x: 1200, y: 1200 },
-			battery: { x: 1200, y: 1090 },
-			dummies: [],
-			obstacles: []
-		};
-		const game = new Game({ players: [{ lantern: 'john', keys: 'p2', ai: true }], map });
+		const game = new Game({ players: [{ lantern: 'john', keys: 'p2', ai: true }], map: arena() });
 		game.setView({ width: 800, height: 600 });
 		game.godMode = true;
 		game.spawnEnemy('rageGrunt', 1450, 1200, 'berserker');

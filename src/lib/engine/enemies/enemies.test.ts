@@ -208,6 +208,16 @@ describe('Red Lantern brains', () => {
 		expect(Math.hypot(e.x - p.x, e.y - p.y)).toBeGreaterThan(180);
 	});
 
+	it('mixes up its constructs instead of repeating the same one', () => {
+		const e = grunt(250, 0, 'gunner');
+		const w = createConstructWorld([], [e]);
+		w.redTempo = 1.8;
+		const p = lantern();
+		run(w, [p], 12, () => (p.invuln = 1));
+		expect(e.brain.uses.blast).toBeGreaterThan(0);
+		expect(e.brain.uses.saw).toBeGreaterThan(0);
+	});
+
 	it('gets faster as it gets hurt (rage)', () => {
 		const calm = createEnemy('rageGrunt', 600, 0);
 		const angry = createEnemy('rageGrunt', 600, 0);

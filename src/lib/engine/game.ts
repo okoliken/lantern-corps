@@ -129,6 +129,23 @@ export class Game {
 	godMode = false;
 	/** Enemies stand still and don't attack. Toggled from the enemy lab. */
 	freezeEnemies = false;
+	private showingOff = false;
+	/**
+	 * Demo showcase: AI Lanterns use constructs far more (and recover willpower
+	 * faster to afford them), and Red Lanterns use theirs more eagerly.
+	 */
+	get showcase(): boolean {
+		return this.showingOff;
+	}
+	set showcase(on: boolean) {
+		if (on === this.showingOff) return;
+		this.showingOff = on;
+		this.constructs.redTempo = on ? 1.8 : 1;
+		for (const p of this.players) {
+			if (this.aiSlots.has(p.slot)) p.regenMultiplier *= on ? 3 : 1 / 3;
+		}
+	}
+
 	/** Camera also keeps enemies attacking the Lanterns in shot (for watching/recording). */
 	frameEnemies = false;
 	/** Runs the fight: sends waves of enemies (the demo), later missions. */

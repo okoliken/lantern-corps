@@ -24,6 +24,8 @@ export interface AllyWorld {
 	readonly players: readonly Player[];
 	readonly dummies: readonly Dummy[];
 	readonly constructs: ConstructWorld;
+	/** Show off: use constructs much more often, and all of them. */
+	readonly showcase?: boolean;
 }
 
 /** read() is called once per fixed tick. */
@@ -56,6 +58,8 @@ export class AllyInput implements InputSource {
 	private shieldRest = 0;
 	/** Seconds before it reconsiders shielding against a big attack it has already seen coming. */
 	private shieldRoll = 0;
+	/** How many times each construct has been used (a showcase spreads them around). */
+	private used = new Map<string, number>();
 
 	constructor(private world: AllyWorld) {}
 
@@ -88,7 +92,7 @@ export class AllyInput implements InputSource {
 		this.defend(me, partner, enemies, intent);
 		if (target && me.surge >= 100 && this.signatureRest === 0 && this.worthASignature(me, partner, enemies)) {
 			intent.signature = true;
-			this.signatureRest = 30;
+			this.signatureRest = this.world.showcase ? 14 : 30;
 		}
 		this.useConstructs(me, target, enemies, intent);
 		return intent;
@@ -162,6 +166,7 @@ export class AllyInput implements InputSource {
 	private worthASignature(me: Player, partner: Player | null, enemies: Enemy[]): boolean {
 		const near = enemies.filter((e) => dist(e, me) < 360).length;
 		const hurt = me.health < 60 || (partner !== null && partner.health < 60);
+		if (this.world.showcase) return near >= 2;
 		return near >= 3 || (near >= 2 && hurt);
 	}
 
@@ -211,9 +216,10 @@ export class AllyInput implements InputSource {
 			this.runPlan(intent);
 			return;
 		}
+		const showcase = this.world.showcase ?? false;
 		this.decideIn -= TICK;
 		if (this.decideIn > 0 || me.exhausted) return;
-		this.decideIn = 0.35 + Math.random() * 0.4;
+		this.decideIn = showcase ? 0.1 + Math.random() * 0.15 : 0.35 + Math.random() * 0.4;
 
 		const d = dist(me, target);
 		const slotOf = (id: string) => me.loadout.findIndex((c) => c.id === id);
@@ -225,37 +231,48 @@ export class AllyInput implements InputSource {
 		const hold = (id: string, seconds: number): Plan => ({ slot: slotOf(id), hold: seconds, selected: false });
 		const clustered = enemies.filter((e) => dist(e, target) < 100).length >= 2;
 
+		// Everything that makes sense right now, best first
+		const options: { id: string; plan: Plan; closeIn?: boolean }[] = [];
+		const add = (id: string, plan: Plan, closeIn = false) => {
+			if (ready(id)) options.push({ id, plan, closeIn });
+		};
 		if (me.def.id === 'hal') {
-			this.closeIn = false;
-			if (d < 90 && ready('sword')) {
-				this.plan = press('sword');
-				this.closeIn = true;
-			} else if (clustered && d < 120 && ready('fist')) {
-				this.plan = press('fist');
-			} else if (target.brain.role === 'gunner' && d > 170 && d < 330 && ready('chain')) {
-				this.plan = press('chain');
-				this.closeIn = true;
-			} else if (me.willpower > 55 && d < 440) {
-				this.plan = hold(Math.random() < 0.5 ? 'minigun' : 'beam', 0.9);
-			} else if (d < 170 && Math.random() < 0.5) {
-				this.closeIn = true;
+			if (d < 90) add('sword', press('sword'), true);
+			if (d < 120 && (clustered || showcase)) add('fist', press('fist'), true);
+			if (d > 170 && d < 340 && (showcase || target.brain.role === 'gunner')) add('chain', press('chain'), true);
+			if (d < 440 && me.willpower > 40) {
+				const gun = Math.random() < 0.5 ? 'minigun' : 'beam';
+				add(gun, hold(gun, 0.9));
 			}
 		} else {
 			const turrets = this.world.constructs.turrets.filter((t) => t.owner === me).length;
-			const rushing = enemies.some((e) => e.brain.target === me && e.brain.engaged && dist(e, me) < 160);
-			if (rushing && ready('wall') && Math.random() < 0.5) {
-				this.plan = press('wall');
-			} else if (turrets === 0 && enemies.length >= 2 && ready('turret')) {
-				this.plan = press('turret');
-			} else if (clustered && d < 320 && ready('pillars')) {
-				this.plan = press('pillars');
-			} else if (d > 160 && ready('sniper')) {
-				this.plan = hold('sniper', 1);
-			} else if (me.willpower > 60 && d < 400) {
-				this.plan = hold('beam', 1);
-			}
+			const rushing = enemies.some((e) => e.brain.target === me && dist(e, me) < (showcase ? 260 : 160) && (showcase || e.brain.engaged));
+			if (rushing && (showcase || Math.random() < 0.5)) add('wall', press('wall'));
+			if (turrets < (showcase ? 2 : 1) && enemies.length >= 2) add('turret', press('turret'));
+			if (d < 320 && (clustered || showcase)) add('pillars', press('pillars'));
+			if (d > 140) add('sniper', hold('sniper', 1));
+			if (d < 400 && me.willpower > 45) add('beam', hold('beam', 1));
 		}
-		if (this.plan) this.runPlan(intent);
+
+		if (showcase && me.def.id === 'hal') {
+			// If the sword or fist is overdue, dive in so it can be used next
+			const least = ['sword', 'fist', 'chain', 'minigun', 'beam'].sort((a, b) => this.uses(a) - this.uses(b))[0];
+			this.closeIn = (least === 'sword' || least === 'fist') && ready(least);
+		} else {
+			this.closeIn = false;
+		}
+		if (options.length === 0) return;
+
+		// Normally the best option; in a showcase, whichever has been used least
+		const pick = showcase ? options.reduce((a, b) => (this.uses(b.id) < this.uses(a.id) ? b : a)) : options[0];
+		this.plan = pick.plan;
+		if (pick.closeIn) this.closeIn = true;
+		this.used.set(pick.id, this.uses(pick.id) + 1);
+		this.runPlan(intent);
+	}
+
+	private uses(id: string): number {
+		return this.used.get(id) ?? 0;
 	}
 
 	private runPlan(intent: Intent) {

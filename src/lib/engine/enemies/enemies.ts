@@ -176,6 +176,10 @@ export interface EnemyBrain {
 	lastHp: number;
 	/** 0..1 height off the ground during a Rage Slam leap. */
 	air: number;
+	/** Poise multiplier: tougher enemies (the demo's packs) are harder to stagger too. */
+	grit: number;
+	/** Times each construct has been used, so it mixes them up rather than repeating one. */
+	uses: Record<AbilityId, number>;
 }
 
 /** An enemy: a target body with a brain. */
@@ -194,7 +198,11 @@ export function createEnemy(kind: EnemyKind, x: number, y: number, role: Role = 
 	// A short, slightly different grace period on every construct, so a pack
 	// that arrives together doesn't attack together
 	const cooldowns = {} as Record<AbilityId, number>;
-	for (const id of Object.keys(ABILITIES) as AbilityId[]) cooldowns[id] = 0.5 + rand() * 1.2;
+	const uses = {} as Record<AbilityId, number>;
+	for (const id of Object.keys(ABILITIES) as AbilityId[]) {
+		cooldowns[id] = 0.5 + rand() * 1.2;
+		uses[id] = 0;
+	}
 	return {
 		kind,
 		x,
@@ -238,7 +246,9 @@ export function createEnemy(kind: EnemyKind, x: number, y: number, role: Role = 
 			strafe: rand() < 0.5 ? 1 : -1,
 			poise: 0,
 			lastHp: hp,
-			air: 0
+			air: 0,
+			grit: 1,
+			uses
 		}
 	};
 }
@@ -257,15 +267,17 @@ export function updateEnemies(w: ConstructWorld, players: readonly Player[], dt:
 function think(e: Enemy, pack: readonly Enemy[], w: ConstructWorld, players: readonly Player[], dt: number) {
 	const def = ENEMIES[e.kind];
 	const b = e.brain;
-	for (const id in b.cooldowns) b.cooldowns[id as AbilityId] = Math.max(0, b.cooldowns[id as AbilityId] - dt);
+	const tempo = w.redTempo;
+	for (const id in b.cooldowns) b.cooldowns[id as AbilityId] = Math.max(0, b.cooldowns[id as AbilityId] - dt * tempo);
 	b.breather = Math.max(0, b.breather - dt);
 	b.rage = 1 - e.hp / e.maxHp;
 
 	// Poise: a burst of damage knocks it out of a windup
 	const took = Math.max(0, b.lastHp - e.hp);
 	b.lastHp = e.hp;
-	b.poise = Math.max(0, b.poise - def.poise * 0.8 * dt) + took;
-	if (b.poise >= def.poise) {
+	const poise = def.poise * b.grit;
+	b.poise = Math.max(0, b.poise - poise * 0.8 * dt) + took;
+	if (b.poise >= poise) {
 		b.poise = 0;
 		if (b.state === 'windup') interrupt(e, w, 0.45);
 	}
@@ -301,7 +313,7 @@ function think(e: Enemy, pack: readonly Enemy[], w: ConstructWorld, players: rea
 			const close = b.engaged && Math.hypot(t.x - e.x, t.y - e.y) < 90;
 			if (close) b.think = Math.min(b.think, 0.1);
 			if (b.think <= 0) {
-				b.think = b.reaction * (0.6 + Math.random() * 0.8);
+				b.think = (b.reaction * (0.6 + Math.random() * 0.8)) / tempo;
 				decide(e, t, pack, w, players);
 			}
 			break;
@@ -389,7 +401,9 @@ function decide(e: Enemy, t: Player, pack: readonly Enemy[], w: ConstructWorld, 
 	}
 
 	const dist = Math.hypot(t.x - e.x, t.y - e.y);
-	for (const id of role.abilities) {
+	// Least-used first (ties keep the role's order), so each enemy shows off its whole kit
+	const order = [...role.abilities].sort((x, y) => b.uses[x] - b.uses[y]);
+	for (const id of order) {
 		const a = ABILITIES[id];
 		if (b.cooldowns[id] > 0) continue;
 		if (dist < a.minRange || dist > a.maxRange + DUMMY_HALF_W) continue;
@@ -397,15 +411,16 @@ function decide(e: Enemy, t: Player, pack: readonly Enemy[], w: ConstructWorld, 
 		// Ranged fighters with no claws back off to their range before shooting
 		if (!role.abilities.includes('claws') && dist < role.range * 0.7) continue;
 		if (id === 'roar' && !roarWorthIt(e, w, players)) continue;
-		if (!paceAllows(e, t, pack, id)) continue;
-		if (Math.random() > a.chance) continue;
+		if (!paceAllows(e, t, pack, id, w)) continue;
+		if (Math.random() > Math.min(1, a.chance * w.redTempo)) continue;
+		b.uses[id]++;
 		beginWindup(e, id, t);
 		return;
 	}
 }
 
 /** Don't let the whole pack fire at one Lantern at the same moment. */
-function paceAllows(e: Enemy, t: Player, pack: readonly Enemy[], id: AbilityId): boolean {
+function paceAllows(e: Enemy, t: Player, pack: readonly Enemy[], id: AbilityId, w: ConstructWorld): boolean {
 	const a = ABILITIES[id];
 	if (a.melee) return true; // melee is already limited by slots
 	const busy = pack.filter((o) => {
@@ -414,7 +429,9 @@ function paceAllows(e: Enemy, t: Player, pack: readonly Enemy[], id: AbilityId):
 		const other = ABILITIES[o.brain.ability];
 		return !other.melee && other.heavy === a.heavy;
 	}).length;
-	return busy < (a.heavy ? 1 : RANGED_SLOTS);
+	// Showcasing: let an extra one join in
+	const extra = w.redTempo > 1 ? 1 : 0;
+	return busy < (a.heavy ? 1 : RANGED_SLOTS) + extra;
 }
 
 /** Roar only when there's something worth blowing away. */
@@ -423,7 +440,7 @@ function roarWorthIt(e: Enemy, w: ConstructWorld, players: readonly Player[]): b
 	const near = (x: number, y: number) => Math.hypot(x - e.x, y - e.y) <= r;
 	const lanterns = players.filter((p) => !p.downed && near(p.x, p.y));
 	if (lanterns.length === 0) return false;
-	if (lanterns.length >= 2) return true;
+	if (lanterns.length >= 2 || w.redTempo > 1) return true;
 	if (w.turrets.some((t) => near(t.x, t.y))) return true;
 	if (lanterns.some((p) => w.shields.some((s) => s.target === p))) return true;
 	return e.brain.rage > 0.5;

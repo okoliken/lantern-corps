@@ -202,10 +202,15 @@ export interface ConstructWorld {
 	events: WorldEvent[];
 	/** Red Lantern projectiles and chains. */
 	red: RedWorld;
+	/**
+	 * How eagerly Red Lanterns use their constructs: 1 normally. Higher means
+	 * shorter cooldowns and fewer hesitations (the demo showcase).
+	 */
+	redTempo: number;
 }
 
 export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[], space = false): ConstructWorld {
-	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], pillarStrikes: [], effects: [], space, events: [], red: { shots: [], chains: [] } };
+	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], pillarStrikes: [], effects: [], space, events: [], red: { shots: [], chains: [] }, redTempo: 1 };
 }
 
 // --------------------------------------------------------------- tuning

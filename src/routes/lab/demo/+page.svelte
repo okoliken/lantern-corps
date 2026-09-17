@@ -7,7 +7,7 @@
 	import type { EnvironmentKind } from '$lib/engine/environment';
 	import { Game } from '$lib/engine/game';
 	import { LANTERNS, type LanternId } from '$lib/engine/lanterns';
-	import { DEMO_WAVES, Waves } from '$lib/engine/waves';
+	import { DEMO_WAVES, WAVE_BREAK, Waves } from '$lib/engine/waves';
 	import { ROLES } from '$lib/engine/enemies/enemies';
 	import { settings } from '$lib/settings.svelte';
 
@@ -18,6 +18,8 @@
 	let recording = $state(false);
 	let environment = $state<EnvironmentKind>('space');
 	let godMode = $state(false);
+	/** Both sides use their constructs much more often. */
+	let showcase = $state(true);
 	let debug = $state(false);
 	let round = $state(0);
 
@@ -26,7 +28,8 @@
 	const setup = $derived.by(() => {
 		void round; // Restart makes a fresh game
 		// Tougher than normal, so each fight lasts long enough to show every red construct
-		const waves = new Waves(DEMO_WAVES, 3);
+		const waves = new Waves(DEMO_WAVES);
+		waves.toughness = 3;
 		const game = new Game({
 			players: [
 				{ lantern: you, keys: mode === 'couch' ? 'p1' : 'solo', ai: mode === 'watch' },
@@ -43,6 +46,9 @@
 	});
 
 	$effect(() => {
+		setup.game.showcase = showcase;
+		// Showcasing: less waiting around between fights
+		setup.waves.breakTime = showcase ? 2 : WAVE_BREAK;
 		setup.game.godMode = godMode;
 		setup.game.debug = debug;
 	});
@@ -93,6 +99,7 @@
 					<button class:on={environment === env} onclick={() => (environment = env)}>{env}</button>
 				{/each}
 			</span>
+			<label title="Both sides use their constructs much more often"><input type="checkbox" bind:checked={showcase} /> Showcase constructs</label>
 			<label><input type="checkbox" bind:checked={godMode} /> God mode</label>
 			<label><input type="checkbox" bind:checked={debug} /> Show AI thinking</label>
 			<button onclick={() => round++}>Restart</button>
