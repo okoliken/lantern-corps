@@ -2,9 +2,10 @@
 // These are test maps for M2. Mission maps come in M6.
 
 import type { EnvironmentKind } from './environment';
-import type { Solid } from './player';
+import type { Solid } from './physics';
 
-export type ObstacleKind = 'building' | 'rock' | 'crate' | 'asteroid';
+/** 'wall' is an Energy Wall construct; the rest are part of the map. */
+export type ObstacleKind = 'building' | 'rock' | 'crate' | 'asteroid' | 'wall';
 
 export interface Obstacle extends Solid {
 	kind: ObstacleKind;
@@ -12,8 +13,14 @@ export interface Obstacle extends Solid {
 	height: number;
 	/** Per-obstacle random number, so each one looks a little different. */
 	seed: number;
-	/** Breakable things have health; the beam wears it down. No hp = unbreakable. */
+	/** Breakable things have health; constructs wear it down. No hp = unbreakable. */
 	hp?: number;
+	/** Full health, for drawing damage. */
+	maxHp?: number;
+	/** Construct walls fade away: seconds left. */
+	life?: number;
+	/** Crates can be dragged by the Chain. */
+	movable?: boolean;
 }
 
 /** How much beam a crate can take. */
@@ -27,11 +34,17 @@ export interface GameMap {
 	spawn: { x: number; y: number };
 	/** Where the Lantern battery stands. */
 	battery: { x: number; y: number };
+	/** Training dummies to practise constructs on (test maps only). */
+	dummies: { x: number; y: number }[];
 	obstacles: Obstacle[];
 }
 
 /** The battery sits just above where players start, inside the clear spawn zone. */
 const batteryFor = (spawn: { x: number; y: number }) => ({ x: spawn.x, y: spawn.y - 110 });
+
+/** A row of training dummies just below spawn, inside the clear zone. */
+const dummiesFor = (spawn: { x: number; y: number }) =>
+	[-190, 0, 190].map((dx) => ({ x: spawn.x + dx, y: spawn.y + 140 }));
 
 /**
  * Small seeded random generator (mulberry32). Same seed = same numbers,
@@ -100,13 +113,15 @@ export function buildPlanetTestMap(): GameMap {
 				height: crate ? 28 : 12 + size * 0.2,
 				blocksFlying: false,
 				seed: rand(),
-				hp: crate ? CRATE_HP : undefined
+				hp: crate ? CRATE_HP : undefined,
+				maxHp: crate ? CRATE_HP : undefined,
+				movable: crate || undefined
 			},
 			30
 		);
 	}
 
-	return { name: 'Coast City Outskirts', environment: 'planet', width, height, spawn, battery: batteryFor(spawn), obstacles };
+	return { name: 'Coast City Outskirts', environment: 'planet', width, height, spawn, battery: batteryFor(spawn), dummies: dummiesFor(spawn), obstacles };
 }
 
 /** An asteroid field. Asteroids are big enough to block flyers, which is everyone in space. */
@@ -136,7 +151,16 @@ export function buildSpaceTestMap(): GameMap {
 		);
 	}
 
-	return { name: 'Asteroid Belt, Sector 2814', environment: 'space', width, height, spawn, battery: batteryFor(spawn), obstacles };
+	return {
+		name: 'Asteroid Belt, Sector 2814',
+		environment: 'space',
+		width,
+		height,
+		spawn,
+		battery: batteryFor(spawn),
+		dummies: dummiesFor(spawn),
+		obstacles
+	};
 }
 
 export function buildTestMap(environment: EnvironmentKind): GameMap {

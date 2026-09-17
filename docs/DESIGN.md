@@ -20,11 +20,11 @@ Same as project-7: the **world is seen from above** (move up/down/left/right fre
 ground shadow. Positions are the characters' feet, and lower on screen is drawn in front.
 
 ## Controls
-| | Move | Take off / land | Fire (hold) |
-|---|---|---|---|
-| Single player | WASD or arrows | Space | J or F |
-| Co-op P1 | WASD | Space | F |
-| Co-op P2 | Arrows | Right Shift | Enter |
+| | Move / aim | Take off / land | Use construct | Pick construct |
+|---|---|---|---|---|
+| Single player | WASD or arrows | Space | J or F | 1–5, Q next |
+| Co-op P1 | WASD | Space | F | 1–5, Q next |
+| Co-op P2 | Arrows | Right Shift | Enter | 6–0, / next |
 
 The ring aims in the last direction you moved (8 directions).
 
@@ -54,8 +54,9 @@ The Lanterns have two states, not a full height system.
 
 ## Willpower
 One resource (0–100) powers every construct. Numbers live in `src/lib/engine/willpower.ts`.
-- The beam drains 22/s. At 0 it cuts out and won't restart until you're back to 15.
-- Passive recovery: 6/s on the ground, 2/s flying, none while firing.
+- Constructs cost willpower per use (the beam per second). Hit 0 and you're **exhausted**: nothing works
+  until you're back to 15.
+- Passive recovery starts 0.6s after your last construct: 6/s on the ground, 2/s flying.
 - **Lantern battery:** stand within 90px to refill at 45/s. The battery holds 400 charge and
   only recovers 4/s, so you can't camp it through a long fight.
 
@@ -73,7 +74,16 @@ Every construct, whether preset or custom, uses one of 8 **behavior types**:
 | Trap | cage, net, bear trap |
 | Area | bomb, shockwave, wrecking ball |
 
-- **Presets** go on hotkeys for fast combat. Hal and John have different sets.
+- **Presets** go on hotkeys for fast combat. Hal and John have different sets:
+  - **Hal:** Beam, Minigun (rapid), Sword (slash), Giant Fist (smash), Chain (grab)
+  - **John:** Beam, Cannon (heavy), Energy Wall (barrier), Cage (trap), Shockwave (area)
+- The **beam** is the ring's basic hold-to-fire construct, on top of the 8 types. Beam and rapid are
+  held; everything else fires once per press, with a cooldown.
+- **Traits** (in `lanterns.ts`): Hal ×1.2 power, ×0.85 cooldowns, ×0.75 durability. John ×1.4
+  durability and ×0.7 cost on structures (walls, cages).
+- Definitions live in `src/lib/engine/constructs/defs.ts`; behaviors in `constructs/system.ts`.
+- **Training dummies** (test maps only) take damage, knockback, chains and cages. They respawn after
+  breaking. Try everything in `/lab/constructs`.
 - **Ring Forge** (between missions): design a custom construct by giving it a name, a shape and a
   behavior type, and spending a **budget** on size, power and willpower cost. Equip it to a slot.
   It's freeform in *look*, bounded in *behavior*, so everything stays balanced.
@@ -106,7 +116,7 @@ Parallax (final boss).
 - [x] **M1** Character select (Hal/John), top-down movement, input sources
 - [x] **M2** Test maps (planet city + asteroid field), collisions, take-off/landing, following camera with zoom
 - [x] **M3** Willpower + Lantern battery, first construct (beam), breakable crates, HUD
-- [ ] **M4** Construct system: 8 behavior types, Hal and John preset sets on hotkeys
+- [x] **M4** Construct system: beam + 8 behavior types, Hal/John loadouts on keys 1–5, traits, training dummies, constructs lab
 - [ ] **M5** Manhunter enemies: AI, health, damage, death
 - [ ] **M6** First mission: objective, win/lose, HUD, restart
 

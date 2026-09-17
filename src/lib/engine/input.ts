@@ -5,7 +5,7 @@
 // A keyboard, a gamepad, or (in Phase 5) a network connection can all
 // produce Intents, so the player code never changes when we add them.
 
-/** What a player wants to do this tick. More construct actions come in M4. */
+/** What a player wants to do this tick. */
 export interface Intent {
 	/** -1 (left) .. 1 (right) */
 	moveX: number;
@@ -13,11 +13,17 @@ export interface Intent {
 	moveY: number;
 	/** The take-off / land key was PRESSED (not held) since the last tick. */
 	toggleFly: boolean;
-	/** The fire key is HELD (the beam fires for as long as it's down). */
+	/** The fire key is HELD (beam and minigun keep going while it's down). */
 	fire: boolean;
+	/** The fire key was PRESSED since the last tick (one-shot constructs). */
+	firePressed: boolean;
+	/** A construct slot key was pressed: its index (0-4), or -1 for none. */
+	select: number;
+	/** The cycle key was pressed: move to the next construct. */
+	cycle: boolean;
 }
 
-export const IDLE: Intent = { moveX: 0, moveY: 0, toggleFly: false, fire: false };
+export const IDLE: Intent = { moveX: 0, moveY: 0, toggleFly: false, fire: false, firePressed: false, select: -1, cycle: false };
 
 export interface InputSource {
 	read(): Intent;
@@ -32,19 +38,37 @@ export interface KeyLayout {
 	right: string[];
 	/** Take off / land. */
 	fly: string[];
-	/** Hold to fire the ring. */
+	/** Use the selected construct. */
 	fire: string[];
+	/** One entry per construct slot: the key(s) that select it. */
+	slots: string[][];
+	/** Next construct. */
+	cycle: string[];
 }
 
+const digits = (...n: number[]) => n.map((d) => [`Digit${d}`]);
+
 export const LAYOUTS = {
-	wasd: { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], fly: ['Space'], fire: ['KeyF'] },
+	wasd: {
+		up: ['KeyW'],
+		down: ['KeyS'],
+		left: ['KeyA'],
+		right: ['KeyD'],
+		fly: ['Space'],
+		fire: ['KeyF'],
+		slots: digits(1, 2, 3, 4, 5),
+		cycle: ['KeyQ']
+	},
 	arrows: {
 		up: ['ArrowUp'],
 		down: ['ArrowDown'],
 		left: ['ArrowLeft'],
 		right: ['ArrowRight'],
 		fly: ['ShiftRight'],
-		fire: ['Enter']
+		fire: ['Enter'],
+		// Top-row 6-0, so it works on laptops without a number pad
+		slots: digits(6, 7, 8, 9, 0),
+		cycle: ['Slash']
 	},
 	/** Single player: either set of keys works. */
 	both: {
@@ -53,7 +77,9 @@ export const LAYOUTS = {
 		left: ['KeyA', 'ArrowLeft'],
 		right: ['KeyD', 'ArrowRight'],
 		fly: ['Space'],
-		fire: ['KeyJ', 'KeyF']
+		fire: ['KeyJ', 'KeyF'],
+		slots: digits(1, 2, 3, 4, 5),
+		cycle: ['KeyQ']
 	}
 } satisfies Record<string, KeyLayout>;
 
@@ -62,7 +88,7 @@ export type LayoutName = keyof typeof LAYOUTS;
 /**
  * Pure function: held keys + layout -> movement part of an Intent.
  * Diagonals are normalized so moving diagonally isn't ~41% faster.
- * (toggleFly needs press counting, so KeyboardInput fills it in.)
+ * (Presses need counting, so KeyboardInput fills those in.)
  */
 export function intentFromKeys(held: ReadonlySet<string>, layout: KeyLayout): Intent {
 	const any = (codes: string[]) => codes.some((c) => held.has(c));
@@ -72,7 +98,7 @@ export function intentFromKeys(held: ReadonlySet<string>, layout: KeyLayout): In
 		x *= Math.SQRT1_2;
 		y *= Math.SQRT1_2;
 	}
-	return { moveX: x, moveY: y, toggleFly: false, fire: any(layout.fire) };
+	return { ...IDLE, moveX: x, moveY: y, fire: any(layout.fire) };
 }
 
 /** Tracks which keys are held, and counts presses. One per game, shared by all keyboard players. */
@@ -85,7 +111,7 @@ export class KeyboardState {
 	 */
 	private presses = new Map<string, number>();
 	/** Keys the game uses; we stop the browser scrolling the page with them. */
-	private gameKeys = new Set(Object.values(LAYOUTS).flatMap((layout) => Object.values(layout).flat()));
+	private gameKeys = new Set<string>(Object.values(LAYOUTS).flatMap((layout) => Object.values(layout).flat(2)));
 
 	/** Call when a key goes down. Exposed so tests can simulate presses. */
 	press(code: string) {
@@ -147,6 +173,9 @@ export class KeyboardInput implements InputSource {
 	read(): Intent {
 		const intent = intentFromKeys(this.keyboard.held, this.layout);
 		intent.toggleFly = this.keyboard.consumePress(this.layout.fly);
+		intent.firePressed = this.keyboard.consumePress(this.layout.fire);
+		intent.cycle = this.keyboard.consumePress(this.layout.cycle);
+		intent.select = this.layout.slots.findIndex((codes) => this.keyboard.consumePress(codes));
 		return intent;
 	}
 }

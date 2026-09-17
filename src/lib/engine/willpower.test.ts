@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
 	BATTERY_MAX_CHARGE,
 	BATTERY_RADIUS,
-	BEAM_COST,
 	MAX_WILLPOWER,
+	RECOVER_DELAY,
 	REGEN_AIR,
 	REGEN_GROUND,
 	RESTART_THRESHOLD,
+	canSpend,
+	spend,
 	updateBattery,
 	updateWillpower,
 	type Battery,
@@ -20,62 +22,66 @@ const lantern = (willpower = MAX_WILLPOWER, flying = false): WillpowerUser => ({
 	y: 0,
 	flying,
 	willpower,
-	firing: false,
+	exhausted: false,
+	recoverDelay: 0,
 	charging: false
 });
 
-function hold(p: WillpowerUser, fire: boolean, seconds: number, batteries: Battery[] = []) {
-	for (let i = 0; i < Math.round(seconds * 60); i++) updateWillpower(p, fire, DT, batteries);
+function wait(p: WillpowerUser, seconds: number, batteries: Battery[] = []) {
+	for (let i = 0; i < Math.round(seconds * 60); i++) updateWillpower(p, DT, batteries);
 }
 
-describe('updateWillpower', () => {
-	it('firing drains willpower', () => {
-		const p = lantern();
-		hold(p, true, 1);
-		expect(p.firing).toBe(true);
-		expect(p.willpower).toBeCloseTo(MAX_WILLPOWER - BEAM_COST, 0);
+describe('spending willpower', () => {
+	it('spend takes willpower away', () => {
+		const p = lantern(50);
+		spend(p, 20);
+		expect(p.willpower).toBe(30);
 	});
 
-	it('letting go stops the beam', () => {
-		const p = lantern();
-		hold(p, true, 0.5);
-		hold(p, false, DT);
-		expect(p.firing).toBe(false);
+	it('you can only spend what you have', () => {
+		expect(canSpend(lantern(10), 20)).toBe(false);
+		expect(canSpend(lantern(30), 20)).toBe(true);
 	});
 
-	it('the beam cuts out when willpower runs dry', () => {
+	it('hitting 0 makes you exhausted, and nothing is affordable', () => {
 		const p = lantern(5);
-		hold(p, true, 0.1);
-		p.willpower = 0.1;
-		hold(p, true, 0.1);
-		expect(p.firing).toBe(false);
+		spend(p, 10);
+		expect(p.willpower).toBe(0);
+		expect(p.exhausted).toBe(true);
+		p.willpower = 50;
+		expect(canSpend(p, 1)).toBe(false);
 	});
 
-	it(`can't start firing below the restart threshold`, () => {
-		const p = lantern(RESTART_THRESHOLD - 1);
-		updateWillpower(p, true, DT);
-		expect(p.firing).toBe(false);
+	it('exhaustion lifts once you recover to the restart threshold', () => {
+		const p = lantern(5);
+		spend(p, 10);
+		wait(p, RECOVER_DELAY + (RESTART_THRESHOLD - 1) / REGEN_GROUND);
+		expect(p.exhausted).toBe(true);
+		wait(p, 0.5);
+		expect(p.exhausted).toBe(false);
 	});
+});
 
-	it('can keep firing below the threshold once already firing', () => {
-		const p = lantern(RESTART_THRESHOLD + 1);
-		hold(p, true, 0.5);
-		expect(p.willpower).toBeLessThan(RESTART_THRESHOLD);
-		expect(p.firing).toBe(true);
+describe('recovery', () => {
+	it('waits a moment after using a construct before recovering', () => {
+		const p = lantern(50);
+		spend(p, 10);
+		wait(p, RECOVER_DELAY / 2);
+		expect(p.willpower).toBe(40);
 	});
 
 	it('recovers faster on the ground than in the air', () => {
 		const walker = lantern(50, false);
 		const flyer = lantern(50, true);
-		hold(walker, false, 1);
-		hold(flyer, false, 1);
+		wait(walker, 1);
+		wait(flyer, 1);
 		expect(walker.willpower).toBeCloseTo(50 + REGEN_GROUND, 0);
 		expect(flyer.willpower).toBeCloseTo(50 + REGEN_AIR, 0);
 	});
 
 	it('never goes above max', () => {
 		const p = lantern(MAX_WILLPOWER - 1);
-		hold(p, false, 5);
+		wait(p, 5);
 		expect(p.willpower).toBe(MAX_WILLPOWER);
 	});
 });
@@ -85,15 +91,21 @@ describe('Lantern battery', () => {
 
 	it('refills you fast when you are close', () => {
 		const p = lantern(20);
-		const b = battery();
-		hold(p, false, 1, [b]);
+		wait(p, 1, [battery()]);
 		expect(p.willpower).toBeGreaterThan(20 + REGEN_GROUND + 30);
 		expect(p.charging).toBe(true);
 	});
 
+	it('refills even right after using a construct', () => {
+		const p = lantern(20);
+		spend(p, 5);
+		wait(p, 0.2, [battery()]);
+		expect(p.willpower).toBeGreaterThan(15);
+	});
+
 	it('does nothing when you are out of range', () => {
 		const p = lantern(20);
-		hold(p, false, 1, [battery(BATTERY_MAX_CHARGE, BATTERY_RADIUS + 50)]);
+		wait(p, 1, [battery(BATTERY_MAX_CHARGE, BATTERY_RADIUS + 50)]);
 		expect(p.willpower).toBeCloseTo(20 + REGEN_GROUND, 0);
 		expect(p.charging).toBe(false);
 	});
@@ -101,17 +113,17 @@ describe('Lantern battery', () => {
 	it('spends its own charge, and an empty battery gives nothing', () => {
 		const p = lantern(20);
 		const b = battery(10);
-		hold(p, false, 1, [b]);
+		wait(p, 1, [b]);
 		expect(b.charge).toBe(0);
 		const before = p.willpower;
-		hold(p, false, 1, [b]);
+		wait(p, 1, [b]);
 		expect(p.willpower).toBeCloseTo(before + REGEN_GROUND, 0);
 	});
 
 	it('stops charging once you are full', () => {
 		const p = lantern(MAX_WILLPOWER);
 		const b = battery();
-		hold(p, false, 1, [b]);
+		wait(p, 1, [b]);
 		expect(b.charge).toBe(BATTERY_MAX_CHARGE);
 		expect(p.charging).toBe(false);
 	});

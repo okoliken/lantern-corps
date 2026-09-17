@@ -27,6 +27,7 @@ function tinyPlanet(obstacles: Obstacle[]): GameMap {
 		spawn: { x: 1000, y: 1000 },
 		// Battery far away so it doesn't refill willpower during the test
 		battery: { x: 100, y: 100 },
+		dummies: [],
 		obstacles
 	};
 }

@@ -2,7 +2,8 @@
 	// Index of test pages. Add a line here for each new lab.
 	const labs = [
 		{ href: '/lab/loop', name: 'Game loop', about: 'Fixed timestep: fps vs ups, simulated lag.' },
-		{ href: '/lab/movement', name: 'Movement & world', about: 'Both Lanterns, test maps, flying/landing, camera zoom, collision boxes.' }
+		{ href: '/lab/movement', name: 'Movement & world', about: 'Both Lanterns, test maps, flying/landing, camera zoom, collision boxes.' },
+		{ href: '/lab/constructs', name: 'Constructs', about: 'Every construct on training dummies. Switch Lantern, infinite willpower.' }
 	];
 </script>
 

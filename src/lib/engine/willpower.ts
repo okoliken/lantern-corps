@@ -1,19 +1,19 @@
 // Willpower: the one resource every construct runs on.
 //
-//  - Firing drains it.
-//  - It trickles back on its own, faster standing on the ground than flying.
+//  - Using a construct spends it (once per use, or per second for the beam).
+//  - It trickles back on its own shortly after you stop using constructs,
+//    faster standing on the ground than flying.
 //  - A Lantern battery refills it fast, but the battery's own charge is
-//    limited and only slowly comes back. That's the tension: you can't
-//    just camp the battery forever in a big fight.
-//  - Run dry and the beam cuts out. It won't restart until you've recovered
-//    a little (RESTART_THRESHOLD), so it doesn't flicker on and off at 0.
+//    limited and only slowly comes back. You can't camp it forever.
+//  - Run dry and you're EXHAUSTED: nothing works until you've recovered to
+//    RESTART_THRESHOLD, so constructs don't flicker on and off at 0.
 
 export const MAX_WILLPOWER = 100;
-/** Willpower per second while the beam is on. */
-export const BEAM_COST = 22;
-/** Need at least this much to START firing again after stopping. */
+/** Exhausted Lanterns need this much back before any construct works again. */
 export const RESTART_THRESHOLD = 15;
-/** Passive recovery per second (not while firing). */
+/** Seconds after using a construct before passive recovery kicks in. */
+export const RECOVER_DELAY = 0.6;
+/** Passive recovery per second. */
 export const REGEN_GROUND = 6;
 export const REGEN_AIR = 2;
 
@@ -36,34 +36,36 @@ export interface WillpowerUser {
 	y: number;
 	flying: boolean;
 	willpower: number;
-	firing: boolean;
+	/** Ran dry; locked out until back to RESTART_THRESHOLD. */
+	exhausted: boolean;
+	/** Seconds until passive recovery starts. */
+	recoverDelay: number;
 	charging: boolean;
+}
+
+/** Can this Lantern afford `cost` right now? */
+export function canSpend(p: WillpowerUser, cost: number): boolean {
+	return !p.exhausted && p.willpower >= cost;
+}
+
+/** Spend willpower. Hitting 0 makes the Lantern exhausted. */
+export function spend(p: WillpowerUser, cost: number) {
+	p.willpower = Math.max(0, p.willpower - cost);
+	p.recoverDelay = RECOVER_DELAY;
+	if (p.willpower <= 0) p.exhausted = true;
 }
 
 export function inBatteryRange(p: { x: number; y: number }, b: Battery): boolean {
 	return Math.hypot(p.x - b.x, p.y - b.y) <= BATTERY_RADIUS;
 }
 
-/**
- * One tick of willpower: decides whether the beam is on, drains or
- * regenerates, and draws from a nearby battery.
- */
-export function updateWillpower(p: WillpowerUser, wantsFire: boolean, dt: number, batteries: Battery[] = []) {
-	// ---- Is the beam on? ----
-	if (p.firing) {
-		if (!wantsFire || p.willpower <= 0) p.firing = false;
-	} else if (wantsFire && p.willpower >= RESTART_THRESHOLD) {
-		p.firing = true;
-	}
-
-	// ---- Drain or recover ----
-	if (p.firing) {
-		p.willpower = Math.max(0, p.willpower - BEAM_COST * dt);
-	} else {
+/** One tick of recovery: passive regen, batteries, and clearing exhaustion. */
+export function updateWillpower(p: WillpowerUser, dt: number, batteries: Battery[] = []) {
+	p.recoverDelay = Math.max(0, p.recoverDelay - dt);
+	if (p.recoverDelay === 0) {
 		p.willpower += (p.flying ? REGEN_AIR : REGEN_GROUND) * dt;
 	}
 
-	// ---- Battery ----
 	p.charging = false;
 	for (const b of batteries) {
 		if (p.willpower >= MAX_WILLPOWER || b.charge <= 0 || !inBatteryRange(p, b)) continue;
@@ -74,6 +76,7 @@ export function updateWillpower(p: WillpowerUser, wantsFire: boolean, dt: number
 	}
 
 	p.willpower = Math.min(p.willpower, MAX_WILLPOWER);
+	if (p.exhausted && p.willpower >= RESTART_THRESHOLD) p.exhausted = false;
 }
 
 /** A battery slowly recovers its own charge. */

@@ -1,5 +1,5 @@
 // Ring energy and the things around it: the beam, the Lantern battery,
-// the recharge link, break bursts, and the willpower HUD.
+// the recharge link, and the HUD.
 
 import { BATTERY_MAX_CHARGE, MAX_WILLPOWER, RESTART_THRESHOLD, type Battery } from '../willpower';
 import { GREEN } from './lantern';
@@ -183,96 +183,117 @@ export function drawChargeLink(
 	ctx.restore();
 }
 
-// ---------------------------------------------------------------- bursts
-
-export interface Burst {
-	x: number;
-	y: number;
-	/** Seconds since it started. */
-	age: number;
-}
-
-export const BURST_LIFETIME = 0.5;
-
-/** Splinters flying out and a flash, when a crate breaks. */
-export function drawBurst(ctx: CanvasRenderingContext2D, b: Burst) {
-	const t = b.age / BURST_LIFETIME; // 0..1
-	ctx.save();
-	ctx.globalAlpha = 1 - t;
-
-	ctx.strokeStyle = GREEN;
-	ctx.lineWidth = 3 * (1 - t);
-	ctx.beginPath();
-	ctx.arc(b.x, b.y, 8 + t * 40, 0, Math.PI * 2);
-	ctx.stroke();
-
-	ctx.fillStyle = '#8a6636';
-	for (let i = 0; i < 9; i++) {
-		const a = (i / 9) * Math.PI * 2 + i;
-		const d = t * (30 + (i % 3) * 14);
-		// Splinters arc up then fall: y offset is a small parabola
-		const px = b.x + Math.cos(a) * d;
-		const py = b.y + Math.sin(a) * d * 0.6 - Math.sin(t * Math.PI) * 14;
-		ctx.fillRect(px - 3, py - 1.5, 6, 3);
-	}
-	ctx.restore();
-}
-
 // ------------------------------------------------------------------- HUD
+
+export interface HudSlot {
+	name: string;
+	/** Key that selects it, e.g. "1". */
+	key: string;
+	/** 0 = ready, 1 = just used. */
+	cooldown: number;
+	/** Enough willpower to use it right now. */
+	affordable: boolean;
+}
 
 export interface HudPlayer {
 	name: string;
 	slot: number;
 	willpower: number;
+	exhausted: boolean;
 	charging: boolean;
+	slots: HudSlot[];
+	selected: number;
 }
 
 /**
- * Willpower bars in screen space. Player 1 bottom-left, player 2
- * bottom-right, so co-op players can each find their own at a glance.
+ * Willpower bar and construct slots, in screen space. Player 1 bottom-left,
+ * player 2 bottom-right, so co-op players can each find their own.
  */
 export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], width: number, height: number, time: number) {
-	const barW = Math.min(220, width * 0.35);
-	const barH = 10;
 	const margin = 18;
+	const box = 40;
+	const gap = 5;
+	const slotsW = 5 * box + 4 * gap;
+	const barW = slotsW;
+	const barH = 10;
 
 	for (const p of players) {
 		const right = p.slot === 1;
 		const x = right ? width - margin - barW : margin;
-		const y = height - margin - barH - 34;
-		const fill = p.willpower / MAX_WILLPOWER;
-		const low = p.willpower < RESTART_THRESHOLD;
+		const slotsY = height - margin - box;
+		const barY = slotsY - 14 - barH;
+		const labelY = barY - 5;
+		const low = p.exhausted || p.willpower < RESTART_THRESHOLD;
 
 		ctx.save();
+
+		// ---- Name and willpower number ----
 		ctx.font = '600 12px system-ui, sans-serif';
 		ctx.textBaseline = 'bottom';
 		ctx.fillStyle = 'rgba(216, 245, 224, 0.9)';
-		ctx.textAlign = right ? 'right' : 'left';
-		ctx.fillText(p.name, right ? x + barW : x, y - 4);
-
+		ctx.textAlign = 'left';
+		ctx.fillText(`${p.name} · ${p.slots[p.selected].name}`, x, labelY);
 		ctx.font = '11px ui-monospace, monospace';
+		ctx.textAlign = 'right';
 		ctx.fillStyle = low ? '#ffb86b' : 'rgba(216, 245, 224, 0.7)';
-		const label = `${p.charging ? '⚡ ' : ''}WILLPOWER ${Math.floor(p.willpower)}`;
-		ctx.textAlign = right ? 'left' : 'right';
-		ctx.fillText(label, right ? x : x + barW, y - 4);
+		ctx.fillText(`${p.charging ? '⚡ ' : ''}${p.exhausted ? 'EXHAUSTED ' : ''}${Math.floor(p.willpower)}`, x + barW, labelY);
 
-		// Track
+		// ---- Willpower bar ----
 		ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
-		ctx.fillRect(x - 2, y - 2, barW + 4, barH + 4);
+		ctx.fillRect(x - 2, barY - 2, barW + 4, barH + 4);
 		ctx.fillStyle = BOTTLE_GREEN;
-		ctx.fillRect(x, y, barW, barH);
-
-		// Fill. Blinks amber when too low to start the beam.
+		ctx.fillRect(x, barY, barW, barH);
 		const blink = low && Math.sin(time * 10) > 0;
 		ctx.fillStyle = blink ? '#ffb86b' : GREEN;
 		ctx.shadowColor = GREEN;
 		ctx.shadowBlur = low ? 0 : 8;
-		ctx.fillRect(x, y, barW * fill, barH);
-
-		// Tick where the beam can restart
+		ctx.fillRect(x, barY, barW * (p.willpower / MAX_WILLPOWER), barH);
 		ctx.shadowBlur = 0;
+		// Tick where exhaustion lifts
 		ctx.fillStyle = 'rgba(216, 245, 224, 0.5)';
-		ctx.fillRect(x + barW * (RESTART_THRESHOLD / MAX_WILLPOWER), y, 1.5, barH);
+		ctx.fillRect(x + barW * (RESTART_THRESHOLD / MAX_WILLPOWER), barY, 1.5, barH);
+
+		// ---- Construct slots ----
+		p.slots.forEach((s, i) => {
+			const sx = x + i * (box + gap);
+			const selected = i === p.selected;
+			ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+			ctx.fillRect(sx, slotsY, box, box);
+
+			// Cooldown shade drains downward as it recharges
+			if (s.cooldown > 0) {
+				ctx.fillStyle = 'rgba(15, 79, 52, 0.85)';
+				ctx.fillRect(sx, slotsY + box * (1 - s.cooldown), box, box * s.cooldown);
+			}
+
+			ctx.strokeStyle = selected ? GREEN : 'rgba(61, 255, 110, 0.25)';
+			ctx.lineWidth = selected ? 2 : 1;
+			if (selected) {
+				ctx.shadowColor = GREEN;
+				ctx.shadowBlur = 10;
+			}
+			ctx.strokeRect(sx + 0.5, slotsY + 0.5, box - 1, box - 1);
+			ctx.shadowBlur = 0;
+
+			// Short name in the middle, key number in the corner
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'middle';
+			ctx.font = '600 9px system-ui, sans-serif';
+			ctx.fillStyle = s.affordable ? 'rgba(216, 245, 224, 0.95)' : 'rgba(216, 245, 224, 0.35)';
+			ctx.fillText(abbreviate(s.name), sx + box / 2, slotsY + box / 2 + 3);
+			ctx.textAlign = 'left';
+			ctx.textBaseline = 'top';
+			ctx.font = '9px ui-monospace, monospace';
+			ctx.fillStyle = 'rgba(216, 245, 224, 0.55)';
+			ctx.fillText(s.key, sx + 3, slotsY + 2);
+		});
+
 		ctx.restore();
 	}
+}
+
+/** Fit a construct name in a small slot box. */
+function abbreviate(name: string): string {
+	const last = name.split(' ').pop() ?? name;
+	return last.length > 7 ? last.slice(0, 6) + '.' : last;
 }

@@ -117,7 +117,7 @@ export function drawPlanetGround(ctx: CanvasRenderingContext2D, visible: WorldRe
 
 // ------------------------------------------------------------ obstacles
 
-export function drawObstacle(ctx: CanvasRenderingContext2D, o: Obstacle) {
+export function drawObstacle(ctx: CanvasRenderingContext2D, o: Obstacle, time = 0) {
 	switch (o.kind) {
 		case 'building':
 			return drawBlock(ctx, o, '#6a6d74', '#3d4047', true);
@@ -127,7 +127,44 @@ export function drawObstacle(ctx: CanvasRenderingContext2D, o: Obstacle) {
 			return drawRock(ctx, o);
 		case 'asteroid':
 			return drawAsteroid(ctx, o);
+		case 'wall':
+			return drawEnergyWall(ctx, o, time);
 	}
+}
+
+/** An Energy Wall construct: see-through green block. Flickers as it's about to fade. */
+function drawEnergyWall(ctx: CanvasRenderingContext2D, o: Obstacle, time: number) {
+	const { x, y, w, h, height } = o;
+	const health = o.hp !== undefined && o.maxHp ? o.hp / o.maxHp : 1;
+	const fading = (o.life ?? 99) < 1.5;
+	const flicker = fading && Math.sin(time * 30) > 0 ? 0.4 : 1;
+
+	ctx.save();
+	ctx.globalAlpha = flicker;
+	ctx.shadowColor = '#3dff6e';
+	ctx.shadowBlur = 14;
+	ctx.strokeStyle = '#3dff6e';
+	ctx.lineWidth = 2;
+
+	// Front face and top, like the buildings, but glassy
+	ctx.fillStyle = `rgba(61, 255, 110, ${0.14 + 0.1 * health})`;
+	ctx.fillRect(x, y + h - height, w, height);
+	ctx.strokeRect(x, y + h - height, w, height);
+	ctx.fillStyle = `rgba(61, 255, 110, ${0.28 + 0.12 * health})`;
+	ctx.fillRect(x, y - height, w, h);
+	ctx.strokeRect(x, y - height, w, h);
+
+	// Energy grid lines on the face
+	ctx.shadowBlur = 0;
+	ctx.strokeStyle = 'rgba(234, 255, 240, 0.35)';
+	ctx.lineWidth = 1;
+	for (let gy = y + h - height + 10; gy < y + h; gy += 10) {
+		ctx.beginPath();
+		ctx.moveTo(x, gy);
+		ctx.lineTo(x + w, gy);
+		ctx.stroke();
+	}
+	ctx.restore();
 }
 
 /** Soft shadow on the ground in front of a tall thing. */

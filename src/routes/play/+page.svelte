@@ -29,8 +29,9 @@
 		<a class="back" href="/play">← Change Lantern</a>
 		<a class="env" href="/play?as={lantern}&env={otherEnv}">Test on {otherEnv} →</a>
 		<div class="hint">
-			Move: WASD or arrows · Fire: hold J or F{environment === 'planet' ? ' · Space: take off / land' : ''}
-			· Stand by the Lantern to recharge
+			Move/aim: WASD or arrows · 1–5 or Q: pick construct · J or F: use{environment === 'planet'
+				? ' · Space: take off / land'
+				: ''} · Stand by the Lantern to recharge
 		</div>
 	</div>
 {:else}

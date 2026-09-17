@@ -1,15 +1,10 @@
-// The beam: the first construct. A straight line of ring energy that stops
-// at the first solid thing it hits and damages it if it can be broken.
+// Raycasting: which solid does a straight line hit first?
+// Used by the beam construct to find where it stops.
 
-import type { Solid } from './player';
-
-/** Longest reach, in world px. */
-export const BEAM_RANGE = 420;
-/** Damage per second to whatever the beam is touching. */
-export const BEAM_DPS = 80;
+import type { Solid } from './physics';
 
 export interface BeamHit<T extends Solid> {
-	/** How far the beam travels before stopping (BEAM_RANGE if it hits nothing). */
+	/** How far the beam travels before stopping (`range` if it hits nothing). */
 	length: number;
 	/** The solid it stopped on, if any. */
 	hit: T | null;
@@ -33,7 +28,7 @@ export function castBeam<T extends Solid>(
 	dx: number,
 	dy: number,
 	solids: readonly T[],
-	range = BEAM_RANGE
+	range: number
 ): BeamHit<T> {
 	let best: BeamHit<T> = { length: range, hit: null };
 

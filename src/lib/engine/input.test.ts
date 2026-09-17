@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { KeyboardInput, KeyboardState, LAYOUTS, intentFromKeys } from './input';
+import { IDLE, KeyboardInput, KeyboardState, LAYOUTS, intentFromKeys } from './input';
 
 const keys = (...codes: string[]) => new Set(codes);
-const still = { moveX: 0, moveY: 0, toggleFly: false, fire: false };
+const still = IDLE;
 
 describe('intentFromKeys', () => {
 	it('no keys means no movement', () => {
@@ -43,6 +43,33 @@ describe('fire key', () => {
 	it('each co-op player has their own fire key', () => {
 		expect(intentFromKeys(keys('Enter'), LAYOUTS.wasd).fire).toBe(false);
 		expect(intentFromKeys(keys('Enter'), LAYOUTS.arrows).fire).toBe(true);
+	});
+});
+
+describe('construct keys', () => {
+	it('slot keys select by index, once per press', () => {
+		const kb = new KeyboardState();
+		const input = new KeyboardInput(kb, LAYOUTS.wasd);
+		kb.press('Digit3');
+		expect(input.read().select).toBe(2);
+		expect(input.read().select).toBe(-1);
+	});
+
+	it('player 2 uses 6-0 for their slots', () => {
+		const kb = new KeyboardState();
+		const p1 = new KeyboardInput(kb, LAYOUTS.wasd);
+		const p2 = new KeyboardInput(kb, LAYOUTS.arrows);
+		kb.press('Digit7');
+		expect(p1.read().select).toBe(-1);
+		expect(p2.read().select).toBe(1);
+	});
+
+	it('a fire press is seen once, while held stays true', () => {
+		const kb = new KeyboardState();
+		const input = new KeyboardInput(kb, LAYOUTS.wasd);
+		kb.press('KeyF');
+		expect(input.read()).toMatchObject({ fire: true, firePressed: true });
+		expect(input.read()).toMatchObject({ fire: true, firePressed: false });
 	});
 });
 

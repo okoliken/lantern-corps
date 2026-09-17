@@ -1,5 +1,5 @@
 // Character definitions. Pure data: to tune Hal or John, change numbers here.
-// Construct stats (M4) will be added to these same objects.
+// Their construct loadouts live in constructs/defs.ts (LOADOUTS).
 
 export type LanternId = 'hal' | 'john';
 
@@ -14,6 +14,17 @@ export interface LanternDef {
 	accel: number;
 	/** How fast they stop when no key is held, in px/s². */
 	decel: number;
+	/** Multipliers applied to every construct this Lantern makes. 1 = normal. */
+	traits: {
+		/** Damage and knockback. */
+		power: number;
+		/** Wall health, how long walls and traps last, how long a cage holds. */
+		durability: number;
+		/** Cooldown length. Lower = faster. */
+		cooldown: number;
+		/** Willpower cost of structures (walls, traps). */
+		structureCost: number;
+	};
 	look: {
 		skin: string;
 		hair: string;
@@ -33,6 +44,8 @@ export const LANTERNS: Record<LanternId, LanternDef> = {
 		maxSpeed: 320,
 		accel: 2600,
 		decel: 2000,
+		// Hits harder and faster, but what he builds doesn't last
+		traits: { power: 1.2, durability: 0.75, cooldown: 0.85, structureCost: 1 },
 		look: { skin: '#e2b48e', hair: '#5b3a21', hairStyle: 'swept', mask: true }
 	},
 	john: {
@@ -43,6 +56,8 @@ export const LANTERNS: Record<LanternId, LanternDef> = {
 		maxSpeed: 280,
 		accel: 2200,
 		decel: 2600,
+		// Solid, lasting structures that cost less to raise
+		traits: { power: 1, durability: 1.4, cooldown: 1, structureCost: 0.7 },
 		look: { skin: '#6e4529', hair: '#171310', hairStyle: 'cropped', mask: false }
 	}
 };

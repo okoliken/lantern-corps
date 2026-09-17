@@ -1,8 +1,12 @@
 // A Player is one Lantern in the world, driven by one InputSource.
 
+import { CONSTRUCTS, LOADOUTS, type ConstructDef } from './constructs/defs';
 import type { InputSource, Intent } from './input';
 import type { LanternDef } from './lanterns';
+import { approach, boxOverlap, moveBody, type Solid } from './physics';
 import { MAX_WILLPOWER } from './willpower';
+
+export type { Solid } from './physics';
 
 export interface Player {
 	/** 0 = player 1, 1 = player 2. */
@@ -28,27 +32,32 @@ export interface Player {
 	/** Direction the ring points (unit vector): the last direction you moved in. */
 	aimX: number;
 	aimY: number;
+
+	// ---- Willpower ----
 	/** 0..MAX_WILLPOWER. Powers every construct. */
 	willpower: number;
-	/** The beam is on right now. */
+	/** Ran dry; nothing works until recovered to RESTART_THRESHOLD. */
+	exhausted: boolean;
+	/** Seconds until passive recovery starts. */
+	recoverDelay: number;
+	/** Drawing power from a Lantern battery this tick (for drawing the link). */
+	charging: boolean;
+
+	// ---- Constructs ----
+	/** The five constructs on this Lantern's slots. */
+	loadout: ConstructDef[];
+	/** Index into loadout of the construct in hand. */
+	selected: number;
+	/** Seconds left before each slot can be used again. */
+	cooldowns: number[];
+	/** A hold-to-use construct (beam, minigun) is running right now. */
 	firing: boolean;
 	/** How far the beam reached this tick (for drawing). */
 	beamLength: number;
-	/** Drawing power from a Lantern battery this tick (for drawing the link). */
-	charging: boolean;
-}
-
-/**
- * Something solid in the world. The rectangle is its FOOTPRINT on the
- * ground; how tall it looks is only a drawing detail.
- */
-export interface Solid {
-	x: number;
-	y: number;
-	w: number;
-	h: number;
-	/** Tall things (asteroids) stop flyers too. Buildings and rocks don't. */
-	blocksFlying: boolean;
+	/** Seconds left on a one-shot action's arm pose (swing, punch, throw). */
+	actionTimer: number;
+	/** Which construct that action was, for drawing. */
+	actionShape: ConstructDef['shape'] | null;
 }
 
 /** What the player needs to know about the world to move through it. */
@@ -62,7 +71,7 @@ const OPEN_WORLD: WorldRules = { solids: [], alwaysFlying: false };
 
 /** Flying is faster than walking. */
 export const FLY_SPEED_BONUS = 1.25;
-/** Holding the beam steady slows you down. */
+/** Holding the beam or minigun steady slows you down. */
 export const FIRING_SPEED_FACTOR = 0.55;
 /** Seconds to rise from the ground to full height (and back down). */
 export const TAKEOFF_TIME = 0.25;
@@ -71,6 +80,7 @@ export const FEET_HALF_W = 8;
 export const FEET_HALF_H = 5;
 
 export function createPlayer(slot: number, def: LanternDef, input: InputSource, x: number, y: number): Player {
+	const loadout = LOADOUTS[def.id].map((id) => CONSTRUCTS[id]);
 	return {
 		slot,
 		def,
@@ -88,23 +98,22 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		aimX: 1,
 		aimY: 0,
 		willpower: MAX_WILLPOWER,
+		exhausted: false,
+		recoverDelay: 0,
+		charging: false,
+		loadout,
+		selected: 0,
+		cooldowns: loadout.map(() => 0),
 		firing: false,
 		beamLength: 0,
-		charging: false
+		actionTimer: 0,
+		actionShape: null
 	};
-}
-
-/** Move `current` toward `target` by at most `maxDelta`. */
-function approach(current: number, target: number, maxDelta: number): number {
-	if (current < target) return Math.min(current + maxDelta, target);
-	return Math.max(current - maxDelta, target);
 }
 
 /** Does a feet box centred at (x, y) overlap this solid? Touching edges don't count. */
 export function feetOverlap(x: number, y: number, s: Solid): boolean {
-	return (
-		x + FEET_HALF_W > s.x && x - FEET_HALF_W < s.x + s.w && y + FEET_HALF_H > s.y && y - FEET_HALF_H < s.y + s.h
-	);
+	return boxOverlap(x, y, FEET_HALF_W, FEET_HALF_H, s);
 }
 
 /**
@@ -143,8 +152,7 @@ export function updatePlayer(p: Player, intent: Intent, dt: number, world: World
 	// ---- Moving, with collisions ----
 	// Flyers only bump into things tall enough to block the sky.
 	const blocking = p.flying ? world.solids.filter((s) => s.blocksFlying) : world.solids;
-	moveAxis(p, 'x', p.vx * dt, blocking);
-	moveAxis(p, 'y', p.vy * dt, blocking);
+	moveBody(p, dt, blocking, FEET_HALF_W, FEET_HALF_H);
 
 	// Only left/right input flips the character. Moving straight up or down
 	// keeps whichever way they were already facing.
@@ -159,27 +167,6 @@ export function updatePlayer(p: Player, intent: Intent, dt: number, world: World
 	// Walking legs cycle faster the faster you go. Flying Lanterns don't walk.
 	const speed = Math.hypot(p.vx, p.vy);
 	p.walkPhase = !p.flying && speed > 5 ? p.walkPhase + speed * dt * 0.045 : 0;
-}
-
-/**
- * Move along ONE axis, then push back out of anything we walked into.
- * Doing x and y separately is what lets you slide along a wall when you
- * run into it diagonally, instead of sticking to it.
- */
-function moveAxis(p: Player, axis: 'x' | 'y', delta: number, solids: readonly Solid[]) {
-	if (delta === 0) return;
-	p[axis] += delta;
-
-	for (const s of solids) {
-		if (!feetOverlap(p.x, p.y, s)) continue;
-		if (axis === 'x') {
-			p.x = delta > 0 ? s.x - FEET_HALF_W : s.x + s.w + FEET_HALF_W;
-			p.vx = 0;
-		} else {
-			p.y = delta > 0 ? s.y - FEET_HALF_H : s.y + s.h + FEET_HALF_H;
-			p.vy = 0;
-		}
-	}
 }
 
 /** Keep a player inside a rectangle, killing velocity into the edge. */
