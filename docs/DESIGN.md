@@ -120,10 +120,11 @@ Every construct, whether preset or custom, uses one of 8 **behavior types**:
   It's freeform in *look*, bounded in *behavior*, so everything stays balanced.
 - *Later idea:* type any word and an AI (called from a SvelteKit server route) picks the behavior type.
 
-## Enemies (planned)
-Manhunters (swarm), Yellow Lanterns / Sinestro Corps (fear constructs that crack green
-constructs faster), Red Lanterns (rage plasma, close range), Sinestro (rival boss),
-Parallax (final boss).
+## Story & enemies
+See **[STORY.md](STORY.md)**: "Red Frontier". Following the comics and animated series, Red Lanterns
+(led by Atrocitus) are the main enemy and Manhunters the second threat. It has the full bestiary,
+acts, missions and character arcs. Enemy build order: Rage Grunt → Plasma Spitter → Rage Brute →
+Skarr Vell → Manhunters → Dex-Starr → Atrocitus.
 
 ## Tech
 - **SvelteKit** (Svelte 5 runes) + TypeScript + HTML Canvas 2D. Vitest for tests.
@@ -165,6 +166,6 @@ Parallax (final boss).
 **Phase 3: Ring Forge**
 - [ ] **M8** Forge screen, saved custom constructs, equip slots
 
-**Phase 4: Campaign**: Sector 2814 map, Yellow/Red Lanterns, Sinestro, Parallax
+**Phase 4: Campaign**: "Red Frontier" (see STORY.md): 3 acts, 13 missions, sector map
 
 **Phase 5: Online multiplayer**: server, sync, lobby / join code
