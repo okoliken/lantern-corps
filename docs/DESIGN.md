@@ -150,7 +150,7 @@ Skarr Vell → Manhunters → Dex-Starr → Atrocitus.
 - [x] **M3** Willpower + Lantern battery, first construct (beam), breakable crates, HUD
 - [x] **M4** Construct system: beam + 8 behavior types, Hal/John loadouts on keys 1–5, traits, training dummies, constructs lab
 - [x] **M4.5** Feedback pass: tuning (cheaper, longer-lasting), targeting + lock-on, bubble shield, construct art pass
-- [ ] **M5** Manhunter enemies: AI, health, damage, death
+- [ ] **M5** First enemies (Red Lanterns, per STORY.md): Lantern health + damage, Rage Grunt → Plasma Spitter → Rage Brute
 - [ ] **M6** First mission: objective, win/lose, HUD, restart
 
 **Phase 1.5: Characters** (before enemies, by request)
