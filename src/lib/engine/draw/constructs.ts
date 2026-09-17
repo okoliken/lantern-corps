@@ -6,7 +6,7 @@
 // are built as Path2D objects in local space, so the same shape can be
 // filled, stroked, and clipped without redrawing the path each time.
 
-import { FIST_OUT_TIME, type Effect, type Projectile, type Shield, type Trap } from '../constructs/system';
+import { AUTO_TURRET_HEAD, FIST_OUT_TIME, type Effect, type Projectile, type Shield, type Trap, type Turret } from '../constructs/system';
 import { DUMMY_HP, isStanding, type Dummy } from '../dummy';
 import type { Target } from '../targeting';
 import { GREEN } from './lantern';
@@ -215,7 +215,133 @@ export function drawHeldConstruct(
 		ctx.translate(-recoil, 0);
 		energy(ctx, cannonPath(), { time, edge: 2 });
 		sparks(ctx, 42, 0, 10, 5, time);
+	} else if (shape === 'sniper') {
+		energy(ctx, sniperPath(), { time, edge: 1.5 });
 	}
+	ctx.restore();
+}
+
+/** A long rifle: stock at the hand, a scope on top, a long barrel with a muzzle brake. */
+function sniperPath(): Path2D {
+	const p = new Path2D();
+	p.moveTo(-14, -3); // stock
+	p.lineTo(-4, -4);
+	p.lineTo(-2, 4);
+	p.lineTo(-12, 6);
+	p.closePath();
+	p.roundRect(-4, -4, 26, 7, 2); // body
+	p.roundRect(2, -10, 14, 4, 2); // scope
+	p.rect(6, -6, 2, 2);
+	p.rect(22, -1.8, 36, 3.6); // barrel
+	p.rect(56, -3.5, 6, 7); // muzzle brake
+	p.moveTo(10, 3); // grip
+	p.lineTo(14, 3);
+	p.lineTo(11, 10);
+	p.lineTo(8, 9);
+	p.closePath();
+	return p;
+}
+
+/**
+ * The laser sight while the Sniper Rifle charges: a thin line from the ring
+ * to where the shot would stop, brighter and steadier as the charge builds.
+ */
+export function drawLaserSight(
+	ctx: CanvasRenderingContext2D,
+	x: number,
+	y: number,
+	dx: number,
+	dy: number,
+	length: number,
+	charge: number,
+	time: number
+) {
+	const ex = x + dx * length;
+	const ey = y + dy * length;
+	ctx.save();
+	ctx.lineCap = 'round';
+	const full = charge >= 1;
+	const flicker = full ? 1 : 0.6 + 0.4 * Math.sin(time * 30);
+	ctx.strokeStyle = `rgba(61, 255, 110, ${(0.15 + 0.5 * charge) * flicker})`;
+	ctx.lineWidth = 1 + charge * 1.5;
+	ctx.setLineDash(full ? [] : [8, 6]);
+	ctx.lineDashOffset = -time * 60;
+	ctx.beginPath();
+	ctx.moveTo(x, y);
+	ctx.lineTo(ex, ey);
+	ctx.stroke();
+	ctx.setLineDash([]);
+	// Aim point
+	ctx.shadowColor = GREEN;
+	ctx.shadowBlur = full ? 14 : 6;
+	ctx.fillStyle = full ? CORE : GREEN;
+	ctx.beginPath();
+	ctx.arc(ex, ey, 2.5 + charge * 2, 0, TAU);
+	ctx.fill();
+	// Charge ring around the ring hand: fills clockwise, pulses when full
+	ctx.strokeStyle = full ? CORE : GREEN;
+	ctx.lineWidth = 2;
+	ctx.beginPath();
+	ctx.arc(x, y, 9 + (full ? Math.sin(time * 12) : 0), -Math.PI / 2, -Math.PI / 2 + TAU * charge);
+	ctx.stroke();
+	ctx.restore();
+}
+
+/** An Auto-Turret construct: tripod legs, a body, and twin barrels that track targets. */
+export function drawAutoTurret(ctx: CanvasRenderingContext2D, t: Turret, time: number) {
+	const fading = t.life < 1.5;
+	const alpha = fading ? 0.5 + 0.5 * Math.sin(time * 20) : 1;
+	const grow = Math.min(1, (t.maxLife - t.life) / 0.25);
+	ctx.save();
+	ctx.globalAlpha = alpha;
+	ctx.translate(t.x, t.y);
+
+	// Glow on the ground
+	ctx.fillStyle = 'rgba(61, 255, 110, 0.15)';
+	ctx.beginPath();
+	ctx.ellipse(0, 0, 18, 6, 0, 0, TAU);
+	ctx.fill();
+
+	ctx.scale(grow, grow);
+	// Tripod
+	const legs = new Path2D();
+	legs.moveTo(-12, 2);
+	legs.lineTo(0, -AUTO_TURRET_HEAD + 6);
+	legs.lineTo(12, 2);
+	legs.moveTo(0, -AUTO_TURRET_HEAD + 6);
+	legs.lineTo(3, 4);
+	energy(ctx, legs, { time, edge: 1.6, body: 0 });
+
+	// Head, turned toward its target. Flipped when aiming left so it never looks upside down.
+	ctx.translate(0, -AUTO_TURRET_HEAD);
+	ctx.rotate(t.aim);
+	if (Math.cos(t.aim) < 0) ctx.scale(1, -1);
+	const head = new Path2D();
+	head.roundRect(-9, -7, 16, 14, 4);
+	head.rect(7, -5, 14, 3);
+	head.rect(7, 2, 14, 3);
+	head.rect(-5, -10, 8, 3);
+	energy(ctx, head, { time, edge: 1.6 });
+	// Muzzle flash right after a shot
+	if (t.cooldown > 0.25) {
+		ctx.shadowColor = GREEN;
+		ctx.shadowBlur = 12;
+		ctx.fillStyle = CORE;
+		ctx.beginPath();
+		ctx.arc(23, -3.5, 3, 0, TAU);
+		ctx.arc(23, 3.5, 3, 0, TAU);
+		ctx.fill();
+	}
+	ctx.restore();
+
+	// Time left, as a small arc under it
+	ctx.save();
+	ctx.globalAlpha = alpha;
+	ctx.strokeStyle = 'rgba(234, 255, 240, 0.6)';
+	ctx.lineWidth = 2;
+	ctx.beginPath();
+	ctx.ellipse(t.x, t.y, 20, 7, 0, Math.PI * 0.15, Math.PI * 0.15 + Math.PI * 0.7 * (t.life / t.maxLife));
+	ctx.stroke();
 	ctx.restore();
 }
 
@@ -704,6 +830,7 @@ export function drawDummy(
 	ctx.restore();
 
 	if (d.caged > 0) drawCage(ctx, x, y + (onGround ? 0 : bob), time);
+	if (d.stun > 0) drawDizzy(ctx, x, y - 70 + bob, time);
 }
 
 // ---------------------------------------------------------------- effects
@@ -955,6 +1082,47 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			}
 			break;
 		}
+		case 'snipe': {
+			// The shot: a blinding line along its whole path, then a fading trail
+			const len = e.value ?? 600;
+			const a = e.angle ?? 0;
+			const hy = e.y - lift;
+			const ex = e.x + Math.cos(a) * len;
+			const ey = hy + Math.sin(a) * len;
+			const power = 0.5 + 0.5 * (e.radius ?? 1);
+			ctx.lineCap = 'round';
+			ctx.shadowColor = GREEN;
+			ctx.shadowBlur = 20;
+			ctx.globalAlpha = (1 - t) * power;
+			ctx.strokeStyle = GREEN;
+			ctx.lineWidth = (10 * (1 - t) + 2) * power;
+			ctx.beginPath();
+			ctx.moveTo(e.x, hy);
+			ctx.lineTo(ex, ey);
+			ctx.stroke();
+			ctx.shadowBlur = 0;
+			ctx.globalAlpha = 1 - t;
+			ctx.strokeStyle = CORE;
+			ctx.lineWidth = 2.5 * (1 - t) + 0.5;
+			ctx.beginPath();
+			ctx.moveTo(e.x, hy);
+			ctx.lineTo(ex, ey);
+			ctx.stroke();
+			// Rings rippling out along the line
+			ctx.strokeStyle = `rgba(234, 255, 240, ${0.5 * (1 - t)})`;
+			ctx.lineWidth = 1.5;
+			for (let i = 1; i <= 5; i++) {
+				const k = i / 6;
+				ctx.beginPath();
+				ctx.ellipse(e.x + Math.cos(a) * len * k, hy + Math.sin(a) * len * k, 4 + t * 14, 2 + t * 7, a, 0, TAU);
+				ctx.stroke();
+			}
+			break;
+		}
+		case 'pillars': {
+			drawPillarDrop(ctx, e, time);
+			break;
+		}
 		case 'number': {
 			// Pops up, floats, fades
 			const pop = t < 0.15 ? 1 + (1 - t / 0.15) * 0.5 : 1;
@@ -972,6 +1140,107 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 		}
 	}
 	ctx.restore();
+}
+
+/** Stars circling a stunned target's head. */
+function drawDizzy(ctx: CanvasRenderingContext2D, x: number, y: number, time: number) {
+	ctx.save();
+	ctx.fillStyle = '#fff3b0';
+	ctx.shadowColor = '#ffe066';
+	ctx.shadowBlur = 6;
+	for (let i = 0; i < 3; i++) {
+		const a = time * 5 + (i * TAU) / 3;
+		const sx = x + Math.cos(a) * 12;
+		const sy = y + Math.sin(a) * 4;
+		ctx.beginPath();
+		for (let k = 0; k < 10; k++) {
+			const r = k % 2 === 0 ? 4 : 1.7;
+			const ang = (k / 10) * TAU - Math.PI / 2;
+			ctx.lineTo(sx + Math.cos(ang) * r, sy + Math.sin(ang) * r);
+		}
+		ctx.closePath();
+		ctx.fill();
+	}
+	ctx.restore();
+}
+
+/** Where the pillars land within the strike circle: a triangle around the centre. */
+function pillarSpots(x: number, y: number, radius: number): [number, number][] {
+	return [-90, 30, 150].map((deg) => {
+		const a = (deg * Math.PI) / 180;
+		return [x + Math.cos(a) * radius * 0.45, y + Math.sin(a) * radius * 0.45 * 0.5];
+	});
+}
+
+/**
+ * Pillar Drop, from warning to rubble:
+ *  1. A warning circle fills in on the ground (the charge time).
+ *  2. Three construct pillars plunge from above and slam down with a dust ring.
+ *  3. They stand a moment, then crumble into sparks.
+ */
+function drawPillarDrop(ctx: CanvasRenderingContext2D, e: Effect, time: number) {
+	const r = e.radius ?? 75;
+	const warning = e.life - 0.9;
+	const spots = pillarSpots(e.x, e.y, r);
+
+	if (e.age < warning) {
+		const k = e.age / warning;
+		ctx.shadowColor = GREEN;
+		ctx.shadowBlur = 10;
+		ctx.strokeStyle = `rgba(61, 255, 110, ${0.5 + 0.5 * Math.sin(time * 20)})`;
+		ctx.lineWidth = 2;
+		ctx.setLineDash([10, 6]);
+		ctx.lineDashOffset = -time * 40;
+		ctx.beginPath();
+		ctx.ellipse(e.x, e.y, r, r * 0.5, 0, 0, TAU);
+		ctx.stroke();
+		ctx.setLineDash([]);
+		ctx.fillStyle = `rgba(61, 255, 110, ${0.08 + 0.18 * k})`;
+		ctx.beginPath();
+		ctx.ellipse(e.x, e.y, r * k, r * 0.5 * k, 0, 0, TAU);
+		ctx.fill();
+		// Shadows of the pillars growing as they come down
+		ctx.shadowBlur = 0;
+		ctx.fillStyle = `rgba(0, 0, 0, ${0.15 + 0.3 * k})`;
+		for (const [px, py] of spots) {
+			ctx.beginPath();
+			ctx.ellipse(px, py, 12 * k + 4, (12 * k + 4) * 0.45, 0, 0, TAU);
+			ctx.fill();
+		}
+		return;
+	}
+
+	const after = e.age - warning;
+	const fall = Math.min(1, after / 0.08);
+	const fade = after < 0.45 ? 1 : 1 - (after - 0.45) / 0.45;
+	const height = 60;
+
+	// Dust / impact ring as they land
+	if (fall >= 1) {
+		const k = Math.min(1, (after - 0.08) / 0.4);
+		ctx.globalAlpha = 1 - k;
+		ctx.strokeStyle = CORE;
+		ctx.lineWidth = 4 * (1 - k) + 1;
+		ctx.beginPath();
+		ctx.ellipse(e.x, e.y, r * (0.6 + k * 0.6), r * 0.5 * (0.6 + k * 0.6), 0, 0, TAU);
+		ctx.stroke();
+		ctx.globalAlpha = 1;
+	}
+
+	for (const [px, py] of spots) {
+		ctx.save();
+		ctx.globalAlpha = Math.max(0, fade);
+		// Drop from high above to the ground
+		const drop = (1 - fall) * 260;
+		ctx.translate(px, py - drop);
+		const pillar = new Path2D();
+		pillar.rect(-9, -height, 18, height);
+		pillar.rect(-12, -height - 6, 24, 6); // capital
+		pillar.rect(-12, -5, 24, 5); // base
+		energy(ctx, pillar, { time, edge: 2 });
+		ctx.restore();
+		if (fade < 1) sparks(ctx, px, py - height / 2, 16, 6, time, px);
+	}
 }
 
 const easeOut = (k: number) => 1 - (1 - k) ** 3;

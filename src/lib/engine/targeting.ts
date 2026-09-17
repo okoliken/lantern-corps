@@ -115,6 +115,12 @@ export function autoReach(def: ConstructDef): number {
 			return 260;
 		case 'trap':
 			return 320;
+		case 'turret':
+			return 300;
+		case 'pillars':
+			return def.range + (def.radius ?? 0);
+		case 'snipe':
+			return AUTO_RANGE;
 		default:
 			return Math.min(AUTO_RANGE, def.range);
 	}
@@ -227,11 +233,13 @@ export function updateTargeting(
 
 	if (lockedAttack) {
 		p.attackTarget = lockedAttack;
+		p.aimReach = null;
 	} else if (pointer) {
 		// Aim from the ring, so the shot's line passes exactly through the crosshair
 		const dx = pointer.x - (p.x + p.ringDX);
 		const dy = pointer.y - p.y;
 		const len = Math.hypot(dx, dy);
+		p.aimReach = len;
 		const dirX = len > 1 ? dx / len : p.faceX;
 		const dirY = len > 1 ? dy / len : p.faceY;
 		p.attackTarget = aimAssist ? findAutoTarget(p, w, reach, { dirX, dirY, halfAngle: ASSIST_HALF_ANGLE }) : null;
@@ -242,6 +250,7 @@ export function updateTargeting(
 		// With a mouse, the character always looks toward the crosshair
 		if (Math.abs(dx) > 4) p.dir = dx > 0 ? 1 : -1;
 	} else {
+		p.aimReach = null;
 		// While a construct is running, stick with the current auto target so
 		// the beam doesn't jump between two dummies standing side by side.
 		const keep = busy && p.attackTarget && isTargetValid(p.attackTarget, w) && distanceTo(p, p.attackTarget) <= reach;

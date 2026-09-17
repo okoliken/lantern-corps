@@ -8,7 +8,7 @@ import { LANTERNS, type LanternId } from '../lanterns';
 import { CRATE_HP, type Obstacle } from '../map';
 import { createPlayer, type Player } from '../player';
 import { MAX_WILLPOWER, RESTART_THRESHOLD } from '../willpower';
-import { BUBBLE_SHIELD, RING_SHOT, CONSTRUCTS, LOADOUTS, MAX_TRAPS_PER_PLAYER, type ConstructId } from './defs';
+import { BUBBLE_SHIELD, RING_SHOT, CONSTRUCTS, LOADOUTS, MAX_TRAPS_PER_PLAYER, MAX_TURRETS_PER_PLAYER, type ConstructId } from './defs';
 import {
 	absorbWithShield,
 	costOf,
@@ -27,7 +27,12 @@ const HOLD: Intent = { ...IDLE, construct: true };
 function setup(id: LanternId, construct: ConstructId, dummies: Dummy[] = [], obstacles: Obstacle[] = []) {
 	const p = createPlayer(0, LANTERNS[id], { read: () => IDLE }, 0, 0);
 	p.selected = LOADOUTS[id].indexOf(construct);
-	if (p.selected === -1) throw new Error(`${id} has no ${construct}`);
+	// Not in this Lantern's loadout (e.g. constructs kept for the Ring Forge): equip it in slot 1
+	if (p.selected === -1) {
+		p.loadout = [...p.loadout];
+		p.loadout[0] = CONSTRUCTS[construct];
+		p.selected = 0;
+	}
 	const w = createConstructWorld(obstacles, dummies);
 	return { p, w };
 }
@@ -67,7 +72,7 @@ describe('choosing constructs', () => {
 	it('Hal and John carry different loadouts', () => {
 		expect(LOADOUTS.hal).not.toEqual(LOADOUTS.john);
 		expect(LOADOUTS.hal[0]).toBe('beam');
-		expect(LOADOUTS.john[0]).toBe('beam');
+		expect(LOADOUTS.john).toEqual(['beam', 'sniper', 'wall', 'turret', 'pillars']);
 	});
 });
 
@@ -426,5 +431,124 @@ describe('everything comes out of the ring', () => {
 		run(p, w, HOLD, DT);
 		// Dummy's near edge is at 88; from the ring at x=20 that's 68 away
 		expect(p.beamLength).toBeCloseTo(68, 0);
+	});
+});
+
+describe('John: Sniper Rifle', () => {
+	const release = (p: Player, w: ConstructWorld) => run(p, w, IDLE, DT);
+
+	it('charges while held and fires on release', () => {
+		const d = createDummy(300, 0);
+		const { p, w } = setup('john', 'sniper', [d]);
+		run(p, w, HOLD, 0.5);
+		expect(p.charge).toBeGreaterThan(0.4);
+		expect(d.hp).toBe(DUMMY_HP);
+		release(p, w);
+		expect(d.hp).toBeLessThan(DUMMY_HP);
+		expect(p.charge).toBe(0);
+	});
+
+	it('pierces every enemy in the line', () => {
+		const line = [createDummy(150, 0), createDummy(300, 0), createDummy(450, 0)];
+		const { p, w } = setup('john', 'sniper', line);
+		run(p, w, HOLD, 1);
+		release(p, w);
+		for (const d of line) expect(d.hp).toBeLessThan(DUMMY_HP);
+	});
+
+	it('a full charge hits much harder than a quick tap', () => {
+		const tapTarget = createDummy(200, 0);
+		const fullTarget = createDummy(200, 0);
+		const tap = setup('john', 'sniper', [tapTarget]);
+		const full = setup('john', 'sniper', [fullTarget]);
+		run(tap.p, tap.w, HOLD, DT);
+		release(tap.p, tap.w);
+		run(full.p, full.w, HOLD, 1);
+		release(full.p, full.w);
+		expect(DUMMY_HP - fullTarget.hp).toBeGreaterThan((DUMMY_HP - tapTarget.hp) * 2.5);
+	});
+
+	it('stops at a building', () => {
+		const building: Obstacle = { kind: 'building', x: 100, y: -50, w: 60, h: 100, height: 100, blocksFlying: false, seed: 0 };
+		const behind = createDummy(300, 0);
+		const { p, w } = setup('john', 'sniper', [behind], [building]);
+		run(p, w, HOLD, 1);
+		release(p, w);
+		expect(behind.hp).toBe(DUMMY_HP);
+	});
+
+	it('costs willpower once, on release', () => {
+		const { p, w } = setup('john', 'sniper');
+		run(p, w, HOLD, 1);
+		expect(p.willpower).toBe(MAX_WILLPOWER);
+		release(p, w);
+		expect(p.willpower).toBeLessThan(MAX_WILLPOWER);
+	});
+});
+
+describe('John: Auto-Turret', () => {
+	it('builds a turret that shoots enemies on its own', () => {
+		const d = createDummy(300, 0);
+		const { p, w } = setup('john', 'turret', [d]);
+		press(p, w, 2);
+		expect(w.turrets).toHaveLength(1);
+		expect(d.hp).toBeLessThan(DUMMY_HP);
+	});
+
+	it(`keeps at most ${MAX_TURRETS_PER_PLAYER} turrets out, replacing the oldest`, () => {
+		const { p, w } = setup('john', 'turret');
+		for (let i = 0; i < MAX_TURRETS_PER_PLAYER + 1; i++) press(p, w, 1.6);
+		expect(w.turrets).toHaveLength(MAX_TURRETS_PER_PLAYER);
+	});
+
+	it('runs out after its duration', () => {
+		const { p, w } = setup('john', 'turret');
+		press(p, w, CONSTRUCTS.turret.duration * LANTERNS.john.traits.durability + 0.5);
+		expect(w.turrets).toHaveLength(0);
+	});
+
+	it(`can't be built inside a building, and doesn't charge you`, () => {
+		const building: Obstacle = { kind: 'building', x: 20, y: -50, w: 100, h: 100, height: 100, blocksFlying: false, seed: 0 };
+		const { p, w } = setup('john', 'turret', [], [building]);
+		press(p, w, 0.1);
+		expect(w.turrets).toHaveLength(0);
+		expect(p.willpower).toBe(MAX_WILLPOWER);
+	});
+
+	it('counts as a structure, so John builds it cheaper', () => {
+		const hal = createPlayer(0, LANTERNS.hal, { read: () => IDLE }, 0, 0);
+		const john = createPlayer(0, LANTERNS.john, { read: () => IDLE }, 0, 0);
+		expect(costOf(john, CONSTRUCTS.turret)).toBeLessThan(costOf(hal, CONSTRUCTS.turret));
+	});
+});
+
+describe('John: Pillar Drop', () => {
+	it('warns first, then slams down: damage only after the warning', () => {
+		const d = createDummy(150, 0);
+		const { p, w } = setup('john', 'pillars', [d]);
+		p.attackTarget = { kind: 'enemy', dummy: d };
+		run(p, w, FIRE, DT);
+		run(p, w, IDLE, 0.2);
+		expect(d.hp).toBe(DUMMY_HP);
+		run(p, w, IDLE, 0.6);
+		expect(d.hp).toBeLessThan(DUMMY_HP);
+	});
+
+	it('stuns everything in the area', () => {
+		const a = createDummy(150, 0);
+		const b = createDummy(170, 30);
+		const { p, w } = setup('john', 'pillars', [a, b]);
+		p.attackTarget = { kind: 'enemy', dummy: a };
+		press(p, w, 0.7);
+		expect(a.stun).toBeGreaterThan(0);
+		expect(b.stun).toBeGreaterThan(0);
+	});
+
+	it('lands where the mouse points, up to its range', () => {
+		const { p, w } = setup('john', 'pillars');
+		p.aimReach = 5000;
+		run(p, w, FIRE, DT);
+		const s = w.pillarStrikes[0];
+		expect(Math.hypot(s.x, s.y)).toBeLessThanOrEqual(CONSTRUCTS.pillars.range + 1e-6);
 	});
 });

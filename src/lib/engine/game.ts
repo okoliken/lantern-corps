@@ -2,6 +2,7 @@
 // It's plain TypeScript, with no Svelte, so it can run in /play, in any
 // /lab page, and in tests.
 
+import { castBeam } from './beam';
 import { Camera } from './camera';
 import type { View } from './canvas';
 import {
@@ -14,8 +15,10 @@ import {
 	type ConstructWorld
 } from './constructs/system';
 import {
+	drawAutoTurret,
 	drawChain,
 	drawDummy,
+	drawLaserSight,
 	drawEffect,
 	drawHeldConstruct,
 	drawProjectile,
@@ -345,6 +348,9 @@ export class Game {
 		for (const b of this.batteries) {
 			ground.push({ baseY: b.y, draw: () => drawBattery(ctx, b, env.hasGround, this.time) });
 		}
+		for (const t of cw.turrets) {
+			ground.push({ baseY: t.y, draw: () => drawAutoTurret(ctx, t, this.time) });
+		}
 		for (const d of this.dummies) {
 			const x = lerp(d.prevX, d.x, alpha);
 			const y = lerp(d.prevY, d.y, alpha);
@@ -378,8 +384,14 @@ export class Game {
 					overlays.push(() => drawBeam(ctx, rx, ry, p.aimX, p.aimY, p.beamLength, p.beamLength < def.range, this.time));
 				}
 				const held = p.firing ? def.shape : p.actionShape;
-				if (held === 'minigun' || held === 'cannon') {
+				if (held === 'minigun' || held === 'cannon' || held === 'sniper') {
 					overlays.push(() => drawHeldConstruct(ctx, held, rx, ry, p.aimX, p.aimY, this.time));
+				}
+				if (p.charge > 0 && def.behavior === 'snipe') {
+					// Laser sight to where the shot would stop (the first solid, unbreakable thing)
+					const blockers = map.obstacles.filter((o) => o.kind !== 'wall' && o.hp === undefined);
+					const { length } = castBeam(p.x + p.ringDX, p.y, p.aimX, p.aimY, blockers, def.range);
+					overlays.push(() => drawLaserSight(ctx, rx, ry, p.aimX, p.aimY, length, p.charge, this.time));
 				}
 			}
 
@@ -474,6 +486,7 @@ export class Game {
 				selected: p.selected,
 				slots: p.loadout.map((def, s) => ({
 					name: def.name,
+					short: def.short ?? def.name,
 					key: shortLabel(this.inputs[i].bindings[SLOT_ACTIONS[s]]),
 					cooldown: def.cooldown > 0 ? Math.min(1, p.cooldowns[s] / (def.cooldown * p.def.traits.cooldown)) : 0,
 					affordable: canSpend(p, def.behavior === 'beam' ? 15 : costOf(p, def))

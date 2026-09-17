@@ -117,7 +117,10 @@ Every construct, whether preset or custom, uses one of 8 **behavior types**:
 
 - **Presets** go on hotkeys for fast combat. Hal and John have different sets:
   - **Hal:** Beam, Minigun (rapid), Sword (slash), Giant Fist (smash), Chain (grab)
-  - **John:** Beam, Cannon (heavy), Energy Wall (barrier), Cage (trap), Shockwave (area)
+  - **John (Marine + architect):** Beam, **Sniper Rifle** (hold to charge, release: piercing shot through a
+    whole line), Energy Wall, **Auto-Turret** (builds a turret that fights on its own, max 2), **Pillar Drop**
+    (warning circle, then pillars slam down: damage + stun)
+  - Cannon, Cage and Shockwave stay defined for the Ring Forge (M8) but aren't in a loadout.
 - The **beam** is the ring's basic hold-to-fire construct, on top of the 8 types. Beam and rapid are
   held; everything else fires once per press, with a cooldown.
 - **Traits** (in `lanterns.ts`): Hal ×1.2 power, ×0.85 cooldowns, ×0.75 durability. John ×1.4

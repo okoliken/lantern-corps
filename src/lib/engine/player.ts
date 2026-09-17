@@ -43,6 +43,8 @@ export interface Player {
 	 */
 	ringDX: number;
 	ringLift: number;
+	/** How far away the mouse crosshair is (world px), or null when not mouse aiming. */
+	aimReach: number | null;
 
 	// ---- Targeting (see targeting.ts) ----
 	/** What the Target key has locked onto, if anything. */
@@ -73,6 +75,8 @@ export interface Player {
 	firing: boolean;
 	/** How far the beam reached this tick (for drawing). */
 	beamLength: number;
+	/** Sniper Rifle charge, 0..1, while the construct button is held. */
+	charge: number;
 	/** Seconds left on a one-shot action's arm pose (swing, punch, throw). */
 	actionTimer: number;
 	/** Which construct that action was, for drawing. */
@@ -152,6 +156,7 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		aimY: 0,
 		ringDX: 0,
 		ringLift: 0,
+		aimReach: null,
 		lock: null,
 		attackTarget: null,
 		protectTarget: null,
@@ -172,6 +177,7 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		cooldowns: loadout.map(() => 0),
 		firing: false,
 		beamLength: 0,
+		charge: 0,
 		actionTimer: 0,
 		actionShape: null
 	};

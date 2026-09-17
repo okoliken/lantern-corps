@@ -214,6 +214,8 @@ export function drawChargeLink(
 
 export interface HudSlot {
 	name: string;
+	/** Short label for inside the slot box. */
+	short: string;
 	/** Key that selects it, e.g. "1". */
 	key: string;
 	/** 0 = ready, 1 = just used. */
@@ -340,7 +342,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 			ctx.textBaseline = 'middle';
 			ctx.font = '600 9px system-ui, sans-serif';
 			ctx.fillStyle = s.affordable ? 'rgba(216, 245, 224, 0.95)' : 'rgba(216, 245, 224, 0.35)';
-			ctx.fillText(abbreviate(s.name), sx + box / 2, slotsY + box / 2 + 3);
+			ctx.fillText(abbreviate(s.short), sx + box / 2, slotsY + box / 2 + 3);
 			ctx.textAlign = 'left';
 			ctx.textBaseline = 'top';
 			ctx.font = '9px ui-monospace, monospace';

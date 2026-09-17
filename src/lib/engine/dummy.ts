@@ -29,12 +29,14 @@ export interface Dummy {
 	caged: number;
 	/** Seconds left on the white hit-flash. */
 	flash: number;
+	/** Seconds left dazed (Pillar Drop): can't move, can still be hit and knocked. */
+	stun: number;
 	/** Seconds until it respawns. 0 = standing. */
 	down: number;
 }
 
 export function createDummy(x: number, y: number): Dummy {
-	return { x, y, prevX: x, prevY: y, vx: 0, vy: 0, hp: DUMMY_HP, homeX: x, homeY: y, caged: 0, flash: 0, down: 0 };
+	return { x, y, prevX: x, prevY: y, vx: 0, vy: 0, hp: DUMMY_HP, homeX: x, homeY: y, caged: 0, flash: 0, stun: 0, down: 0 };
 }
 
 export function isStanding(d: Dummy): boolean {
@@ -64,6 +66,7 @@ export function hitDummy(d: Dummy, damage: number, knockback: number, fromX: num
 		d.down = DUMMY_RESPAWN;
 		d.vx = d.vy = 0;
 		d.caged = 0;
+		d.stun = 0;
 		return true;
 	}
 	return false;
@@ -89,6 +92,7 @@ export function updateDummy(d: Dummy, dt: number, solids: readonly Solid[]) {
 		d.vx = d.vy = 0;
 		return;
 	}
+	d.stun = Math.max(0, d.stun - dt);
 
 	moveBody(d, dt, solids, DUMMY_HALF_W, DUMMY_HALF_H);
 	const keep = Math.exp(-FRICTION * dt);

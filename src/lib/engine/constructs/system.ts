@@ -10,14 +10,22 @@
 // Everything a construct can touch lives in a ConstructWorld, so this file
 // doesn't depend on Game and is easy to test on its own.
 
-import { castBeam } from '../beam';
+import { castBeam, castThrough } from '../beam';
 import { DUMMY_HALF_H, DUMMY_HALF_W, dummyBox, hitDummy, isStanding, type Dummy } from '../dummy';
 import type { Intent } from '../input';
 import type { Obstacle } from '../map';
 import { boxOverlap, type Solid } from '../physics';
 import type { Player } from '../player';
 import { RESTART_THRESHOLD, canSpend, spend } from '../willpower';
-import { BUBBLE_SHIELD, RING_SHOT, HELD_BEHAVIORS, MAX_TRAPS_PER_PLAYER, STRUCTURE_BEHAVIORS, type ConstructDef } from './defs';
+import {
+	BUBBLE_SHIELD,
+	HELD_BEHAVIORS,
+	MAX_TRAPS_PER_PLAYER,
+	MAX_TURRETS_PER_PLAYER,
+	RING_SHOT,
+	STRUCTURE_BEHAVIORS,
+	type ConstructDef
+} from './defs';
 
 // ------------------------------------------------------------ world state
 
@@ -92,7 +100,20 @@ export interface Shield {
 
 /** Visual-only things that play out and disappear. */
 export interface Effect {
-	kind: 'slash' | 'fist' | 'shockwave' | 'blast' | 'burst' | 'fizzle' | 'impact' | 'number' | 'snap' | 'pop' | 'callout';
+	kind:
+		| 'slash'
+		| 'fist'
+		| 'shockwave'
+		| 'blast'
+		| 'burst'
+		| 'fizzle'
+		| 'impact'
+		| 'number'
+		| 'snap'
+		| 'pop'
+		| 'callout'
+		| 'snipe'
+		| 'pillars';
 	x: number;
 	y: number;
 	age: number;
@@ -109,6 +130,30 @@ export interface Effect {
 	lift?: number;
 	/** Who made it: effects at hand height are drawn at that Lantern's ring height. */
 	owner?: Player;
+}
+
+/** An Auto-Turret construct, built on the ground, shooting on its own. */
+export interface Turret {
+	owner: Player;
+	def: ConstructDef;
+	x: number;
+	y: number;
+	/** Direction the barrels point (radians). */
+	aim: number;
+	cooldown: number;
+	life: number;
+	maxLife: number;
+	hp: number;
+	maxHp: number;
+}
+
+/** Pillars on their way down: they land when `time` runs out. */
+export interface PillarStrike {
+	owner: Player;
+	def: ConstructDef;
+	x: number;
+	y: number;
+	time: number;
 }
 
 /** John's Fortress: a dome that keeps enemies out, protects allies, and fires turrets. */
@@ -131,11 +176,13 @@ export interface ConstructWorld {
 	pending: PendingSmash[];
 	shields: Shield[];
 	fortresses: Fortress[];
+	turrets: Turret[];
+	pillarStrikes: PillarStrike[];
 	effects: Effect[];
 }
 
 export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[]): ConstructWorld {
-	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], effects: [] };
+	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], pillarStrikes: [], effects: [] };
 }
 
 // --------------------------------------------------------------- tuning
@@ -198,10 +245,18 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
 	const before = p.selected;
 	if (intent.select >= 0 && intent.select < p.loadout.length) p.selected = intent.select;
 	if (intent.cycle !== 0) p.selected = (p.selected + intent.cycle + p.loadout.length) % p.loadout.length;
-	if (p.selected !== before) p.firing = false;
+	if (p.selected !== before) {
+		p.firing = false;
+		p.charge = 0;
+	}
 
 	const def = p.loadout[p.selected];
 	const slot = p.selected;
+
+	if (def.behavior === 'snipe') {
+		useSniper(p, def, intent.construct, dt, w);
+		return;
+	}
 
 	if (HELD_BEHAVIORS.has(def.behavior)) {
 		if (def.behavior === 'beam') useBeam(p, def, intent.construct, dt, w);
@@ -283,6 +338,82 @@ function useRapid(p: Player, def: ConstructDef, held: boolean, w: ConstructWorld
 	p.cooldowns[slot] = def.cooldown * p.def.traits.cooldown;
 }
 
+// ----------------------------------------------------------- sniper rifle
+
+/** Tap is about a third of full power; holding for `def.charge` seconds is full power. */
+const SNIPER_MIN_POWER = 0.3;
+
+/**
+ * Hold to charge (moving slowly, laser sight on), release to fire a piercing
+ * shot through every enemy in a line. Breakable things along the way take
+ * damage too; the shot stops at the first solid, unbreakable thing.
+ */
+function useSniper(p: Player, def: ConstructDef, held: boolean, dt: number, w: ConstructWorld) {
+	p.beamLength = 0;
+	const slot = p.selected;
+	const canStart = p.cooldowns[slot] === 0 && canSpend(p, costOf(p, def));
+	if (held && (p.charge > 0 || canStart)) {
+		p.charge = Math.min(1, p.charge + dt / (def.charge ?? 1));
+		// Aim pose + slow movement while lining up the shot
+		p.firing = true;
+		return;
+	}
+	p.firing = false;
+	if (p.charge === 0) return;
+
+	// Released: fire (if it can still be afforded)
+	const charge = p.charge;
+	p.charge = 0;
+	if (!canSpend(p, costOf(p, def))) return;
+	fireSniper(p, def, charge, w);
+	spend(p, costOf(p, def));
+	gainSurge(p, SURGE_PER_CONSTRUCT);
+	p.cooldowns[slot] = def.cooldown * p.def.traits.cooldown;
+	p.shotTimer = SHOT_POSE_TIME;
+	p.actionShape = def.shape;
+}
+
+function fireSniper(p: Player, def: ConstructDef, charge: number, w: ConstructWorld) {
+	const ox = p.x + p.ringDX;
+	const oy = p.y;
+	const scale = SNIPER_MIN_POWER + (1 - SNIPER_MIN_POWER) * charge;
+	const damage = power(p, def.damage) * scale;
+	const knockback = power(p, def.knockback) * scale;
+
+	type Hit = Obstacle | (Solid & { dummy: Dummy });
+	const targets: Hit[] = [
+		...w.obstacles.filter((o) => o.kind !== 'wall'),
+		...w.dummies.filter(isStanding).map((d) => ({ ...dummyBox(d), dummy: d }))
+	];
+
+	let length = def.range;
+	for (const { distance, hit } of castThrough<Hit>(ox, oy, p.aimX, p.aimY, targets, def.range)) {
+		if ('dummy' in hit) {
+			hitDummyWithFx(w, hit.dummy, damage, knockback, hit.dummy.x - p.aimX * 10, hit.dummy.y - p.aimY * 10, p);
+			w.effects.push({ kind: 'impact', x: hit.dummy.x, y: hit.dummy.y, age: 0, life: 0.2, owner: p, lift: p.ringLift });
+		} else if (hit.hp !== undefined) {
+			damageObstacle(w, hit, damage);
+		} else {
+			// A building, rock or asteroid: the shot stops here
+			length = distance;
+			break;
+		}
+	}
+
+	w.effects.push({
+		kind: 'snipe',
+		x: ox,
+		y: oy,
+		age: 0,
+		life: 0.4,
+		angle: Math.atan2(p.aimY, p.aimX),
+		value: length,
+		radius: charge,
+		owner: p,
+		lift: p.ringLift
+	});
+}
+
 // --------------------------------------------------------- one-shot uses
 
 /** Start a one-shot construct. Returns false if it couldn't happen (nothing spent). */
@@ -318,6 +449,11 @@ function perform(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 			return true;
 		case 'area':
 			shockwave(p, def, w);
+			return true;
+		case 'turret':
+			return placeTurret(p, def, w);
+		case 'pillars':
+			dropPillars(p, def, w);
 			return true;
 		default:
 			return false;
@@ -421,6 +557,63 @@ function placeTrap(p: Player, def: ConstructDef, w: ConstructWorld) {
 	w.effects.push({ kind: 'snap', x, y, age: 0, life: 0.4, radius: def.radius });
 }
 
+/** Build an Auto-Turret just ahead of the ring. Not inside solid things. */
+function placeTurret(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
+	const x = p.x + p.ringDX + p.aimX * def.range;
+	const y = p.y + p.aimY * def.range;
+	if (w.obstacles.some((o) => boxOverlap(x, y, 10, 6, o))) return false;
+
+	const mine = w.turrets.filter((t) => t.owner === p);
+	if (mine.length >= MAX_TURRETS_PER_PLAYER) {
+		const oldest = mine[0];
+		w.turrets.splice(w.turrets.indexOf(oldest), 1);
+		w.effects.push({ kind: 'fizzle', x: oldest.x, y: oldest.y - 16, age: 0, life: 0.5 });
+	}
+	const life = durable(p, def.duration ?? 12);
+	const hp = durable(p, def.hp ?? 80);
+	w.turrets.push({
+		owner: p,
+		def,
+		x,
+		y,
+		aim: Math.atan2(p.aimY, p.aimX),
+		cooldown: 0.5,
+		life,
+		maxLife: life,
+		hp,
+		maxHp: hp
+	});
+	w.effects.push({ kind: 'snap', x, y, age: 0, life: 0.4, radius: 30 });
+	return true;
+}
+
+/**
+ * Pillar Drop: mark a spot (the target, or where you're aiming), and after a
+ * short warning the pillars slam down there.
+ */
+function dropPillars(p: Player, def: ConstructDef, w: ConstructWorld) {
+	const ox = p.x + p.ringDX;
+	let x: number;
+	let y: number;
+	const t = p.attackTarget;
+	if (t && t.kind !== 'ally') {
+		[x, y] = t.kind === 'enemy' ? [t.dummy.x, t.dummy.y] : center(t.obstacle);
+	} else {
+		// Toward the crosshair if aiming with a mouse, else a fixed distance ahead
+		const reach = Math.min(def.range, Math.max(60, p.aimReach ?? def.range * 0.6));
+		x = ox + p.aimX * reach;
+		y = p.y + p.aimY * reach;
+	}
+	// Never further than the construct's range
+	const dist = Math.hypot(x - ox, y - p.y);
+	if (dist > def.range) {
+		x = ox + ((x - ox) / dist) * def.range;
+		y = p.y + ((y - p.y) / dist) * def.range;
+	}
+	w.pillarStrikes.push({ owner: p, def, x, y, time: def.charge ?? 0.5 });
+	w.effects.push({ kind: 'pillars', x, y, age: 0, life: (def.charge ?? 0.5) + 0.9, radius: def.radius, owner: p });
+}
+
 function shockwave(p: Player, def: ConstructDef, w: ConstructWorld) {
 	for (const d of w.dummies) {
 		if (isStanding(d) && Math.hypot(d.x - p.x, d.y - p.y) <= def.range + DUMMY_HALF_W) {
@@ -510,6 +703,8 @@ export function updateConstructWorld(w: ConstructWorld, dt: number) {
 	updatePending(w, dt);
 	updateTethers(w, dt);
 	updateTraps(w, dt);
+	updateTurrets(w, dt);
+	updatePillarStrikes(w, dt);
 
 	for (const s of [...w.shields]) {
 		s.life -= dt;
@@ -684,6 +879,71 @@ function updateTethers(w: ConstructWorld, dt: number) {
 		active.push(t);
 	}
 	w.tethers = active;
+}
+
+/** Turret barrel height above the ground (matches drawAutoTurret). */
+export const AUTO_TURRET_HEAD = 18;
+
+function updateTurrets(w: ConstructWorld, dt: number) {
+	const alive: Turret[] = [];
+	for (const t of w.turrets) {
+		t.life -= dt;
+		if (t.life <= 0 || t.hp <= 0) {
+			w.effects.push({ kind: 'fizzle', x: t.x, y: t.y - 16, age: 0, life: 0.5 });
+			continue;
+		}
+		alive.push(t);
+		t.cooldown -= dt;
+
+		// Nearest standing enemy in range
+		const range = t.def.radius ?? 360;
+		let target: Dummy | null = null;
+		let best = range;
+		for (const d of w.dummies) {
+			if (!isStanding(d)) continue;
+			const dist = Math.hypot(d.x - t.x, d.y - t.y);
+			if (dist <= best) {
+				best = dist;
+				target = d;
+			}
+		}
+		if (!target) continue;
+		t.aim = Math.atan2(target.y - t.y, target.x - t.x);
+		if (t.cooldown > 0) continue;
+
+		t.cooldown = 0.35;
+		const boltDef = { ...t.def, range: range + 40, damage: power(t.owner, t.def.damage), knockback: t.def.knockback };
+		const bolt = launch(t.owner, boltDef, 'bolt', Math.cos(t.aim), Math.sin(t.aim), w, {
+			x: t.x + Math.cos(t.aim) * 16,
+			y: t.y + Math.sin(t.aim) * 8
+		});
+		bolt.lift = AUTO_TURRET_HEAD;
+	}
+	w.turrets = alive;
+}
+
+function updatePillarStrikes(w: ConstructWorld, dt: number) {
+	const falling: PillarStrike[] = [];
+	for (const s of w.pillarStrikes) {
+		s.time -= dt;
+		if (s.time > 0) {
+			falling.push(s);
+			continue;
+		}
+		// Slam: damage and stun everything in the area
+		const p = s.owner;
+		const r = s.def.radius ?? 70;
+		for (const d of w.dummies) {
+			if (!isStanding(d) || Math.hypot(d.x - s.x, d.y - s.y) > r + DUMMY_HALF_W) continue;
+			hitDummyWithFx(w, d, power(p, s.def.damage), power(p, s.def.knockback), s.x, s.y, p);
+			if (isStanding(d)) d.stun = durable(p, s.def.stun ?? 1);
+		}
+		for (const o of breakables(w)) {
+			const [cx, cy] = center(o);
+			if (Math.hypot(cx - s.x, cy - s.y) <= r + Math.max(o.w, o.h) / 2) damageObstacle(w, o, power(p, s.def.damage));
+		}
+	}
+	w.pillarStrikes = falling;
 }
 
 function updateTraps(w: ConstructWorld, dt: number) {
