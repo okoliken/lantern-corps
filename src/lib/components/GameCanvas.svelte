@@ -20,15 +20,18 @@
 
 	onMount(() => {
 		const { ctx, view, destroy } = fitCanvas(canvas);
+		game.setView(view);
+		const detachKeys = game.keyboard.attach(window);
 		const stop = startLoop({
 			update: (dt) => game.update(dt),
-			render: () => game.render(ctx, view),
+			render: (alpha) => game.render(ctx, alpha),
 			onStats: (s) => (stats = s)
 		});
 
 		// Returning a function from onMount = cleanup on unmount.
 		return () => {
 			stop();
+			detachKeys();
 			destroy();
 		};
 	});

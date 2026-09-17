@@ -67,7 +67,7 @@ Parallax (final boss).
 - [x] **M0** SvelteKit setup, routes (`/`, `/play`, `/lab`), responsive canvas, fixed-timestep loop, lab guard, tests
 
 **Phase 1: Single-player core**
-- [ ] **M1** Character select (Hal/John), top-down movement, input sources
+- [x] **M1** Character select (Hal/John), top-down movement, input sources
 - [ ] **M2** Test map with obstacles, fly/land states, following camera
 - [ ] **M3** Willpower + Lantern battery, first construct (beam)
 - [ ] **M4** Construct system: 8 behavior types, Hal and John preset sets on hotkeys

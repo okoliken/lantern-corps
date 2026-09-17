@@ -15,7 +15,8 @@
 		}
 	}
 
-	const game = new LaggyGame();
+	// Move Hal around while adding lag: the motion should stay the same speed.
+	const game = new LaggyGame({ players: [{ lantern: 'hal', keys: 'both' }] });
 	let lag = $state(0);
 
 	$effect(() => {
@@ -30,8 +31,8 @@
 			<input type="range" min="0" max="60" bind:value={lag} />
 		</label>
 		<p>
-			fps should drop as lag goes up. ups should stay near 60, and the pulse speed shouldn't change,
-			just get choppier.
+			fps should drop as lag goes up. ups should stay near 60, and Hal's speed shouldn't change,
+			just get choppier. Move with WASD or the arrow keys.
 		</p>
 	</div>
 	<div class="stage">

@@ -1,7 +1,8 @@
 <script lang="ts">
 	// Index of test pages. Add a line here for each new lab.
 	const labs = [
-		{ href: '/lab/loop', name: 'Game loop', about: 'Fixed timestep: fps vs ups, simulated lag.' }
+		{ href: '/lab/loop', name: 'Game loop', about: 'Fixed timestep: fps vs ups, simulated lag.' },
+		{ href: '/lab/movement', name: 'Movement', about: 'Hal (WASD) and John (arrows) at the same time.' }
 	];
 </script>
 
