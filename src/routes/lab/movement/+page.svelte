@@ -3,15 +3,22 @@
 	// sources really are separate from players, which co-op (M7) depends on.
 	import { onMount } from 'svelte';
 	import GameCanvas from '$lib/components/GameCanvas.svelte';
+	import type { EnvironmentKind } from '$lib/engine/environment';
 	import { Game } from '$lib/engine/game';
 
-	const game = new Game({
-		players: [
-			{ lantern: 'hal', keys: 'wasd' },
-			{ lantern: 'john', keys: 'arrows' }
-		],
-		showSlots: true
-	});
+	let environment = $state<EnvironmentKind>('space');
+
+	// A fresh Game whenever the environment changes.
+	const game = $derived(
+		new Game({
+			players: [
+				{ lantern: 'hal', keys: 'wasd' },
+				{ lantern: 'john', keys: 'arrows' }
+			],
+			environment,
+			showSlots: true
+		})
+	);
 
 	// Live readout. Polling a few times a second is plenty for a debug panel,
 	// and it keeps Svelte out of the 60-tick game loop.
@@ -30,6 +37,11 @@
 
 <div class="page">
 	<div class="controls">
+		<span class="envs">
+			{#each ['space', 'planet'] as const as env (env)}
+				<button class:on={environment === env} onclick={() => (environment = env)}>{env}</button>
+			{/each}
+		</span>
 		<span><kbd>WASD</kbd> Hal</span>
 		<span><kbd>Arrows</kbd> John</span>
 		{#each rows as row (row.name)}
@@ -37,7 +49,9 @@
 		{/each}
 	</div>
 	<div class="stage">
-		<GameCanvas {game} showStats />
+		{#key game}
+			<GameCanvas {game} showStats />
+		{/key}
 	</div>
 </div>
 
@@ -57,6 +71,26 @@
 	.readout {
 		font-family: ui-monospace, monospace;
 		opacity: 0.75;
+	}
+	.envs {
+		display: inline-flex;
+		gap: 0.25rem;
+	}
+	button {
+		font: inherit;
+		font-size: 0.8rem;
+		text-transform: capitalize;
+		padding: 0.15rem 0.6rem;
+		color: var(--text);
+		background: transparent;
+		border: 1px solid var(--green-dim);
+		border-radius: 4px;
+		cursor: pointer;
+	}
+	button.on {
+		background: var(--green);
+		color: var(--bg);
+		border-color: var(--green);
 	}
 	kbd {
 		padding: 0.05rem 0.35rem;

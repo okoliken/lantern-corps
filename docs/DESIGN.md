@@ -19,6 +19,16 @@ Same as project-7: the **world is seen from above** (move up/down/left/right fre
 **characters are drawn side-on**, standing upright, facing left or right, legs animating, with a
 ground shadow. Positions are the characters' feet, and lower on screen is drawn in front.
 
+## Environments
+Every mission is either **space** or **planet**:
+- **Space:** Lanterns are always flying. They hover, lean into the direction of travel with the ring
+  arm forward, and have the green aura and a glowing ring. There's no ground, so no shadow.
+- **Planet:** Lanterns walk with a ground shadow and **no glow**; the ring is just a small light.
+  Take-off and landing (below) apply here.
+
+Rules live in `src/lib/engine/environment.ts`. Test either with `/play?as=hal&env=planet` or the
+toggle in `/lab/movement`.
+
 ## Movement: ground and air
 The Lanterns have two states, not a full height system.
 - **Ground:** blocked by walls and buildings, can interact and rescue, recharges willpower faster.

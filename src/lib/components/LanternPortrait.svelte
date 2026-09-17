@@ -25,9 +25,10 @@
 		const frame = (now: number) => {
 			const t = (now - start) / 1000;
 			ctx.clearRect(0, 0, size, size);
-			// Standing idle, facing right. Feet sit low so the figure is centred.
+			// Hovering in space with the glow on, facing right.
 			const scale = size / 90;
-			drawLantern(ctx, def, size / 2, size * 0.82, { dir: 1, walkPhase: 0 }, t, scale);
+			const pose = { dir: 1, walkPhase: 0, flying: true, lean: 0, glow: true } as const;
+			drawLantern(ctx, def, size / 2, size * 0.88, pose, t, scale);
 			raf = requestAnimationFrame(frame);
 		};
 		raf = requestAnimationFrame(frame);

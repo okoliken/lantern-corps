@@ -73,6 +73,14 @@ describe('updatePlayer', () => {
 		expect(p.walkPhase).toBe(0);
 	});
 
+	it('does not walk while flying', () => {
+		const p = make();
+		p.flying = true;
+		hold(p, RIGHT, 0.5);
+		expect(p.walkPhase).toBe(0);
+		expect(p.x).toBeGreaterThan(0);
+	});
+
 	it('remembers the previous position for smooth rendering', () => {
 		const p = make();
 		hold(p, RIGHT, 0.5);

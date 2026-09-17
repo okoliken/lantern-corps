@@ -17,12 +17,14 @@ export interface Player {
 	vy: number;
 	/** Which way the Lantern faces on screen: 1 = right, -1 = left. */
 	dir: 1 | -1;
-	/** Advances while moving; drives the leg swing animation. */
+	/** Advances while walking; drives the leg swing animation. Always 0 in the air. */
 	walkPhase: number;
+	/** Off the ground. In space this is always true. */
+	flying: boolean;
 }
 
 export function createPlayer(slot: number, def: LanternDef, input: InputSource, x: number, y: number): Player {
-	return { slot, def, input, x, y, prevX: x, prevY: y, vx: 0, vy: 0, dir: 1, walkPhase: 0 };
+	return { slot, def, input, x, y, prevX: x, prevY: y, vx: 0, vy: 0, dir: 1, walkPhase: 0, flying: false };
 }
 
 /** Move `current` toward `target` by at most `maxDelta`. */
@@ -58,9 +60,9 @@ export function updatePlayer(p: Player, intent: Intent, dt: number) {
 	// keeps whichever way they were already facing.
 	if (intent.moveX !== 0) p.dir = intent.moveX > 0 ? 1 : -1;
 
-	// Legs cycle faster the faster you go.
+	// Walking legs cycle faster the faster you go. Flying Lanterns don't walk.
 	const speed = Math.hypot(p.vx, p.vy);
-	p.walkPhase = speed > 5 ? p.walkPhase + speed * dt * 0.045 : 0;
+	p.walkPhase = !p.flying && speed > 5 ? p.walkPhase + speed * dt * 0.045 : 0;
 }
 
 /** Keep a player inside a rectangle, killing velocity into the wall. */

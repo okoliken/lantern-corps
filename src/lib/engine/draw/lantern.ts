@@ -1,10 +1,15 @@
-// Draws a Lantern standing side-on, like the characters in project-7.
+// Draws a Lantern side-on, like the characters in project-7.
 // The world is still seen from above (you move up/down/left/right), but
-// characters stand upright and face left or right. All art is code.
+// characters are upright and face left or right. All art is code.
 //
-// The origin (x, y) is the Lantern's FEET. Drawing from the feet up means:
-//  - sorting by y puts people lower on screen in front, which reads as depth
-//  - flying (M2) is just lifting the body while the shadow stays on the ground
+// Two poses:
+//  - WALKING (planet missions): legs swing, shadow on the ground, no glow
+//  - FLYING  (space missions): hovering, leaning into the direction of
+//    travel, ring arm reaching forward, green aura around the body
+//
+// The origin (x, y) is the Lantern's ANCHOR: their feet when walking, the
+// spot below them when flying. Sorting by that y gives depth (lower on
+// screen = closer = drawn on top).
 //
 // Everything is drawn facing RIGHT. To face left we mirror the canvas with
 // scale(-1, 1), so the drawing code never has to think about direction.
@@ -19,16 +24,23 @@ const SUIT_GREEN = '#0F4F34';
 
 /** Size multiplier for the whole figure. */
 const FIGURE_SCALE = 1.35;
-/** Rough height of the figure from feet to top of head, in world pixels. */
-export const FIGURE_HEIGHT = 50 * FIGURE_SCALE;
+/** How high a flying Lantern floats above their anchor, before scaling. */
+const HOVER_LIFT = 8;
+/** Rough height from anchor to top of head, in world pixels (flying is taller). */
+export const FIGURE_HEIGHT = (50 + HOVER_LIFT) * FIGURE_SCALE;
 /** Half the figure's width, used to keep them on screen. */
 export const FIGURE_HALF_WIDTH = 10 * FIGURE_SCALE;
 
 export interface LanternPose {
 	/** 1 = facing right, -1 = facing left. */
 	dir: 1 | -1;
-	/** Walk cycle angle. 0 when standing still. */
+	/** Walk cycle angle. 0 when standing still or flying. */
 	walkPhase: number;
+	flying: boolean;
+	/** 0..1, how hard a flying Lantern leans forward (from horizontal speed). */
+	lean: number;
+	/** Green aura and glowing ring (space only). */
+	glow: boolean;
 }
 
 export function drawLantern(
@@ -42,44 +54,82 @@ export function drawLantern(
 ) {
 	const s = FIGURE_SCALE * scale;
 	const pulse = 0.75 + 0.25 * Math.sin(time * 4);
-	const moving = pose.walkPhase !== 0;
-	const legSwing = moving ? Math.sin(pose.walkPhase) * 5 : 0;
-	// Idle: gentle breathing. Moving: a small bounce with each step.
-	const bob = moving ? Math.abs(Math.sin(pose.walkPhase)) * -1.5 : Math.sin(time * 2) * 0.6;
 
 	ctx.save();
 	ctx.translate(x, y);
 	ctx.scale(s, s);
 
-	// Ground shadow. Not mirrored, not bobbing: it belongs to the floor.
-	ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-	ctx.beginPath();
-	ctx.ellipse(0, 0, 11, 3.5, 0, 0, Math.PI * 2);
-	ctx.fill();
+	if (!pose.flying) {
+		// Ground shadow. Not mirrored, not bobbing: it belongs to the floor.
+		ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+		ctx.beginPath();
+		ctx.ellipse(0, 0, 11, 3.5, 0, 0, Math.PI * 2);
+		ctx.fill();
+	}
 
-	// Aura: soft green glow behind the body
-	const aura = ctx.createRadialGradient(0, -24, 4, 0, -24, 34);
-	aura.addColorStop(0, `rgba(61, 255, 110, ${0.22 * pulse})`);
-	aura.addColorStop(1, 'rgba(61, 255, 110, 0)');
-	ctx.fillStyle = aura;
-	ctx.beginPath();
-	ctx.arc(0, -24, 34, 0, Math.PI * 2);
-	ctx.fill();
+	// Where the body is lifted to (flying) or bouncing (walking)
+	const walking = !pose.flying && pose.walkPhase !== 0;
+	const lift = pose.flying
+		? -HOVER_LIFT + Math.sin(time * 2.2) * 1.6 // slow hover bob
+		: walking
+			? Math.abs(Math.sin(pose.walkPhase)) * -1.5 // step bounce
+			: Math.sin(time * 2) * 0.6; // idle breathing
+
+	if (pose.glow) {
+		const aura = ctx.createRadialGradient(0, -24 + lift, 4, 0, -24 + lift, 36);
+		aura.addColorStop(0, `rgba(61, 255, 110, ${0.26 * pulse})`);
+		aura.addColorStop(1, 'rgba(61, 255, 110, 0)');
+		ctx.fillStyle = aura;
+		ctx.beginPath();
+		ctx.arc(0, -24 + lift, 36, 0, Math.PI * 2);
+		ctx.fill();
+	}
 
 	ctx.scale(pose.dir, 1);
-	ctx.translate(0, bob);
+	ctx.translate(0, lift);
 	ctx.lineCap = 'round';
 	ctx.lineJoin = 'round';
 
-	// Back arm (behind the body), swinging opposite the front leg
-	limb(ctx, SUIT_BLACK, 4, -1, -31, -3 - legSwing * 0.6, -19);
-	glove(ctx, -3 - legSwing * 0.6, -19);
+	if (pose.flying) {
+		// Lean forward from the hips, like a superhero in flight.
+		ctx.translate(0, -15);
+		ctx.rotate(pose.lean * 0.9);
+		ctx.translate(0, 15);
+	}
 
-	// Legs: black suit, green boots
-	limb(ctx, SUIT_BLACK, 5, -2, -15, -2 + legSwing, -2);
-	limb(ctx, SUIT_BLACK, 5, 2, -15, 2 - legSwing, -2);
-	limb(ctx, SUIT_GREEN, 5, -2 + legSwing * 0.9, -5, -2 + legSwing, -1);
-	limb(ctx, SUIT_GREEN, 5, 2 - legSwing * 0.9, -5, 2 - legSwing, -1);
+	// ---- Limb positions for this pose ----
+	let backArm: [number, number];
+	let frontArm: [number, number];
+	let backLeg: [number, number];
+	let frontLeg: [number, number];
+
+	if (pose.flying) {
+		const dangle = Math.sin(time * 1.6) * 1.2 * (1 - pose.lean);
+		// Idle: arms relaxed at the sides. Fast: ring arm punches forward.
+		backArm = [-2.5, -19];
+		frontArm = [lerp(6, 13, pose.lean), lerp(-21, -34, pose.lean)];
+		// Legs together, trailing slightly behind
+		backLeg = [-2.5 + dangle, -1.5];
+		frontLeg = [0.5 + dangle, -1];
+	} else {
+		const swing = walking ? Math.sin(pose.walkPhase) * 5 : 0;
+		backArm = [-3 - swing * 0.6, -19];
+		frontArm = [6 + swing * 0.4, -20];
+		backLeg = [-2 + swing, -2];
+		frontLeg = [2 - swing, -2];
+	}
+
+	// Back arm (behind the body)
+	limb(ctx, SUIT_BLACK, 4, -1, -31, backArm[0], backArm[1]);
+	glove(ctx, backArm[0], backArm[1]);
+
+	// Legs: black suit, bottle-green boots
+	for (const [hipX, foot] of [[-2, backLeg], [2, frontLeg]] as const) {
+		limb(ctx, SUIT_BLACK, 5, hipX, -15, foot[0], foot[1]);
+		const bootX = lerp(hipX, foot[0], 0.72);
+		const bootY = lerp(-15, foot[1], 0.72);
+		limb(ctx, SUIT_GREEN, 5, bootX, bootY, foot[0], foot[1] + 1);
+	}
 
 	// Torso: green chest, black flanks
 	ctx.fillStyle = SUIT_BLACK;
@@ -121,23 +171,26 @@ export function drawLantern(
 		ctx.fillRect(3.8, -44.2, 2.6, 0.8);
 	}
 
-	// Front arm reaching slightly forward: the ring hand
-	const armX = 6 + legSwing * 0.4;
-	limb(ctx, SUIT_BLACK, 4, 2, -31, armX, -20);
-	glove(ctx, armX, -20);
+	// Front arm: the ring hand
+	limb(ctx, SUIT_BLACK, 4, 2, -31, frontArm[0], frontArm[1]);
+	glove(ctx, frontArm[0], frontArm[1]);
 
-	// Ring glow
+	// The ring. Glows in space; just a small light on a planet.
 	ctx.save();
-	ctx.shadowColor = GREEN;
-	ctx.shadowBlur = 10 * pulse;
-	ctx.fillStyle = '#d9ffe3';
+	if (pose.glow) {
+		ctx.shadowColor = GREEN;
+		ctx.shadowBlur = 10 * pulse;
+	}
+	ctx.fillStyle = pose.glow ? '#d9ffe3' : '#8fdca8';
 	ctx.beginPath();
-	ctx.arc(armX + 1, -20, 1.8, 0, Math.PI * 2);
+	ctx.arc(frontArm[0] + 1, frontArm[1], pose.glow ? 1.8 : 1.4, 0, Math.PI * 2);
 	ctx.fill();
 	ctx.restore();
 
 	ctx.restore();
 }
+
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 function drawHair(ctx: CanvasRenderingContext2D, def: LanternDef) {
 	ctx.fillStyle = def.look.hair;

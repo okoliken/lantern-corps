@@ -4,6 +4,7 @@
 
 import type { View } from './canvas';
 import { FIGURE_HALF_WIDTH, FIGURE_HEIGHT, GREEN, drawLantern, drawNameTag } from './draw/lantern';
+import { ENVIRONMENT_RULES, type EnvironmentKind } from './environment';
 import { KeyboardInput, KeyboardState, LAYOUTS, type LayoutName } from './input';
 import { LANTERNS, type LanternId } from './lanterns';
 import { clampToBounds, createPlayer, updatePlayer, type Player } from './player';
@@ -18,6 +19,8 @@ export interface PlayerConfig {
 
 export interface GameOptions {
 	players: PlayerConfig[];
+	/** Space: flying + glow. Planet: walking, no glow. Defaults to space. */
+	environment?: EnvironmentKind;
 	/** Show "P1"/"P2" under the name tags. */
 	showSlots?: boolean;
 }
@@ -37,22 +40,35 @@ export class Game {
 	readonly keyboard = new KeyboardState();
 	readonly players: Player[];
 
+	readonly environment: EnvironmentKind;
 	private stars: Star[];
+	/** Ground speckles for planet missions (placeholder until M2 maps). */
+	private pebbles: Star[];
 	private showSlots: boolean;
 	/** The drawable area. Until the world has a map (M2), the screen is the arena. */
 	private view: View = { width: 0, height: 0 };
 	private spawned = false;
 
-	constructor({ players, showSlots = false }: GameOptions) {
-		this.players = players.map((cfg, slot) =>
-			createPlayer(slot, LANTERNS[cfg.lantern], new KeyboardInput(this.keyboard, LAYOUTS[cfg.keys]), 0, 0)
-		);
+	constructor({ players, environment = 'space', showSlots = false }: GameOptions) {
+		this.environment = environment;
+		const rules = ENVIRONMENT_RULES[environment];
+		this.players = players.map((cfg, slot) => {
+			const p = createPlayer(slot, LANTERNS[cfg.lantern], new KeyboardInput(this.keyboard, LAYOUTS[cfg.keys]), 0, 0);
+			p.flying = rules.alwaysFlying;
+			return p;
+		});
 		this.showSlots = showSlots;
 		this.stars = Array.from({ length: 180 }, () => ({
 			x: Math.random(),
 			y: Math.random(),
 			size: Math.random() * 1.6 + 0.3,
 			twinkle: Math.random() * Math.PI * 2
+		}));
+		this.pebbles = Array.from({ length: 260 }, () => ({
+			x: Math.random(),
+			y: Math.random(),
+			size: Math.random() * 3 + 1,
+			twinkle: Math.random()
 		}));
 	}
 
@@ -96,6 +112,26 @@ export class Game {
 	render(ctx: CanvasRenderingContext2D, alpha = 1) {
 		const { width, height } = this.view;
 
+		if (this.environment === 'space') this.drawSpace(ctx, width, height);
+		else this.drawPlanet(ctx, width, height);
+
+		if (!this.spawned) return;
+		const glow = ENVIRONMENT_RULES[this.environment].glow;
+		// Painter's order: whoever is lower on screen is closer to the viewer,
+		// so draw them last (on top).
+		const byDepth = [...this.players].sort((a, b) => a.y - b.y);
+		for (const p of byDepth) {
+			const x = lerp(p.prevX, p.x, alpha);
+			const y = lerp(p.prevY, p.y, alpha);
+			// Lean comes from horizontal speed: flying sideways fast = full lean.
+			const lean = Math.min(Math.abs(p.vx) / p.def.maxSpeed, 1);
+			drawLantern(ctx, p.def, x, y, { ...p, lean, glow }, this.time);
+			const tag = this.showSlots ? `P${p.slot + 1} · ${p.def.name}` : p.def.name;
+			drawNameTag(ctx, tag, x, y);
+		}
+	}
+
+	private drawSpace(ctx: CanvasRenderingContext2D, width: number, height: number) {
 		ctx.fillStyle = '#03060a';
 		ctx.fillRect(0, 0, width, height);
 
@@ -107,19 +143,20 @@ export class Game {
 		}
 		ctx.globalAlpha = 1;
 
-		// Faint Corps emblem in the background, like a floor marking
+		// Faint Corps emblem in the background
 		this.drawEmblem(ctx, width / 2, height / 2, Math.min(width, height) * 0.12, 0.25);
+	}
 
-		if (!this.spawned) return;
-		// Painter's order: whoever is lower on screen is closer to the viewer,
-		// so draw them last (on top).
-		const byDepth = [...this.players].sort((a, b) => a.y - b.y);
-		for (const p of byDepth) {
-			const x = lerp(p.prevX, p.x, alpha);
-			const y = lerp(p.prevY, p.y, alpha);
-			drawLantern(ctx, p.def, x, y, p, this.time);
-			const tag = this.showSlots ? `P${p.slot + 1} · ${p.def.name}` : p.def.name;
-			drawNameTag(ctx, tag, x, y);
+	/** Placeholder planet surface: dusty ground with pebbles. Real maps come in M2. */
+	private drawPlanet(ctx: CanvasRenderingContext2D, width: number, height: number) {
+		ctx.fillStyle = '#3b3a2e';
+		ctx.fillRect(0, 0, width, height);
+
+		for (const p of this.pebbles) {
+			ctx.fillStyle = p.twinkle > 0.5 ? 'rgba(20, 18, 12, 0.35)' : 'rgba(120, 112, 88, 0.35)';
+			ctx.beginPath();
+			ctx.ellipse(p.x * width, p.y * height, p.size, p.size * 0.6, 0, 0, Math.PI * 2);
+			ctx.fill();
 		}
 	}
 

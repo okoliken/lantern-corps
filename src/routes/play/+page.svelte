@@ -1,6 +1,8 @@
 <script lang="ts">
-	// /play          -> character select
-	// /play?as=hal   -> playing as Hal (refreshing keeps your pick)
+	// /play                    -> character select
+	// /play?as=hal             -> playing as Hal in space (refreshing keeps your pick)
+	// /play?as=hal&env=planet  -> on a planet: walking, no glow
+	//                             (until missions exist, this is how we test both)
 	//
 	// Keeping the choice in the URL means it's shareable, survives a
 	// refresh, and the browser Back button returns to the select screen.
@@ -8,19 +10,24 @@
 	import GameCanvas from '$lib/components/GameCanvas.svelte';
 	import LanternPortrait from '$lib/components/LanternPortrait.svelte';
 	import { Game } from '$lib/engine/game';
+	import { isEnvironmentKind } from '$lib/engine/environment';
 	import { LANTERNS, isLanternId } from '$lib/engine/lanterns';
 
 	const as = $derived(page.url.searchParams.get('as'));
 	const lantern = $derived(isLanternId(as) ? as : null);
+	const envParam = $derived(page.url.searchParams.get('env'));
+	const environment = $derived(isEnvironmentKind(envParam) ? envParam : 'space');
+	const otherEnv = $derived(environment === 'space' ? 'planet' : 'space');
 </script>
 
 {#if lantern}
 	<div class="screen">
 		<!-- {#key} throws away the old game and builds a fresh one if the pick changes -->
-		{#key lantern}
-			<GameCanvas game={new Game({ players: [{ lantern, keys: 'both' }] })} />
+		{#key `${lantern}-${environment}`}
+			<GameCanvas game={new Game({ players: [{ lantern, keys: 'both' }], environment })} />
 		{/key}
 		<a class="back" href="/play">← Change Lantern</a>
+		<a class="env" href="/play?as={lantern}&env={otherEnv}">Test on {otherEnv} →</a>
 		<div class="hint">Move: WASD or arrow keys</div>
 	</div>
 {:else}
@@ -55,6 +62,14 @@
 		position: absolute;
 		top: 10px;
 		left: 12px;
+		font-size: 0.9rem;
+		text-decoration: none;
+		opacity: 0.7;
+	}
+	.env {
+		position: absolute;
+		top: 10px;
+		right: 12px;
 		font-size: 0.9rem;
 		text-decoration: none;
 		opacity: 0.7;
