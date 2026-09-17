@@ -219,8 +219,9 @@ export class Game {
 		for (const p of this.players) {
 			const intent = p.input.read();
 			updatePlayer(p, intent, dt, this.rules);
-			// Keep feet inside the map, with room above for the body
-			clampToBounds(p, FIGURE_HALF_WIDTH, FIGURE_HEIGHT, map.width - FIGURE_HALF_WIDTH, map.height - 6);
+			// Keep feet inside the map, with room above for the body (and the flying height)
+			const top = FIGURE_HEIGHT + this.poseFor(p).hoverHeight * p.altitude * 1.35;
+			clampToBounds(p, FIGURE_HALF_WIDTH, top, map.width - FIGURE_HALF_WIDTH, map.height - 6);
 			// The crosshair sits where you SEE the shot land, at ring height. Shots
 			// travel along the ground plane, so drop the aim point by that height.
 			const pointer = intent.pointer && { x: intent.pointer.x, y: intent.pointer.y + p.ringLift };

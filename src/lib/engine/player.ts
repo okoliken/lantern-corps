@@ -125,7 +125,7 @@ export const FLY_SPEED_BONUS = 1.25;
 /** Holding the beam or minigun steady slows you down. */
 export const FIRING_SPEED_FACTOR = 0.55;
 /** Seconds to rise from the ground to full height (and back down). */
-export const TAKEOFF_TIME = 0.25;
+export const TAKEOFF_TIME = 0.35;
 /** The collision box around a Lantern's anchor (their feet): 16 x 10 px. */
 export const FEET_HALF_W = 8;
 export const FEET_HALF_H = 5;

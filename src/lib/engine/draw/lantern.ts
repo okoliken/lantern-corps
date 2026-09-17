@@ -23,7 +23,7 @@ const FIGURE_SCALE = 1.35;
 export const FIGURE_HEIGHT = STANDING_HEIGHT * FIGURE_SCALE;
 /** How high Lanterns float, before scaling. Over a planet they fly higher so it reads as airborne. */
 export const HOVER_SPACE = 8;
-export const HOVER_PLANET = 26;
+export const HOVER_PLANET = 58;
 /** Half the figure's width, used to keep them on screen. */
 export const FIGURE_HALF_WIDTH = 10 * FIGURE_SCALE;
 
