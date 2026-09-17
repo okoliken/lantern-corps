@@ -19,6 +19,8 @@ export interface LanternDef {
 		hair: string;
 		/** Hal's hair sits up with a side sweep; John's is cropped short. */
 		hairStyle: 'swept' | 'cropped';
+		/** Hal wears the domino mask; John goes without one. */
+		mask: boolean;
 	};
 }
 
@@ -31,7 +33,7 @@ export const LANTERNS: Record<LanternId, LanternDef> = {
 		maxSpeed: 320,
 		accel: 2600,
 		decel: 2000,
-		look: { skin: '#e2b48e', hair: '#5b3a21', hairStyle: 'swept' }
+		look: { skin: '#e2b48e', hair: '#5b3a21', hairStyle: 'swept', mask: true }
 	},
 	john: {
 		id: 'john',
@@ -41,7 +43,7 @@ export const LANTERNS: Record<LanternId, LanternDef> = {
 		maxSpeed: 280,
 		accel: 2200,
 		decel: 2600,
-		look: { skin: '#6e4529', hair: '#171310', hairStyle: 'cropped' }
+		look: { skin: '#6e4529', hair: '#171310', hairStyle: 'cropped', mask: false }
 	}
 };
 

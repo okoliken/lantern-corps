@@ -105,12 +105,19 @@ export function drawLantern(
 	ctx.fill();
 	drawHair(ctx, def);
 
-	// Domino mask across the eyes, facing forward
-	ctx.fillStyle = SUIT_GREEN;
-	roundRect(ctx, 1, -43, 6.5, 3, 1.5);
-	ctx.fill();
-	ctx.fillStyle = '#eafff0';
-	ctx.fillRect(4.5, -42.2, 1.6, 1.3);
+	if (def.look.mask) {
+		// Domino mask across the eyes, facing forward
+		ctx.fillStyle = SUIT_GREEN;
+		roundRect(ctx, 1, -43, 6.5, 3, 1.5);
+		ctx.fill();
+		ctx.fillStyle = '#eafff0';
+		ctx.fillRect(4.5, -42.2, 1.6, 1.3);
+	} else {
+		// No mask: just a plain eye and brow
+		ctx.fillStyle = '#1a0f08';
+		ctx.fillRect(4.4, -42.4, 1.5, 1.6);
+		ctx.fillRect(3.8, -44.2, 2.6, 0.8);
+	}
 
 	// Front arm reaching slightly forward: the ring hand
 	const armX = 6 + legSwing * 0.4;
