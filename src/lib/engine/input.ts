@@ -35,6 +35,8 @@ export interface Intent {
 	target: boolean;
 	/** Bubble shield was pressed. */
 	shield: boolean;
+	/** Signature ability was pressed (Jet Strike / Fortress). */
+	signature: boolean;
 	/** Where the mouse points, in WORLD coordinates. null = not aiming with a mouse. */
 	pointer: { x: number; y: number } | null;
 }
@@ -50,6 +52,7 @@ export const IDLE: Intent = {
 	cycle: 0,
 	target: false,
 	shield: false,
+	signature: false,
 	pointer: null
 };
 
@@ -74,6 +77,7 @@ export const ACTIONS = [
 	'slot4',
 	'slot5',
 	'shield',
+	'signature',
 	'fly',
 	'target'
 ] as const;
@@ -98,6 +102,7 @@ export const ACTION_LABELS: Record<Action, string> = {
 	slot4: 'Construct 4',
 	slot5: 'Construct 5',
 	shield: 'Bubble shield',
+	signature: 'Signature ability',
 	fly: 'Take off / land',
 	target: 'Lock target'
 };
@@ -121,6 +126,7 @@ export const DEFAULT_BINDINGS: Record<LayoutName, Bindings> = {
 		slot4: ['Digit4'],
 		slot5: ['Digit5'],
 		shield: ['ShiftLeft', 'KeyL'],
+		signature: ['KeyR', 'Mouse1'],
 		fly: ['Space'],
 		target: ['Tab']
 	},
@@ -139,6 +145,7 @@ export const DEFAULT_BINDINGS: Record<LayoutName, Bindings> = {
 		slot4: ['Digit4'],
 		slot5: ['Digit5'],
 		shield: ['ShiftLeft'],
+		signature: ['KeyR'],
 		fly: ['Space'],
 		target: ['Tab']
 	},
@@ -158,6 +165,7 @@ export const DEFAULT_BINDINGS: Record<LayoutName, Bindings> = {
 		slot4: ['Digit9'],
 		slot5: ['Digit0'],
 		shield: ['ShiftRight'],
+		signature: ['KeyP'],
 		fly: ['Enter'],
 		target: ['Comma']
 	}
@@ -380,6 +388,7 @@ export class BindingInput implements InputSource {
 			cycle: (next ? 1 : 0) - (prev ? 1 : 0),
 			target: btn.consumePress(b.target),
 			shield: btn.consumePress(b.shield),
+			signature: btn.consumePress(b.signature),
 			pointer: p && p.state.active ? p.toWorld(p.state.x, p.state.y) : null
 		};
 	}

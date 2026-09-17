@@ -17,6 +17,7 @@
 		{ actions: ['construct'], what: 'Use your construct (costs willpower)' },
 		{ actions: ['nextConstruct', 'slot1'], what: 'Switch construct (or keys 1–5)' },
 		{ actions: ['shield'], what: 'Bubble shield' },
+		{ actions: ['signature'], what: 'Signature ability, when the surge bar is full' },
 		{ actions: ['fly'], what: 'Take off / land' },
 		{ actions: ['target'], what: 'Lock onto a target (again to switch)' }
 	];

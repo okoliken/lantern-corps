@@ -37,6 +37,8 @@ import {
 } from './draw/lantern';
 import { drawObstacle, drawPlanetGround, drawStarfield, makeStars, type WorldRect } from './draw/world';
 import { DUMMY_HALF_H, DUMMY_HALF_W, createDummy, isStanding, updateDummy, type Dummy } from './dummy';
+import { SIGNATURES, updateSignature, updateSignatureWorld } from './constructs/signature';
+import { drawCallout, drawFortressBack, drawFortressFront, drawJet } from './draw/signature';
 import { ENVIRONMENT_RULES, type EnvironmentKind } from './environment';
 import {
 	ACTIONS,
@@ -102,6 +104,8 @@ export class Game {
 	debug = false;
 	/** Never run out of willpower. Toggled from the lab for trying constructs. */
 	infiniteWillpower = false;
+	/** Signature ability always ready. Toggled from the lab. */
+	infiniteSurge = false;
 
 	private rules: WorldRules;
 	private inputs: BindingInput[];
@@ -226,13 +230,16 @@ export class Game {
 			});
 			updateWillpower(p, dt, this.batteries);
 			updatePlayerConstructs(p, intent, dt, this.constructs);
+			updateSignature(p, intent, dt, this.constructs);
 			if (this.infiniteWillpower) {
 				p.willpower = 100;
 				p.exhausted = false;
 			}
+			if (this.infiniteSurge && !p.dash) p.surge = 100;
 		}
 
 		updateConstructWorld(this.constructs, dt);
+		updateSignatureWorld(this.constructs, dt);
 		for (const d of this.dummies) {
 			updateDummy(d, dt, map.obstacles);
 			d.x = Math.min(Math.max(d.x, DUMMY_HALF_W), map.width - DUMMY_HALF_W);
@@ -259,7 +266,8 @@ export class Game {
 		return {
 			...p,
 			// Lean comes from horizontal speed: flying sideways fast = full lean.
-			lean: p.flying ? Math.min(Math.abs(p.vx) / p.def.maxSpeed, 1) : 0,
+			// Jet Strike is always full speed.
+			lean: p.dash ? 1 : p.flying ? Math.min(Math.abs(p.vx) / p.def.maxSpeed, 1) : 0,
 			hoverHeight: this.map.environment === 'space' ? HOVER_SPACE : HOVER_PLANET,
 			glow: true,
 			shadow: env.hasGround,
@@ -312,8 +320,9 @@ export class Game {
 		};
 
 		if (map.environment === 'planet') drawPlanetGround(ctx, visible, map.width, map.height);
-		// Traps are markings on the ground: under everything
+		// Traps and Fortress rings are markings on the ground: under everything
 		for (const t of cw.traps) drawTrap(ctx, t, this.time);
+		for (const f of cw.fortresses) drawFortressBack(ctx, f, this.time);
 
 		// ---- Everything with depth, sorted back to front ----
 		// Ground things sort by their base y: lower on screen = in front.
@@ -347,7 +356,8 @@ export class Game {
 			const y = lerp(p.prevY, p.y, alpha);
 			const pose = this.poseFor(p);
 			const list = p.altitude > 0.5 ? air : ground;
-			list.push({ baseY: y, draw: () => drawLantern(ctx, p.def, x, y, pose, this.time) });
+			// During Jet Strike the Lantern is drawn as the jet's pilot instead (below)
+			if (!p.dash) list.push({ baseY: y, draw: () => drawLantern(ctx, p.def, x, y, pose, this.time) });
 
 			if (p.charging) {
 				const chestY = y - (pose.hoverHeight * p.altitude + 28) * 1.35;
@@ -378,6 +388,17 @@ export class Game {
 			for (const d of list) d.draw();
 		}
 		for (const o of overlays) o();
+
+		// Jet Strike: the fighter jet wrapped around Hal
+		for (const p of this.players) {
+			if (!p.dash) continue;
+			const x = lerp(p.prevX, p.x, alpha);
+			const y = lerp(p.prevY, p.y, alpha);
+			const bodyY = y - this.poseFor(p).hoverHeight * 1.35 - 34;
+			drawJet(ctx, x, bodyY, p.dash.dx, p.dash.dy, this.time, p.def);
+		}
+		// Fortress domes go over whoever is inside (they're see-through)
+		for (const f of cw.fortresses) drawFortressFront(ctx, f, this.time);
 
 		// Chains: from the hand to the flying hook, or to whatever it caught
 		for (const pr of cw.projectiles) {
@@ -414,6 +435,14 @@ export class Game {
 		}
 		for (const e of cw.effects) {
 			if (e.kind === 'number' && !this.settings.damageNumbers) continue;
+			if (e.kind === 'callout') {
+				// Follow the Lantern who shouted it, above their head
+				const o = e.owner;
+				const cx = o ? lerp(o.prevX, o.x, alpha) : e.x;
+				const cy = o ? lerp(o.prevY, o.y, alpha) - FIGURE_HEIGHT - this.poseFor(o).hoverHeight * o.altitude * 1.35 - 34 : e.y;
+				drawCallout(ctx, e.text ?? '', cx, cy, e.age / e.life);
+				continue;
+			}
 			drawEffect(ctx, e, e.owner ? this.ringLift(e.owner) : 0, this.time);
 		}
 		for (const t of tags) t();
@@ -443,7 +472,13 @@ export class Game {
 					affordable: canSpend(p, BUBBLE_SHIELD.cost),
 					active: cw.shields.some((sh) => sh.target === p)
 				},
-				targetLabel: this.targetLabel(p)
+				targetLabel: this.targetLabel(p),
+				surge: {
+					fill: p.surge / 100,
+					name: SIGNATURES[p.def.id].name,
+					key: shortLabel(this.inputs[i].bindings.signature),
+					active: p.dash !== null || cw.fortresses.some((f) => f.owner === p)
+				}
 			})),
 			width,
 			height,

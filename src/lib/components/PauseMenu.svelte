@@ -64,7 +64,7 @@
 
 	const groups: { title: string; actions: Action[] }[] = [
 		{ title: 'Move', actions: ['up', 'down', 'left', 'right', 'fly'] },
-		{ title: 'Fight', actions: ['shot', 'construct', 'shield', 'target'] },
+		{ title: 'Fight', actions: ['shot', 'construct', 'shield', 'signature', 'target'] },
 		{ title: 'Choose construct', actions: ['prevConstruct', 'nextConstruct', 'slot1', 'slot2', 'slot3', 'slot4', 'slot5'] }
 	];
 

@@ -288,6 +288,30 @@ export function drawProjectile(ctx: CanvasRenderingContext2D, pr: Projectile, x:
 		ctx.beginPath();
 		ctx.arc(x, dy, 2.2, 0, TAU);
 		ctx.fill();
+	} else if (pr.kind === 'missile') {
+		// A small energy rocket with a flickering exhaust
+		ctx.translate(x, dy);
+		ctx.rotate(Math.atan2(uy, ux));
+		const exhaust = ctx.createLinearGradient(-22, 0, -6, 0);
+		exhaust.addColorStop(0, 'rgba(61, 255, 110, 0)');
+		exhaust.addColorStop(1, CORE);
+		ctx.fillStyle = exhaust;
+		ctx.beginPath();
+		ctx.moveTo(-6, -2.5);
+		ctx.lineTo(-20 - Math.sin(time * 70) * 3, 0);
+		ctx.lineTo(-6, 2.5);
+		ctx.closePath();
+		ctx.fill();
+		const body = new Path2D();
+		body.moveTo(10, 0);
+		body.lineTo(4, -3);
+		body.lineTo(-6, -3);
+		body.lineTo(-9, -6);
+		body.lineTo(-9, 6);
+		body.lineTo(-6, 3);
+		body.lineTo(4, 3);
+		body.closePath();
+		energy(ctx, body, { time, edge: 1.4 });
 	} else if (pr.kind === 'shell') {
 		// Energy orb with a swirling core and a trail of sparks
 		for (let i = 1; i <= 4; i++) {

@@ -75,6 +75,12 @@ export interface Player {
 	/** Seconds until the next free ring shot. */
 	shotCooldown: number;
 
+	// ---- Signature ability (see constructs/signature.ts) ----
+	/** 0..SURGE_MAX. Fills as you fight; full = signature ability ready. */
+	surge: number;
+	/** Hal's Jet Strike in progress: flying on rails along (dx, dy). */
+	dash: Dash | null;
+
 	// ---- Animation timers (drive poses; see animation.ts) ----
 	/** Seconds left on ring-shot recoil. */
 	shotTimer: number;
@@ -84,6 +90,18 @@ export interface Player {
 	downed: boolean;
 	/** Seconds into a victory pose, or 0 (missions, M6). */
 	victoryTimer: number;
+}
+
+export interface Dash {
+	dx: number;
+	dy: number;
+	speed: number;
+	/** Seconds of dash left. */
+	time: number;
+	/** Set when something solid stops the dash early. */
+	blocked: boolean;
+	/** Things already hit, so each is only hit once per dash. */
+	hit: object[];
 }
 
 /** What the player needs to know about the world to move through it. */
@@ -130,6 +148,8 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		protectTarget: null,
 		shieldCooldown: 0,
 		shotCooldown: 0,
+		surge: 0,
+		dash: null,
 		shotTimer: 0,
 		hurtTimer: 0,
 		downed: false,
@@ -173,6 +193,19 @@ export function updatePlayer(p: Player, intent: Intent, dt: number, world: World
 		}
 	}
 	p.altitude = approach(p.altitude, p.flying ? 1 : 0, dt / TAKEOFF_TIME);
+
+	// ---- Jet Strike: flying on rails, input ignored ----
+	if (p.dash) {
+		const d = p.dash;
+		p.vx = d.dx * d.speed;
+		p.vy = d.dy * d.speed;
+		moveBody(p, dt, world.solids.filter((s) => s.blocksFlying), FEET_HALF_W, FEET_HALF_H);
+		// Collisions zero the velocity: that means we hit something tall
+		if (Math.hypot(p.vx, p.vy) < d.speed * 0.5) d.blocked = true;
+		if (d.dx !== 0) p.dir = d.dx > 0 ? 1 : -1;
+		p.walkPhase = 0;
+		return;
+	}
 
 	// ---- Steering ----
 	const { accel, decel } = p.def;

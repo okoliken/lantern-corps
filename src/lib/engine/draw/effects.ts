@@ -231,6 +231,8 @@ export interface HudPlayer {
 	slots: HudSlot[];
 	selected: number;
 	shield: { key: string; cooldown: number; affordable: boolean; active: boolean };
+	/** Signature ability meter. */
+	surge: { fill: number; name: string; key: string; active: boolean };
 	/** What they're targeting, e.g. "🔒 Dummy · 🛡 John Stewart". */
 	targetLabel: string;
 }
@@ -252,7 +254,8 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		const right = p.slot === 1;
 		const x = right ? width - margin - barW : margin;
 		const slotsY = height - margin - box;
-		const barY = slotsY - 14 - barH;
+		const surgeY = slotsY - 11;
+		const barY = surgeY - 8 - barH;
 		const labelY = barY - 5;
 		const low = p.exhausted || p.willpower < RESTART_THRESHOLD;
 
@@ -283,6 +286,32 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		// Tick where exhaustion lifts
 		ctx.fillStyle = 'rgba(216, 245, 224, 0.5)';
 		ctx.fillRect(x + barW * (RESTART_THRESHOLD / MAX_WILLPOWER), barY, 1.5, barH);
+
+		// ---- Surge meter: thin bar under willpower; glows and names the ability when full ----
+		const ready = p.surge.fill >= 1;
+		ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+		ctx.fillRect(x - 1, surgeY - 1, barW + 2, 7);
+		const surgeGrad = ctx.createLinearGradient(x, 0, x + barW, 0);
+		surgeGrad.addColorStop(0, '#9cffb8');
+		surgeGrad.addColorStop(1, '#eafff0');
+		ctx.fillStyle = surgeGrad;
+		if (ready) {
+			ctx.shadowColor = GREEN;
+			ctx.shadowBlur = 10 + Math.sin(time * 6) * 6;
+		}
+		ctx.fillRect(x, surgeY, barW * p.surge.fill, 5);
+		ctx.shadowBlur = 0;
+		ctx.font = '700 10px system-ui, sans-serif';
+		ctx.textBaseline = 'bottom';
+		if (ready || p.surge.active) {
+			ctx.textAlign = 'center';
+			ctx.fillStyle = GREEN;
+			const pulse = 0.7 + 0.3 * Math.sin(time * 6);
+			ctx.globalAlpha = p.surge.active ? 1 : pulse;
+			const label = p.surge.active ? `${p.surge.name.toUpperCase()}!` : `${p.surge.key}  ${p.surge.name.toUpperCase()} READY`;
+			ctx.fillText(label, x + barW / 2, surgeY - 1);
+			ctx.globalAlpha = 1;
+		}
 
 		// ---- Construct slots ----
 		p.slots.forEach((s, i) => {

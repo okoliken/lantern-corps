@@ -33,6 +33,7 @@ scroll wheel. Settings are saved in the browser.
 | Pick construct | 1–5 | 1–5 | 6–0 |
 | Bubble shield | Left Shift or L | Left Shift | Right Shift |
 | Take off / land | Space | Space | Enter |
+| Signature ability | R or middle click | R | P |
 | Lock target | Tab | Tab | , |
 | Pause, controls, options | Esc | Esc | Esc |
 
@@ -53,6 +54,15 @@ The ring works out what you mean to hit or protect (`src/lib/engine/targeting.ts
 - **Lock on (Tab):** cycles enemies, then allies, then objects, then back to no lock. Locks break
   when the target is destroyed or you move far away. A locked target gets a rotating reticle.
 - **Protect:** lock an ally and your **bubble shield** goes on them; attacks keep auto-targeting enemies.
+
+## Signature abilities
+The **surge meter** (thin bar under willpower) fills from damage you deal (0.16 per point), constructs
+used (+2) and allies shielded (+6). Signature damage doesn't refill it. Full = press **R**.
+- **Hal: Jet Strike.** A construct fighter jet rockets along your aim for ~520px, flying over buildings
+  (asteroids and walls stop it). It hits everything in its path once (60 × power) and breaks crates,
+  then fires 6 homing missiles at enemies within 420px.
+- **John: Fortress.** A dome (radius 120) where he stands for 9s × durability. Enemies are pushed out,
+  anyone inside takes no damage, and 3 rim turrets shoot enemies within 380px.
 
 ## Bubble shield
 Every Lantern has it, on its own key (E). It shields you, or a locked ally within 450px. It absorbs
@@ -156,7 +166,7 @@ Skarr Vell → Manhunters → Dex-Starr → Atrocitus.
 **Phase 1.5: Characters** (before enemies, by request)
 - [x] **C1** Controls & accessibility: mouse aim, free ring shot, remappable bindings, pause menu, options, first-time card
 - [x] **C2** Art & animation: skeleton (animation.ts), detailed Hal/John, idle/walk/take-off/fly/shoot/cast/hurt/downed/victory, /lab/animation
-- [ ] **C3** Signature abilities: super meter; Hal "Jet Strike", John "Fortress"
+- [x] **C3** Signature abilities: surge meter; Hal "Jet Strike", John "Fortress" (constructs/signature.ts)
 - [ ] **C4** Stats & progression: XP, levels, upgrades, unlocks, Corps HQ screen, per-character save
 - [ ] **C5** Story & personality: bios, intro cards, combat lines, co-op banter
 

@@ -13,11 +13,13 @@
 	let environment = $state<EnvironmentKind>('planet');
 	let infinite = $state(true);
 	let debug = $state(false);
+	let surge = $state(true);
 
 	const game = $derived(new Game({ players: [{ lantern, keys: 'solo' }], environment, settings: untrack(() => settings.snapshot()) }));
 
 	$effect(() => {
 		game.infiniteWillpower = infinite;
+		game.infiniteSurge = surge;
 		game.debug = debug;
 	});
 
@@ -50,12 +52,13 @@
 			{/each}
 		</span>
 		<label><input type="checkbox" bind:checked={infinite} /> Infinite willpower</label>
+		<label><input type="checkbox" bind:checked={surge} /> Signature always ready</label>
 		<label><input type="checkbox" bind:checked={debug} /> Collision boxes</label>
 	</div>
 	<div class="controls keys">
 		<span
 			>Mouse aim · <kbd>Left click</kbd> ring shot · <kbd>Right click</kbd> construct · <kbd>Scroll</kbd>/<kbd>1</kbd>–<kbd>5</kbd> pick ·
-			<kbd>Shift</kbd> shield · <kbd>Tab</kbd> lock</span
+			<kbd>Shift</kbd> shield · <kbd>R</kbd> signature · <kbd>Tab</kbd> lock</span
 		>
 		<span class="loadout">
 			{#each LOADOUTS[lantern] as id, i (id)}

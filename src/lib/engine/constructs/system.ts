@@ -22,8 +22,8 @@ import { BUBBLE_SHIELD, RING_SHOT, HELD_BEHAVIORS, MAX_TRAPS_PER_PLAYER, STRUCTU
 // ------------------------------------------------------------ world state
 
 export interface Projectile {
-	/** bolt = free ring shot, bullet = minigun, shell = cannon, hook = chain. */
-	kind: 'bolt' | 'bullet' | 'shell' | 'hook';
+	/** bolt = ring shot / turret, bullet = minigun, shell = cannon, hook = chain, missile = Jet Strike. */
+	kind: 'bolt' | 'bullet' | 'shell' | 'hook' | 'missile';
 	owner: Player;
 	def: ConstructDef;
 	x: number;
@@ -38,6 +38,10 @@ export interface Projectile {
 	knockback: number;
 	/** Solids it started inside (flying over a building); it passes through those. */
 	ignore: Solid[];
+	/** Missiles steer toward this target. */
+	homing?: Dummy | null;
+	/** Hits from this don't fill the owner's surge meter (signature ability damage). */
+	noSurge?: boolean;
 }
 
 export interface Tether {
@@ -82,7 +86,7 @@ export interface Shield {
 
 /** Visual-only things that play out and disappear. */
 export interface Effect {
-	kind: 'slash' | 'fist' | 'shockwave' | 'blast' | 'burst' | 'fizzle' | 'impact' | 'number' | 'snap' | 'pop';
+	kind: 'slash' | 'fist' | 'shockwave' | 'blast' | 'burst' | 'fizzle' | 'impact' | 'number' | 'snap' | 'pop' | 'callout';
 	x: number;
 	y: number;
 	age: number;
@@ -93,8 +97,21 @@ export interface Effect {
 	radius?: number;
 	/** Damage number to show. */
 	value?: number;
+	/** Big shout-out text (signature ability names). */
+	text?: string;
 	/** Who made it: effects at hand height are drawn at that Lantern's ring height. */
 	owner?: Player;
+}
+
+/** John's Fortress: a dome that keeps enemies out, protects allies, and fires turrets. */
+export interface Fortress {
+	owner: Player;
+	x: number;
+	y: number;
+	radius: number;
+	life: number;
+	maxLife: number;
+	turrets: { angle: number; aim: number; cooldown: number }[];
 }
 
 export interface ConstructWorld {
@@ -105,14 +122,28 @@ export interface ConstructWorld {
 	traps: Trap[];
 	pending: PendingSmash[];
 	shields: Shield[];
+	fortresses: Fortress[];
 	effects: Effect[];
 }
 
 export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[]): ConstructWorld {
-	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], effects: [] };
+	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], effects: [] };
 }
 
 // --------------------------------------------------------------- tuning
+
+/** The surge meter: full at 100. */
+export const SURGE_MAX = 100;
+/** Surge per point of damage dealt to enemies. */
+export const SURGE_PER_DAMAGE = 0.16;
+export const SURGE_PER_CONSTRUCT = 2;
+export const SURGE_PER_ALLY_SHIELD = 6;
+
+/** Fill a Lantern's surge meter (not while their signature ability is running). */
+export function gainSurge(p: Player, amount: number) {
+	if (p.dash) return;
+	p.surge = Math.min(SURGE_MAX, p.surge + amount);
+}
 
 /** How long the fist stays visible after the wind-up (punch out, hold, fade). */
 export const FIST_OUT_TIME = 0.4;
@@ -145,6 +176,13 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
 	p.actionTimer = Math.max(0, p.actionTimer - dt);
 	if (p.actionTimer === 0) p.actionShape = null;
 
+	// Mid Jet Strike, Hal is busy flying the jet
+	if (p.dash) {
+		p.firing = false;
+		p.beamLength = 0;
+		return;
+	}
+
 	if (intent.shield) castShield(p, w);
 	if (intent.shot) ringShot(p, w);
 
@@ -172,6 +210,7 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
 	if (!perform(p, def, w)) return; // e.g. no room to place a wall: don't charge
 
 	spend(p, cost);
+	gainSurge(p, SURGE_PER_CONSTRUCT);
 	p.cooldowns[slot] = def.cooldown * p.def.traits.cooldown;
 	p.actionTimer = ACTION_POSE_TIME + (def.windup ?? 0);
 	p.actionShape = def.shape;
@@ -213,7 +252,7 @@ function useBeam(p: Player, def: ConstructDef, held: boolean, dt: number, w: Con
 	if (showNumber) p.cooldowns[slot] = BEAM_NUMBER_EVERY;
 
 	if ('dummy' in hit) {
-		hitDummyWithFx(w, hit.dummy, dps * dt, 0, p.x, p.y, showNumber ? dps * BEAM_NUMBER_EVERY : 0);
+		hitDummyWithFx(w, hit.dummy, dps * dt, 0, p.x, p.y, p, showNumber ? dps * BEAM_NUMBER_EVERY : 0);
 	} else {
 		damageObstacle(w, hit, dps * dt);
 	}
@@ -267,10 +306,19 @@ function perform(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 	}
 }
 
-function launch(p: Player, def: ConstructDef, kind: Projectile['kind'], dx: number, dy: number, w: ConstructWorld) {
+/** Fire a projectile. It starts just ahead of the player, or at `from` (turrets). */
+export function launch(
+	p: Player,
+	def: ConstructDef,
+	kind: Projectile['kind'],
+	dx: number,
+	dy: number,
+	w: ConstructWorld,
+	from?: { x: number; y: number }
+): Projectile {
 	const speed = def.speed ?? 600;
-	const x = p.x + dx * 14;
-	const y = p.y + dy * 14;
+	const x = from ? from.x : p.x + dx * 14;
+	const y = from ? from.y : p.y + dy * 14;
 	w.projectiles.push({
 		kind,
 		owner: p,
@@ -286,6 +334,7 @@ function launch(p: Player, def: ConstructDef, kind: Projectile['kind'], dx: numb
 		knockback: power(p, def.knockback),
 		ignore: w.obstacles.filter((o) => boxOverlap(x, y, 1, 1, o))
 	});
+	return w.projectiles[w.projectiles.length - 1];
 }
 
 function slash(p: Player, def: ConstructDef, w: ConstructWorld) {
@@ -301,7 +350,7 @@ function slash(p: Player, def: ConstructDef, w: ConstructWorld) {
 	};
 	for (const d of w.dummies) {
 		if (isStanding(d) && inArc(d.x, d.y, def.range + DUMMY_HALF_W)) {
-			hitDummyWithFx(w, d, power(p, def.damage), power(p, def.knockback), p.x, p.y);
+			hitDummyWithFx(w, d, power(p, def.damage), power(p, def.knockback), p.x, p.y, p);
 		}
 	}
 	for (const o of breakables(w)) {
@@ -355,7 +404,7 @@ function placeTrap(p: Player, def: ConstructDef, w: ConstructWorld) {
 function shockwave(p: Player, def: ConstructDef, w: ConstructWorld) {
 	for (const d of w.dummies) {
 		if (isStanding(d) && Math.hypot(d.x - p.x, d.y - p.y) <= def.range + DUMMY_HALF_W) {
-			hitDummyWithFx(w, d, power(p, def.damage), power(p, def.knockback), p.x, p.y);
+			hitDummyWithFx(w, d, power(p, def.damage), power(p, def.knockback), p.x, p.y, p);
 		}
 	}
 	for (const o of breakables(w)) {
@@ -403,6 +452,7 @@ function castShield(p: Player, w: ConstructWorld) {
 	p.shieldCooldown = BUBBLE_SHIELD.cooldown * p.def.traits.cooldown;
 	w.effects.push({ kind: 'snap', x: target.x, y: target.y, age: 0, life: 0.35, radius: 40 });
 	if (target !== p) {
+		gainSurge(p, SURGE_PER_ALLY_SHIELD);
 		// Reach toward the ally you're protecting
 		const dx = target.x - p.x;
 		const dy = target.y - p.y;
@@ -419,6 +469,8 @@ function castShield(p: Player, w: ConstructWorld) {
  * through. (Enemies start using this in M5.)
  */
 export function absorbWithShield(w: ConstructWorld, target: Player, damage: number): number {
+	// Inside a Fortress dome, nothing gets through
+	if (w.fortresses.some((f) => Math.hypot(target.x - f.x, target.y - f.y) <= f.radius)) return 0;
 	const shield = w.shields.find((s) => s.target === target);
 	if (!shield) return damage;
 	const absorbed = Math.min(shield.hp, damage);
@@ -464,6 +516,7 @@ function updateProjectiles(w: ConstructWorld, dt: number) {
 	for (const pr of w.projectiles) {
 		pr.prevX = pr.x;
 		pr.prevY = pr.y;
+		if (pr.homing) steerMissile(pr, dt);
 		pr.x += pr.vx * dt;
 		pr.y += pr.vy * dt;
 		pr.life -= dt;
@@ -477,7 +530,7 @@ function updateProjectiles(w: ConstructWorld, dt: number) {
 			continue;
 		}
 		if (pr.life <= 0) {
-			if (pr.kind === 'shell') explode(w, pr);
+			if (pr.kind === 'shell' || pr.kind === 'missile') explode(w, pr);
 			continue;
 		}
 		alive.push(pr);
@@ -485,13 +538,32 @@ function updateProjectiles(w: ConstructWorld, dt: number) {
 	w.projectiles = alive;
 }
 
+/** Turn a missile's velocity toward its target, at a limited turn rate. */
+function steerMissile(pr: Projectile, dt: number) {
+	const t = pr.homing!;
+	if (!isStanding(t)) {
+		pr.homing = null;
+		return;
+	}
+	const speed = Math.hypot(pr.vx, pr.vy);
+	const current = Math.atan2(pr.vy, pr.vx);
+	const wanted = Math.atan2(t.y - pr.y, t.x - pr.x);
+	const diff = Math.atan2(Math.sin(wanted - current), Math.cos(wanted - current));
+	const turn = Math.max(-MISSILE_TURN_RATE * dt, Math.min(MISSILE_TURN_RATE * dt, diff));
+	pr.vx = Math.cos(current + turn) * speed;
+	pr.vy = Math.sin(current + turn) * speed;
+}
+
+/** Radians per second a homing missile can turn. */
+const MISSILE_TURN_RATE = 7;
+
 function projectileHit(w: ConstructWorld, pr: Projectile, dummy: Dummy | null, solid: Obstacle | null) {
-	if (pr.kind === 'shell') return explode(w, pr);
+	if (pr.kind === 'shell' || pr.kind === 'missile') return explode(w, pr);
 
 	if (pr.kind === 'hook') {
 		const target = dummy ?? (solid?.movable ? solid : null);
 		if (target) {
-			if (dummy) hitDummyWithFx(w, dummy, pr.damage, 0, pr.x, pr.y);
+			if (dummy) hitDummyWithFx(w, dummy, pr.damage, 0, pr.x, pr.y, surgeCredit(pr));
 			w.tethers.push({ owner: pr.owner, target, time: TETHER_TIME });
 		} else {
 			w.effects.push({ kind: 'impact', x: pr.x, y: pr.y, age: 0, life: 0.15, owner: pr.owner });
@@ -500,17 +572,19 @@ function projectileHit(w: ConstructWorld, pr: Projectile, dummy: Dummy | null, s
 	}
 
 	// Bolt or bullet
-	if (dummy) hitDummyWithFx(w, dummy, pr.damage, pr.knockback, pr.x - pr.vx, pr.y - pr.vy);
+	if (dummy) hitDummyWithFx(w, dummy, pr.damage, pr.knockback, pr.x - pr.vx, pr.y - pr.vy, surgeCredit(pr));
 	if (solid) damageObstacle(w, solid, pr.damage);
 	w.effects.push({ kind: 'impact', x: pr.x, y: pr.y, age: 0, life: 0.12, owner: pr.owner });
 }
 
 /** A cannon shell bursts, hurting everything in its splash radius. */
+const surgeCredit = (pr: Projectile) => (pr.noSurge ? null : pr.owner);
+
 function explode(w: ConstructWorld, pr: Projectile) {
 	const r = pr.def.radius ?? 50;
 	for (const d of w.dummies) {
 		if (isStanding(d) && Math.hypot(d.x - pr.x, d.y - pr.y) <= r + DUMMY_HALF_W) {
-			hitDummyWithFx(w, d, pr.damage, pr.knockback, pr.x, pr.y);
+			hitDummyWithFx(w, d, pr.damage, pr.knockback, pr.x, pr.y, surgeCredit(pr));
 		}
 	}
 	for (const o of breakables(w)) {
@@ -535,7 +609,7 @@ function updatePending(w: ConstructWorld, dt: number) {
 		const r = s.def.radius ?? 40;
 		for (const d of w.dummies) {
 			if (isStanding(d) && Math.hypot(d.x - hx, d.y - hy) <= r + DUMMY_HALF_W) {
-				hitDummyWithFx(w, d, s.damage, s.knockback, p.x, p.y);
+				hitDummyWithFx(w, d, s.damage, s.knockback, p.x, p.y, p);
 			}
 		}
 		for (const o of breakables(w)) {
@@ -625,13 +699,25 @@ function castAtTargets(x: number, y: number, dx: number, dy: number, range: numb
 	return castBeam<BeamTarget>(x, y, dx, dy, targets, range);
 }
 
-function hitDummyWithFx(w: ConstructWorld, d: Dummy, damage: number, knockback: number, fromX: number, fromY: number, shown = damage) {
+/** Hit a dummy with damage numbers and effects. `by` gets surge credit (null = no credit). */
+export function hitDummyWithFx(
+	w: ConstructWorld,
+	d: Dummy,
+	damage: number,
+	knockback: number,
+	fromX: number,
+	fromY: number,
+	by: Player | null,
+	shown = damage
+) {
+	if (!isStanding(d)) return;
+	if (by) gainSurge(by, damage * SURGE_PER_DAMAGE);
 	const broke = hitDummy(d, damage, knockback, fromX, fromY);
 	if (shown >= 1) w.effects.push({ kind: 'number', x: d.x, y: d.y, age: 0, life: 1, value: Math.round(shown) });
 	if (broke) w.effects.push({ kind: 'burst', x: d.x, y: d.y - 20, age: 0, life: 0.65 });
 }
 
-function damageObstacle(w: ConstructWorld, o: Obstacle, damage: number) {
+export function damageObstacle(w: ConstructWorld, o: Obstacle, damage: number) {
 	if (o.hp === undefined || o.kind === 'wall') return;
 	o.hp -= damage;
 	if (o.hp <= 0) removeObstacle(w, o, 'burst');
@@ -646,6 +732,6 @@ function removeObstacle(w: ConstructWorld, o: Obstacle, effect: 'burst' | 'fizzl
 	w.effects.push({ kind: effect, x: cx, y: cy - o.height, age: 0, life: 0.65 });
 }
 
-const breakables = (w: ConstructWorld) => w.obstacles.filter((o) => o.hp !== undefined && o.kind !== 'wall');
-const center = (o: Solid): [number, number] => [o.x + o.w / 2, o.y + o.h / 2];
+export const breakables = (w: ConstructWorld) => w.obstacles.filter((o) => o.hp !== undefined && o.kind !== 'wall');
+export const center = (o: Solid): [number, number] => [o.x + o.w / 2, o.y + o.h / 2];
 const overlapsRect = (a: Solid, b: Solid) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
