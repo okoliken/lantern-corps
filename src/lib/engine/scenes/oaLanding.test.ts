@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { JOHN_CHOSEN, OA_LANDING } from '../../story/scenes';
 import { JohnChosen } from './johnChosen';
+import type { DialogueScene } from './scene';
 import { OaLanding } from './oaLanding';
 
-const run = (scene: OaLanding, seconds: number) => {
+const run = (scene: DialogueScene, seconds: number) => {
 	for (let i = 0; i < Math.round(seconds * 60); i++) scene.update(1 / 60);
 };
 
