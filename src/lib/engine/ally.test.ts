@@ -102,3 +102,32 @@ describe('AI partner', () => {
 		expect(game.enemies.length).toBe(0);
 	});
 });
+
+describe('Kilowog as a partner', () => {
+	it('fights beside Hal, builds his own constructs, and they win', () => {
+		const game = new Game({ players: [{ lantern: 'hal', keys: 'solo', ai: true }, { lantern: 'kilowog', keys: 'p2', ai: true }], map: arena() });
+		game.setView({ width: 1400, height: 800 });
+		for (const [dx, dy] of [[300, 0], [340, 60], [320, -60], [-300, 30]]) game.spawnEnemy('rageGrunt', 1200 + dx, 1200 + dy);
+		const kilowog = game.players[1];
+		const used = new Set<string>();
+		for (let i = 0; i < 60 * 90 && game.enemies.length > 0; i++) {
+			game.update(1 / 60);
+			if (kilowog.actionTimer > 0 || kilowog.firing) used.add(kilowog.loadout[kilowog.selected].id);
+		}
+		expect(game.enemies.length).toBe(0);
+		expect(used.size).toBeGreaterThanOrEqual(2);
+	});
+
+	it('Hammer Quake smashes and stuns everything around him', () => {
+		const game = new Game({ players: [{ lantern: 'kilowog', keys: 'solo' }], map: arena() });
+		game.setView({ width: 1400, height: 800 });
+		const e = game.spawnEnemy('rageGrunt', 1300, 1200);
+		const k = game.players[0];
+		k.surge = 100;
+		k.input = { read: () => ({ ...IDLE, signature: true }) };
+		const hp = e.hp;
+		game.update(1 / 60);
+		expect(e.hp).toBeLessThan(hp);
+		expect(e.stun).toBeGreaterThan(0);
+	});
+});

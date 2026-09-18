@@ -13,7 +13,7 @@
 	import PauseMenu from '$lib/components/PauseMenu.svelte';
 	import { isEnvironmentKind } from '$lib/engine/environment';
 	import { Game } from '$lib/engine/game';
-	import { LANTERNS, isLanternId } from '$lib/engine/lanterns';
+	import { LANTERNS, PLAYABLE, isLanternId } from '$lib/engine/lanterns';
 	import { Skirmish, type SkirmishState } from '$lib/engine/skirmish';
 	import { profiles } from '$lib/profiles.svelte';
 	import { settings } from '$lib/settings.svelte';
@@ -163,7 +163,7 @@
 		<h1>Red Lantern Ambush</h1>
 		<p class="pitch">Five Red Lanterns. One Green Lantern. Three lives.</p>
 		<div class="cards">
-			{#each Object.values(LANTERNS) as def (def.id)}
+			{#each PLAYABLE.map((id) => LANTERNS[id]) as def (def.id)}
 				<div class="card">
 					<LanternPortrait {def} />
 					<h2>{def.name}</h2>

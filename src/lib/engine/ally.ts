@@ -13,6 +13,7 @@
 //  - shields itself or its partner when they're hurt and something's coming,
 //  - uses constructs that suit the moment, and its signature when surrounded.
 
+import { pickConstruct } from './constructs/smart';
 import { BUBBLE_SHIELD } from './constructs/defs';
 import type { ConstructWorld } from './constructs/system';
 import { aimPoint, isStanding, type Dummy } from './dummy';
@@ -130,7 +131,8 @@ export class AllyInput implements InputSource {
 				this.strafe = this.strafe === 1 ? -1 : 1;
 				this.strafeIn = 1.5 + Math.random() * 2;
 			}
-			const range = me.def.id === 'hal' ? (this.closeIn ? 55 : 200) : 300;
+			// Hal darts in and out, Kilowog brawls up close, John keeps his distance
+			const range = me.def.id === 'hal' ? (this.closeIn ? 55 : 200) : me.def.id === 'kilowog' ? 90 : 300;
 			const angle = Math.atan2(me.y - target.y, me.x - target.x) + this.strafe * 0.5;
 			gx = target.x + Math.cos(angle) * range;
 			gy = target.y + Math.sin(angle) * range;
@@ -240,7 +242,11 @@ export class AllyInput implements InputSource {
 			if (ready(id)) options.push({ id, plan, closeIn });
 		};
 		const near = (r: number) => enemies.filter((e) => dist(e, me) < r).length;
-		if (me.def.id === 'hal') {
+		if (me.def.id === 'kilowog') {
+			// Partners the story brings along let the smart ring choose
+			const pick = pickConstruct(me, this.world.constructs);
+			if (pick) options.push({ id: me.loadout[pick.slot].id, plan: { slot: pick.slot, hold: pick.hold, selected: false } });
+		} else if (me.def.id === 'hal') {
 			if (d < 90) add('sword', press('sword'), true);
 			if (d < 110 && clustered) add('hammer', press('hammer'), true);
 			if (d < 120 && clustered) add('fist', press('fist'), true);

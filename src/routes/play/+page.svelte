@@ -14,7 +14,7 @@
 	import LanternPortrait from '$lib/components/LanternPortrait.svelte';
 	import { Game } from '$lib/engine/game';
 	import { isEnvironmentKind } from '$lib/engine/environment';
-	import { LANTERNS, isLanternId } from '$lib/engine/lanterns';
+	import { LANTERNS, PLAYABLE, isLanternId } from '$lib/engine/lanterns';
 	import { settings } from '$lib/settings.svelte';
 	import { profiles } from '$lib/profiles.svelte';
 
@@ -93,10 +93,11 @@
 	<main class="select">
 		<h1>Choose your Lantern</h1>
 		<div class="cards">
-			{#each Object.values(LANTERNS) as def (def.id)}
-				<a class="card" href="/play?as={def.id}">
+			{#each PLAYABLE as id (id)}
+				{@const def = LANTERNS[id]}
+				<a class="card" href="/play?as={id}">
 					<LanternPortrait {def} />
-					<h2>{def.name} <span class="card-lv">Lv {profiles.current[def.id].level}</span></h2>
+					<h2>{def.name} <span class="card-lv">Lv {profiles.current[id].level}</span></h2>
 					<p class="title">{def.title}</p>
 					<p class="blurb">{def.blurb}</p>
 					<dl>

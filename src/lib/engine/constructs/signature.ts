@@ -9,10 +9,12 @@
 //    the jet fires a volley of homing missiles at enemies nearby.
 //  - JOHN, FORTRESS: a dome where he stands. Enemies are pushed out, anyone
 //    inside takes no damage, and turrets on the rim shoot enemies in range.
+//  - KILOWOG, HAMMER QUAKE: a giant hammer brought down where he stands;
+//    everything around is smashed, knocked flying and stunned.
 
 import { isStanding, type Dummy } from '../dummy';
 import type { Intent } from '../input';
-import type { LanternId } from '../lanterns';
+import type { CrewId } from '../lanterns';
 import type { Player } from '../player';
 import type { ConstructDef } from './defs';
 import {
@@ -27,12 +29,12 @@ import {
 } from './system';
 
 export interface SignatureDef {
-	id: 'jetStrike' | 'fortress';
+	id: 'jetStrike' | 'fortress' | 'hammerQuake';
 	name: string;
 	description: string;
 }
 
-export const SIGNATURES: Record<LanternId, SignatureDef> = {
+export const SIGNATURES: Record<CrewId, SignatureDef> = {
 	hal: {
 		id: 'jetStrike',
 		name: 'Jet Strike',
@@ -42,8 +44,16 @@ export const SIGNATURES: Record<LanternId, SignatureDef> = {
 		id: 'fortress',
 		name: 'Fortress',
 		description: 'Raise a dome that keeps enemies out and protects everyone inside, with auto-turrets on the rim.'
+	},
+	kilowog: {
+		id: 'hammerQuake',
+		name: 'Hammer Quake',
+		description: 'Bring a giant hammer down where you stand: everything around is smashed, thrown back and stunned.'
 	}
 };
+
+/** Hammer Quake: how far it reaches, how hard it hits, and how long enemies stay stunned. */
+export const QUAKE = { radius: 210, damage: 90, knockback: 700, stun: 1.2 };
 
 // ------------------------------------------------------------ Jet Strike
 
@@ -115,7 +125,9 @@ export function updateSignature(p: Player, intent: Intent, dt: number, w: Constr
 	if (!intent.signature || p.surge < SURGE_MAX || p.downed) return;
 
 	p.surge = 0;
-	if (SIGNATURES[p.def.id].id === 'jetStrike') startJet(p, w);
+	const id = SIGNATURES[p.def.id].id;
+	if (id === 'jetStrike') startJet(p, w);
+	else if (id === 'hammerQuake') hammerQuake(p, w);
 	else startFortress(p, w);
 	w.effects.push({
 		kind: 'callout',
@@ -214,6 +226,22 @@ function finishJet(p: Player, w: ConstructWorld) {
 		m.homing = target;
 		m.noSurge = true;
 	}
+}
+
+function hammerQuake(p: Player, w: ConstructWorld) {
+	const damage = QUAKE.damage * p.def.traits.power;
+	for (const d of w.dummies) {
+		if (!isStanding(d) || Math.hypot(d.x - p.x, d.y - p.y) > QUAKE.radius) continue;
+		hitDummyWithFx(w, d, damage, QUAKE.knockback, p.x, p.y, p);
+		d.stun = Math.max(d.stun, QUAKE.stun);
+	}
+	for (const o of breakables(w)) {
+		const [cx, cy] = center(o);
+		if (Math.hypot(cx - p.x, cy - p.y) <= QUAKE.radius) damageObstacle(w, o, damage);
+	}
+	p.actionTimer = 0.6;
+	p.actionShape = null;
+	w.effects.push({ kind: 'bigHammer', x: p.x, y: p.y, age: 0, life: 0.8, angle: Math.atan2(p.aimY, p.aimX), value: 30, radius: QUAKE.radius, lift: 40 });
 }
 
 function startFortress(p: Player, w: ConstructWorld) {

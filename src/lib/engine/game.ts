@@ -69,7 +69,7 @@ import {
 } from './input';
 import { defaultSettings, type Settings } from './settings';
 import { XP_PER_DEFEAT, addXp, applyProgression, type Profile, type Profiles } from './progression';
-import { LANTERNS, type LanternId } from './lanterns';
+import { LANTERNS, isLanternId, type CrewId, type LanternId } from './lanterns';
 import { buildTestMap, seededRandom, type GameMap, type Obstacle } from './map';
 import { FEET_HALF_H, FEET_HALF_W, clampToBounds, createPlayer, updateFacing, updatePlayer, type Player, type WorldRules } from './player';
 import { BUBBLE_SHIELD, constructLabel } from './constructs/defs';
@@ -79,7 +79,8 @@ import { BATTERY_MAX_CHARGE, canSpend, updateBattery, updateWillpower, type Batt
 export const LANTERN_GREEN = GREEN;
 
 export interface PlayerConfig {
-	lantern: LanternId;
+	/** Hal or John, or a partner the story brings along (Kilowog, AI only). */
+	lantern: CrewId;
 	/** Which keys control this player. */
 	keys: LayoutName;
 	/** Controlled by the computer (an AI partner) instead of keys. */
@@ -121,6 +122,9 @@ export interface Director {
 	/** Things the camera should keep in view along with the players (it centres between them all). */
 	cameraPoints?(): [number, number][];
 }
+
+/** How big a Lantern is drawn next to Hal and John (Kilowog is huge). */
+const sizeOf = (p: Player) => p.def.figureScale ?? 1;
 
 const isCorpsEnemy = (e: Enemy) => ENEMIES[e.kind].faction === 'corps';
 
@@ -218,7 +222,7 @@ export class Game {
 				p.flying = true;
 				p.altitude = 1;
 			}
-			if (profiles) {
+			if (profiles && isLanternId(cfg.lantern)) {
 				applyProgression(p, LANTERNS[cfg.lantern], profiles[cfg.lantern]);
 				p.willpower = p.maxWillpower;
 			}
@@ -401,6 +405,8 @@ export class Game {
 			if (event.type !== 'defeat' || !this.profiles) continue;
 			const p = event.by;
 			const id = p.def.id;
+			// Partners like Kilowog don't level up; only the Lanterns you play
+			if (!isLanternId(id)) continue;
 			const profile = this.profiles[id];
 			const xp = event.what.kind === 'spaceRock' ? XP_PER_ROCK : XP_PER_DEFEAT;
 			const gained = addXp(profile, xp);
@@ -461,19 +467,21 @@ export class Game {
 			cast: p.actionTimer > 0 ? Math.min(1, p.actionTimer / ACTION_POSE_TIME) : 0,
 			hurt: Math.min(1, p.hurtTimer / 0.35),
 			downed: p.downed,
-			victory: Math.min(1, p.victoryTimer / 0.4)
+			victory: Math.min(1, p.victoryTimer / 0.4),
+			build: p.def.build,
+			hunch: p.def.hunch
 		};
 	}
 
 	/** Where the ring is on this Lantern's aimed skeleton, relative to their anchor. */
 	private updateRing(p: Player) {
 		const pose = { ...this.poseFor(p), firing: true };
-		const [rx, ry] = ringPosition(0, 0, pose, this.time);
+		const [rx, ry] = ringPosition(0, 0, pose, this.time, sizeOf(p));
 		p.ringDX = rx;
 		p.ringLift = -ry;
 		// Where the body is drawn, so enemy shots hit what they're seen to touch
 		p.bodyBottom = pose.hoverHeight * p.altitude * 1.35;
-		p.bodyTop = p.bodyBottom + FIGURE_HEIGHT;
+		p.bodyTop = p.bodyBottom + FIGURE_HEIGHT * sizeOf(p) * (p.def.build?.torso ?? 1);
 	}
 
 	/**
@@ -556,7 +564,7 @@ export class Game {
 			const pose = this.poseFor(p);
 			const list = p.altitude > 0.5 ? air : ground;
 			// During Jet Strike the Lantern is drawn as the jet's pilot instead (below)
-			if (p.dash?.kind !== 'jet') list.push({ baseY: y, draw: () => drawLantern(ctx, p.def, x, y, pose, this.time) });
+			if (p.dash?.kind !== 'jet') list.push({ baseY: y, draw: () => drawLantern(ctx, p.def, x, y, pose, this.time, sizeOf(p)) });
 
 			if (p.charging) {
 				const chestY = y - (pose.hoverHeight * p.altitude + 28) * 1.35;
@@ -566,7 +574,7 @@ export class Game {
 			}
 
 			if (pose.firing) {
-				const [rx, ry] = ringPosition(x, y, pose, this.time);
+				const [rx, ry] = ringPosition(x, y, pose, this.time, sizeOf(p));
 				const def = p.loadout[p.selected];
 				if (p.firing && def.behavior === 'beam') {
 					overlays.push(() => drawBeam(ctx, rx, ry, p.aimX, p.aimY, p.beamLength, p.beamLength < def.range, this.time));
@@ -612,13 +620,13 @@ export class Game {
 			const y = lerp(pr.prevY, pr.y, alpha);
 			const lift = pr.lift;
 			if (pr.kind === 'hook') {
-				const [rx, ry] = ringPosition(pr.owner.x, pr.owner.y, { ...this.poseFor(pr.owner), firing: true }, this.time);
+				const [rx, ry] = ringPosition(pr.owner.x, pr.owner.y, { ...this.poseFor(pr.owner), firing: true }, this.time, sizeOf(pr.owner));
 				drawChain(ctx, rx, ry, x, y - lift, this.time);
 			}
 			drawProjectile(ctx, pr, x, y, lift, this.time);
 		}
 		for (const t of cw.tethers) {
-			const [rx, ry] = ringPosition(t.owner.x, t.owner.y, { ...this.poseFor(t.owner), firing: true }, this.time);
+			const [rx, ry] = ringPosition(t.owner.x, t.owner.y, { ...this.poseFor(t.owner), firing: true }, this.time, sizeOf(t.owner));
 			const target = t.target;
 			const [tx, ty] = 'homeX' in target ? [target.x, target.y - 38] : [target.x + target.w / 2, target.y - (target as Obstacle).height / 2];
 			drawChain(ctx, rx, ry, tx, ty, this.time);
@@ -699,7 +707,7 @@ export class Game {
 			this.players.map((p, i) => ({
 				name: p.def.name,
 				slot: p.slot,
-				level: this.profiles ? this.profiles[p.def.id].level : null,
+				level: this.profiles && isLanternId(p.def.id) ? this.profiles[p.def.id].level : null,
 				health: p.health,
 				maxHealth: p.maxHealth,
 				downed: p.downed,

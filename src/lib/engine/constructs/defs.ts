@@ -6,7 +6,7 @@
 // Forge "AK-47" and the preset Minigun are both `rapid`, just with
 // different names, shapes and stats.
 
-import type { LanternId } from '../lanterns';
+import type { CrewId } from '../lanterns';
 
 export type Behavior =
 	| 'beam' // hold: a continuous line of energy
@@ -252,11 +252,13 @@ export const HELD_BEHAVIORS: ReadonlySet<Behavior> = new Set(['beam', 'rapid']);
 export const STRUCTURE_BEHAVIORS: ReadonlySet<Behavior> = new Set(['barrier', 'trap', 'turret', 'mine', 'heal']);
 
 /** Ten slots each, on keys 1-9 and 0. */
-export const LOADOUTS: Record<LanternId, ConstructId[]> = {
+export const LOADOUTS: Record<CrewId, ConstructId[]> = {
 	// Test pilot: fast, aggressive, up close
 	hal: ['beam', 'minigun', 'sword', 'fist', 'chain', 'hammer', 'rockets', 'buzzsaw', 'afterburner', 'shotgun'],
 	// Marine and architect: precision, fortification, engineering
-	john: ['beam', 'sniper', 'wall', 'turret', 'pillars', 'cannon', 'cage', 'shockwave', 'mines', 'aid']
+	john: ['beam', 'sniper', 'wall', 'turret', 'pillars', 'cannon', 'cage', 'shockwave', 'mines', 'aid'],
+	// Hammers and fists first, always
+	kilowog: ['hammer', 'fist', 'shockwave', 'cannon', 'minigun', 'wall', 'cage', 'rockets', 'beam', 'pillars']
 };
 
 /** How many traps a single Lantern can have out at once. */

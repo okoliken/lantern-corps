@@ -3,6 +3,7 @@
 // constructs when one is sparring against you.
 
 import type { LanternPose } from '../animation';
+import { LANTERNS } from '../lanterns';
 import { drawLantern, ringPosition, FIGURE_HEIGHT, GREEN, type Figure } from './lantern';
 
 export type CorpsKind = 'kilowog' | 'sinestro';
@@ -21,10 +22,10 @@ export const CORPS: Record<CorpsKind, CorpsFigure> = {
 	 * trunks, short thick legs, a small bald head sunk into his shoulders.
 	 */
 	kilowog: {
-		figure: { id: 'kilowog', look: { skin: '#b89a9c', hair: '#b89a9c', hairStyle: 'cropped', mask: false, bolovaxian: true }, bulk: 2.3 },
-		scale: 1.45,
-		build: { leg: 0.85, torso: 1.35, arm: 1.2, neck: 0.25 },
-		hunch: 0.05
+		figure: LANTERNS.kilowog,
+		scale: LANTERNS.kilowog.figureScale!,
+		build: LANTERNS.kilowog.build!,
+		hunch: LANTERNS.kilowog.hunch!
 	},
 	/**
 	 * Sinestro of Korugar, the Corps' greatest Lantern (for now): tall and lean,
