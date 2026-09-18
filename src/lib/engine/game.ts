@@ -412,7 +412,7 @@ export class Game {
 			const profile = this.profiles[id];
 			const xp = event.what.kind === 'spaceRock' ? XP_PER_ROCK : XP_PER_DEFEAT;
 			const gained = addXp(profile, xp);
-			const headY = p.y - FIGURE_HEIGHT - this.poseFor(p).hoverHeight * p.altitude * 1.35;
+			const headY = p.y - p.bodyTop;
 			cw.effects.push({ kind: 'text', x: p.x, y: headY - 6, age: 0, life: 1.1, text: `+${xp} XP` });
 			if (gained > 0) {
 				cw.effects.push({ kind: 'callout', x: p.x, y: p.y, age: 0, life: 1.6, text: 'LEVEL UP!', owner: p });
@@ -639,8 +639,8 @@ export class Game {
 		for (const sh of cw.shields) {
 			const t = sh.target;
 			if (!isPlayer(t)) continue;
-			const lift = this.poseFor(t).hoverHeight * t.altitude * 1.35;
-			drawShield(ctx, sh, lerp(t.prevX, t.x, alpha), lerp(t.prevY, t.y, alpha), lift, FIGURE_HEIGHT, this.time, this.settings.reduceFlashing);
+			// Sized to the body inside it (Kilowog needs a much bigger bubble than Hal)
+			drawShield(ctx, sh, lerp(t.prevX, t.x, alpha), lerp(t.prevY, t.y, alpha), t.bodyBottom, t.bodyTop - t.bodyBottom, this.time, this.settings.reduceFlashing);
 		}
 
 		// Target markers: what each Lantern will hit, and who they're protecting
@@ -686,15 +686,15 @@ export class Game {
 				// Follow the Lantern who shouted it, above their head
 				const o = e.owner;
 				const cx = o ? lerp(o.prevX, o.x, alpha) : e.x;
-				const cy = o ? lerp(o.prevY, o.y, alpha) - FIGURE_HEIGHT - this.poseFor(o).hoverHeight * o.altitude * 1.35 - 34 : e.y;
+				const cy = o ? lerp(o.prevY, o.y, alpha) - o.bodyTop - 34 : e.y;
 				drawCallout(ctx, e.text ?? '', cx, cy, e.age / e.life, e.hurt);
 				continue;
 			}
 			if (e.kind === 'pop' && e.owner) {
 				// A shield popping: centre it on the body it was protecting, same size as the bubble
 				const o = e.owner;
-				const bodyMid = this.poseFor(o).hoverHeight * o.altitude * 1.35 + FIGURE_HEIGHT * 0.5;
-				drawEffect(ctx, { ...e, radius: FIGURE_HEIGHT * 0.66 }, bodyMid, this.time);
+				const bodyMid = (o.bodyBottom + o.bodyTop) / 2;
+				drawEffect(ctx, { ...e, radius: (o.bodyTop - o.bodyBottom) * 0.66 }, bodyMid, this.time);
 				continue;
 			}
 			tinted(ctx, e.green, () => drawEffect(ctx, e, e.lift ?? 0, this.time, inSpace));

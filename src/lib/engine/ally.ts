@@ -93,7 +93,8 @@ export class AllyInput implements InputSource {
 		this.defend(me, partner, enemies, intent);
 		if (target && me.surge >= 100 && this.signatureRest === 0 && this.worthASignature(me, partner, enemies)) {
 			intent.signature = true;
-			this.signatureRest = 30;
+			// The surge bar is the real limit; this just stops it firing the moment it refills
+			this.signatureRest = 6;
 		}
 		this.useConstructs(me, target, enemies, intent);
 		return intent;
@@ -244,7 +245,8 @@ export class AllyInput implements InputSource {
 		const near = (r: number) => enemies.filter((e) => dist(e, me) < r).length;
 		if (me.def.id === 'kilowog') {
 			// Partners the story brings along let the smart ring choose
-			const pick = pickConstruct(me, this.world.constructs);
+			// Keep some willpower in reserve, like Hal and John do, so he's never left exhausted
+			const pick = me.willpower > 30 ? pickConstruct(me, this.world.constructs) : null;
 			if (pick) options.push({ id: me.loadout[pick.slot].id, plan: { slot: pick.slot, hold: pick.hold, selected: false } });
 		} else if (me.def.id === 'hal') {
 			if (d < 90) add('sword', press('sword'), true);
