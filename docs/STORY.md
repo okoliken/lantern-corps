@@ -70,30 +70,44 @@ balancing.
 
 ### Red Lanterns (rage)
 Fast and in your face. **They push you to use shields, walls and cages.**
-Look: dark red and black, jagged, glowing red eyes and mouths, rings that drip plasma.
-Shared trait: **Rage** builds as they take damage, making them faster and angrier.
+A red ring picks its bearer for rage, not shape, so **Red Lanterns are all kinds of creatures, not
+humans in suits** (user rule, 2026-09-18). They share the look: dark red and black, jagged, glowing
+red eyes and mouths, the Red Lantern emblem, a flickering red aura, plasma dripping.
+Shared trait: **Rage** builds as they take damage, making them faster and angrier. They never retreat.
+
+**Rank and file (Rage Grunts, one species per fighting role):**
 
 | Enemy | Role | Behavior | Weakness | Teaches |
 |---|---|---|---|---|
-| **Rage Grunt** | Basic melee | Rushes the nearest Lantern and claws. Gets **faster as it's hurt**. Comes in packs | Knockback and cages stop the rush | Movement, ring shot, spacing |
-| **Plasma Spitter** | Ranged area denial | Keeps its distance and **spits burning plasma** that leaves fire puddles for a few seconds. Plasma **melts constructs faster** | Low health; chain pulls it out of hiding | Dodging, reading the ground, not over-relying on walls |
-| **Rage Brute** | Heavy | Slow, huge. Winds up a **charge that smashes through energy walls** and knocks you flat | Sidestep the charge; it's stunned after hitting a wall or rock | Timing, using terrain |
-| **Dex-Starr** (mini-boss) | Fast predator | The Red Lantern cat. Darts, **pounces**, retreats, repeats. Summons small rage bursts | Cages; it hates being trapped | Traps and target lock |
-| **Atrocitus** (final boss) | Commander | Phase 1: rage waves and plasma storms. Phase 2: summons grunts and brutes. Phase 3: blood-red **napalm floods** the arena and he goes berserk | Shields for the floods; stay mobile | Everything |
+| **Rage Beast** | Berserker | Hulking, horned, four-legged. Charges in with claws, leaps into slams, roars to shred shields | Knockback and cages stop the rush | Movement, spacing, shields |
+| **Rage Stalker** | Hunter | Mantis-like insect with scythe arms and wings. Circles to your back, drags you in with a Barbed Chain | Keep it in front of you; lock on | Watching your flanks |
+| **Rage Maw** | Gunner | Floating tentacled thing that is mostly mouth. Hides behind cover, pops out to spit blasts and saws | Low health; flush it out of cover | Dodging, reading tells |
+| **Red Lantern Fighter** | Warship | Atrocitus's small attack ships. Strafing runs along their nose, bombing runs overhead, then loop round | Step out of its line; it can't stop or turn fast | Reading lines of fire |
 
-**Original lieutenant: Skarr Vell, the Scalded** (Act 1 boss). Atrocitus's frontier captain; a burned
-ex-soldier who leads raids personally. Charges like a brute, spits like a spitter. A mix of what the
-act taught.
+**Lieutenants, from the animated series** (named, tough, announced when they arrive):
+
+| Enemy | Behavior | Weakness |
+|---|---|---|
+| **Zilius Zox** | Round, grinning, mostly mouth. Floods the ground with napalm, bounces in for belly slams, laughs at you | Slow and big: keep moving, stay off the fire |
+| **Skallox** | Horned brute. Wall-smashing charge, claws, roar. Badly hurt, he **transforms** into a bigger, faster, stronger monster | Burst him down before the change; sidestep the charge |
+| **Bleez** | On torn black wings. Hangs back throwing Blood Spears, climbs and **dives** through you, hard to hit | Watch for her climbing; cages and lock-on |
+| **Dex-Starr** (mini-boss, later) | The Red Lantern cat. Darts, **pounces**, retreats, repeats | Cages; it hates being trapped |
+| **Atrocitus** (final boss, later) | Phase 1: rage waves and plasma storms. Phase 2: summons his army. Phase 3: blood-red **napalm floods** and he goes berserk | Shields for the floods; stay mobile |
+
+**Original lieutenant: Skarr Vell, the Scalded** (Act 1 boss, not built yet). Open question: keep him,
+or give Act 1 to one of the show's lieutenants instead.
 
 ### Manhunters (cold logic)
 Organized, precise, relentless. **They push you to switch constructs.**
-Look: red and silver androids, a single glowing eye, flat voices ("You are in violation.").
+Look: red, blue and silver machines, a single glowing eye, flat voices ("You are in violation.").
+They think like machines: they gang up on one target, call each other from far away, and pull back to
+regroup when damaged instead of fighting to the end.
 Shared trait: **Adapt**. They share data, so the more you repeat a construct in a fight, the more
 resistant nearby Manhunters get to it.
 
 | Enemy | Role | Behavior | Weakness | Teaches |
 |---|---|---|---|---|
-| **Manhunter Drone** | Basic soldier | Patrols, alerts others, **baton swipe** up close, **eye blast** at range | Mixed constructs; big hits interrupt its attacks | Reading wind-ups, construct variety |
+| **Manhunter Drone** | Basic soldier | A **flying robot**. Hangs at range firing **eye lasers**, drags a **laser sweep** across you, **pulses** you away if you get close | Mixed constructs; big hits interrupt its attacks | Reading wind-ups, construct variety |
 | **Manhunter Sentry** | Support turret | Stationary. **Shields nearby drones** and fires steady beams | Destroy it first; chain can yank drones out of its shield | Target priority, lock-on |
 | **Manhunter Adapter** | Elite | **Gains heavy resistance to the construct you use most**, shown on its armor color | Keep switching constructs | Using the whole loadout |
 | **Manhunter Prime** (boss) | Commander | Commands drones and sentries. Each phase it **locks out one of your constructs** it has "learned" | Improvise with what's left; shield and lock-on | Adapting under pressure |
@@ -112,9 +126,9 @@ Mission types come from what's happening in the story. Planets are original; Oa 
 1. **Silent Outpost** (planet, Kel-Aris Station): investigate a dark outpost. Tutorial: movement,
    ring shot, flying. First Rage Grunts.
 2. **Colony Under Fire** (planet, Mirrow Colony): **rescue** colonists (shield them!) while Grunts
-   attack. Plasma Spitters appear.
+   attack. Zilius Zox appears.
 3. **The Ambush** (space, Durvan Belt): defend a damaged Green Lantern ship in the asteroid field.
-   First Rage Brute.
+   First Red Lantern fighters, and Skallox.
 4. **Boss: Skarr Vell** (planet, the burning outpost). His defeat reveals the Reds are hunting for
    "the Guardians' buried shame".
 
@@ -155,9 +169,10 @@ Built during **C5** and the mission milestones. Everything is **data**, like the
 ---
 
 ## Build order for enemies
-1. **Rage Grunt** (Act 1's first enemy; simplest: rush + claw + rage speed-up)
-2. **Plasma Spitter** (adds ranged attacks and fire puddles)
-3. **Rage Brute** (adds charge and wall smashing)
-4. **Skarr Vell** (first boss, reuses the three above)
-5. Manhunters: **Drone → Sentry → Adapter → Prime**
-6. **Dex-Starr**, then **Atrocitus**
+1. ~~Rage Grunt~~ done: Rage Beast, Rage Stalker, Rage Maw (creatures, 2026-09-18)
+2. ~~Manhunter Drone~~ done: flying robot with lasers
+3. ~~Red Lantern Fighter~~ done: strafing and bombing runs
+4. ~~Zilius Zox, Skallox, Bleez~~ done: lieutenants from the animated series
+5. Act 1 boss (Skarr Vell, or a show lieutenant)
+6. Manhunters: **Sentry → Adapter → Prime**
+7. **Dex-Starr**, then **Atrocitus**

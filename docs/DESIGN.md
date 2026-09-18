@@ -37,8 +37,15 @@ scroll wheel. Settings are saved in the browser.
 | Lock target | Tab | Tab | , |
 | Pause, controls, options | Esc | Esc | Esc |
 
-**Ring shot:** a free basic attack. Quick green bolts (about 5 a second, 9 damage) that cost no
-willpower and work even when exhausted. Constructs are the special moves that cost willpower.
+**Ring shot:** a free basic attack. Green bolts in a **double tap** ("pum-pum … pum-pum": two bolts
+0.11s apart, then a short rest; a little under 4 a second, 10 damage each). A single tap always fires
+both. They cost no willpower and work even when exhausted. Constructs are the special moves that cost
+willpower.
+
+**Facing:** Lanterns face the way they move. Attacking turns them toward the aim, and they keep facing
+it for a moment (so steady fire doesn't flip them back and forth); moving away while doing so is a
+slower backpedal with the legs stepping backwards. Standing still, they look at the crosshair. Turning
+around is a quick spin, not an instant flip.
 
 **Accessibility options:** aim assist on/off, toggle ring shot (tap to start and stop instead of
 holding), damage numbers on/off, reduce flashing. A first-time "How to play" card shows the current
@@ -152,11 +159,29 @@ Every construct, whether preset or custom, uses one of 8 **behavior types**:
   It's freeform in *look*, bounded in *behavior*, so everything stays balanced.
 - *Later idea:* type any word and an AI (called from a SvelteKit server route) picks the behavior type.
 
+## Enemy AI
+Every enemy thinks for itself (`src/lib/engine/enemies/`):
+- **Personality**, rolled at spawn: aggression, caution, patience (roles and enemy kinds lean them).
+- **Eyes and memory** (`tactics.ts`): only sees Lanterns in range with nothing solid in between; when
+  it loses sight it goes to where it last saw them; getting shot puts it on alert; spotting a Lantern
+  calls nearby allies (machines call much further).
+- **Goals**, re-weighed every couple of seconds: hold range, approach, flank to your back, take cover
+  behind rocks/buildings and peek out, wait for an opening, retreat (machines only), investigate.
+- **Reflexes**: can sidestep incoming shots, depending on its agility and caution.
+- **Line of fire**: won't shoot into a rock; goes round instead.
+- **Attack director** (`director.ts`): attacks on a Lantern take turns. At most 2 coming at once (a big
+  area attack counts as 2), a short random beat between them, and a smaller budget right after the
+  Lantern has taken a lot of damage.
+- **Ships** (`ships.ts`) fly like aircraft: always moving forward, limited turning, attacking in passes.
+
+Lab: `/lab/enemies` with "Show AI states" shows each enemy's goal, what it sees, and its personality.
+
 ## Story & enemies
 See **[STORY.md](STORY.md)**: "Red Frontier". Following the comics and animated series, Red Lanterns
 (led by Atrocitus) are the main enemy and Manhunters the second threat. It has the full bestiary,
-acts, missions and character arcs. Enemy build order: Rage Grunt → Plasma Spitter → Rage Brute →
-Skarr Vell → Manhunters → Dex-Starr → Atrocitus.
+acts, missions and character arcs. Red Lanterns are creatures, not humans (Rage Beast, Rage Stalker,
+Rage Maw), plus Red Lantern fighter ships and the show's lieutenants Zilius Zox, Skallox and Bleez.
+Next: Act 1 boss → Manhunter Sentry/Adapter/Prime → Dex-Starr → Atrocitus.
 
 ## Tech
 - **SvelteKit** (Svelte 5 runes) + TypeScript + HTML Canvas 2D. Vitest for tests.
@@ -192,6 +217,12 @@ Skarr Vell → Manhunters → Dex-Starr → Atrocitus.
         Rage Prison, Rage Blast, Rage Saw, Blood Spears, Rage Meteors, Rage Beam, Skull Seekers); every enemy gets a random
         4-construct kit shaped by its role; `might` damage multiplier
   - [x] /trailer: self-playing 16:9 gameplay trailer (scenes.ts): Hal vs 5 in Coast City, Hal + John in space
+  - [x] Feel & pacing pass (2026-09-18): face the way you move, turn to shoot, backpedal, smooth turns; double-tap ring
+        shot; slower, more readable red attacks
+  - [x] Enemy brains: personalities, sight + memory, goals (flank, cover, wait, retreat...), dodging, attack director
+  - [x] Machines: Manhunter Drone (flying robot, lasers), Red Lantern Fighter (ship, strafing/bombing runs)
+  - [x] Red Lanterns as creatures: Rage Beast / Rage Stalker / Rage Maw
+  - [x] Lieutenants from the show: Zilius Zox, Skallox (transforms), Bleez (Blood Dive); demo waves 5-7
 - [ ] **M6** First mission: objective, win/lose, HUD, restart
 
 **Phase 1.5: Characters** (before enemies, by request)
