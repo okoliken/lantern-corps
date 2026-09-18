@@ -20,6 +20,7 @@ import type { Player } from '../player';
 import { RESTART_THRESHOLD, canSpend, spend } from '../willpower';
 import type { PressureMap } from '../enemies/director';
 import { createSquadState, type SquadState } from '../enemies/squad';
+import { chooseShieldTarget, pickConstruct } from './smart';
 import {
 	BUBBLE_SHIELD,
 	HELD_BEHAVIORS,
@@ -112,10 +113,27 @@ export interface PendingSmash {
 }
 
 /** A bubble shield around a Lantern (and in M6, civilians). */
+/**
+ * Something a Lantern can protect that isn't a Lantern: a ship, a crowd, a
+ * building. Missions add them to the world; the bubble shield (Shift) goes on
+ * one when it's the thing in most danger.
+ */
+export interface Protectable {
+	x: number;
+	y: number;
+	name: string;
+	/** Size of the bubble around it. */
+	radius: number;
+	/** Height of its middle above the ground (a ship floats). */
+	lift: number;
+	/** How much danger it's in right now (the mission sets this; a Lantern under attack is about 1). */
+	threat: number;
+}
+
 export interface Shield {
 	owner: Player;
-	/** Who's inside the bubble. */
-	target: Player;
+	/** Who (or what) is inside the bubble. */
+	target: Player | Protectable;
 	hp: number;
 	maxHp: number;
 	life: number;
@@ -249,10 +267,14 @@ export interface ConstructWorld {
 	pressure: PressureMap;
 	/** Which enemies attack now and which wait in reserve (enemies/squad.ts). */
 	squad: SquadState;
+	/** Every Lantern in the fight (the Game fills this in). */
+	players: Player[];
+	/** Things worth shielding besides Lanterns (a mission's ship). */
+	protectables: Protectable[];
 }
 
 export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[], space = false): ConstructWorld {
-	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], aids: [], pillarStrikes: [], effects: [], space, events: [], red: { shots: [], chains: [], strikes: [], puddles: [], beams: [], cages: [] }, redTempo: 1, pressure: new Map(), squad: createSquadState() };
+	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], aids: [], pillarStrikes: [], effects: [], space, events: [], red: { shots: [], chains: [], strikes: [], puddles: [], beams: [], cages: [] }, redTempo: 1, pressure: new Map(), squad: createSquadState(), players: [], protectables: [] };
 }
 
 // --------------------------------------------------------------- tuning
@@ -316,6 +338,7 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
 	const before = p.selected;
 	if (intent.select >= 0 && intent.select < p.loadout.length) p.selected = intent.select;
 	if (intent.cycle !== 0) p.selected = (p.selected + intent.cycle + p.loadout.length) % p.loadout.length;
+	if (p.smartRing && intent.select < 0 && intent.cycle === 0) intent = smartIntent(p, intent, dt, w);
 	if (p.selected !== before) {
 		p.firing = false;
 		p.charge = 0;
@@ -349,6 +372,35 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
 	p.actionTimer = ACTION_POSE_TIME + (def.windup ?? 0);
 	p.actionShape = def.shape;
 }
+
+/**
+ * The smart ring (see smart.ts): the construct button makes whatever the
+ * moment needs. Holding it keeps choosing: a held construct (beam, sniper)
+ * runs for its time, then the ring picks again. Returns the intent to act on.
+ */
+function smartIntent(p: Player, intent: Intent, dt: number, w: ConstructWorld): Intent {
+	p.smartPick = pickConstruct(p, w)?.slot ?? -1;
+	if (!intent.construct && !intent.constructPressed) {
+		p.smartTimer = 0;
+		return intent;
+	}
+	p.smartTimer -= dt;
+	if (p.smartTimer > 0) return { ...intent, constructPressed: false };
+	// A charged sniper shot fires when it's let go: let go for a tick
+	if (p.loadout[p.selected].behavior === 'snipe' && p.charge > 0) {
+		p.smartTimer = SMART_REPICK;
+		return { ...intent, construct: false, constructPressed: false };
+	}
+	const pick = pickConstruct(p, w);
+	// Nothing fits: use whatever's selected, like before
+	if (!pick) return intent;
+	p.selected = pick.slot;
+	p.smartTimer = pick.hold > 0 ? pick.hold : SMART_REPICK;
+	return { ...intent, constructPressed: pick.hold === 0 };
+}
+
+/** Seconds between picks while the construct button is held. */
+const SMART_REPICK = 0.3;
 
 /** Willpower cost after this Lantern's traits (John's structures are cheaper). */
 export function costOf(p: Player, def: ConstructDef): number {
@@ -831,16 +883,9 @@ function ringShot(p: Player, w: ConstructWorld) {
 
 // ----------------------------------------------------------------- shield
 
-/** Who a Lantern's shield would go on right now: a locked ally in reach, else themselves. */
-export function shieldRecipient(p: Player): Player {
-	const ally = p.protectTarget?.kind === 'ally' ? p.protectTarget.player : null;
-	if (ally && Math.hypot(ally.x - p.x, ally.y - p.y) <= BUBBLE_SHIELD.range) return ally;
-	return p;
-}
-
 function castShield(p: Player, w: ConstructWorld) {
 	if (p.shieldCooldown > 0 || !canSpend(p, BUBBLE_SHIELD.cost)) return;
-	const target = shieldRecipient(p);
+	const target = chooseShieldTarget(p, w);
 	const hp = durable(p, BUBBLE_SHIELD.hp ?? 100);
 	const life = durable(p, BUBBLE_SHIELD.duration ?? 10);
 
@@ -854,7 +899,7 @@ function castShield(p: Player, w: ConstructWorld) {
 
 	spend(p, BUBBLE_SHIELD.cost);
 	p.shieldCooldown = BUBBLE_SHIELD.cooldown * p.def.traits.cooldown;
-	w.effects.push({ kind: 'snap', x: target.x, y: target.y, age: 0, life: 0.35, radius: 40 });
+	w.effects.push({ kind: 'snap', x: target.x, y: target.y, age: 0, life: 0.35, radius: isPlayer(target) ? 40 : target.radius });
 	if (target !== p) {
 		gainSurge(p, SURGE_PER_ALLY_SHIELD);
 		// Reach toward the ally you're protecting
@@ -872,7 +917,7 @@ function castShield(p: Player, w: ConstructWorld) {
  * Damage aimed at a Lantern hits their bubble first. Returns what gets
  * through. (Enemies start using this in M5.)
  */
-export function absorbWithShield(w: ConstructWorld, target: Player, damage: number): number {
+export function absorbWithShield(w: ConstructWorld, target: Player | Protectable, damage: number): number {
 	// Inside a Fortress dome, nothing gets through
 	if (w.fortresses.some((f) => Math.hypot(target.x - f.x, target.y - f.y) <= f.radius)) return 0;
 	const shield = w.shields.find((s) => s.target === target);
@@ -882,9 +927,16 @@ export function absorbWithShield(w: ConstructWorld, target: Player, damage: numb
 	shield.ripple = 0.25;
 	if (shield.hp <= 0) {
 		w.shields.splice(w.shields.indexOf(shield), 1);
-		w.effects.push({ kind: 'pop', x: target.x, y: target.y, age: 0, life: 0.45, owner: target });
+		popShield(w, target);
 	}
 	return damage - absorbed;
+}
+
+export const isPlayer = (t: Player | Protectable): t is Player => 'def' in t;
+
+function popShield(w: ConstructWorld, target: Player | Protectable) {
+	if (isPlayer(target)) w.effects.push({ kind: 'pop', x: target.x, y: target.y, age: 0, life: 0.45, owner: target });
+	else w.effects.push({ kind: 'pop', x: target.x, y: target.y, age: 0, life: 0.45, radius: target.radius, lift: target.lift });
 }
 
 // ----------------------------------------------------------- world tick
@@ -903,7 +955,7 @@ export function updateConstructWorld(w: ConstructWorld, dt: number) {
 		s.ripple = Math.max(0, s.ripple - dt);
 		if (s.life <= 0) {
 			w.shields.splice(w.shields.indexOf(s), 1);
-			w.effects.push({ kind: 'pop', x: s.target.x, y: s.target.y, age: 0, life: 0.45, owner: s.target });
+			popShield(w, s.target);
 		}
 	}
 

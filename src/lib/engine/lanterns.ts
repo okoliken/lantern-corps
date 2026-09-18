@@ -3,6 +3,18 @@
 
 export type LanternId = 'hal' | 'john';
 
+/** How a Lantern looks (drawing only). */
+export interface Look {
+	skin: string;
+	hair: string;
+	/** Hal's hair sits up with a side sweep; John's is cropped short. */
+	hairStyle: 'swept' | 'cropped';
+	/** Hal wears the domino mask; John goes without one. */
+	mask: boolean;
+	/** A beaked, crested head instead of a human one (Tomar-Re). */
+	avian?: { beak: string; crest: string };
+}
+
 export interface LanternDef {
 	id: LanternId;
 	name: string;
@@ -25,14 +37,7 @@ export interface LanternDef {
 		/** Willpower cost of structures (walls, traps). */
 		structureCost: number;
 	};
-	look: {
-		skin: string;
-		hair: string;
-		/** Hal's hair sits up with a side sweep; John's is cropped short. */
-		hairStyle: 'swept' | 'cropped';
-		/** Hal wears the domino mask; John goes without one. */
-		mask: boolean;
-	};
+	look: Look;
 }
 
 export const LANTERNS: Record<LanternId, LanternDef> = {

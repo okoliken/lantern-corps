@@ -114,6 +114,12 @@ export interface Player {
 	shotCooldown: number;
 	/** Ring shots fired so far in the current double-tap. */
 	burstShots: number;
+	/** Smart ring: the construct button picks what the moment needs (constructs/smart.ts). */
+	smartRing: boolean;
+	/** The slot the smart ring would use right now, or -1 (for the HUD). */
+	smartPick: number;
+	/** Seconds before the smart ring picks again while the button is held. */
+	smartTimer: number;
 
 	// ---- Signature ability (see constructs/signature.ts) ----
 	/** 0..SURGE_MAX. Fills as you fight; full = signature ability ready. */
@@ -231,7 +237,10 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		beamLength: 0,
 		charge: 0,
 		actionTimer: 0,
-		actionShape: null
+		actionShape: null,
+		smartRing: false,
+		smartPick: -1,
+		smartTimer: 0
 	};
 }
 

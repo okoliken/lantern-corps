@@ -14,7 +14,6 @@ import {
 	absorbWithShield,
 	costOf,
 	createConstructWorld,
-	shieldRecipient,
 	updateAidStations,
 	updateConstructWorld,
 	updatePlayerConstructs,
@@ -326,7 +325,8 @@ describe('bubble shield', () => {
 		const { p, w } = setup('john', 'beam');
 		const partner = createPlayer(1, LANTERNS.hal, { read: () => IDLE }, BUBBLE_SHIELD.range + 100, 0);
 		p.protectTarget = { kind: 'ally', player: partner };
-		expect(shieldRecipient(p)).toBe(p);
+		run(p, w, SHIELD, DT);
+		expect(w.shields[0].target).toBe(p);
 	});
 
 	it('absorbs damage until it breaks, then lets the rest through', () => {

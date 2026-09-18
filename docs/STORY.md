@@ -126,6 +126,9 @@ back and let them fight, lure one faction into the other, or get caught in the m
   holed in the Durvan Belt and his ring nearly spent, can fly or shield but not both. Hal clears a path
   through a storm of 100 asteroids. (This takes the place of the old Act 1 idea "The Ambush" in the
   Durvan Belt as the game's opening.)
+  **Ending:** the ship lands on Oa. Tomar-Re thanks Hal, then warns him: something struck his ship
+  before the belt, "a light the color of blood", and frontier outposts are going silent (Kel-Aris
+  Station stopped answering). That leads into Silent Outpost and the Red Lanterns.
 
 ## Acts & missions
 Mission types come from what's happening in the story. Planets are original; Oa and Ysmault are canon.

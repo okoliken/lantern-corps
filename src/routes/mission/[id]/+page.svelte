@@ -6,9 +6,12 @@
 	import ControlsCard from '$lib/components/ControlsCard.svelte';
 	import GameCanvas from '$lib/components/GameCanvas.svelte';
 	import PauseMenu from '$lib/components/PauseMenu.svelte';
+	import StoryScene from '$lib/components/StoryScene.svelte';
 	import { Game } from '$lib/engine/game';
 	import { LANTERNS } from '$lib/engine/lanterns';
 	import { MISSION_LIVES, SafePassage, TOTAL_ROCKS, buildBeltMap, type MissionState } from '$lib/engine/missions/safePassage';
+	import { OaLanding } from '$lib/engine/scenes/oaLanding';
+	import { OA_LANDING } from '$lib/story/scenes';
 	import { profiles } from '$lib/profiles.svelte';
 	import { settings } from '$lib/settings.svelte';
 
@@ -54,8 +57,15 @@
 		showControls = !settings.current.seenControls;
 	}
 
+	/** After a win: the landing on Oa plays, then the results. */
+	let outro = $state<OaLanding | null>(null);
+	let outroDone = $state(false);
+	const OUTRO_DELAY = 2.5;
+
 	function retry() {
 		round++;
+		outro = null;
+		outroDone = false;
 		briefing = false;
 		paused = false;
 	}
@@ -98,6 +108,10 @@
 				impacts: d.impacts,
 				failReason: d.failReason
 			};
+			if (d.state === 'won' && d.timer >= OUTRO_DELAY && !outro && !outroDone) {
+				outro = new OaLanding(OA_LANDING, d.ship.hull / d.ship.maxHull);
+				game.paused = true;
+			}
 		}, 100);
 		return () => clearInterval(id);
 	});
@@ -176,7 +190,9 @@
 		</div>
 	{:else if showControls}
 		<ControlsCard onClose={() => (showControls = false)} />
-	{:else if status.state === 'won' || status.state === 'lost'}
+	{:else if outro && !outroDone}
+		<StoryScene scene={outro} onDone={() => (outroDone = true)} />
+	{:else if (status.state === 'won' && outroDone) || status.state === 'lost'}
 		<div class="end" class:won={status.state === 'won'}>
 			<h2>{status.state === 'won' ? 'Mission complete' : 'Mission failed'}</h2>
 			{#if status.state === 'won'}
@@ -185,7 +201,7 @@
 						<span class:on={i < status.stars}>★</span>
 					{/each}
 				</div>
-				<p>Tomar-Re made it through the Durvan Belt. "I owe you one, Jordan."</p>
+				<p>Tomar-Re made it home to Oa. But something red is moving on the frontier...</p>
 			{:else if status.failReason === 'ship'}
 				<p>Tomar-Re's ship broke apart in the storm.</p>
 			{:else}

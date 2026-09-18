@@ -14,19 +14,20 @@
 // battery, so staying near it keeps Hal's willpower up.
 
 import { damagePlayer } from '../combat';
+import { absorbWithShield, type ConstructWorld, type Protectable } from '../constructs/system';
 import { isStanding, type Dummy } from '../dummy';
 import type { Drawable, Game } from '../game';
 import { seededRandom, type GameMap, type Obstacle } from '../map';
-import { drawEscortShip } from '../draw/escort';
+import { drawEscortShip, drawShipShield } from '../draw/escort';
 
 export type MissionState = 'intro' | 'playing' | 'won' | 'lost';
 export type RockSize = 'small' | 'medium' | 'large';
 
 /** How each size of asteroid behaves. */
 export const ROCKS: Record<RockSize, { radius: number; hp: number; speed: [number, number]; shipDamage: number; lanternDamage: number }> = {
-	small: { radius: 14, hp: 20, speed: [110, 150], shipDamage: 8, lanternDamage: 8 },
-	medium: { radius: 22, hp: 55, speed: [85, 115], shipDamage: 16, lanternDamage: 14 },
-	large: { radius: 34, hp: 130, speed: [60, 85], shipDamage: 30, lanternDamage: 22 }
+	small: { radius: 14, hp: 20, speed: [110, 150], shipDamage: 6, lanternDamage: 8 },
+	medium: { radius: 22, hp: 55, speed: [85, 115], shipDamage: 13, lanternDamage: 14 },
+	large: { radius: 34, hp: 130, speed: [60, 85], shipDamage: 24, lanternDamage: 22 }
 };
 
 /** The storm: waves of [start second, how many, over how many seconds]. 100 in all. */
@@ -45,7 +46,7 @@ export const TOTAL_ROCKS = WAVES.reduce((n, [, count]) => n + count, 0);
 
 export const MISSION_LIVES = 3;
 const INTRO_TIME = 3;
-const SHIP_HULL = 400;
+const SHIP_HULL = 500;
 const SHIP_SPEED = 25;
 /** How high the ship and asteroids float above their ground point (they're drawn this far up). */
 export const FLOAT = 40;
@@ -57,7 +58,11 @@ const LOST_DISTANCE = 1300;
 /** Further than this and Hal is told to get back to the ship. */
 export const LEASH = 650;
 
-export interface EscortShip {
+/** How far ahead (seconds) the ship watches for asteroids on a collision course. */
+const THREAT_LOOKAHEAD = 2.5;
+
+/** The ship is something a Lantern can shield (Shift puts the bubble on it when it's in danger). */
+export interface EscortShip extends Protectable {
 	x: number;
 	y: number;
 	prevX: number;
@@ -114,13 +119,26 @@ export class SafePassage {
 	private crashed = new WeakSet<Dummy>();
 	private wasDown: boolean[] = [];
 	private rand: () => number;
+	private world: ConstructWorld | null = null;
 
 	constructor(map: GameMap, seed = Math.random() * 1e6) {
 		this.rand = seededRandom(Math.floor(seed));
 		this.laneY = map.height / 2;
 		this.startX = 420;
 		this.endX = map.width - 420;
-		this.ship = { x: this.startX, y: this.laneY, prevX: this.startX, prevY: this.laneY, hull: SHIP_HULL, maxHull: SHIP_HULL, flash: 0 };
+		this.ship = {
+			x: this.startX,
+			y: this.laneY,
+			prevX: this.startX,
+			prevY: this.laneY,
+			hull: SHIP_HULL,
+			maxHull: SHIP_HULL,
+			flash: 0,
+			name: "Tomar-Re's ship",
+			radius: SHIP_HALF_LENGTH + 20,
+			lift: FLOAT,
+			threat: 0
+		};
 		// Early waves are mostly small rocks; later ones bring the big ones
 		WAVES.forEach(([start, count, over], w) => {
 			for (let i = 0; i < count; i++) {
@@ -157,6 +175,8 @@ export class SafePassage {
 
 	update(game: Game, dt: number) {
 		const s = this.ship;
+		this.world = game.constructs;
+		if (!game.constructs.protectables.includes(s)) game.constructs.protectables.push(s);
 		s.prevX = s.x;
 		s.prevY = s.y;
 		s.flash = Math.max(0, s.flash - dt);
@@ -176,6 +196,12 @@ export class SafePassage {
 				this.spawnDue(game);
 				if (s.x >= this.endX) this.win(game);
 				break;
+			case 'won':
+				// Seconds since the win: the page starts the landing scene after the cheer
+				this.timer += dt;
+				// Tomar-Re flies on toward Oa
+				s.x += SHIP_SPEED * 3 * dt;
+				break;
 		}
 
 		// The Lantern battery rides on the ship
@@ -186,6 +212,7 @@ export class SafePassage {
 		}
 
 		this.updateRocks(game);
+		s.threat = this.state === 'playing' ? this.threatToShip() : 0;
 		this.countDowns(game);
 		if (this.state === 'playing' && s.hull <= 0) this.lose(game, 'ship');
 	}
@@ -253,9 +280,16 @@ export class SafePassage {
 				this.rocks.delete(rock);
 				continue;
 			}
-			// Hit the ship?
+			// Hit the ship? A bubble shield on it takes the blow and breaks the rock (that counts as blasted)
 			if (this.state === 'playing' && Math.abs(rock.x - s.x) < SHIP_HALF_LENGTH + def.radius * 0.6 && Math.abs(rock.y - s.y) < SHIP_HALF_DEPTH + def.radius * 0.5) {
-				s.hull = Math.max(0, s.hull - def.shipDamage);
+				const through = absorbWithShield(game.constructs, s, def.shipDamage);
+				if (through === 0) {
+					rock.hp = 0;
+					rock.down = 0.2;
+					game.constructs.effects.push({ kind: 'snap', x: rock.x, y: rock.y, age: 0, life: 0.3, radius: def.radius + 10, lift: FLOAT });
+					continue;
+				}
+				s.hull = Math.max(0, s.hull - through);
 				s.flash = 0.2;
 				this.impacts++;
 				this.crash(rock);
@@ -280,6 +314,34 @@ export class SafePassage {
 		}
 	}
 
+	/**
+	 * How much danger the ship is in: asteroids that will hit it within the
+	 * next couple of seconds, bigger and sooner counting for more. A Lantern
+	 * with an enemy winding up on them is about 1, so a couple of rocks
+	 * inbound makes the ship the one to shield.
+	 */
+	private threatToShip(): number {
+		const s = this.ship;
+		let threat = 0;
+		for (const [rock, size] of this.rocks) {
+			if (!isStanding(rock)) continue;
+			// Closest approach, relative to the moving ship
+			const rx = rock.x - s.x;
+			const ry = rock.y - s.y;
+			const vx = rock.vx - SHIP_SPEED;
+			const vy = rock.vy;
+			const speed2 = vx * vx + vy * vy || 1;
+			const t = Math.max(0, Math.min(THREAT_LOOKAHEAD, -(rx * vx + ry * vy) / speed2));
+			const cx = rx + vx * t;
+			const cy = ry + vy * t;
+			const r = ROCKS[size].radius;
+			if (Math.abs(cx) > SHIP_HALF_LENGTH + r || Math.abs(cy) > SHIP_HALF_DEPTH + r) continue;
+			threat += (ROCKS[size].shipDamage / 12) * (1 - (t / THREAT_LOOKAHEAD) * 0.5);
+		}
+		if (s.hull < s.maxHull * 0.35) threat *= 1.5;
+		return threat;
+	}
+
 	/** Broke on the ship or a Lantern: gone, but not counted as blasted. */
 	private crash(rock: Dummy) {
 		this.crashed.add(rock);
@@ -301,6 +363,7 @@ export class SafePassage {
 
 	private win(game: Game) {
 		this.state = 'won';
+		this.timer = 0;
 		for (const p of game.players) p.victoryTimer = 0.4;
 		const p = game.players[0];
 		game.constructs.effects.push({ kind: 'callout', x: p.x, y: p.y, age: 0, life: 2.5, text: 'SAFE PASSAGE!', owner: p });
@@ -331,6 +394,15 @@ export class SafePassage {
 		const x = s.prevX + (s.x - s.prevX) * alpha;
 		const y = s.prevY + (s.y - s.prevY) * alpha;
 		const destroyed = this.failReason === 'ship';
-		return [{ baseY: y, draw: () => drawEscortShip(ctx, x, y, s.hull / s.maxHull, s.flash, destroyed, time) }];
+		const shield = this.world?.shields.find((sh) => sh.target === s);
+		return [
+			{
+				baseY: y,
+				draw: () => {
+					drawEscortShip(ctx, x, y, s.hull / s.maxHull, s.flash, destroyed, time);
+					if (shield) drawShipShield(ctx, shield, x, y - FLOAT, s.radius, time);
+				}
+			}
+		];
 	}
 }

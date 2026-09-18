@@ -10,11 +10,13 @@ import {
 	SHOT_POSE_TIME,
 	costOf,
 	createConstructWorld,
+	isPlayer,
 	updateAidStations,
 	updateConstructWorld,
 	updatePlayerConstructs,
 	type ConstructWorld
 } from './constructs/system';
+import { chooseShieldTarget } from './constructs/smart';
 import {
 	drawAidStation,
 	drawAutoTurret,
@@ -58,6 +60,7 @@ import {
 	ButtonState,
 	PointerState,
 	SLOT_ACTIONS,
+	buttonLabel,
 	shortLabel,
 	usesMouse,
 	type LayoutName
@@ -211,6 +214,7 @@ export class Game {
 			}
 			return p;
 		});
+		this.constructs.players = this.players;
 		this.applySettings(settings);
 
 		this.showSlots = showSlots;
@@ -244,6 +248,7 @@ export class Game {
 			};
 			for (const action of ACTIONS) for (const code of bindings[action]) this.buttons.gameButtons.add(code);
 		});
+		this.players.forEach((p, i) => (p.smartRing = settings.smartRing && !this.aiSlots.has(i)));
 	}
 
 	/** Does any player aim with the mouse? (Then we hide the cursor and draw a crosshair.) */
@@ -609,9 +614,10 @@ export class Game {
 			drawChain(ctx, rx, ry, tx, ty, this.time);
 		}
 
-		// Bubble shields around whoever they protect
+		// Bubble shields around whoever they protect (a mission draws its own things' bubbles)
 		for (const sh of cw.shields) {
 			const t = sh.target;
+			if (!isPlayer(t)) continue;
 			const lift = this.poseFor(t).hoverHeight * t.altitude * 1.35;
 			drawShield(ctx, sh, lerp(t.prevX, t.x, alpha), lerp(t.prevY, t.y, alpha), lift, FIGURE_HEIGHT, this.time, this.settings.reduceFlashing);
 		}
@@ -687,6 +693,7 @@ export class Game {
 				exhausted: p.exhausted,
 				charging: p.charging,
 				selected: p.selected,
+				smart: p.smartRing ? { key: buttonLabel(this.inputs[i].bindings.construct[0] ?? ''), pick: p.smartPick } : null,
 				slots: p.loadout.map((def, s) => ({
 					...constructLabel(def, cw.space),
 					key: shortLabel(this.inputs[i].bindings[SLOT_ACTIONS[s]]),
@@ -747,6 +754,11 @@ export class Game {
 		const parts: string[] = [];
 		if (p.attackTarget) parts.push(`${sameTarget(p.attackTarget, p.lock) ? '🔒 ' : ''}${name(p.attackTarget)}`);
 		if (p.protectTarget) parts.push(`🛡 ${name(p.protectTarget)}`);
+		else if (!p.downed) {
+			// Where Shift would put the bubble right now, when it isn't on yourself
+			const shieldOn = chooseShieldTarget(p, this.constructs);
+			if (shieldOn !== p) parts.push(`🛡 ${isPlayer(shieldOn) ? shieldOn.def.name : shieldOn.name}`);
+		}
 		return parts.join('  ·  ');
 	}
 

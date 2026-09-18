@@ -11,17 +11,19 @@
 
 	let { layout = 'solo', onClose }: Props = $props();
 
-	const rows: { actions: Action[]; what: string }[] = [
+	// The whole fight works on the first four rows; the rest are extras
+	const rows = $derived<{ actions: Action[]; what: string }[]>([
 		{ actions: ['up', 'left', 'down', 'right'], what: 'Move' },
 		{ actions: ['shot'], what: 'Ring shot: free, never runs out' },
-		{ actions: ['construct'], what: 'Use your construct (costs willpower)' },
-		{ actions: ['slot1'], what: 'Keys 1–0 use a construct straight away (hold for beams and guns)' },
-		{ actions: ['nextConstruct'], what: 'Or scroll to pick one and use it with the construct button' },
-		{ actions: ['shield'], what: 'Bubble shield' },
+		settings.current.smartRing
+			? { actions: ['construct'], what: 'Construct: the ring makes what the moment needs (hold to keep going)' }
+			: { actions: ['construct'], what: 'Use your construct (costs willpower)' },
+		{ actions: ['shield'], what: 'Bubble shield: goes on whoever needs it most, you, your partner, or what you protect' },
 		{ actions: ['signature'], what: 'Signature ability, when the surge bar is full' },
+		{ actions: ['slot1'], what: 'Keys 1–0 pick a construct yourself (optional)' },
 		{ actions: ['fly'], what: 'Take off / land' },
 		{ actions: ['target'], what: 'Lock onto a target (again to switch)' }
-	];
+	]);
 
 	const keysFor = (actions: Action[]) =>
 		actions.length === 4

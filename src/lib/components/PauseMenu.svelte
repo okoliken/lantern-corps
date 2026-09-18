@@ -68,7 +68,12 @@
 		{ title: 'Choose construct', actions: ['prevConstruct', 'nextConstruct', ...SLOT_ACTIONS] }
 	];
 
-	const options: { key: 'aimAssist' | 'toggleShot' | 'quickCast' | 'damageNumbers' | 'reduceFlashing'; label: string; help: string }[] = [
+	const options: { key: 'aimAssist' | 'toggleShot' | 'quickCast' | 'smartRing' | 'damageNumbers' | 'reduceFlashing'; label: string; help: string }[] = [
+		{
+			key: 'smartRing',
+			label: 'Smart ring',
+			help: 'The construct button makes whatever the moment needs: a hammer up close, rockets for a crowd, a sniper for far away, an aid station when someone is hurt. Hold it and it keeps choosing. Number keys still pick by hand.'
+		},
 		{
 			key: 'quickCast',
 			label: 'Quick cast',

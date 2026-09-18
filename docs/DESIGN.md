@@ -42,6 +42,23 @@ scroll wheel. Settings are saved in the browser.
 both. They cost no willpower and work even when exhausted. Constructs are the special moves that cost
 willpower.
 
+**Four buttons are enough.** Left click shoots, right click makes a construct, Shift shields, R is the
+signature. Everything else is optional.
+
+**Smart ring** (on by default, Options; `constructs/smart.ts`): the construct button makes whatever the
+moment needs, scored by what each construct DOES (its behavior), counting only what's ready and
+affordable: sword/fist/hammer up close, shockwave or shotgun when crowded, rockets or pillars for a pack
+further off, the sniper for something far away, wall/cage/mines when something is rushing you, an aid
+station when you or a partner is badly hurt, an auto-turret when there are several enemies and none is
+out. Holding the button keeps choosing (a held pick like the beam runs for a second, then it picks
+again). The HUD shows what it would make next ("Right click ▸ Rocket Pod") and lights that slot. Number
+keys still pick by hand.
+
+**Smart shield** (Shift): the bubble goes on whoever is in the most danger right now: you, a partner in
+reach (enemies winding up on them, red shots flying at them), or **something you're protecting**
+(`ConstructWorld.protectables`, e.g. Tomar-Re's ship, whose danger is the asteroids on a collision
+course). A locked ally (Tab) always wins. The HUD shows where it would go ("🛡 Tomar-Re's ship").
+
 **Quick cast** (on by default, Options): a construct's key USES it straight away: tap for one-shot
 constructs, hold for the beam, minigun and sniper charge. Scroll + construct button still works (and is
 the only way with Quick cast off).
@@ -184,9 +201,17 @@ draw (`drawables`) and things for the camera to keep in view (`cameraPoints`).
 damaged cruiser crosses the belt left to right (~2½ minutes) while **100 asteroids** drift in, in 9
 waves, most aimed at where the ship will be. Asteroids are drifting targets (`Dummy.drift`), so every
 weapon works on them; they're heavy (little knockback), crack as they're hit, and break into debris.
-Hitting the ship costs hull (small 8 / medium 16 / large 30 of 400); hitting Hal hurts him. The Lantern
-battery rides on the ship. 3 lives. Win = ship across; ★ made it, ★ hull ≥ 50%, ★ 70+ blasted.
-A ring-shot-only bot wins about 5 times in 6.
+Hitting the ship costs hull (small 6 / medium 13 / large 24 of 500); hitting Hal hurts him. The ship
+is a protectable: Shift puts a bubble around it, rocks break on the bubble (and count as blasted).
+The Lantern battery rides on the ship. 3 lives. Win = ship across; ★ made it, ★ hull ≥ 50%, ★ 70+
+blasted. Bots: undefended the ship breaks at ~90s; ring shot only wins with 56–71% hull; ring shot +
+smart ring + Shift wins with 81–93%.
+
+**Ending (after a win):** a story scene (`scenes/oaLanding.ts`, lines in `story/scenes.ts`, played by
+`StoryScene.svelte`): the ship sets down on a landing plaza on Oa below the Central Power Battery, Hal
+lands beside it, Tomar-Re (a beaked, crested alien: `Look.avian`) climbs out, salutes and thanks him,
+then warns him about a blood-red light and frontier outposts going silent (the sky turns red), setting
+up the Red Lanterns. Click / Space to go on (lines also move on by themselves), Esc skips. Then the results.
 
 **Lantern health:** 150, regenerates 6/s after 4s without taking damage; 0.5s invulnerable after a hit.
 A downed Lantern lies still (no turning or aiming).

@@ -1,7 +1,7 @@
 // Mission art: Tomar-Re's Green Lantern Corps cruiser, and the asteroids of
 // the storm (and the debris when they break).
 
-import type { Effect } from '../constructs/system';
+import type { Effect, Shield } from '../constructs/system';
 import type { Dummy } from '../dummy';
 import { GREEN } from './lantern';
 
@@ -29,9 +29,11 @@ export function drawEscortShip(
 	hull: number,
 	flash: number,
 	destroyed: boolean,
-	time: number
+	time: number,
+	/** Story scenes: set down on its legs with the engines off; `empty` once the pilot has climbed out. */
+	scene: { landed?: boolean; empty?: boolean; hatch?: number } = {}
 ) {
-	const bob = Math.sin(time * 1.6) * 3;
+	const bob = scene.landed ? 0 : Math.sin(time * 1.6) * 3;
 	ctx.save();
 	ctx.translate(x, y - 40 + bob);
 	if (destroyed) {
@@ -41,7 +43,7 @@ export function drawEscortShip(
 
 	// Engine flames: green, steady when healthy, sputtering when hurt
 	const sputter = hull < 0.3 ? (Math.sin(time * 23) > 0 ? 0.4 : 1) : 1;
-	if (!destroyed) {
+	if (!destroyed && !scene.landed) {
 		for (const ey of [-8, 9]) {
 			const len = (26 + Math.sin(time * 40 + ey) * 4) * sputter;
 			const g = ctx.createLinearGradient(-92, ey, -92 - len, ey);
@@ -131,6 +133,34 @@ export function drawEscortShip(
 	ctx.fillRect(-7, 5.5, 14, 2);
 	ctx.restore();
 
+	// Landing legs
+	if (scene.landed) {
+		ctx.strokeStyle = OUTLINE;
+		ctx.fillStyle = HULL_SHADE;
+		ctx.lineWidth = 1.5;
+		for (const lx of [-50, 40]) {
+			ctx.beginPath();
+			ctx.moveTo(lx, 14);
+			ctx.lineTo(lx - 8, 40);
+			ctx.lineTo(lx + 6, 40);
+			ctx.closePath();
+			ctx.fill();
+			ctx.stroke();
+		}
+	}
+
+	// Side hatch, glowing as it opens
+	if (scene.hatch) {
+		ctx.fillStyle = `rgba(234, 255, 240, ${0.3 + 0.6 * scene.hatch})`;
+		ctx.shadowColor = GREEN;
+		ctx.shadowBlur = 14 * scene.hatch;
+		ctx.fillRect(4, 14 - 22 * scene.hatch, 16, 22 * scene.hatch);
+		ctx.shadowBlur = 0;
+		ctx.strokeStyle = OUTLINE;
+		ctx.lineWidth = 1;
+		ctx.strokeRect(4, -8, 16, 22);
+	}
+
 	// Canopy, with the pilot inside: Tomar-Re (a beaked, crested alien)
 	ctx.save();
 	const canopy = new Path2D();
@@ -140,6 +170,7 @@ export function drawEscortShip(
 	ctx.fillStyle = 'rgba(120, 255, 180, 0.28)';
 	ctx.fill(canopy);
 	ctx.clip(canopy);
+	if (scene.empty) ctx.globalAlpha = 0;
 	ctx.fillStyle = '#e07a3a';
 	ctx.beginPath();
 	ctx.ellipse(40, -20, 5, 6, 0, 0, TAU);
@@ -214,6 +245,54 @@ export function drawEscortShip(
 }
 
 /** An asteroid of the storm: a lumpy, cratered, spinning rock that cracks as it's hit. */
+/**
+ * A bubble shield stretched around the whole ship. (x, y) is the middle of the
+ * hull; `length` is half its width. Blinks in its last two seconds, like a
+ * Lantern's bubble.
+ */
+export function drawShipShield(ctx: CanvasRenderingContext2D, s: Shield, x: number, y: number, length: number, time: number) {
+	const ripple = s.ripple / 0.3;
+	const health = s.hp / s.maxHp;
+	const rx = length + ripple * 5;
+	const ry = length * 0.46 + ripple * 3;
+	const cy = y - 6;
+	const blink = s.life < 2 ? (Math.sin(time * 18) > 0 ? 0.45 : 1) : 1;
+
+	ctx.save();
+	ctx.globalAlpha = blink;
+	const body = ctx.createRadialGradient(x - rx * 0.3, cy - ry * 0.4, 4, x, cy, rx);
+	body.addColorStop(0, 'rgba(234, 255, 240, 0.06)');
+	body.addColorStop(0.75, `rgba(61, 255, 110, ${0.06 + 0.06 * health})`);
+	body.addColorStop(1, `rgba(61, 255, 110, ${0.28 + 0.22 * health + ripple * 0.3})`);
+	ctx.fillStyle = body;
+	ctx.beginPath();
+	ctx.ellipse(x, cy, rx, ry, 0, 0, TAU);
+	ctx.fill();
+
+	ctx.shadowColor = GREEN;
+	ctx.shadowBlur = 16;
+	ctx.strokeStyle = GREEN;
+	ctx.lineWidth = 2 + ripple * 2;
+	ctx.stroke();
+
+	// Glint sliding over the top
+	ctx.shadowBlur = 0;
+	ctx.strokeStyle = 'rgba(234, 255, 240, 0.6)';
+	ctx.lineWidth = 2.5;
+	const g = -2.2 + Math.sin(time * 0.8) * 0.3;
+	ctx.beginPath();
+	ctx.ellipse(x, cy, rx * 0.86, ry * 0.8, 0, g, g + 0.6);
+	ctx.stroke();
+
+	// Time left along the bottom
+	ctx.strokeStyle = 'rgba(61, 255, 110, 0.6)';
+	ctx.lineWidth = 2;
+	ctx.beginPath();
+	ctx.ellipse(x, cy, rx + 6, ry + 6, 0, Math.PI * 0.3, Math.PI * 0.3 + Math.PI * 0.4 * (s.life / s.maxLife));
+	ctx.stroke();
+	ctx.restore();
+}
+
 export function drawSpaceRock(ctx: CanvasRenderingContext2D, d: Dummy, x: number, y: number, time: number) {
 	if (!d.drift) return;
 	const { radius: r, float, spin, seed } = d.drift;

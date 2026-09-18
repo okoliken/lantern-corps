@@ -240,6 +240,8 @@ export interface HudPlayer {
 	charging: boolean;
 	slots: HudSlot[];
 	selected: number;
+	/** Smart ring on: the construct button's key and the slot it would use now (-1 = nothing fits). */
+	smart: { key: string; pick: number } | null;
 	shield: { key: string; cooldown: number; affordable: boolean; active: boolean };
 	/** Signature ability meter. */
 	surge: { fill: number; name: string; key: string; active: boolean };
@@ -280,7 +282,12 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		ctx.fillStyle = 'rgba(216, 245, 224, 0.9)';
 		ctx.textAlign = 'left';
 		const level = p.level !== null ? ` · Lv ${p.level}` : '';
-		ctx.fillText(`${p.name}${level} · ${p.slots[p.selected].name}`, x, labelY);
+		const hand = p.smart
+			? p.smart.pick >= 0
+				? `${p.smart.key} ▸ ${p.slots[p.smart.pick].name}`
+				: `${p.smart.key} ▸ ${p.slots[p.selected].name}`
+			: p.slots[p.selected].name;
+		ctx.fillText(`${p.name}${level} · ${hand}`, x, labelY);
 		ctx.font = uiFont(700, 11);
 		ctx.textAlign = 'right';
 		ctx.fillStyle = low ? '#ffb86b' : 'rgba(216, 245, 224, 0.7)';
@@ -337,9 +344,11 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		}
 
 		// ---- Construct slots ----
+		// With the smart ring, the slot it would use next is the one lit up
+		const lit = p.smart && p.smart.pick >= 0 ? p.smart.pick : p.selected;
 		p.slots.forEach((s, i) => {
 			const sx = x + i * (box + gap);
-			const selected = i === p.selected;
+			const selected = i === lit;
 			ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
 			ctx.fillRect(sx, slotsY, box, box);
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Game } from '../game';
+import { IDLE } from '../input';
 import { MISSION_LIVES, ROCKS, SafePassage, TOTAL_ROCKS, buildBeltMap } from './safePassage';
 
 function setup(seed = 1) {
@@ -120,5 +121,39 @@ describe('Mission 1: Safe Passage', () => {
 		expect(ROCKS.large.hp).toBeGreaterThan(ROCKS.medium.hp);
 		expect(ROCKS.medium.hp).toBeGreaterThan(ROCKS.small.hp);
 		expect(ROCKS.large.shipDamage).toBeGreaterThan(ROCKS.small.shipDamage);
+	});
+
+	it('the ship can be shielded, and asteroids on a collision course make Shift pick it', () => {
+		const { game, mission, p } = setup();
+		run(game, 9, () => (p.invuln = 1));
+		expect(game.constructs.protectables).toContain(mission.ship);
+		// Park Hal next to the ship and aim a rock straight at it
+		p.x = mission.ship.x - 60;
+		p.y = mission.ship.y + 80;
+		const rock = rocks(game)[0];
+		rock.x = mission.ship.x + 200;
+		rock.y = mission.ship.y;
+		rock.vx = -150;
+		rock.vy = 0;
+		run(game, 1 / 60);
+		expect(mission.ship.threat).toBeGreaterThan(0);
+		p.input = { read: () => ({ ...IDLE, shield: true }) };
+		run(game, 1 / 60);
+		expect(game.constructs.shields.some((s) => s.target === mission.ship)).toBe(true);
+	});
+
+	it('a shielded ship takes no hull damage; the rock breaks on the bubble and counts', () => {
+		const { game, mission, p } = setup();
+		run(game, 9, () => (p.invuln = 1));
+		const ship = mission.ship;
+		game.constructs.shields.push({ owner: p, target: ship, hp: 200, maxHp: 200, life: 10, maxLife: 10, ripple: 0 });
+		const hull = ship.hull;
+		const rock = rocks(game)[0];
+		rock.x = ship.x + 20;
+		rock.y = ship.y;
+		run(game, 0.5, () => (p.invuln = 1));
+		expect(ship.hull).toBe(hull);
+		expect(mission.impacts).toBe(0);
+		expect(mission.destroyed).toBe(1);
 	});
 });

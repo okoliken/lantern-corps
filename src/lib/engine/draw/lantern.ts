@@ -11,10 +11,16 @@
 // spot below them when flying.
 
 import { HEAD_R, STANDING_HEIGHT, computeSkeleton, turnScale, type LanternPose, type Point, type Skeleton } from '../animation';
-import type { LanternDef } from '../lanterns';
+import type { Look } from '../lanterns';
 import { uiFont } from './fonts';
 
 export type { LanternPose } from '../animation';
+
+/** Anyone drawn in a Lantern's uniform: Hal, John, or a story character like Tomar-Re. */
+export interface Figure {
+	id: string;
+	look: Look;
+}
 
 export const GREEN = '#3dff6e';
 
@@ -47,7 +53,7 @@ export function ringPosition(x: number, y: number, pose: LanternPose, time: numb
 
 export function drawLantern(
 	ctx: CanvasRenderingContext2D,
-	def: LanternDef,
+	def: Figure,
 	x: number,
 	y: number,
 	pose: LanternPose,
@@ -165,7 +171,7 @@ function drawArm(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boole
 	ctx.stroke();
 }
 
-function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, def: LanternDef) {
+function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure) {
 	const { hip, neck, torsoAngle } = sk;
 	const up: Point = [Math.sin(torsoAngle), -Math.cos(torsoAngle)];
 	const across: Point = [Math.cos(torsoAngle), Math.sin(torsoAngle)];
@@ -247,7 +253,7 @@ function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, def: LanternDef)
 	segment(ctx, neck, lerpP(neck, sk.headCenter, 0.45), 1.9, 1.8, def.look.skin);
 }
 
-function drawHead(ctx: CanvasRenderingContext2D, sk: Skeleton, def: LanternDef, ringActive: boolean, pulse: number) {
+function drawHead(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, ringActive: boolean, pulse: number) {
 	const [hx, hy] = sk.headCenter;
 	ctx.save();
 	ctx.translate(hx, hy);
@@ -255,6 +261,12 @@ function drawHead(ctx: CanvasRenderingContext2D, sk: Skeleton, def: LanternDef, 
 
 	const skin = def.look.skin;
 	const R = HEAD_R;
+
+	if (def.look.avian) {
+		drawAvianHead(ctx, def.look.skin, def.look.avian);
+		ctx.restore();
+		return;
+	}
 
 	// Skull and jaw as one shape: round at the back, brow, nose, lips, firm chin
 	const face = new Path2D();
@@ -344,7 +356,89 @@ function drawHead(ctx: CanvasRenderingContext2D, sk: Skeleton, def: LanternDef, 
 	ctx.restore();
 }
 
-function drawHair(ctx: CanvasRenderingContext2D, def: LanternDef) {
+/** A bird-like alien's head (Tomar-Re): feathered, a hooked beak, a swept-back crest, big dark eyes. */
+function drawAvianHead(ctx: CanvasRenderingContext2D, skin: string, avian: { beak: string; crest: string }) {
+	const R = HEAD_R;
+	ctx.lineJoin = 'round';
+
+	// Crest: three long feathers swept back from the crown
+	ctx.fillStyle = avian.crest;
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.6;
+	for (const [tipX, tipY, base] of [
+		[-R - 7, -R - 3.5, -1.5],
+		[-R - 5.5, -R + 0.5, -3],
+		[-R - 3.5, 1.5, -4]
+	]) {
+		ctx.beginPath();
+		ctx.moveTo(base + 3.5, -R + 0.6);
+		ctx.quadraticCurveTo(base - 1, -R - 1.5, tipX, tipY);
+		ctx.quadraticCurveTo(base, -R + 2.5, base + 1.5, -R + 3);
+		ctx.closePath();
+		ctx.fill();
+		ctx.stroke();
+	}
+
+	// Head: rounder at the back, narrowing toward the beak
+	const head = new Path2D();
+	head.moveTo(-R, 1);
+	head.arc(0, 0, R, Math.PI * 1.02, Math.PI * 1.9);
+	head.quadraticCurveTo(R + 0.6, 0, R - 0.2, 3.4);
+	head.quadraticCurveTo(R - 2.5, 6.4, -0.8, 5.6);
+	head.quadraticCurveTo(-R, 4.4, -R, 1);
+	head.closePath();
+	ctx.fillStyle = skin;
+	ctx.fill(head);
+	ctx.save();
+	ctx.clip(head);
+	ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+	ctx.beginPath();
+	ctx.ellipse(-1, R + 0.5, R, 2.2, 0, 0, Math.PI * 2);
+	ctx.fill();
+	// A few feather strokes on the cheek
+	ctx.strokeStyle = 'rgba(0, 0, 0, 0.18)';
+	ctx.lineWidth = 0.5;
+	for (let i = 0; i < 3; i++) {
+		ctx.beginPath();
+		ctx.moveTo(-1.5 + i * 1.3, 2.2 + i * 0.6);
+		ctx.quadraticCurveTo(-3 + i * 1.3, 3.5 + i * 0.6, -4.2 + i * 1.3, 3 + i * 0.6);
+		ctx.stroke();
+	}
+	ctx.restore();
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.stroke(head);
+
+	// Beak: long and hooked at the tip
+	const beak = new Path2D();
+	beak.moveTo(R - 1.4, -1.2);
+	beak.quadraticCurveTo(R + 3.5, -1.4, R + 5.2, 1.6);
+	beak.quadraticCurveTo(R + 4.2, 1.4, R + 3.6, 2.1);
+	beak.quadraticCurveTo(R + 1.5, 2.9, R - 1.2, 3);
+	beak.closePath();
+	ctx.fillStyle = avian.beak;
+	ctx.fill(beak);
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.6;
+	ctx.stroke(beak);
+	ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+	ctx.beginPath();
+	ctx.moveTo(R - 1, 1.3);
+	ctx.lineTo(R + 3.4, 1.8);
+	ctx.stroke();
+
+	// Big dark eye with a glint
+	ctx.fillStyle = '#10150f';
+	ctx.beginPath();
+	ctx.ellipse(R - 2.8, -1.4, 1.35, 1.5, 0, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.fillStyle = '#eafff0';
+	ctx.beginPath();
+	ctx.arc(R - 2.4, -1.9, 0.45, 0, Math.PI * 2);
+	ctx.fill();
+}
+
+function drawHair(ctx: CanvasRenderingContext2D, def: Figure) {
 	const R = HEAD_R;
 	const hair = new Path2D();
 	if (def.look.hairStyle === 'swept') {
