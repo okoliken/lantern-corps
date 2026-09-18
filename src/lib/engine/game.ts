@@ -122,6 +122,8 @@ export interface Director {
 	cameraPoints?(): [number, number][];
 }
 
+const isCorpsEnemy = (e: Enemy) => ENEMIES[e.kind].faction === 'corps';
+
 /** Draw something red in Corps green instead (a sparring Green Lantern's constructs). */
 function tinted(ctx: CanvasRenderingContext2D, green: boolean | undefined, draw: () => void) {
 	if (green) inCorpsGreen(ctx, draw);
@@ -646,24 +648,24 @@ export class Game {
 				drawCorpsShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
 				continue;
 			}
-			tinted(ctx, ENEMIES[s.owner.kind].faction === 'corps', () => {
+			tinted(ctx, isCorpsEnemy(s.owner), () => {
 				if (s.kind === 'hook') drawRedChain(ctx, ...this.redHand(s.owner, alpha), x, y - RED_HAND_LIFT, this.time);
 				drawRedShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
 			});
 		}
-		for (const bm of cw.red.beams) drawRedBeam(ctx, bm, ...this.redHand(bm.owner, alpha), this.time);
+		for (const bm of cw.red.beams) tinted(ctx, isCorpsEnemy(bm.owner), () => drawRedBeam(ctx, bm, ...this.redHand(bm.owner, alpha), this.time));
 		for (const c of cw.red.cages) {
 			const t = c.target;
 			const x = lerp(t.prevX, t.x, alpha);
 			const y = lerp(t.prevY, t.y, alpha);
 			const top = y - this.poseFor(t).hoverHeight * t.altitude * 1.35 - FIGURE_HEIGHT;
-			drawRedCage(ctx, c, x, y - this.poseFor(t).hoverHeight * t.altitude * 1.35, top, this.time);
+			tinted(ctx, c.green, () => drawRedCage(ctx, c, x, y - this.poseFor(t).hoverHeight * t.altitude * 1.35, top, this.time));
 		}
 		drawFallingMeteors(ctx, cw.red.strikes, this.time);
 		for (const c of cw.red.chains) {
 			const t = c.target;
 			const bodyY = lerp(t.prevY, t.y, alpha) - this.poseFor(t).hoverHeight * t.altitude * 1.35 - FIGURE_HEIGHT * 0.55;
-			drawRedChain(ctx, ...this.redHand(c.owner, alpha), lerp(t.prevX, t.x, alpha), bodyY, this.time);
+			tinted(ctx, isCorpsEnemy(c.owner), () => drawRedChain(ctx, ...this.redHand(c.owner, alpha), lerp(t.prevX, t.x, alpha), bodyY, this.time));
 		}
 
 		for (const e of cw.effects) {

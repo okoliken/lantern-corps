@@ -430,6 +430,8 @@ export interface RedCage {
 	y: number;
 	time: number;
 	maxTime: number;
+	/** Built by a Green Lantern sparring with you (Sinestro): drawn green. */
+	green?: boolean;
 }
 
 export interface RedWorld {
@@ -1162,7 +1164,7 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 			case 'orb':
 				damagePlayer(w, p, s.damage, s.x - s.vx, s.y - s.vy, 0);
 				if (!shielded && !p.dash && !w.red.cages.some((c) => c.target === p)) {
-					w.red.cages.push({ target: p, x: p.x, y: p.y, time: CAGE_TIME, maxTime: CAGE_TIME });
+					w.red.cages.push({ target: p, x: p.x, y: p.y, time: CAGE_TIME, maxTime: CAGE_TIME, green: isCorps(owner) });
 				}
 				break;
 			default:
