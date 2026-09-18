@@ -274,6 +274,7 @@
 		cursor: pointer;
 	}
 	.option input {
+		flex-shrink: 0;
 		width: 1.2rem;
 		height: 1.2rem;
 		accent-color: var(--green);
