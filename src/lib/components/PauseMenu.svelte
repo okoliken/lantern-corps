@@ -2,7 +2,7 @@
 	// Pause menu: resume, see and remap controls, accessibility options.
 	// Every change is saved immediately and applied to the running game.
 	import { onMount } from 'svelte';
-	import { ACTION_LABELS, buttonLabel, type Action, type LayoutName } from '$lib/engine/input';
+	import { ACTION_LABELS, SLOT_ACTIONS, buttonLabel, type Action, type LayoutName } from '$lib/engine/input';
 	import type { Game } from '$lib/engine/game';
 	import { settings } from '$lib/settings.svelte';
 
@@ -65,7 +65,7 @@
 	const groups: { title: string; actions: Action[] }[] = [
 		{ title: 'Move', actions: ['up', 'down', 'left', 'right', 'fly'] },
 		{ title: 'Fight', actions: ['shot', 'construct', 'shield', 'signature', 'target'] },
-		{ title: 'Choose construct', actions: ['prevConstruct', 'nextConstruct', 'slot1', 'slot2', 'slot3', 'slot4', 'slot5'] }
+		{ title: 'Choose construct', actions: ['prevConstruct', 'nextConstruct', ...SLOT_ACTIONS] }
 	];
 
 	const options: { key: 'aimAssist' | 'toggleShot' | 'damageNumbers' | 'reduceFlashing'; label: string; help: string }[] = [

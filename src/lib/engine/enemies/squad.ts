@@ -11,8 +11,9 @@
 //  - every so often a badly hurt attacker is pulled back and a fresh one
 //    goes in (machines always; Red Lanterns only if they're careful ones),
 //  - named lieutenants and ships always fight: they lead from the front,
-//  - "blood in the water": if a Lantern is nearly down or out of
-//    willpower, everyone piles in for a few seconds.
+//  - "blood in the water": if a Lantern is nearly down or exhausted
+//    (ran out of willpower), everyone piles in for a few seconds (then not again for a
+//    while, so a hurt Lantern isn't swarmed for the rest of the fight).
 //
 // Reserves don't attack (the brain skips their attack decisions), but
 // they're still dangerous to walk into, and they fill in the moment
@@ -20,7 +21,6 @@
 
 import type { ConstructWorld } from '../constructs/system';
 import type { Player } from '../player';
-import { RESTART_THRESHOLD } from '../willpower';
 import { ENEMIES, type Enemy } from './enemies';
 
 export type SquadRole = 'assault' | 'reserve';
@@ -28,12 +28,14 @@ export type SquadRole = 'assault' | 'reserve';
 export interface SquadState {
 	/** Seconds of everyone-attacks left. */
 	allIn: number;
+	/** Seconds before the pack can go all in again (a beaten Lantern gets a burst, not a siege). */
+	allInRest: number;
 	/** Seconds until the leader next swaps a hurt attacker for a fresh one. */
 	rotateIn: number;
 }
 
 export function createSquadState(): SquadState {
-	return { allIn: 0, rotateIn: ROTATE_EVERY };
+	return { allIn: 0, allInRest: 0, rotateIn: ROTATE_EVERY };
 }
 
 /** Attackers against one Lantern; each extra Lantern adds this many more. */
@@ -41,6 +43,8 @@ export const ASSAULT_SIZE = 3;
 export const ASSAULT_PER_EXTRA_LANTERN = 2;
 /** How long an all-in rush lasts once a Lantern looks beaten. */
 const ALL_IN_TIME = 4;
+/** ...and how long before it can happen again. */
+const ALL_IN_REST = 12;
 /** A Lantern below this fraction of health looks beaten. */
 const ALL_IN_HEALTH = 0.3;
 const ROTATE_EVERY = 8;
@@ -57,12 +61,16 @@ export function assaultSize(players: readonly Player[]): number {
 export function updateSquads(pack: readonly Enemy[], players: readonly Player[], w: ConstructWorld, dt: number) {
 	const s = w.squad;
 	s.allIn = Math.max(0, s.allIn - dt);
+	s.allInRest = Math.max(0, s.allInRest - dt);
 	s.rotateIn -= dt;
 	for (const e of pack) e.brain.squadTime += dt;
 
 	// Blood in the water
-	const beaten = players.some((p) => !p.downed && (p.health < p.maxHealth * ALL_IN_HEALTH || p.willpower < RESTART_THRESHOLD * 0.5));
-	if (beaten && s.allIn === 0) s.allIn = ALL_IN_TIME;
+	const beaten = players.some((p) => !p.downed && (p.health < p.maxHealth * ALL_IN_HEALTH || p.exhausted));
+	if (beaten && s.allIn === 0 && s.allInRest === 0) {
+		s.allIn = ALL_IN_TIME;
+		s.allInRest = ALL_IN_TIME + ALL_IN_REST;
+	}
 
 	// Only enemies that know about the fight count; the rest are idle anyway
 	const aware = pack.filter((e) => e.brain.target);

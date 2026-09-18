@@ -761,3 +761,17 @@ describe('Red Lanterns build constructs too', () => {
 		expect(pack.some((e) => e.brain.squad === 'reserve' && e.brain.uses.redShield > 0)).toBe(true);
 	});
 });
+
+describe('all in is a burst, not a siege', () => {
+	it('a Lantern who stays badly hurt gets swarmed briefly, then the squad goes back to taking turns', () => {
+		const pack = [0, 1, 2, 3, 4, 5, 6].map((i) => grunt(Math.cos(i * 0.9) * 330, Math.sin(i * 0.9) * 330, 'gunner'));
+		const w = createConstructWorld([], pack);
+		const p = lantern();
+		run(w, [p], 1.5, () => (p.invuln = 1));
+		p.health = p.maxHealth * 0.2;
+		run(w, [p], 0.2, () => (p.invuln = 1));
+		expect(pack.every((e) => e.brain.squad === 'assault')).toBe(true);
+		run(w, [p], 6, () => (p.invuln = 1));
+		expect(pack.filter((e) => e.brain.squad === 'assault').length).toBeLessThanOrEqual(ASSAULT_SIZE + 1);
+	});
+});

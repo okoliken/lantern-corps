@@ -245,7 +245,7 @@ export class Game {
 
 	/** Does any player aim with the mouse? (Then we hide the cursor and draw a crosshair.) */
 	get usesMouse(): boolean {
-		return this.inputs.some((input) => input.options.pointer !== undefined);
+		return this.inputs.some((input, slot) => !this.aiSlots.has(slot) && input.options.pointer !== undefined);
 	}
 
 	/** Screen (CSS px over the canvas) to world coordinates, through the camera. */

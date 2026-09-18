@@ -268,6 +268,8 @@ export const ROLE_LIST: Role[] = ['berserker', 'hunter', 'gunner'];
 
 /** How many enemies can be in close, clawing, on one Lantern at a time. */
 export const MELEE_SLOTS = 2;
+/** How far a Rage Shield can be thrown: far enough for a reserve to reach the attackers. */
+const RED_SHIELD_REACH = 450;
 /** Rage Turrets out at once, across the whole pack. */
 export const MAX_RED_TURRETS = 2;
 /** Enemies closer than this push apart, so a pack surrounds you instead of stacking. */
@@ -767,7 +769,7 @@ function trySupport(e: Enemy, t: Player, pack: readonly Enemy[], dist: number): 
 		if (id === 'redShield') {
 			const underFire = (o: Enemy) => !o.ward && o.brain.sinceHit < 1.5 && (o.brain.hurt > 0.2 || o.brain.squad === 'assault');
 			const ally = pack
-				.filter((o) => o.kind !== 'rageTurret' && Math.hypot(o.x - e.x, o.y - e.y) < 320 && underFire(o))
+				.filter((o) => o.kind !== 'rageTurret' && Math.hypot(o.x - e.x, o.y - e.y) < RED_SHIELD_REACH && underFire(o))
 				.sort((x, y) => y.brain.hurt - x.brain.hurt)[0];
 			b.ally = ally ?? null;
 			worth = ally !== undefined;
