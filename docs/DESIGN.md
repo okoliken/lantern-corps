@@ -197,6 +197,16 @@ Mission data (title, place, briefing, objectives, who you play) lives in `src/li
 each mission's rules are a director in `src/lib/engine/missions/`. A director can add its own things to
 draw (`drawables`) and things for the camera to keep in view (`cameraPoints`).
 
+**Training** (`/training`, `missions/training.ts`, words in `story/training.ts`): Kilowog teaches one
+thing at a time on Oa's training grounds (`GameMap.ground: 'oa'`), and each step only moves on once
+the player has actually done it: walk to 3 markers, take off, land on a marker, knock down 2 targets
+with ring shots, make 3 constructs (smart ring), shield yourself, shield a supply pod under fire from
+practice drones (the smart shield picks the pod), recharge at the Lantern (passive regen is paused
+for that step), use the signature. A coach panel shows Kilowog's line, the instruction with the
+player's actual keys, and progress dots. God mode throughout. Finishing sets `settings.trained` (and
+`seenControls`). Offered from the main menu, the top of the mission list, and on the Mission 1
+briefing until done. Kilowog is drawn with `Look.bolovaxian` and a heavier build.
+
 **Mission 1: Safe Passage** (Hal, space, the Durvan Belt; `missions/safePassage.ts`). Tomar-Re's
 damaged cruiser crosses the belt left to right (~2½ minutes) while **100 asteroids** drift in, in 9
 waves, most aimed at where the ship will be. Asteroids are drifting targets (`Dummy.drift`), so every

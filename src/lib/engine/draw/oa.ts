@@ -7,11 +7,11 @@
 
 import { GREEN } from './lantern';
 
-export const OA_W = 1000;
-export const OA_H = 560;
+export const OA_W = 1400;
+export const OA_H = 784;
 /** Where the plaza's surface is. */
-export const OA_GROUND = 440;
-export const OA_PAD_X = 380;
+export const OA_GROUND = 610;
+export const OA_PAD_X = 560;
 
 const TAU = Math.PI * 2;
 
@@ -21,9 +21,9 @@ function seeded(seed: number) {
 }
 
 const rand = seeded(2814);
-const STARS = Array.from({ length: 90 }, () => [rand() * OA_W, rand() * 260, rand() * 1.4 + 0.3, rand() * TAU]);
+const STARS = Array.from({ length: 140 }, () => [rand() * OA_W, rand() * 380, rand() * 1.4 + 0.3, rand() * TAU]);
 /** Distant spires: [x, width, height, how far (0 near .. 1 far)] */
-const TOWERS = Array.from({ length: 14 }, (_, i) => [i * 78 + rand() * 40 - 20, 18 + rand() * 26, 90 + rand() * 150, rand()]);
+const TOWERS = Array.from({ length: 19 }, (_, i) => [i * 78 + rand() * 40 - 20, 18 + rand() * 26, 90 + rand() * 150, rand()]);
 
 /**
  * The sky, the battery and the towers. `alarm` (0..1) washes the sky red:
@@ -46,12 +46,12 @@ export function drawOaBackdrop(ctx: CanvasRenderingContext2D, time: number, alar
 	// A huge pale moon low in the sky
 	ctx.fillStyle = 'rgba(200, 240, 215, 0.12)';
 	ctx.beginPath();
-	ctx.arc(820, 120, 70, 0, TAU);
+	ctx.arc(1150, 170, 80, 0, TAU);
 	ctx.fill();
 
 	// Far towers, then the Central Power Battery, then near towers
 	drawTowers(ctx, 0.5, 1, '#0d3324');
-	drawBattery(ctx, 250, OA_GROUND - 40, time);
+	drawBattery(ctx, 330, OA_GROUND - 40, time);
 	drawTowers(ctx, 0, 0.5, '#071a13');
 
 	// Red light on the horizon

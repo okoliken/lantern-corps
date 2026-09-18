@@ -183,6 +183,12 @@
 					<li>{objective}</li>
 				{/each}
 			</ul>
+			{#if !settings.current.trained}
+				<p class="train">
+					New to the ring? <a href="/training">Train with Kilowog first</a> (about 3 minutes): moving, flying, constructs,
+					shields, all of it.
+				</p>
+			{/if}
 			<div class="actions">
 				<button class="primary" onclick={launch}>Launch</button>
 				<a href="/missions">← Missions</a>
@@ -450,6 +456,17 @@
 		margin: 0;
 		padding-left: 1.2rem;
 		line-height: 1.6;
+	}
+	.train {
+		margin-top: 1rem;
+		padding: 0.6rem 0.8rem;
+		border-radius: 8px;
+		border: 1px dashed var(--green-dim);
+		font-size: 0.9rem;
+	}
+	.train a {
+		color: var(--green);
+		font-weight: 700;
 	}
 	.actions {
 		display: flex;

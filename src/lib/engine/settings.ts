@@ -20,6 +20,8 @@ export interface Settings {
 	reduceFlashing: boolean;
 	/** The first-time controls card has been dismissed. */
 	seenControls: boolean;
+	/** Finished Kilowog's training once (missions stop suggesting it). */
+	trained: boolean;
 }
 
 export const SETTINGS_KEY = 'lantern-corps:settings';
@@ -33,7 +35,8 @@ export function defaultSettings(): Settings {
 		smartRing: true,
 		damageNumbers: true,
 		reduceFlashing: false,
-		seenControls: false
+		seenControls: false,
+		trained: false
 	};
 }
 
@@ -47,7 +50,7 @@ export function parseSettings(raw: unknown): Settings {
 	if (!raw || typeof raw !== 'object') return settings;
 	const saved = raw as Partial<Record<keyof Settings, unknown>>;
 
-	for (const flag of ['aimAssist', 'toggleShot', 'quickCast', 'smartRing', 'damageNumbers', 'reduceFlashing', 'seenControls'] as const) {
+	for (const flag of ['aimAssist', 'toggleShot', 'quickCast', 'smartRing', 'damageNumbers', 'reduceFlashing', 'seenControls', 'trained'] as const) {
 		if (typeof saved[flag] === 'boolean') settings[flag] = saved[flag];
 	}
 

@@ -13,6 +13,8 @@ export interface Look {
 	mask: boolean;
 	/** A beaked, crested head instead of a human one (Tomar-Re). */
 	avian?: { beak: string; crest: string };
+	/** A big, bald, heavy-jawed head (Kilowog of Bolovax Vik). */
+	bolovaxian?: boolean;
 }
 
 export interface LanternDef {

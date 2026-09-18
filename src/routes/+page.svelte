@@ -9,6 +9,7 @@
 	<p class="oath">In brightest day, in blackest night…</p>
 
 	<nav>
+		<a class="btn" href="/training">Training</a>
 		<a class="btn primary" href="/missions">Missions</a>
 		<a class="btn" href="/play">Free play</a>
 		<a class="btn ambush" href="/skirmish">Red Lantern Ambush</a>

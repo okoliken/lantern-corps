@@ -37,8 +37,8 @@ const READ_TIME = 4;
 
 const SHIP_SCALE = 2.4;
 const FIGURE_SCALE = 1.4;
-const HAL_SPOT = 820;
-const TOMAR_SPOT = 680;
+const HAL_SPOT = 1010;
+const TOMAR_SPOT = 865;
 /** Where Tomar-Re steps out: the hatch, in world units (see drawEscortShip). */
 const HATCH_X = OA_PAD_X + 12 * SHIP_SCALE;
 const HATCH_Y = OA_GROUND - 26 * SHIP_SCALE;
@@ -126,7 +126,7 @@ export class OaLanding {
 		ctx.save();
 		ctx.fillStyle = '#000';
 		ctx.fillRect(0, 0, view.width, view.height);
-		ctx.translate((view.width - OA_W * k) / 2, (view.height - OA_H * k) * 0.2 - view.height * 0.12);
+		ctx.translate((view.width - OA_W * k) / 2, (view.height - OA_H * k) * 0.2 - view.height * 0.06);
 		ctx.scale(k, k);
 
 		drawOaBackdrop(ctx, t, this.alarm);
@@ -151,7 +151,7 @@ export class OaLanding {
 	private drawShip(ctx: CanvasRenderingContext2D, t: number) {
 		const p = easeOut(clamp01(t / SHIP_LANDS));
 		const x = lerp(-380, OA_PAD_X, p);
-		const y = lerp(80, OA_GROUND, p);
+		const y = lerp(140, OA_GROUND, p);
 		const landed = t >= SHIP_LANDS;
 		ctx.save();
 		ctx.translate(x, y);
@@ -170,7 +170,7 @@ export class OaLanding {
 		if (t < HAL_ARRIVES[0]) return;
 		// Flies in behind the ship, then drops onto the plaza
 		const x = lerp(-200, HAL_SPOT, easeOut(p));
-		const y = lerp(140, OA_GROUND, p < 0.8 ? easeOut(p / 0.8) * 0.85 : 0.85 + ((p - 0.8) / 0.2) * 0.15);
+		const y = lerp(220, OA_GROUND, p < 0.8 ? easeOut(p / 0.8) * 0.85 : 0.85 + ((p - 0.8) / 0.2) * 0.15);
 		const altitude = p < 0.85 ? 1 : 1 - (p - 0.85) / 0.15;
 		const l = this.current;
 		const grin = l?.who === 'hal' && l.mood === 'grin' ? 1 : 0;

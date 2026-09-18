@@ -267,6 +267,11 @@ function drawHead(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, ring
 		ctx.restore();
 		return;
 	}
+	if (def.look.bolovaxian) {
+		drawBolovaxianHead(ctx, def.look.skin);
+		ctx.restore();
+		return;
+	}
 
 	// Skull and jaw as one shape: round at the back, brow, nose, lips, firm chin
 	const face = new Path2D();
@@ -436,6 +441,71 @@ function drawAvianHead(ctx: CanvasRenderingContext2D, skin: string, avian: { bea
 	ctx.beginPath();
 	ctx.arc(R - 2.4, -1.9, 0.45, 0, Math.PI * 2);
 	ctx.fill();
+}
+
+/** Kilowog's head: big and bald, a heavy brow over small eyes, a flat snout, a jutting jaw. */
+function drawBolovaxianHead(ctx: CanvasRenderingContext2D, skin: string) {
+	const R = HEAD_R * 1.1;
+	ctx.lineJoin = 'round';
+
+	const head = new Path2D();
+	head.moveTo(-R, 2);
+	head.arc(0, -0.5, R, Math.PI * 1.0, Math.PI * 1.85);
+	head.lineTo(R + 1, -2.4); // brow ridge juts out
+	head.lineTo(R + 0.5, -0.6);
+	head.quadraticCurveTo(R + 2.8, 0, R + 2.4, 2.2); // flat snout
+	head.lineTo(R + 0.8, 2.8);
+	head.lineTo(R + 1.8, 4.4); // underbite
+	head.quadraticCurveTo(R + 1.4, 7.6, R - 2.5, 7.8);
+	head.quadraticCurveTo(-1, 8.2, -R * 0.75, 5.2);
+	head.quadraticCurveTo(-R - 0.4, 4, -R, 2);
+	head.closePath();
+	ctx.fillStyle = skin;
+	ctx.fill(head);
+
+	// Shading under the brow and along the jaw
+	ctx.save();
+	ctx.clip(head);
+	ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+	ctx.beginPath();
+	ctx.ellipse(R - 1.5, -0.6, 3.2, 1.3, 0, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.beginPath();
+	ctx.ellipse(0, 8, R, 2.4, 0, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.restore();
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.stroke(head);
+
+	// Ridges over the scalp
+	ctx.strokeStyle = shadeColor(skin, -0.25);
+	ctx.lineWidth = 0.6;
+	for (const a of [1.25, 1.4, 1.55]) {
+		ctx.beginPath();
+		ctx.arc(0, -0.5, R - 1.2, Math.PI * a, Math.PI * (a + 0.08));
+		ctx.stroke();
+	}
+
+	// Small eye under the brow, nostril, a stern mouth
+	ctx.fillStyle = '#f2efe6';
+	ctx.beginPath();
+	ctx.ellipse(R - 1.4, -0.9, 0.9, 0.6, 0, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.fillStyle = '#1a0f08';
+	ctx.beginPath();
+	ctx.arc(R - 1.1, -0.9, 0.45, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.fillStyle = shadeColor(skin, -0.45);
+	ctx.beginPath();
+	ctx.arc(R + 1.7, 1.4, 0.45, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.strokeStyle = shadeColor(skin, -0.45);
+	ctx.lineWidth = 0.6;
+	ctx.beginPath();
+	ctx.moveTo(R - 1.8, 4.8);
+	ctx.lineTo(R + 1.2, 4.3);
+	ctx.stroke();
 }
 
 function drawHair(ctx: CanvasRenderingContext2D, def: Figure) {

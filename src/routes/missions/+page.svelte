@@ -2,11 +2,22 @@
 	// The mission list. For now there's one; the rest of the story arrives mission by mission.
 	import { MISSIONS } from '$lib/story/missions';
 	import { LANTERNS } from '$lib/engine/lanterns';
+	import { settings } from '$lib/settings.svelte';
 </script>
 
 <main>
 	<h1>Missions</h1>
 	<ol>
+		<li>
+			<a class="mission" href="/training">
+				<span class="number">{settings.current.trained ? '✓' : '★'}</span>
+				<span class="text">
+					<strong>Training</strong>
+					<small>Oa · with Kilowog · about 3 minutes</small>
+					<span>New to the ring? Learn everything a Lantern can do, one thing at a time.</span>
+				</span>
+			</a>
+		</li>
 		{#each MISSIONS as m (m.id)}
 			<li>
 				<a class="mission" href="/mission/{m.id}">

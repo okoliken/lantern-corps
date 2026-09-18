@@ -122,6 +122,8 @@ back and let them fight, lure one faction into the other, or get caught in the m
 ---
 
 ## Built so far
+- **Training** (before Mission 1, optional): Kilowog, the Corps' drill sergeant from the show, puts
+  the new recruit through the basics on Oa ("poozer").
 - **Mission 1: Safe Passage** (the user's story, 2026-09-18): Tomar-Re of Sector 2813, his cruiser
   holed in the Durvan Belt and his ring nearly spent, can fly or shield but not both. Hal clears a path
   through a storm of 100 asteroids. (This takes the place of the old Act 1 idea "The Ambush" in the

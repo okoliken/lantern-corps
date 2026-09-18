@@ -2,6 +2,7 @@
 // These are test maps for M2. Mission maps come in M6.
 
 import type { EnvironmentKind } from './environment';
+import type { GroundStyle } from './draw/world';
 import type { Solid } from './physics';
 
 /** 'wall' is an Energy Wall construct, 'redWall' a Red Lantern's Rage Wall; the rest are part of the map. */
@@ -36,6 +37,8 @@ export interface GameMap {
 	spawn: { x: number; y: number };
 	/** Where the Lantern battery stands. */
 	battery: { x: number; y: number };
+	/** How the surface looks on a planet (default dust). */
+	ground?: GroundStyle;
 	/** Training dummies to practise constructs on (test maps only). */
 	dummies: { x: number; y: number }[];
 	obstacles: Obstacle[];

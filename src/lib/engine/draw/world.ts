@@ -75,17 +75,28 @@ export function drawStarfield(
 
 const GROUND_TILE = 64;
 
+/** How a planet's surface looks: 'dust' (Coast City's outskirts) or 'oa' (the Corps' home). */
+export type GroundStyle = 'dust' | 'oa';
+
+const GROUNDS: Record<GroundStyle, { void: string; base: string; dark: string; light: string; inlay?: string }> = {
+	dust: { void: '#15150f', base: '#3b3a2e', dark: 'rgba(20, 18, 12, 0.35)', light: 'rgba(120, 112, 88, 0.3)' },
+	oa: { void: '#060d0a', base: '#1d2a25', dark: 'rgba(5, 12, 9, 0.4)', light: 'rgba(110, 150, 130, 0.18)', inlay: 'rgba(61, 255, 110, 0.12)' }
+};
+/** Size of Oa's paving slabs. */
+const INLAY = 160;
+
 /**
  * Dusty ground, drawn only for the visible area. Pebbles come from a hash
  * of each tile's position, so they stay put as the camera moves without
  * storing thousands of them.
  */
-export function drawPlanetGround(ctx: CanvasRenderingContext2D, visible: WorldRect, mapW: number, mapH: number) {
+export function drawPlanetGround(ctx: CanvasRenderingContext2D, visible: WorldRect, mapW: number, mapH: number, ground: GroundStyle = 'dust') {
+	const look = GROUNDS[ground];
 	// Outside the map: dark void
-	ctx.fillStyle = '#15150f';
+	ctx.fillStyle = look.void;
 	ctx.fillRect(visible.left, visible.top, visible.right - visible.left, visible.bottom - visible.top);
 
-	ctx.fillStyle = '#3b3a2e';
+	ctx.fillStyle = look.base;
 	ctx.fillRect(0, 0, mapW, mapH);
 
 	const c0 = Math.max(0, Math.floor(visible.left / GROUND_TILE));
@@ -102,12 +113,28 @@ export function drawPlanetGround(ctx: CanvasRenderingContext2D, visible: WorldRe
 				const py = r * GROUND_TILE + ((hx >>> 8) % GROUND_TILE);
 				if (px > mapW || py > mapH) continue;
 				const size = 1 + ((hx >>> 16) % 4);
-				ctx.fillStyle = hx & 1 ? 'rgba(20, 18, 12, 0.35)' : 'rgba(120, 112, 88, 0.3)';
+				ctx.fillStyle = hx & 1 ? look.dark : look.light;
 				ctx.beginPath();
 				ctx.ellipse(px, py, size, size * 0.6, 0, 0, Math.PI * 2);
 				ctx.fill();
 			}
 		}
+	}
+
+	// Oa's plazas: stone slabs with faint green light in the seams
+	if (look.inlay) {
+		ctx.strokeStyle = look.inlay;
+		ctx.lineWidth = 2;
+		ctx.beginPath();
+		for (let x = Math.ceil(Math.max(0, visible.left) / INLAY) * INLAY; x < Math.min(mapW, visible.right); x += INLAY) {
+			ctx.moveTo(x, Math.max(0, visible.top));
+			ctx.lineTo(x, Math.min(mapH, visible.bottom));
+		}
+		for (let y = Math.ceil(Math.max(0, visible.top) / INLAY) * INLAY; y < Math.min(mapH, visible.bottom); y += INLAY) {
+			ctx.moveTo(Math.max(0, visible.left), y);
+			ctx.lineTo(Math.min(mapW, visible.right), y);
+		}
+		ctx.stroke();
 	}
 
 	// Map edge

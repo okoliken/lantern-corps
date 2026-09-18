@@ -497,7 +497,7 @@ export class Game {
 			bottom: camY + height / 2 / zoom
 		};
 
-		if (map.environment === 'planet') drawPlanetGround(ctx, visible, map.width, map.height);
+		if (map.environment === 'planet') drawPlanetGround(ctx, visible, map.width, map.height, map.ground);
 		// Traps and Fortress rings are markings on the ground: under everything
 		for (const t of cw.traps) drawTrap(ctx, t, this.time);
 		for (const e of cw.effects) if (e.kind === 'slamMark') drawRedEffect(ctx, e, 0, this.time);
