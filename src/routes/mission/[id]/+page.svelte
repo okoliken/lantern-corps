@@ -9,7 +9,7 @@
 	import StoryScene from '$lib/components/StoryScene.svelte';
 	import { LANTERNS } from '$lib/engine/lanterns';
 	import type { CommsLine, MissionMeter, MissionState, MissionStat } from '$lib/engine/missions/mission';
-	import type { OaLanding } from '$lib/engine/scenes/oaLanding';
+	import type { DialogueScene } from '$lib/engine/scenes/scene';
 	import { buildMission } from '$lib/missions';
 	import { profiles } from '$lib/profiles.svelte';
 	import { settings } from '$lib/settings.svelte';
@@ -51,7 +51,7 @@
 	}
 
 	/** After a win: the story scene plays (if the mission has one), then the results. */
-	let outro = $state<OaLanding | null>(null);
+	let outro = $state<DialogueScene | null>(null);
 	let outroDone = $state(false);
 	const OUTRO_DELAY = 2.5;
 

@@ -9,9 +9,10 @@
 //              brings more Red Lanterns); a Lantern construct carries them
 //              to safety
 //   tower      reach the comms tower, where the station's Lantern made her stand
+//   ring       her ring rises and leaves to find a new bearer in Sector 2814:
+//              Earth (it chooses John Stewart, in the scene after the mission)
 //   hold       the last and biggest wave
-//   ring       her ring rises and leaves to find a new bearer; her last message
-//              names Sector 666
+//   message    her last recording names Sector 666
 //
 // Hal has 3 lives; Kilowog gets back up at the Lantern on the landing pad.
 
@@ -24,7 +25,7 @@ import { CRATE_HP, seededRandom, type GameMap, type Obstacle } from '../map';
 import { BATTERY_MAX_CHARGE } from '../willpower';
 import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type MissionState, type MissionStat } from './mission';
 
-export type OutpostPhase = 'search' | 'ambush' | 'survivors' | 'tower' | 'hold' | 'ring';
+export type OutpostPhase = 'search' | 'ambush' | 'survivors' | 'tower' | 'ring' | 'hold' | 'message';
 
 export const OUTPOST_LIVES = 3;
 const INTRO_TIME = 3;
@@ -33,8 +34,8 @@ const MARKER_RADIUS = 60;
 const FIND_RADIUS = 70;
 /** Seconds for a found survivor to be carried off. */
 const CARRY_TIME = 2.5;
-/** Seconds for the ring to rise and fly off (the last message plays meanwhile). */
-const RING_TIME = 4;
+/** Seconds for the ring to rise, hang there while it speaks, and fly off. */
+const RING_TIME = 8;
 /** Three stars: finish within this many seconds. */
 const PAR_TIME = 300;
 /** How much tougher and harder-hitting these Red Lanterns are than the lab's (like the Ambush scene). */
@@ -46,6 +47,8 @@ const H = 1800;
 const PAD = { x: 320, y: 900 };
 const GATE = { x: 1250, y: 900 };
 const TOWER = { x: 3350, y: 880 };
+/** Where Tolen Vex fell, at the foot of the tower. */
+const FALLEN = { x: TOWER.x - 90, y: TOWER.y + 50 };
 /** Where the station's own Lantern battery stands (it comes back online after the ambush). */
 const STATION_BATTERY = { x: 2050, y: 1080 };
 
@@ -190,9 +193,11 @@ export class SilentOutpost implements MissionDirector {
 				return `Find the station crew (${this.found} / ${this.survivors.length})`;
 			case 'tower':
 				return 'Get to the comms tower';
+			case 'ring':
+				return 'Tolen Vex';
 			case 'hold':
 				return 'Hold the tower';
-			case 'ring':
+			case 'message':
 				return 'Kel-Aris Station';
 		}
 	}
@@ -221,7 +226,7 @@ export class SilentOutpost implements MissionDirector {
 	}
 
 	get resultText(): string {
-		if (this.state === 'won') return 'Tolen Vex is gone, but her crew is safe. And now there\'s a name: Sector 666.';
+		if (this.state === 'won') return "Tolen Vex is gone, but her crew is safe and her ring has found someone new. And now there's a name: Sector 666.";
 		return 'Hal went down one time too many.';
 	}
 
@@ -294,22 +299,32 @@ export class SilentOutpost implements MissionDirector {
 				}
 				break;
 			case 'tower':
-				if (Math.hypot(hal.x - TOWER.x, hal.y - TOWER.y) < MARKER_RADIUS * 3) {
-					this.phase = 'hold';
+				// Reaching her body: her ring rises and leaves to find a new bearer in her sector
+				if (Math.hypot(hal.x - FALLEN.x, hal.y - FALLEN.y) < MARKER_RADIUS * 2.5) {
+					this.phase = 'ring';
+					this.ringTime = 0;
+					// The ring speaks as it rises, and it's gone by the time Hal works it out
 					this.comms.scene([
-						['Kilowog', "There she is... Tolen Vex. She held 'em off right here."],
-						['Kilowog', 'And here come her friends. Skallox! Stand your ground!']
+						['Ring', 'Lantern Tolen Vex of Sector 2814 has fallen. Seeking a replacement in Sector 2814.'],
+						['Kilowog', "She held 'em off right here, all alone..."],
+						['Hal', "Sector 2814... that's my sector. That ring's headed for Earth."],
+						['Kilowog', "It's pickin' somebody new, poozer."]
 					]);
+				}
+				break;
+			case 'ring':
+				this.ringTime += dt;
+				// The ring's gone; the Red Lanterns didn't leave
+				if (this.ringTime >= RING_TIME && !this.comms.current) {
+					this.phase = 'hold';
+					this.comms.say('Kilowog', 'Company! Skallox! Stand your ground!', true);
 					this.spawnWave(game, HOLD, TOWER.x, TOWER.y);
 				}
 				break;
 			case 'hold':
 				if (this.waveCleared()) {
-					this.phase = 'ring';
-					this.ringTime = 0;
-					this.comms.clear();
+					this.phase = 'message';
 					this.comms.scene([
-						['Ring', 'Lantern Tolen Vex of Sector 2815 has fallen. Seeking a replacement.'],
 						['Kilowog', 'Her last message is still on the tower...'],
 						['Tolen Vex (recording)', 'Kel-Aris... they came out of a red light. Hunting Lanterns. Their leader said the Guardians will burn for Sector 666—'],
 						['Hal', 'Sector 666?'],
@@ -317,10 +332,9 @@ export class SilentOutpost implements MissionDirector {
 					]);
 				}
 				break;
-			case 'ring':
-				this.ringTime += dt;
+			case 'message':
 				// Win once the last line has been said
-				if (this.ringTime >= RING_TIME && !this.comms.current) this.win(game);
+				if (!this.comms.current) this.win(game);
 				break;
 		}
 	}
@@ -398,7 +412,7 @@ export class SilentOutpost implements MissionDirector {
 	// -------------------------------------------------------------- drawing
 
 	cameraPoints(): [number, number][] {
-		// During the ring's departure, keep the tower in view
+		// While the ring leaves, keep her and the tower in view
 		return this.phase === 'ring' ? [[TOWER.x - 60, TOWER.y - 60]] : [];
 	}
 
@@ -406,7 +420,7 @@ export class SilentOutpost implements MissionDirector {
 	goal(): { x: number; y: number } | null {
 		if (this.state !== 'playing' || this.wave.some(isStanding)) return null;
 		if (this.phase === 'search') return GATE;
-		if (this.phase === 'tower') return TOWER;
+		if (this.phase === 'tower') return FALLEN;
 		if (this.phase === 'survivors') return this.survivors.find((s) => s.found === 0) ?? null;
 		return null;
 	}
@@ -416,7 +430,7 @@ export class SilentOutpost implements MissionDirector {
 		// Scorch marks lie on the ground under everything
 		list.push({ baseY: -1e6, draw: () => this.scorches.forEach(([x, y, r, seed]) => drawScorch(ctx, x, y, r, seed)) });
 		list.push({ baseY: TOWER.y, draw: () => drawCommsTower(ctx, TOWER.x, TOWER.y, time) });
-		const fallen = { x: TOWER.x - 90, y: TOWER.y + 50 };
+		const fallen = FALLEN;
 		list.push({ baseY: fallen.y, draw: () => drawFallenLantern(ctx, fallen.x, fallen.y, time) });
 		if (this.phase === 'ring') {
 			const t = Math.min(1, this.ringTime / RING_TIME);
@@ -431,8 +445,8 @@ export class SilentOutpost implements MissionDirector {
 			list.push({ baseY: y, draw: () => drawSurvivor(ctx, x, y, k, time, s.seed) });
 		}
 		// Where to go next
-		const goal = this.state !== 'playing' ? null : this.phase === 'search' ? GATE : this.phase === 'tower' ? TOWER : null;
-		if (goal) list.push({ baseY: -1e5, draw: () => drawMarker(ctx, goal.x, goal.y + (goal === TOWER ? 60 : 0), MARKER_RADIUS, time) });
+		const goal = this.state !== 'playing' ? null : this.phase === 'search' ? GATE : this.phase === 'tower' ? FALLEN : null;
+		if (goal) list.push({ baseY: -1e5, draw: () => drawMarker(ctx, goal.x, goal.y, MARKER_RADIUS, time) });
 		return list;
 	}
 }

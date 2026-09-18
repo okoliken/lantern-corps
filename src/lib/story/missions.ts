@@ -55,7 +55,7 @@ MISSIONS.push({
 	environment: 'planet',
 	place: 'Sector 2814 · Kel-Aris Station',
 	briefing: [
-		"Tomar-Re was right. Kel-Aris Station, on the frontier of your sector, hasn't answered in two days. Its Lantern, Tolen Vex of Sector 2815, went silent with it.",
+		"Tomar-Re was right. Kel-Aris Station, on the frontier of your sector, hasn't answered in two days. Its Lantern, Tolen Vex, who guards Sector 2814's far edge while you watch over Earth, went silent with it.",
 		'The Guardians want to know what happened. Kilowog wants to come along. "Somebody\'s gotta keep you alive, poozer."',
 		'Whatever hit Kel-Aris might still be there.'
 	],

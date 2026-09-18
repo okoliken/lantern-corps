@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { OA_LANDING } from '../../story/scenes';
+import { JOHN_CHOSEN, OA_LANDING } from '../../story/scenes';
+import { JohnChosen } from './johnChosen';
 import { OaLanding } from './oaLanding';
 
 const run = (scene: OaLanding, seconds: number) => {
@@ -39,6 +40,18 @@ describe('the landing on Oa', () => {
 	it('skipping ends it straight away', () => {
 		const scene = new OaLanding(OA_LANDING, 0.8);
 		scene.skip();
+		expect(scene.done).toBe(true);
+	});
+});
+
+describe('the ring finds John Stewart', () => {
+	it('talks, chooses him, and ends', () => {
+		const scene = new JohnChosen(JOHN_CHOSEN);
+		run(scene, 6);
+		expect(scene.current?.who).toBe('ring');
+		const chosen = JOHN_CHOSEN.findIndex((l) => l.mood === 'chosen');
+		expect(chosen).toBeGreaterThan(0);
+		run(scene, 120);
 		expect(scene.done).toBe(true);
 	});
 });

@@ -7,13 +7,15 @@ import type { MissionDirector } from '$lib/engine/missions/mission';
 import { SafePassage, buildBeltMap } from '$lib/engine/missions/safePassage';
 import { SilentOutpost, buildOutpostMap } from '$lib/engine/missions/silentOutpost';
 import { OaLanding } from '$lib/engine/scenes/oaLanding';
-import { OA_LANDING } from '$lib/story/scenes';
+import type { DialogueScene } from '$lib/engine/scenes/scene';
+import { JOHN_CHOSEN, OA_LANDING } from '$lib/story/scenes';
+import { JohnChosen } from '$lib/engine/scenes/johnChosen';
 
 export interface MissionRun {
 	game: Game;
 	director: MissionDirector;
 	/** The story scene after a win, if there is one. */
-	outro: (() => OaLanding) | null;
+	outro: (() => DialogueScene) | null;
 }
 
 type Options = Pick<GameOptions, 'settings' | 'profiles' | 'onProgress'>;
@@ -32,7 +34,7 @@ export function buildMission(id: string, options: Options): MissionRun {
 			});
 			const director = new SilentOutpost();
 			game.director = director;
-			return { game, director, outro: null };
+			return { game, director, outro: () => new JohnChosen(JOHN_CHOSEN) };
 		}
 		case 'safe-passage':
 		default: {

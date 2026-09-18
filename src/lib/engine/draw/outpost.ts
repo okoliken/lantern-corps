@@ -7,7 +7,7 @@ import { drawLantern, GREEN, HOVER_PLANET, type Figure } from './lantern';
 
 const TAU = Math.PI * 2;
 
-/** Tolen Vex of Sector 2815, Kel-Aris Station's Lantern. */
+/** Tolen Vex, who guarded Sector 2814's frontier from Kel-Aris Station. */
 export const TOLEN_VEX: Figure = {
 	id: 'tolen',
 	look: { skin: '#6f9fd6', hair: '#e8eef5', hairStyle: 'swept', mask: false }

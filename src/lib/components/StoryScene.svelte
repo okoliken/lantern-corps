@@ -3,11 +3,11 @@
 	// this shows who's talking. Click, Space or Enter to go on; Esc skips.
 	import { onMount } from 'svelte';
 	import { fitCanvas } from '$lib/engine/canvas';
-	import type { OaLanding } from '$lib/engine/scenes/oaLanding';
+	import type { DialogueScene } from '$lib/engine/scenes/scene';
 	import { SPEAKERS, type Speaker } from '$lib/story/scenes';
 
 	interface Props {
-		scene: OaLanding;
+		scene: DialogueScene;
 		onDone: () => void;
 	}
 

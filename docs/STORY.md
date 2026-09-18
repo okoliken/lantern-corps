@@ -133,9 +133,11 @@ back and let them fight, lure one faction into the other, or get caught in the m
   Station stopped answering). That leads into Silent Outpost and the Red Lanterns.
 - **Mission 2: Silent Outpost** (2026-09-18): Hal and Kilowog search Kel-Aris Station. Ambushed by Rage
   Grunts; they rescue three hiding station crew; at the comms tower, Skallox leads the last wave. The
-  station's Lantern, **Tolen Vex of Sector 2815** (original), died there; her ring leaves to seek a new
-  bearer, and her last recording says the Red Lanterns' leader swore "the Guardians will burn for Sector
-  666". Kilowog: "The Lost Sector."
+  station's Lantern, **Tolen Vex** (original), who guarded Sector 2814's frontier, died there. When
+  Hal reaches her, her ring rises, seeks a replacement in Sector 2814 and flies to Earth; then the last
+  wave hits. Her last recording says the Red Lanterns' leader swore "the Guardians will burn for Sector
+  666". Kilowog: "The Lost Sector." **Ending scene:** Detroit at night; the ring finds **John Stewart**
+  (Marine, architect) on a construction site roof and makes him a Lantern (user's idea, 2026-09-18).
 
 **Act 1 plan (agreed 2026-09-18, following the animated series):** 3. Colony Under Fire (Mirrow; rescue
 colonists with shields; Zilius Zox) → 4. The Interceptor (the Guardians refuse to send help past the

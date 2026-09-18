@@ -243,8 +243,9 @@ up the Red Lanterns. Click / Space to go on (lines also move on by themselves), 
 `missions/silentOutpost.ts`, art in `draw/outpost.ts`). Phases: search (walk to the gate) → ambush (3
 Rage Grunts) → survivors (find 3 station crew by their blinking beacons; each rescue brings a wave;
 a construct bubble carries them to the pad; the station's own Lantern battery comes back online) →
-tower → hold (Skallox + 5 Grunts) → the fallen Lantern's ring leaves to find a new bearer and her last
-recording names Sector 666. Grunts here are toughness 4, might 1.7. 3 lives (Hal only; Kilowog gets
+tower (reaching her body: her ring speaks and flies off to Earth) → hold (Skallox + 5 Grunts) → her
+last recording names Sector 666. After the win, the story scene `scenes/johnChosen.ts`: Detroit at
+night, the ring chooses John Stewart. Story scenes share `scenes/scene.ts` (`DialogueScene`). Grunts here are toughness 4, might 1.7. 3 lives (Hal only; Kilowog gets
 back up at the battery). ★ done, ★ no lives lost, ★ under 5 minutes. Bots: the AI-Hal and a sloppy
 "human" bot both win in ~100s of fighting; the sloppy one sometimes loses a life or ends near-dead.
 

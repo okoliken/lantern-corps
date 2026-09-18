@@ -44,7 +44,7 @@ describe('Mission 2: Silent Outpost', () => {
 		expect(game.players[1].def.id).toBe('kilowog');
 	});
 
-	it('plays out: search, ambush, rescue the crew, hold the tower, the ring leaves, win', () => {
+	it('plays out: search, ambush, rescue the crew, the ring leaves, hold the tower, the message, win', () => {
 		const { game, mission, hal, run, moveHal, clear } = setup();
 		const safe = () => (hal.invuln = 1);
 		run(3.1);
@@ -69,11 +69,13 @@ describe('Mission 2: Silent Outpost', () => {
 		run(0.1, safe);
 		expect(mission.phase).toBe('tower');
 
-		moveHal(3300, 900);
+		moveHal(3200, 940);
 		run(0.1, safe);
+		expect(mission.phase).toBe('ring');
+		run(25, safe);
 		expect(mission.phase).toBe('hold');
 		clear();
-		expect(mission.phase).toBe('ring');
+		expect(mission.phase).toBe('message');
 		run(32, safe);
 		expect(mission.state).toBe('won');
 		expect(mission.stars).toBeGreaterThanOrEqual(2);
