@@ -108,7 +108,8 @@ const TURRET_BOLT: ConstructDef = {
  */
 export function updateSignature(p: Player, intent: Intent, dt: number, w: ConstructWorld) {
 	if (p.dash) {
-		runJet(p, dt, w);
+		if (p.dash.kind === 'burn') runBurn(p, dt, w);
+		else runJet(p, dt, w);
 		return;
 	}
 	if (!intent.signature || p.surge < SURGE_MAX || p.downed) return;
@@ -130,6 +131,7 @@ export function updateSignature(p: Player, intent: Intent, dt: number, w: Constr
 function startJet(p: Player, w: ConstructWorld) {
 	const len = Math.hypot(p.aimX, p.aimY) || 1;
 	p.dash = {
+		kind: 'jet',
 		dx: p.aimX / len,
 		dy: p.aimY / len,
 		speed: JET.speed,
@@ -168,6 +170,25 @@ function runJet(p: Player, dt: number, w: ConstructWorld) {
 
 	d.time -= dt;
 	if (d.time <= 0 || d.blocked) finishJet(p, w);
+}
+
+/** Afterburner (a construct, not the signature): the same kind of run, shorter, with no jet and no missiles. */
+function runBurn(p: Player, dt: number, w: ConstructWorld) {
+	const d = p.dash!;
+	for (const t of w.dummies) {
+		if (!isStanding(t) || d.hit.includes(t) || Math.hypot(t.x - p.x, t.y - p.y) > JET.hitRadius) continue;
+		d.hit.push(t);
+		const side = (t.x - p.x) * -d.dy + (t.y - p.y) * d.dx >= 0 ? 1 : -1;
+		hitDummyWithFx(w, t, d.damage ?? 20, d.knockback ?? 300, t.x + d.dy * side * 20 - d.dx * 10, t.y - d.dx * side * 20 - d.dy * 10, p);
+	}
+	// Green afterimages streaming behind
+	w.effects.push({ kind: 'afterimage', x: p.x, y: p.y, age: 0, life: 0.3, angle: Math.atan2(d.dy, d.dx), owner: p, lift: p.ringLift });
+	d.time -= dt;
+	if (d.time <= 0 || d.blocked) {
+		p.dash = null;
+		p.vx *= 0.3;
+		p.vy *= 0.3;
+	}
 }
 
 /** The run ends: the jet fires its missiles and dissolves. */

@@ -15,7 +15,7 @@
 		{ actions: ['up', 'left', 'down', 'right'], what: 'Move' },
 		{ actions: ['shot'], what: 'Ring shot: free, never runs out' },
 		{ actions: ['construct'], what: 'Use your construct (costs willpower)' },
-		{ actions: ['nextConstruct', 'slot1'], what: 'Switch construct (or keys 1–5)' },
+		{ actions: ['nextConstruct', 'slot1'], what: 'Switch construct (or keys 1–0)' },
 		{ actions: ['shield'], what: 'Bubble shield' },
 		{ actions: ['signature'], what: 'Signature ability, when the surge bar is full' },
 		{ actions: ['fly'], what: 'Take off / land' },

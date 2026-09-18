@@ -111,7 +111,7 @@
 			{#if mode === 'watch'}
 				Hal and John fight on their own. Recording view hides these controls, the stats and the cursor; press H to bring them back.
 			{:else if mode === 'partner'}
-				Move WASD · aim with the mouse · click to shoot · right-click constructs · 1–5 pick · Shift shield · R signature{environment === 'planet' ? ' · Space take off' : ''}
+				Move WASD · aim with the mouse · click to shoot · right-click constructs · 1–0 pick · Shift shield · R signature{environment === 'planet' ? ' · Space take off' : ''}
 			{:else}
 				P1: WASD + mouse, F shot, G construct, Shift shield, R signature · P2: arrows, . shot, / construct, Right Shift shield, P signature
 			{/if}

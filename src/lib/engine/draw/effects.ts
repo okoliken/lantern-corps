@@ -252,10 +252,12 @@ export interface HudPlayer {
  */
 export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], width: number, height: number, time: number) {
 	const margin = 18;
-	const box = 40;
-	const gap = 5;
-	// Five construct slots, a gap, then the shield box
-	const slotsW = 6 * box + 5 * gap + 8;
+	const count = players[0]?.slots.length ?? 10;
+	const gap = 4;
+	// Construct slots, a gap, then the shield box. Smaller boxes when two HUDs share a narrow screen.
+	const room = width / Math.max(1, players.length) - margin * 2 - 30;
+	const box = Math.max(24, Math.min(38, Math.floor((room - count * gap - 8) / (count + 1))));
+	const slotsW = (count + 1) * box + count * gap + 8;
 	const barW = slotsW;
 	const barH = 10;
 
@@ -358,9 +360,9 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 			// Short name in the middle, key number in the corner
 			ctx.textAlign = 'center';
 			ctx.textBaseline = 'middle';
-			ctx.font = '600 9px system-ui, sans-serif';
+			ctx.font = `600 ${box < 34 ? 8 : 9}px system-ui, sans-serif`;
 			ctx.fillStyle = s.affordable ? 'rgba(216, 245, 224, 0.95)' : 'rgba(216, 245, 224, 0.35)';
-			ctx.fillText(abbreviate(s.short), sx + box / 2, slotsY + box / 2 + 3);
+			ctx.fillText(abbreviate(s.short, box < 34 ? 6 : 7), sx + box / 2, slotsY + box / 2 + 3);
 			ctx.textAlign = 'left';
 			ctx.textBaseline = 'top';
 			ctx.font = '9px ui-monospace, monospace';
@@ -369,7 +371,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		});
 
 		// ---- Shield box ----
-		const shx = x + 5 * (box + gap) + 8;
+		const shx = x + p.slots.length * (box + gap) + 8;
 		ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
 		ctx.fillRect(shx, slotsY, box, box);
 		if (p.shield.cooldown > 0) {
@@ -410,9 +412,9 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 }
 
 /** Fit a construct name in a small slot box. */
-function abbreviate(name: string): string {
+function abbreviate(name: string, max = 7): string {
 	const last = name.split(' ').pop() ?? name;
-	return last.length > 7 ? last.slice(0, 6) + '.' : last;
+	return last.length > max ? last.slice(0, max - 1) + '.' : last;
 }
 
 /**

@@ -57,12 +57,12 @@
 	</div>
 	<div class="controls keys">
 		<span
-			>Mouse aim · <kbd>Left click</kbd> ring shot · <kbd>Right click</kbd> construct · <kbd>Scroll</kbd>/<kbd>1</kbd>–<kbd>5</kbd> pick ·
+			>Mouse aim · <kbd>Left click</kbd> ring shot · <kbd>Right click</kbd> construct · <kbd>Scroll</kbd>/<kbd>1</kbd>–<kbd>0</kbd> pick ·
 			<kbd>Shift</kbd> shield · <kbd>R</kbd> signature · <kbd>Tab</kbd> lock</span
 		>
 		<span class="loadout">
 			{#each LOADOUTS[lantern] as id, i (id)}
-				<span><kbd>{i + 1}</kbd> {constructLabel(CONSTRUCTS[id], environment === 'space').name}</span>
+				<span><kbd>{(i + 1) % 10}</kbd> {constructLabel(CONSTRUCTS[id], environment === 'space').name}</span>
 			{/each}
 		</span>
 	</div>

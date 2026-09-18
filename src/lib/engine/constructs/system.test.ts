@@ -6,14 +6,16 @@ import { DUMMY_HP, createDummy, updateDummy, type Dummy } from '../dummy';
 import { IDLE, type Intent } from '../input';
 import { LANTERNS, type LanternId } from '../lanterns';
 import { CRATE_HP, type Obstacle } from '../map';
-import { createPlayer, type Player } from '../player';
+import { createPlayer, updatePlayer, type Player } from '../player';
+import { updateSignature } from './signature';
 import { MAX_WILLPOWER, RESTART_THRESHOLD } from '../willpower';
-import { BUBBLE_SHIELD, RING_SHOT, RING_SHOT_BURST, RING_SHOT_GAP, CONSTRUCTS, LOADOUTS, constructLabel, MAX_TRAPS_PER_PLAYER, MAX_TURRETS_PER_PLAYER, type ConstructDef, type ConstructId } from './defs';
+import { BUBBLE_SHIELD, RING_SHOT, RING_SHOT_BURST, RING_SHOT_GAP, CONSTRUCTS, LOADOUTS, constructLabel, MAX_MINES_PER_PLAYER, MAX_TRAPS_PER_PLAYER, MAX_TURRETS_PER_PLAYER, type ConstructDef, type ConstructId } from './defs';
 import {
 	absorbWithShield,
 	costOf,
 	createConstructWorld,
 	shieldRecipient,
+	updateAidStations,
 	updateConstructWorld,
 	updatePlayerConstructs,
 	type ConstructWorld
@@ -64,7 +66,7 @@ describe('choosing constructs', () => {
 	});
 
 	it('the cycle key moves to the next one and wraps around', () => {
-		const { p, w } = setup('hal', 'chain');
+		const { p, w } = setup('hal', 'shotgun');
 		run(p, w, { ...IDLE, cycle: 1 }, DT);
 		expect(p.selected).toBe(0);
 	});
@@ -72,7 +74,10 @@ describe('choosing constructs', () => {
 	it('Hal and John carry different loadouts', () => {
 		expect(LOADOUTS.hal).not.toEqual(LOADOUTS.john);
 		expect(LOADOUTS.hal[0]).toBe('beam');
-		expect(LOADOUTS.john).toEqual(['beam', 'sniper', 'wall', 'turret', 'pillars']);
+		expect(LOADOUTS.hal).toHaveLength(10);
+		expect(LOADOUTS.john).toHaveLength(10);
+		expect(new Set(LOADOUTS.hal).size).toBe(10);
+		expect(new Set(LOADOUTS.john).size).toBe(10);
 	});
 });
 
@@ -414,7 +419,7 @@ describe('ring shot (free)', () => {
 	it('scroll wheel goes to the previous construct too', () => {
 		const { p, w } = setup('hal', 'beam');
 		run(p, w, { ...IDLE, cycle: -1 }, DT);
-		expect(p.loadout[p.selected].id).toBe('chain');
+		expect(p.loadout[p.selected].id).toBe('shotgun');
 	});
 });
 
@@ -594,5 +599,107 @@ describe('constructs adapt to space', () => {
 		const planetBolt = planet.w.projectiles.find((pr) => pr.kind === 'bolt');
 		const spaceBolt = space.w.projectiles.find((pr) => pr.kind === 'bolt');
 		expect(spaceBolt!.lift).toBeGreaterThan(planetBolt!.lift);
+	});
+});
+
+describe("Hal's new constructs", () => {
+	it('Warhammer comes down after a windup, hurts and dazes what it lands on', () => {
+		const d = createDummy(80, 0);
+		const { p, w } = setup('hal', 'hammer', [d]);
+		run(p, w, FIRE, DT);
+		expect(d.hp).toBe(DUMMY_HP);
+		run(p, w, IDLE, 0.5);
+		expect(d.hp).toBeLessThan(DUMMY_HP);
+		expect(d.stun).toBeGreaterThan(0);
+	});
+
+	it('Rocket Pod fires a fan of missiles that home in on enemies ahead', () => {
+		const a = createDummy(300, -80);
+		const b = createDummy(320, 90);
+		const { p, w } = setup('hal', 'rockets', [a, b]);
+		run(p, w, FIRE, DT);
+		expect(w.projectiles.filter((pr) => pr.kind === 'missile')).toHaveLength(CONSTRUCTS.rockets.count);
+		run(p, w, IDLE, 1.5);
+		expect(a.hp).toBeLessThan(DUMMY_HP);
+		expect(b.hp).toBeLessThan(DUMMY_HP);
+	});
+
+	it('Buzzsaw cuts on the way out and again on the way back, then returns to Hal', () => {
+		const d = createDummy(150, 0);
+		d.respawns = false;
+		const { p, w } = setup('hal', 'buzzsaw', [d]);
+		run(p, w, FIRE, DT);
+		let cuts = 0;
+		let last = d.hp;
+		for (let i = 0; i < 180; i++) {
+			d.x = 150;
+			d.y = 0;
+			d.vx = d.vy = 0;
+			run(p, w, IDLE, DT);
+			if (d.hp < last) cuts++;
+			last = d.hp;
+		}
+		expect(cuts).toBe(2);
+		expect(w.projectiles.some((pr) => pr.kind === 'saw')).toBe(false);
+	});
+
+	it('Afterburner flies Hal straight through an enemy, hitting it, and he can’t be hurt while it lasts', () => {
+		const d = createDummy(120, 0);
+		const { p, w } = setup('hal', 'afterburner', [d]);
+		run(p, w, FIRE, DT);
+		expect(p.dash?.kind).toBe('burn');
+		expect(p.invuln).toBeGreaterThan(0);
+		for (let i = 0; i < 30; i++) {
+			updatePlayer(p, IDLE, DT);
+			updateSignature(p, IDLE, DT, w);
+			updateConstructWorld(w, DT);
+		}
+		expect(p.x).toBeGreaterThan(200);
+		expect(d.hp).toBeLessThan(DUMMY_HP);
+		expect(p.dash).toBeNull();
+	});
+
+	it('Shotgun blasts a spread of pellets', () => {
+		const { p, w } = setup('hal', 'shotgun');
+		run(p, w, FIRE, DT);
+		const pellets = w.projectiles.filter((pr) => pr.kind === 'bullet');
+		expect(pellets).toHaveLength(CONSTRUCTS.shotgun.count);
+		const angles = pellets.map((pr) => Math.atan2(pr.vy, pr.vx));
+		expect(Math.max(...angles) - Math.min(...angles)).toBeGreaterThan(0.4);
+	});
+});
+
+describe("John's new constructs", () => {
+	it('a Mine waits, then blows up when an enemy comes close', () => {
+		const d = createDummy(400, 0);
+		const { p, w } = setup('john', 'mines', [d]);
+		press(p, w, 0.5);
+		expect(w.traps.filter((t) => t.kind === 'mine')).toHaveLength(1);
+		expect(d.hp).toBe(DUMMY_HP);
+		d.x = CONSTRUCTS.mines.range + 10;
+		run(p, w, IDLE, 0.1);
+		expect(d.hp).toBeLessThan(DUMMY_HP);
+		expect(w.traps).toHaveLength(0);
+	});
+
+	it('Aid Station heals Lanterns standing in it, not ones outside', () => {
+		const { p, w } = setup('john', 'aid');
+		const far = createPlayer(1, LANTERNS.hal, { read: () => IDLE }, 900, 0);
+		p.health = 40;
+		far.health = 40;
+		press(p, w, DT);
+		for (let i = 0; i < 120; i++) updateAidStations(w, [p, far], DT);
+		expect(p.health).toBeGreaterThan(50);
+		expect(far.health).toBe(40);
+	});
+
+	it('mines and cages count separately', () => {
+		const { p, w } = setup('john', 'mines');
+		for (let i = 0; i < 6; i++) {
+			p.aimY = i * 0.3;
+			p.aimX = 1;
+			press(p, w, 1);
+		}
+		expect(w.traps.filter((t) => t.kind === 'mine')).toHaveLength(MAX_MINES_PER_PLAYER);
 	});
 });

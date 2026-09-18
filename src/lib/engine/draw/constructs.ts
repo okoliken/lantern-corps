@@ -6,7 +6,7 @@
 // are built as Path2D objects in local space, so the same shape can be
 // filled, stroked, and clipped without redrawing the path each time.
 
-import { AUTO_TURRET_HEAD, FIST_OUT_TIME, SENTRY_DRONE_HOVER, type Effect, type Projectile, type Shield, type Trap, type Turret } from '../constructs/system';
+import { AUTO_TURRET_HEAD, FIST_OUT_TIME, SENTRY_DRONE_HOVER, type AidStation, type Effect, type Projectile, type Shield, type Trap, type Turret } from '../constructs/system';
 import { drawRedEffect } from './redConstructs';
 import { isStanding, type Dummy } from '../dummy';
 import type { Target } from '../targeting';
@@ -157,6 +157,51 @@ function cannonPath(): Path2D {
 	return p;
 }
 
+/** A pump shotgun: stock, receiver, two barrels side by side. */
+function shotgunPath(): Path2D {
+	const p = new Path2D();
+	p.moveTo(-10, -3);
+	p.lineTo(-2, -5);
+	p.lineTo(-2, 5);
+	p.lineTo(-12, 7);
+	p.closePath();
+	p.roundRect(-2, -6, 14, 11, 2);
+	p.rect(12, -5, 24, 4);
+	p.rect(12, 0, 24, 4);
+	p.roundRect(16, 4, 10, 4, 1.5); // pump
+	return p;
+}
+
+/** A rocket pod on the forearm: a box with four tube mouths. */
+function rocketPodPath(): Path2D {
+	const p = new Path2D();
+	p.roundRect(-4, -11, 26, 22, 4);
+	for (const [y1, y2] of [[-9, -2], [2, 9]]) {
+		p.rect(22, y1, 6, y2 - y1);
+	}
+	for (const y of [-6, 5]) {
+		p.moveTo(28 + 2.5, y);
+		p.arc(28, y, 2.5, 0, TAU);
+	}
+	return p;
+}
+
+/** A spinning circular saw blade. */
+function sawPath(r: number): Path2D {
+	const p = new Path2D();
+	const teeth = 10;
+	for (let i = 0; i < teeth * 2; i++) {
+		const a = (i / (teeth * 2)) * TAU;
+		const rr = i % 2 === 0 ? r : r * 0.72;
+		if (i === 0) p.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+		else p.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+	}
+	p.closePath();
+	p.moveTo(r * 0.3, 0);
+	p.arc(0, 0, r * 0.3, 0, TAU);
+	return p;
+}
+
 function hookPath(): Path2D {
 	const p = new Path2D();
 	p.moveTo(-8, 0);
@@ -218,6 +263,12 @@ export function drawHeldConstruct(
 		sparks(ctx, 42, 0, 10, 5, time);
 	} else if (shape === 'sniper') {
 		energy(ctx, sniperPath(), { time, edge: 1.5 });
+	} else if (shape === 'shotgun') {
+		energy(ctx, shotgunPath(), { time, edge: 1.5 });
+		if (Math.sin(time * 40) > 0.3) muzzleFlash(ctx, 38, 1, 9);
+	} else if (shape === 'rockets') {
+		energy(ctx, rocketPodPath(), { time, edge: 1.6 });
+		sparks(ctx, 30, 0, 8, 4, time);
 	}
 	ctx.restore();
 }
@@ -465,6 +516,17 @@ export function drawProjectile(ctx: CanvasRenderingContext2D, pr: Projectile, x:
 			ctx.arc(x, dy, 6, time * 12 + i * Math.PI, time * 12 + i * Math.PI + 1.6);
 			ctx.stroke();
 		}
+	} else if (pr.kind === 'saw') {
+		// Buzzsaw: spinning fast, a faint ghost trail behind it
+		ctx.translate(x, dy);
+		ctx.globalAlpha = 0.3;
+		ctx.fillStyle = GREEN;
+		ctx.beginPath();
+		ctx.arc(-ux * 10, -uy * 10, 10, 0, TAU);
+		ctx.fill();
+		ctx.globalAlpha = 1;
+		ctx.rotate(time * 25);
+		energy(ctx, sawPath(pr.def.radius ?? 14), { time, edge: 1.6 });
 	} else {
 		ctx.translate(x, dy);
 		ctx.rotate(Math.atan2(uy, ux));
@@ -512,6 +574,10 @@ export function drawChain(ctx: CanvasRenderingContext2D, x1: number, y1: number,
 
 /** An armed cage trap: a slowly turning rune circle with bars waiting to spring. */
 export function drawTrap(ctx: CanvasRenderingContext2D, t: Trap, time: number) {
+	if (t.kind === 'mine') {
+		drawMine(ctx, t, time);
+		return;
+	}
 	const pulse = 0.6 + 0.4 * Math.sin(time * 4);
 	const r = t.radius;
 	ctx.save();
@@ -576,6 +642,97 @@ export function drawTrap(ctx: CanvasRenderingContext2D, t: Trap, time: number) {
 		ctx.lineTo(bx, by - 6 - 5 * pulse);
 		ctx.stroke();
 	}
+	ctx.restore();
+}
+
+/** A mine: a flat green disc with a blinking light, and a faint trigger ring. */
+function drawMine(ctx: CanvasRenderingContext2D, t: Trap, time: number) {
+	const blink = Math.sin(time * 6 + t.x) > 0.6;
+	ctx.save();
+	ctx.translate(t.x, t.y);
+	ctx.scale(1, 0.45);
+	ctx.strokeStyle = 'rgba(61, 255, 110, 0.18)';
+	ctx.setLineDash([4, 5]);
+	ctx.lineDashOffset = -time * 10;
+	ctx.lineWidth = 1.5;
+	ctx.beginPath();
+	ctx.arc(0, 0, t.radius, 0, TAU);
+	ctx.stroke();
+	ctx.setLineDash([]);
+	const disc = new Path2D();
+	disc.arc(0, 0, 11, 0, TAU);
+	disc.moveTo(6, 0);
+	disc.arc(0, 0, 6, 0, TAU);
+	energy(ctx, disc, { time, edge: 1.6 });
+	ctx.restore();
+	ctx.save();
+	ctx.shadowColor = GREEN;
+	ctx.shadowBlur = blink ? 12 : 3;
+	ctx.fillStyle = blink ? CORE : GREEN;
+	ctx.beginPath();
+	ctx.arc(t.x, t.y - 3, blink ? 2.4 : 1.6, 0, TAU);
+	ctx.fill();
+	ctx.restore();
+}
+
+/**
+ * John's Aid Station: a healing circle on the ground with a beacon in the
+ * middle, green crosses rising from it. In space it's a floating Med Beacon.
+ */
+export function drawAidStation(ctx: CanvasRenderingContext2D, a: AidStation, time: number, space: boolean) {
+	const fade = Math.min(1, a.life / 0.6) * Math.min(1, (a.maxLife - a.life) / 0.25 + 0.2);
+	const pulse = 0.5 + 0.5 * Math.sin(time * 3);
+	ctx.save();
+	ctx.globalAlpha = fade;
+	// The healing area
+	ctx.save();
+	ctx.translate(a.x, a.y);
+	ctx.scale(1, 0.5);
+	const g = ctx.createRadialGradient(0, 0, 4, 0, 0, a.radius);
+	g.addColorStop(0, 'rgba(61, 255, 110, 0.18)');
+	g.addColorStop(1, 'rgba(61, 255, 110, 0.04)');
+	ctx.fillStyle = g;
+	ctx.beginPath();
+	ctx.arc(0, 0, a.radius, 0, TAU);
+	ctx.fill();
+	ctx.strokeStyle = `rgba(61, 255, 110, ${0.4 + 0.3 * pulse})`;
+	ctx.lineWidth = 2;
+	ctx.beginPath();
+	ctx.arc(0, 0, a.radius, 0, TAU);
+	ctx.stroke();
+	// A ring of light washing outward
+	const k = (time * 0.7) % 1;
+	ctx.globalAlpha = fade * (1 - k) * 0.6;
+	ctx.beginPath();
+	ctx.arc(0, 0, a.radius * k, 0, TAU);
+	ctx.stroke();
+	ctx.restore();
+
+	// The beacon: a post (a floating capsule in space) topped with a glowing cross
+	const top = space ? 44 + Math.sin(time * 2) * 3 : 46;
+	const beacon = new Path2D();
+	if (!space) beacon.rect(-2, -top + 10, 4, top - 10);
+	else beacon.roundRect(-6, -top + 6, 12, 16, 5);
+	ctx.save();
+	ctx.translate(a.x, a.y);
+	energy(ctx, beacon, { time, edge: 1.4 });
+	const cross = new Path2D();
+	cross.rect(-3, -top - 8, 6, 18);
+	cross.rect(-9, -top - 2, 18, 6);
+	energy(ctx, cross, { time, edge: 1.6, body: 1.5 });
+	// Crosses drifting up
+	ctx.fillStyle = CORE;
+	ctx.shadowColor = GREEN;
+	ctx.shadowBlur = 6;
+	for (let i = 0; i < 5; i++) {
+		const t = (time * 0.6 + i / 5) % 1;
+		const px = Math.cos(i * 2.4) * a.radius * 0.6;
+		const py = Math.sin(i * 2.4) * a.radius * 0.3 - t * 40;
+		ctx.globalAlpha = fade * (1 - t) * 0.8;
+		ctx.fillRect(px - 1, py - 4, 2, 8);
+		ctx.fillRect(px - 4, py - 1, 8, 2);
+	}
+	ctx.restore();
 	ctx.restore();
 }
 
@@ -924,6 +1081,64 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 				ctx.ellipse(reach + size * 0.5, 0, 8 + k * size, (8 + k * size) * 0.7, 0, 0, TAU);
 				ctx.stroke();
 			}
+			break;
+		}
+		case 'hammer': {
+			// Raised overhead through the windup, then brought down onto the ground ahead
+			const windup = e.life - FIST_OUT_TIME;
+			const size = e.radius ?? 60;
+			const a = e.angle ?? 0;
+			const reach = e.value ?? 80;
+			const hx = e.x;
+			const hy = e.y - lift;
+			const facing = Math.cos(a) >= 0 ? 1 : -1;
+			const ix = e.x + Math.cos(a) * reach;
+			const iy = e.y + Math.sin(a) * reach;
+			const swinging = e.age >= windup;
+			const k = swinging ? easeOut(Math.min(1, (e.age - windup) / 0.1)) : 0;
+			const raise = swinging ? 0 : Math.min(1, e.age / Math.max(0.05, windup));
+			// Head position: from high up behind the shoulder, round onto the impact spot
+			const upX = hx - facing * 18;
+			const upY = hy - 58 - raise * 8;
+			const headX = upX + (ix - upX) * k;
+			const headY = upY + (iy - 8 - upY) * k;
+			ctx.globalAlpha = swinging ? Math.max(0, 1 - Math.max(0, e.age - windup - 0.15) / (FIST_OUT_TIME - 0.15)) : 1;
+			const handle = new Path2D();
+			handle.moveTo(hx, hy);
+			handle.lineTo(headX, headY);
+			energy(ctx, handle, { time, edge: 3, body: 0 });
+			ctx.save();
+			ctx.translate(headX, headY);
+			ctx.rotate(Math.atan2(headY - hy, headX - hx) + Math.PI / 2);
+			const head = new Path2D();
+			head.roundRect(-size * 0.42, -size * 0.2, size * 0.84, size * 0.4, 4);
+			head.rect(-size * 0.5, -size * 0.24, size * 0.08, size * 0.48);
+			head.rect(size * 0.42, -size * 0.24, size * 0.08, size * 0.48);
+			energy(ctx, head, { time, edge: 2.4 });
+			ctx.restore();
+			// Swoosh arc while it comes down
+			if (swinging && k < 1) {
+				ctx.strokeStyle = 'rgba(234, 255, 240, 0.5)';
+				ctx.lineWidth = 3;
+				ctx.beginPath();
+				ctx.moveTo(upX, upY);
+				ctx.quadraticCurveTo(ix + facing * 20, upY, headX, headY);
+				ctx.stroke();
+			}
+			break;
+		}
+		case 'afterimage': {
+			// A fading green ghost streaking behind Hal's Afterburner
+			const k = e.age / e.life;
+			ctx.globalAlpha = 0.45 * (1 - k);
+			ctx.translate(e.x, e.y - lift - 10);
+			ctx.rotate(Math.cos(e.angle ?? 0) >= 0 ? 0 : Math.PI);
+			ctx.fillStyle = GREEN;
+			ctx.shadowColor = GREEN;
+			ctx.shadowBlur = 12;
+			ctx.beginPath();
+			ctx.ellipse(-8 * k, 0, 16, 26, 0, 0, TAU);
+			ctx.fill();
 			break;
 		}
 		case 'shockwave': {

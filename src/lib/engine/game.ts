@@ -10,11 +10,13 @@ import {
 	SHOT_POSE_TIME,
 	costOf,
 	createConstructWorld,
+	updateAidStations,
 	updateConstructWorld,
 	updatePlayerConstructs,
 	type ConstructWorld
 } from './constructs/system';
 import {
+	drawAidStation,
 	drawAutoTurret,
 	drawChain,
 	drawDummy,
@@ -321,6 +323,7 @@ export class Game {
 
 		if (!this.freezeEnemies) updateEnemies(this.constructs, this.players, dt);
 		updateConstructWorld(this.constructs, dt);
+		updateAidStations(this.constructs, this.players, dt);
 		updateSignatureWorld(this.constructs, dt);
 		this.handleEvents();
 		// Red Lanterns fly, so only tall things (asteroids, energy walls) block them
@@ -484,6 +487,7 @@ export class Game {
 		drawRedGround(ctx, cw.red.puddles, cw.red.strikes, this.time);
 		const inSpace = map.environment === 'space';
 		for (const f of cw.fortresses) drawFortressBack(ctx, f, this.time, inSpace);
+		for (const a of cw.aids) drawAidStation(ctx, a, this.time, inSpace);
 
 		// ---- Everything with depth, sorted back to front ----
 		// Ground things sort by their base y: lower on screen = in front.
@@ -523,7 +527,7 @@ export class Game {
 			const pose = this.poseFor(p);
 			const list = p.altitude > 0.5 ? air : ground;
 			// During Jet Strike the Lantern is drawn as the jet's pilot instead (below)
-			if (!p.dash) list.push({ baseY: y, draw: () => drawLantern(ctx, p.def, x, y, pose, this.time) });
+			if (p.dash?.kind !== 'jet') list.push({ baseY: y, draw: () => drawLantern(ctx, p.def, x, y, pose, this.time) });
 
 			if (p.charging) {
 				const chestY = y - (pose.hoverHeight * p.altitude + 28) * 1.35;
@@ -539,7 +543,7 @@ export class Game {
 					overlays.push(() => drawBeam(ctx, rx, ry, p.aimX, p.aimY, p.beamLength, p.beamLength < def.range, this.time));
 				}
 				const held = p.firing ? def.shape : p.actionShape;
-				if (held === 'minigun' || held === 'cannon' || held === 'sniper') {
+				if (held === 'minigun' || held === 'cannon' || held === 'sniper' || held === 'shotgun' || held === 'rockets') {
 					overlays.push(() => drawHeldConstruct(ctx, held, rx, ry, p.aimX, p.aimY, this.time));
 				}
 				if (p.charge > 0 && def.behavior === 'snipe') {
@@ -564,7 +568,7 @@ export class Game {
 
 		// Jet Strike: the fighter jet wrapped around Hal
 		for (const p of this.players) {
-			if (!p.dash) continue;
+			if (p.dash?.kind !== 'jet') continue;
 			const x = lerp(p.prevX, p.x, alpha);
 			const y = lerp(p.prevY, p.y, alpha);
 			const bodyY = y - this.poseFor(p).hoverHeight * 1.35 - 34;

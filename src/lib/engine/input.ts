@@ -27,7 +27,7 @@ export interface Intent {
 	construct: boolean;
 	/** Construct button was PRESSED since the last tick (one-shot constructs). */
 	constructPressed: boolean;
-	/** A construct slot was picked: its index (0-4), or -1 for none. */
+	/** A construct slot was picked: its index (0-9), or -1 for none. */
 	select: number;
 	/** Switch construct: -1 previous, 1 next, 0 no change. */
 	cycle: number;
@@ -76,6 +76,11 @@ export const ACTIONS = [
 	'slot3',
 	'slot4',
 	'slot5',
+	'slot6',
+	'slot7',
+	'slot8',
+	'slot9',
+	'slot10',
 	'shield',
 	'signature',
 	'fly',
@@ -101,6 +106,11 @@ export const ACTION_LABELS: Record<Action, string> = {
 	slot3: 'Construct 3',
 	slot4: 'Construct 4',
 	slot5: 'Construct 5',
+	slot6: 'Construct 6',
+	slot7: 'Construct 7',
+	slot8: 'Construct 8',
+	slot9: 'Construct 9',
+	slot10: 'Construct 10',
 	shield: 'Bubble shield',
 	signature: 'Signature ability',
 	fly: 'Take off / land',
@@ -125,6 +135,11 @@ export const DEFAULT_BINDINGS: Record<LayoutName, Bindings> = {
 		slot3: ['Digit3'],
 		slot4: ['Digit4'],
 		slot5: ['Digit5'],
+		slot6: ['Digit6'],
+		slot7: ['Digit7'],
+		slot8: ['Digit8'],
+		slot9: ['Digit9'],
+		slot10: ['Digit0'],
 		shield: ['ShiftLeft', 'KeyL'],
 		signature: ['KeyR', 'Mouse1'],
 		fly: ['Space'],
@@ -144,6 +159,12 @@ export const DEFAULT_BINDINGS: Record<LayoutName, Bindings> = {
 		slot3: ['Digit3'],
 		slot4: ['Digit4'],
 		slot5: ['Digit5'],
+		// The row below, since P2 has 6-0
+		slot6: ['KeyZ'],
+		slot7: ['KeyX'],
+		slot8: ['KeyC'],
+		slot9: ['KeyV'],
+		slot10: ['KeyB'],
 		shield: ['ShiftLeft'],
 		signature: ['KeyR'],
 		fly: ['Space'],
@@ -164,6 +185,12 @@ export const DEFAULT_BINDINGS: Record<LayoutName, Bindings> = {
 		slot3: ['Digit8'],
 		slot4: ['Digit9'],
 		slot5: ['Digit0'],
+		// Carrying on to the right of 0, then the row below
+		slot6: ['Minus'],
+		slot7: ['Equal'],
+		slot8: ['BracketLeft'],
+		slot9: ['BracketRight'],
+		slot10: ['Backslash'],
 		shield: ['ShiftRight'],
 		signature: ['KeyP'],
 		fly: ['Enter'],
@@ -171,7 +198,7 @@ export const DEFAULT_BINDINGS: Record<LayoutName, Bindings> = {
 	}
 };
 
-export const SLOT_ACTIONS = ['slot1', 'slot2', 'slot3', 'slot4', 'slot5'] as const;
+export const SLOT_ACTIONS = ['slot1', 'slot2', 'slot3', 'slot4', 'slot5', 'slot6', 'slot7', 'slot8', 'slot9', 'slot10'] as const;
 
 /** Does this binding set use the mouse at all? Then that player aims with it. */
 export function usesMouse(b: Bindings): boolean {

@@ -21,7 +21,13 @@ export type Behavior =
 	| 'shield' // press: bubble shield on yourself or an ally
 	| 'snipe' // hold to charge, release: a piercing shot through a whole line
 	| 'turret' // press: build a turret that fights on its own
-	| 'pillars'; // press: a warning circle, then pillars slam down and stun
+	| 'pillars' // press: a warning circle, then pillars slam down and stun
+	| 'volley' // press: a fan of homing missiles
+	| 'boomerang' // press: throw something that cuts on the way out AND back
+	| 'dash' // press: fly straight through enemies in a burst of speed
+	| 'spread' // press: a short-range blast of pellets
+	| 'mine' // press: place a mine that blows up when an enemy comes close
+	| 'heal'; // press: a station that heals Lanterns standing in it
 
 /** Drawing style for a construct. Forge constructs will add their own. */
 export type ConstructShape =
@@ -38,7 +44,14 @@ export type ConstructShape =
 	| 'bolt'
 	| 'sniper'
 	| 'turret'
-	| 'pillars';
+	| 'pillars'
+	| 'hammer'
+	| 'rockets'
+	| 'saw'
+	| 'jet'
+	| 'shotgun'
+	| 'mine'
+	| 'aid';
 
 export interface ConstructDef {
 	id: string;
@@ -79,8 +92,12 @@ export interface ConstructDef {
 	hp?: number;
 	/** Sniper: seconds to reach full charge. Pillars: warning time before they land. */
 	charge?: number;
-	/** Pillar Drop: how long enemies are stunned. */
+	/** Pillar Drop and Warhammer: how long enemies are stunned. */
 	stun?: number;
+	/** How many at once: missiles in a volley, pellets in a spread. */
+	count?: number;
+	/** Aid Station: health per second for Lanterns inside. */
+	heal?: number;
 }
 
 export const CONSTRUCTS = {
@@ -113,7 +130,7 @@ export const CONSTRUCTS = {
 		cost: 6, cooldown: 0.7, damage: 6, knockback: 0, range: 340, speed: 1000
 	},
 	cage: {
-		id: 'cage', name: 'Cage', behavior: 'trap', shape: 'cage',
+		id: 'cage', name: 'Cage', space: { name: 'Snare Field', short: 'Snare' }, behavior: 'trap', shape: 'cage',
 		cost: 12, cooldown: 1.5, damage: 0, knockback: 0, range: 100, radius: 40, duration: 7
 	},
 	shockwave: {
@@ -135,6 +152,44 @@ export const CONSTRUCTS = {
 	pillars: {
 		id: 'pillars', name: 'Pillar Drop', short: 'Pillars', space: { name: 'Vice Crush', short: 'Crush' }, behavior: 'pillars', shape: 'pillars',
 		cost: 16, cooldown: 2.2, damage: 40, knockback: 120, range: 320, radius: 75, charge: 0.55, stun: 1.5
+	},
+
+	// ---- Hal: more ways to hit hard and fast ----
+	// Swung overhead and brought down just ahead: hits everything there and dazes it
+	hammer: {
+		id: 'hammer', name: 'Warhammer', short: 'Hammer', behavior: 'smash', shape: 'hammer',
+		cost: 14, cooldown: 1.6, damage: 42, knockback: 260, range: 80, radius: 62, windup: 0.32, stun: 1
+	},
+	// Four missiles fanned out, each homing in on a target ahead
+	rockets: {
+		id: 'rockets', name: 'Rocket Pod', short: 'Rockets', behavior: 'volley', shape: 'rockets',
+		cost: 16, cooldown: 2.4, damage: 16, knockback: 200, range: 600, speed: 480, radius: 40, count: 4
+	},
+	// Thrown out, and comes back: cuts through everything both ways
+	buzzsaw: {
+		id: 'buzzsaw', name: 'Buzzsaw', behavior: 'boomerang', shape: 'saw',
+		cost: 8, cooldown: 1.1, damage: 14, knockback: 120, range: 320, speed: 620, radius: 14
+	},
+	// A test pilot's move: a burst of speed straight through the enemy line (can't be hurt while it lasts)
+	afterburner: {
+		id: 'afterburner', name: 'Afterburner', short: 'Burn', behavior: 'dash', shape: 'jet',
+		cost: 10, cooldown: 2.5, damage: 24, knockback: 380, range: 260, speed: 900
+	},
+	shotgun: {
+		id: 'shotgun', name: 'Shotgun', behavior: 'spread', shape: 'shotgun',
+		cost: 6, cooldown: 0.8, damage: 7, knockback: 70, range: 260, speed: 900, count: 7
+	},
+
+	// ---- John: engineering ----
+	// range = how far ahead it's placed; radius = blast; duration = how long it waits
+	mines: {
+		id: 'mines', name: 'Mines', behavior: 'mine', shape: 'mine',
+		cost: 8, cooldown: 0.8, damage: 40, knockback: 340, range: 70, radius: 60, duration: 45
+	},
+	// A field medic's station: Lanterns standing in it heal
+	aid: {
+		id: 'aid', name: 'Aid Station', short: 'Aid', space: { name: 'Med Beacon', short: 'Beacon' }, behavior: 'heal', shape: 'aid',
+		cost: 25, cooldown: 12, damage: 0, knockback: 0, range: 40, radius: 110, duration: 10, heal: 8
 	}
 } satisfies Record<string, ConstructDef>;
 
@@ -193,16 +248,19 @@ export const BUBBLE_SHIELD: ConstructDef = {
 export const HELD_BEHAVIORS: ReadonlySet<Behavior> = new Set(['beam', 'rapid']);
 
 /** Structures: things you build and leave in the world. John is cheaper at these. */
-export const STRUCTURE_BEHAVIORS: ReadonlySet<Behavior> = new Set(['barrier', 'trap', 'turret']);
+export const STRUCTURE_BEHAVIORS: ReadonlySet<Behavior> = new Set(['barrier', 'trap', 'turret', 'mine', 'heal']);
 
-/** Five slots each, on keys 1-5. */
+/** Ten slots each, on keys 1-9 and 0. */
 export const LOADOUTS: Record<LanternId, ConstructId[]> = {
-	hal: ['beam', 'minigun', 'sword', 'fist', 'chain'],
+	// Test pilot: fast, aggressive, up close
+	hal: ['beam', 'minigun', 'sword', 'fist', 'chain', 'hammer', 'rockets', 'buzzsaw', 'afterburner', 'shotgun'],
 	// Marine and architect: precision, fortification, engineering
-	john: ['beam', 'sniper', 'wall', 'turret', 'pillars']
+	john: ['beam', 'sniper', 'wall', 'turret', 'pillars', 'cannon', 'cage', 'shockwave', 'mines', 'aid']
 };
 
 /** How many traps a single Lantern can have out at once. */
 export const MAX_TRAPS_PER_PLAYER = 3;
+/** Mines out at once per Lantern (placing another replaces the oldest). */
+export const MAX_MINES_PER_PLAYER = 4;
 /** How many auto-turrets a single Lantern can have out at once. */
 export const MAX_TURRETS_PER_PLAYER = 2;

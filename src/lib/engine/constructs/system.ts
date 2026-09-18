@@ -23,6 +23,7 @@ import { createSquadState, type SquadState } from '../enemies/squad';
 import {
 	BUBBLE_SHIELD,
 	HELD_BEHAVIORS,
+	MAX_MINES_PER_PLAYER,
 	MAX_TRAPS_PER_PLAYER,
 	MAX_TURRETS_PER_PLAYER,
 	RING_SHOT,
@@ -35,8 +36,8 @@ import {
 // ------------------------------------------------------------ world state
 
 export interface Projectile {
-	/** bolt = ring shot / turret, bullet = minigun, shell = cannon, hook = chain, missile = Jet Strike. */
-	kind: 'bolt' | 'bullet' | 'shell' | 'hook' | 'missile';
+	/** bolt = ring shot / turret, bullet = minigun/shotgun, shell = cannon, hook = chain, missile = rockets/Jet Strike, saw = buzzsaw. */
+	kind: 'bolt' | 'bullet' | 'shell' | 'hook' | 'missile' | 'saw';
 	owner: Player;
 	def: ConstructDef;
 	x: number;
@@ -55,6 +56,9 @@ export interface Projectile {
 	homing?: Dummy | null;
 	/** Hits from this don't fill the owner's surge meter (signature ability damage). */
 	noSurge?: boolean;
+	/** Buzzsaw: heading back to its thrower, and who it already cut on this pass. */
+	returning?: boolean;
+	cut?: Dummy[];
 	/**
 	 * How high above the ground plane it's drawn, fixed at launch. Projectiles
 	 * move on the ground plane; this keeps them level at the height they left
@@ -71,14 +75,31 @@ export interface Tether {
 }
 
 export interface Trap {
+	/** A cage that holds what walks in, or a mine that blows up. */
+	kind: 'cage' | 'mine';
+	owner: Player;
+	x: number;
+	y: number;
+	/** How close something has to come to set it off. */
+	radius: number;
+	/** Seconds until it fizzles out if nothing walks in. */
+	life: number;
+	/** Cage: how long it holds what it catches. */
+	hold: number;
+	/** Mine: its blast. */
+	blast?: { radius: number; damage: number; knockback: number };
+}
+
+/** John's Aid Station: Lanterns standing in it heal. */
+export interface AidStation {
 	owner: Player;
 	x: number;
 	y: number;
 	radius: number;
-	/** Seconds until it fizzles out if nothing walks in. */
 	life: number;
-	/** How long it holds what it catches. */
-	hold: number;
+	maxLife: number;
+	/** Health per second. */
+	heal: number;
 }
 
 /** A punch that's winding up and lands shortly. */
@@ -121,6 +142,8 @@ export interface Effect {
 		| 'pillars'
 		| 'text'
 		| 'claw'
+		| 'hammer'
+		| 'afterimage'
 		// Red Lantern constructs (see enemies/redConstructs.ts)
 		| 'roar'
 		| 'slamMark'
@@ -203,6 +226,7 @@ export interface ConstructWorld {
 	shields: Shield[];
 	fortresses: Fortress[];
 	turrets: Turret[];
+	aids: AidStation[];
 	pillarStrikes: PillarStrike[];
 	effects: Effect[];
 	/** In space, ground-based constructs take their space forms (drones float, etc.). */
@@ -223,7 +247,7 @@ export interface ConstructWorld {
 }
 
 export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[], space = false): ConstructWorld {
-	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], pillarStrikes: [], effects: [], space, events: [], red: { shots: [], chains: [], strikes: [], puddles: [], beams: [], cages: [] }, redTempo: 1, pressure: new Map(), squad: createSquadState() };
+	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], aids: [], pillarStrikes: [], effects: [], space, events: [], red: { shots: [], chains: [], strikes: [], puddles: [], beams: [], cages: [] }, redTempo: 1, pressure: new Map(), squad: createSquadState() };
 }
 
 // --------------------------------------------------------------- tuning
@@ -473,11 +497,12 @@ function perform(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 		case 'smash':
 			w.pending.push({ owner: p, def, time: def.windup ?? 0, damage: power(p, def.damage), knockback: power(p, def.knockback) });
 			w.effects.push({
-				kind: 'fist',
+				kind: def.shape === 'hammer' ? 'hammer' : 'fist',
 				x: p.x + p.ringDX,
 				y: p.y,
 				age: 0,
 				life: (def.windup ?? 0) + FIST_OUT_TIME,
+				value: def.range,
 				angle: Math.atan2(p.aimY, p.aimX),
 				radius: def.radius,
 				owner: p,
@@ -497,6 +522,24 @@ function perform(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 		case 'pillars':
 			dropPillars(p, def, w);
 			return true;
+		case 'volley':
+			volley(p, def, w);
+			return true;
+		case 'boomerang': {
+			const saw = launch(p, def, 'saw', p.aimX, p.aimY, w);
+			saw.cut = [];
+			saw.life = 4;
+			return true;
+		}
+		case 'dash':
+			return afterburner(p, def, w);
+		case 'spread':
+			spread(p, def, w);
+			return true;
+		case 'mine':
+			return placeMine(p, def, w);
+		case 'heal':
+			return placeAid(p, def, w);
 		default:
 			return false;
 	}
@@ -591,11 +634,11 @@ function placeWall(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 }
 
 function placeTrap(p: Player, def: ConstructDef, w: ConstructWorld) {
-	const mine = w.traps.filter((t) => t.owner === p);
+	const mine = w.traps.filter((t) => t.owner === p && t.kind === 'cage');
 	if (mine.length >= MAX_TRAPS_PER_PLAYER) w.traps.splice(w.traps.indexOf(mine[0]), 1);
 	const x = p.x + p.aimX * def.range;
 	const y = p.y + p.aimY * def.range;
-	w.traps.push({ owner: p, x, y, radius: def.radius ?? 40, life: durable(p, TRAP_LIFE), hold: durable(p, def.duration ?? 3) });
+	w.traps.push({ kind: 'cage', owner: p, x, y, radius: def.radius ?? 40, life: durable(p, TRAP_LIFE), hold: durable(p, def.duration ?? 3) });
 	w.effects.push({ kind: 'snap', x, y, age: 0, life: 0.4, radius: def.radius });
 }
 
@@ -667,6 +710,101 @@ function shockwave(p: Player, def: ConstructDef, w: ConstructWorld) {
 		if (Math.hypot(cx - p.x, cy - p.y) <= def.range) damageObstacle(w, o, power(p, def.damage));
 	}
 	w.effects.push({ kind: 'shockwave', x: p.x, y: p.y, age: 0, life: 0.65, radius: def.range, owner: p });
+}
+
+/** Rocket Pod: a fan of missiles, each homing in on one of the enemies ahead. */
+function volley(p: Player, def: ConstructDef, w: ConstructWorld) {
+	const n = def.count ?? 4;
+	const aim = Math.atan2(p.aimY, p.aimX);
+	const locked = p.attackTarget?.kind === 'enemy' ? p.attackTarget.dummy : null;
+	// Enemies roughly ahead, nearest first; the locked/aimed-at one gets the first missile
+	const ahead = w.dummies
+		.filter((d) => isStanding(d) && d !== locked && Math.hypot(d.x - p.x, d.y - p.y) <= def.range)
+		.filter((d) => Math.abs(Math.atan2(Math.sin(Math.atan2(d.y - p.y, d.x - p.x) - aim), Math.cos(Math.atan2(d.y - p.y, d.x - p.x) - aim))) < 1.2)
+		.sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y));
+	const targets = locked ? [locked, ...ahead] : ahead;
+	for (let i = 0; i < n; i++) {
+		const angle = aim + ((i - (n - 1) / 2) / n) * 1.4;
+		const m = launch(p, def, 'missile', Math.cos(angle), Math.sin(angle), w);
+		m.homing = targets.length > 0 ? targets[i % targets.length] : null;
+		m.life = (def.range / (def.speed ?? 500)) * 1.3;
+	}
+}
+
+/** Shotgun: a short-range fan of pellets. */
+function spread(p: Player, def: ConstructDef, w: ConstructWorld) {
+	const n = def.count ?? 7;
+	const aim = Math.atan2(p.aimY, p.aimX);
+	for (let i = 0; i < n; i++) {
+		const angle = aim + ((i - (n - 1) / 2) / (n - 1)) * 0.55 + (Math.random() - 0.5) * 0.06;
+		const pellet = launch(p, def, 'bullet', Math.cos(angle), Math.sin(angle), w);
+		pellet.life *= 0.85 + Math.random() * 0.3;
+	}
+	w.effects.push({ kind: 'impact', x: p.x + p.ringDX + p.aimX * 10, y: p.y + p.aimY * 10, age: 0, life: 0.15, owner: p, lift: p.ringLift });
+}
+
+/** Afterburner: a short, fast dash along the aim that hits everything in the way (constructs/signature.ts runs it). */
+function afterburner(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
+	const len = Math.hypot(p.aimX, p.aimY) || 1;
+	const speed = def.speed ?? 900;
+	const time = def.range / speed;
+	p.dash = {
+		kind: 'burn',
+		dx: p.aimX / len,
+		dy: p.aimY / len,
+		speed,
+		time,
+		blocked: false,
+		hit: [],
+		damage: power(p, def.damage),
+		knockback: power(p, def.knockback)
+	};
+	p.invuln = Math.max(p.invuln, time + 0.1);
+	p.firing = false;
+	w.effects.push({ kind: 'snap', x: p.x, y: p.y, age: 0, life: 0.3, radius: 30 });
+	return true;
+}
+
+function placeMine(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
+	const x = p.x + p.aimX * def.range;
+	const y = p.y + p.aimY * def.range;
+	if (w.obstacles.some((o) => boxOverlap(x, y, 6, 4, o))) return false;
+	const mine = w.traps.filter((t) => t.owner === p && t.kind === 'mine');
+	if (mine.length >= MAX_MINES_PER_PLAYER) w.traps.splice(w.traps.indexOf(mine[0]), 1);
+	w.traps.push({
+		kind: 'mine',
+		owner: p,
+		x,
+		y,
+		radius: 34,
+		life: durable(p, def.duration ?? 40),
+		hold: 0,
+		blast: { radius: def.radius ?? 60, damage: power(p, def.damage), knockback: power(p, def.knockback) }
+	});
+	w.effects.push({ kind: 'snap', x, y, age: 0, life: 0.3, radius: 20 });
+	return true;
+}
+
+/** One Aid Station per Lantern: building another moves it. */
+function placeAid(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
+	const x = p.x + p.aimX * def.range;
+	const y = p.y + p.aimY * def.range;
+	if (w.obstacles.some((o) => boxOverlap(x, y, 10, 6, o))) return false;
+	w.aids = w.aids.filter((a) => a.owner !== p);
+	const life = durable(p, def.duration ?? 10);
+	w.aids.push({ owner: p, x, y, radius: def.radius ?? 110, life, maxLife: life, heal: def.heal ?? 8 });
+	w.effects.push({ kind: 'snap', x, y, age: 0, life: 0.5, radius: def.radius });
+	return true;
+}
+
+/** Heal Lanterns standing in an Aid Station. The Game calls this each tick with its players. */
+export function updateAidStations(w: ConstructWorld, players: readonly Player[], dt: number) {
+	for (const a of w.aids) {
+		for (const p of players) {
+			if (p.downed || Math.hypot(p.x - a.x, p.y - a.y) > a.radius) continue;
+			p.health = Math.min(p.maxHealth, p.health + a.heal * dt);
+		}
+	}
 }
 
 // -------------------------------------------------------------- ring shot
@@ -753,6 +891,7 @@ export function updateConstructWorld(w: ConstructWorld, dt: number) {
 	updateTraps(w, dt);
 	updateTurrets(w, dt);
 	updatePillarStrikes(w, dt);
+	w.aids = w.aids.filter((a) => (a.life -= dt) > 0);
 
 	for (const s of [...w.shields]) {
 		s.life -= dt;
@@ -780,6 +919,11 @@ function updateProjectiles(w: ConstructWorld, dt: number) {
 		pr.prevX = pr.x;
 		pr.prevY = pr.y;
 		if (pr.homing) steerMissile(pr, dt);
+		if (pr.kind === 'saw') {
+			if (!updateSaw(w, pr, dt)) continue;
+			alive.push(pr);
+			continue;
+		}
 		pr.x += pr.vx * dt;
 		pr.y += pr.vy * dt;
 		pr.life -= dt;
@@ -799,6 +943,58 @@ function updateProjectiles(w: ConstructWorld, dt: number) {
 		alive.push(pr);
 	}
 	w.projectiles = alive;
+}
+
+/**
+ * Buzzsaw: flies out to its range cutting everything it passes (once each
+ * way), bounces off anything solid, then homes back to its thrower.
+ * Returns false once it's caught (or lost).
+ */
+function updateSaw(w: ConstructWorld, pr: Projectile, dt: number): boolean {
+	const p = pr.owner;
+	const speed = pr.def.speed ?? 600;
+	pr.life -= dt;
+	if (pr.life <= 0) return false;
+	if (!pr.returning) {
+		const out = Math.hypot(pr.x - (p.x + p.ringDX), pr.y - p.y);
+		if (out >= pr.def.range) turnSawBack(pr);
+	} else {
+		const dx = p.x - pr.x;
+		const dy = p.y - pr.y;
+		const d = Math.hypot(dx, dy);
+		if (d < 24) return false; // caught
+		pr.vx += ((dx / d) * speed - pr.vx) * Math.min(1, 9 * dt);
+		pr.vy += ((dy / d) * speed - pr.vy) * Math.min(1, 9 * dt);
+	}
+	pr.x += pr.vx * dt;
+	pr.y += pr.vy * dt;
+
+	const solid = w.obstacles.find((o) => o.kind !== 'wall' && !pr.ignore.includes(o) && boxOverlap(pr.x, pr.y, 4, 4, o));
+	if (solid) {
+		damageObstacle(w, solid, pr.damage);
+		w.effects.push({ kind: 'impact', x: pr.x, y: pr.y, age: 0, life: 0.15, owner: p, lift: pr.lift });
+		if (!pr.returning) {
+			pr.x = pr.prevX;
+			pr.y = pr.prevY;
+			turnSawBack(pr);
+		}
+		// Coming back, it passes through (so it always gets home)
+		pr.ignore.push(solid);
+	}
+	const r = pr.def.radius ?? 14;
+	for (const d of w.dummies) {
+		if (!isStanding(d) || pr.cut?.includes(d)) continue;
+		if (Math.hypot(d.x - pr.x, d.y - pr.y) > r + DUMMY_HALF_W) continue;
+		pr.cut?.push(d);
+		hitDummyWithFx(w, d, pr.damage, pr.knockback, pr.x - pr.vx * 0.05, pr.y - pr.vy * 0.05, p, pr.damage, !pr.noSurge);
+		w.effects.push({ kind: 'impact', x: d.x, y: d.y, age: 0, life: 0.15, owner: p, lift: pr.lift });
+	}
+	return true;
+}
+
+function turnSawBack(pr: Projectile) {
+	pr.returning = true;
+	pr.cut = []; // it can cut the same enemy again on the way back
 }
 
 /** Turn a missile's velocity toward its target, at a limited turn rate. */
@@ -871,8 +1067,11 @@ function updatePending(w: ConstructWorld, dt: number) {
 		for (const d of w.dummies) {
 			if (isStanding(d) && Math.hypot(d.x - hx, d.y - hy) <= r + DUMMY_HALF_W) {
 				hitDummyWithFx(w, d, s.damage, s.knockback, p.x, p.y, p);
+				// The Warhammer leaves them dazed
+				if (s.def.stun && isStanding(d)) d.stun = Math.max(d.stun, durable(p, s.def.stun));
 			}
 		}
+		if (s.def.shape === 'hammer') w.effects.push({ kind: 'blast', x: hx, y: hy, age: 0, life: 0.45, radius: r, owner: p, lift: 0 });
 		for (const o of breakables(w)) {
 			const [cx, cy] = center(o);
 			if (Math.hypot(cx - hx, cy - hy) <= r + Math.max(o.w, o.h) / 2) damageObstacle(w, o, s.damage);
@@ -998,6 +1197,19 @@ function updateTraps(w: ConstructWorld, dt: number) {
 	const armed: Trap[] = [];
 	for (const t of w.traps) {
 		t.life -= dt;
+		if (t.kind === 'mine') {
+			const near = w.dummies.some((d) => isStanding(d) && Math.hypot(d.x - t.x, d.y - t.y) <= t.radius);
+			if (near) {
+				detonate(w, t);
+				continue;
+			}
+			if (t.life <= 0) {
+				w.effects.push({ kind: 'fizzle', x: t.x, y: t.y, age: 0, life: 0.4 });
+				continue;
+			}
+			armed.push(t);
+			continue;
+		}
 		const catchable = w.dummies.find((d) => isStanding(d) && d.caged === 0 && Math.hypot(d.x - t.x, d.y - t.y) <= t.radius);
 		if (catchable) {
 			catchable.caged = t.hold;
@@ -1012,6 +1224,20 @@ function updateTraps(w: ConstructWorld, dt: number) {
 		armed.push(t);
 	}
 	w.traps = armed;
+}
+
+function detonate(w: ConstructWorld, t: Trap) {
+	const b = t.blast!;
+	for (const d of w.dummies) {
+		if (isStanding(d) && Math.hypot(d.x - t.x, d.y - t.y) <= b.radius + DUMMY_HALF_W) {
+			hitDummyWithFx(w, d, b.damage, b.knockback, t.x, t.y, t.owner);
+		}
+	}
+	for (const o of breakables(w)) {
+		const [cx, cy] = center(o);
+		if (Math.hypot(cx - t.x, cy - t.y) <= b.radius + Math.max(o.w, o.h) / 2) damageObstacle(w, o, b.damage);
+	}
+	w.effects.push({ kind: 'blast', x: t.x, y: t.y, age: 0, life: 0.5, radius: b.radius, owner: t.owner, lift: 0 });
 }
 
 // -------------------------------------------------------------- helpers

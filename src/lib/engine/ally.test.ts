@@ -97,8 +97,11 @@ describe('AI partner', () => {
 		game.setView({ width: 1400, height: 800 });
 		game.godMode = true;
 		game.showcase = true;
+		// This is about knowing when to use each construct, not about budgeting willpower
+		game.infiniteWillpower = true;
 		const used = new Set<string>();
-		for (let i = 0; i < 60 * 60; i++) {
+		// Ten constructs each: give them a minute and a half to get round them all
+		for (let i = 0; i < 90 * 60; i++) {
 			if (game.enemies.length < 3) game.spawnEnemy('rageGrunt', 1200 + Math.cos(i) * 300, 1200 + Math.sin(i) * 300, 'berserker');
 			const before = game.players.map((p) => [...p.cooldowns]);
 			game.update(1 / 60);

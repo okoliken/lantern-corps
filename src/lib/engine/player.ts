@@ -124,6 +124,8 @@ export interface Player {
 }
 
 export interface Dash {
+	/** Hal's Jet Strike (signature), or the Afterburner construct. */
+	kind: 'jet' | 'burn';
 	dx: number;
 	dy: number;
 	speed: number;
@@ -133,6 +135,9 @@ export interface Dash {
 	blocked: boolean;
 	/** Things already hit, so each is only hit once per dash. */
 	hit: object[];
+	/** Afterburner: what it does to anything in the way. */
+	damage?: number;
+	knockback?: number;
 }
 
 /** What the player needs to know about the world to move through it. */
@@ -260,7 +265,9 @@ export function updatePlayer(p: Player, intent: Intent, dt: number, world: World
 		const d = p.dash;
 		p.vx = d.dx * d.speed;
 		p.vy = d.dy * d.speed;
-		moveBody(p, dt, world.solids.filter((s) => s.blocksFlying), FEET_HALF_W, FEET_HALF_H);
+		// The jet flies over everything; an Afterburner on foot still hits buildings
+		const low = d.kind === 'burn' && !p.flying;
+		moveBody(p, dt, low ? world.solids : world.solids.filter((s) => s.blocksFlying), FEET_HALF_W, FEET_HALF_H);
 		// Collisions zero the velocity: that means we hit something tall
 		if (Math.hypot(p.vx, p.vy) < d.speed * 0.5) d.blocked = true;
 		if (d.dx !== 0) p.dir = d.dx > 0 ? 1 : -1;
