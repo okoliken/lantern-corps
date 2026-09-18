@@ -5,7 +5,10 @@ import { isStanding, updateDummy } from '../dummy';
 import { IDLE } from '../input';
 import { LANTERNS } from '../lanterns';
 import { createPlayer, updatePlayer, type Player } from '../player';
+import type { Obstacle } from '../map';
+import { ATTACK_BUDGET } from './director';
 import { ENEMIES, ENEMY_SPACING, MELEE_SLOTS, createEnemy, updateEnemies, type Enemy, type Role } from './enemies';
+import { clearShot, tryDodge } from './tactics';
 import { ABILITIES, type AbilityId } from './redConstructs';
 
 const DT = 1 / 60;
@@ -248,6 +251,82 @@ describe('Red Lantern brains', () => {
 		expect(isStanding(e)).toBe(false);
 		run(w, [], 0.2);
 		expect(e.gone).toBe(true);
+	});
+});
+
+describe('enemies thinking for themselves', () => {
+	it(`attacks take turns: at most ${ATTACK_BUDGET} coming at one Lantern at once, never starting together`, () => {
+		const pack = [0, 1, 2, 3, 4].map((i) => grunt(Math.cos(i * 1.25) * 260, Math.sin(i * 1.25) * 260, 'gunner'));
+		const w = createConstructWorld([], pack);
+		const p = lantern();
+		let most = 0;
+		const starts: number[] = [];
+		let tick = 0;
+		run(w, [p], 8, () => {
+			tick++;
+			p.invuln = 1;
+			p.health = p.maxHealth;
+			const attacking = pack.filter((e) => e.brain.state === 'windup' || e.brain.state === 'act');
+			most = Math.max(most, attacking.length);
+			for (const e of pack) if (e.brain.state === 'windup' && e.brain.timer > ABILITIES[e.brain.ability!].windup - DT * 0.5) starts.push(tick * DT);
+		});
+		expect(starts.length).toBeGreaterThan(3);
+		expect(most).toBeLessThanOrEqual(ATTACK_BUDGET);
+		const gaps = starts.slice(1).map((t, i) => t - starts[i]);
+		expect(Math.min(...gaps)).toBeGreaterThan(0.2);
+	});
+
+	it("doesn't see a Lantern behind an asteroid, but getting shot puts it on the hunt", () => {
+		const rock: Obstacle = { kind: 'asteroid', x: 150, y: -60, w: 80, h: 120, height: 40, blocksFlying: true, seed: 0 };
+		const e = createEnemy('rageGrunt', 400, 0);
+		const w = createConstructWorld([rock], [e]);
+		const p = lantern();
+		run(w, [p], 0.6);
+		expect(e.brain.target).toBeNull();
+		e.hp -= 5; // shot from out of sight
+		run(w, [p], 0.6);
+		expect(e.brain.target).toBe(p);
+		expect(e.brain.sees).toBe(false);
+	});
+
+	it('spotting a Lantern calls nearby allies over', () => {
+		const rock: Obstacle = { kind: 'asteroid', x: 300, y: 60, w: 60, h: 300, height: 40, blocksFlying: true, seed: 0 };
+		const spotter = createEnemy('rageGrunt', 250, 0);
+		const friend = createEnemy('rageGrunt', 450, 200); // behind the rock, can't see
+		const w = createConstructWorld([rock], [spotter, friend]);
+		const p = lantern();
+		run(w, [p], 1.2);
+		expect(spotter.brain.target).toBe(p);
+		expect(friend.brain.target).toBe(p);
+	});
+
+	it('a quick, careful enemy sidesteps a shot coming straight at it', () => {
+		let dodged = 0;
+		for (let trial = 0; trial < 20; trial++) {
+			const e = createEnemy('rageGrunt', 300, 0, 'gunner');
+			e.brain.persona.caution = 1;
+			e.brain.dodgeIn = 0;
+			e.brain.state = 'move';
+			const w = createConstructWorld([], [e]);
+			const p = lantern();
+			const bolt = { kind: 'bolt', owner: p, x: 200, y: 0, prevX: 200, prevY: 0, vx: 800, vy: 0, life: 1, damage: 10, knockback: 0, ignore: [], lift: 30 };
+			w.projectiles.push(bolt as unknown as (typeof w.projectiles)[number]);
+			tryDodge(e, w);
+			if (Math.abs(e.vy) > 100) dodged++;
+		}
+		expect(dodged).toBeGreaterThan(5);
+		expect(dodged).toBeLessThan(20); // not superhuman: sometimes it doesn't react
+	});
+
+	it("won't waste a shot on a rock: with no clear line it goes round instead", () => {
+		const rock: Obstacle = { kind: 'rock', x: 120, y: -40, w: 40, h: 80, height: 20, blocksFlying: false, seed: 0 };
+		const e = grunt(300, 0, 'gunner');
+		const w = createConstructWorld([rock], [e]);
+		const p = lantern();
+		// Rocks are low: it can see over them, but its shots would hit it
+		expect(clearShot(e, p, w)).toBe(false);
+		run(w, [p], 0.4);
+		expect(e.brain.state).not.toBe('windup');
 	});
 });
 

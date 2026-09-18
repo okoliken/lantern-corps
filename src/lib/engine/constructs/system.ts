@@ -18,6 +18,7 @@ import type { Obstacle } from '../map';
 import { boxOverlap, type Solid } from '../physics';
 import type { Player } from '../player';
 import { RESTART_THRESHOLD, canSpend, spend } from '../willpower';
+import type { PressureMap } from '../enemies/director';
 import {
 	BUBBLE_SHIELD,
 	HELD_BEHAVIORS,
@@ -212,10 +213,12 @@ export interface ConstructWorld {
 	 * shorter cooldowns and fewer hesitations (the demo showcase).
 	 */
 	redTempo: number;
+	/** Whose turn it is to attack each Lantern (enemies/director.ts). */
+	pressure: PressureMap;
 }
 
 export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[], space = false): ConstructWorld {
-	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], pillarStrikes: [], effects: [], space, events: [], red: { shots: [], chains: [], strikes: [], puddles: [], beams: [], cages: [] }, redTempo: 1 };
+	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], pillarStrikes: [], effects: [], space, events: [], red: { shots: [], chains: [], strikes: [], puddles: [], beams: [], cages: [] }, redTempo: 1, pressure: new Map() };
 }
 
 // --------------------------------------------------------------- tuning

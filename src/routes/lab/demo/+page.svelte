@@ -19,7 +19,7 @@
 	let environment = $state<EnvironmentKind>('space');
 	let godMode = $state(false);
 	/** Both sides use their constructs much more often. */
-	let showcase = $state(true);
+	let showcase = $state(false);
 	let debug = $state(false);
 	let round = $state(0);
 

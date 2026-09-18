@@ -140,7 +140,7 @@ export class Game {
 	set showcase(on: boolean) {
 		if (on === this.showingOff) return;
 		this.showingOff = on;
-		this.constructs.redTempo = on ? 1.8 : 1;
+		this.constructs.redTempo = on ? 1.5 : 1;
 		for (const p of this.players) {
 			if (this.aiSlots.has(p.slot)) p.regenMultiplier *= on ? 3 : 1 / 3;
 		}
@@ -748,9 +748,17 @@ export class Game {
 			ctx.font = '600 10px ui-monospace, monospace';
 			ctx.textAlign = 'center';
 			ctx.fillStyle = '#ffd0d0';
-			const doing = b.ability ? `${b.state} ${b.ability}` : b.state;
-			ctx.fillText(`${ROLES[b.role].name}: ${doing}${b.engaged ? ' ⚔' : ''}`, d.x, d.y + 16);
-			if (b.rage > 0.05) ctx.fillText(`rage ${Math.round(b.rage * 100)}%`, d.x, d.y + 28);
+			const doing = b.ability ? `${b.state} ${b.ability}` : b.state === 'move' ? b.goal : b.state;
+			const eye = b.target ? (b.sees ? ' 👁' : ' ?') : '';
+			ctx.fillText(`${ROLES[b.role].name}: ${doing}${b.engaged ? ' ⚔' : ''}${eye}`, d.x, d.y + 16);
+			const P = b.persona;
+			const traits = `agg ${Math.round(P.aggression * 9)} · cau ${Math.round(P.caution * 9)} · pat ${Math.round(P.patience * 9)}`;
+			ctx.fillStyle = 'rgba(255, 208, 208, 0.6)';
+			ctx.fillText(b.rage > 0.05 ? `${traits} · rage ${Math.round(b.rage * 100)}%` : traits, d.x, d.y + 28);
+			if (b.goal === 'cover' && b.state === 'move') {
+				ctx.strokeStyle = 'rgba(255, 220, 120, 0.5)';
+				ctx.strokeRect(b.goalX - 6, b.goalY - 6, 12, 12);
+			}
 			// A line to who it's after
 			if (b.target) {
 				ctx.strokeStyle = 'rgba(255, 90, 90, 0.25)';

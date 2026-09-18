@@ -1,30 +1,36 @@
 // Enemies: a target body (dummy.ts) plus a BRAIN that decides what to do.
 //
-// Each Red Lantern has a ROLE that shapes how it fights, and a set of red
-// constructs it can use (redConstructs.ts). The brain loops through:
+// Every enemy thinks for itself. Each one has:
+//  - a PERSONALITY (aggression, caution, patience) rolled when it spawns,
+//  - EYES and a MEMORY (tactics.ts): it only chases what it can see, goes
+//    to look where it last saw you, and calls nearby allies when it spots you,
+//  - GOALS (tactics.ts): hold its range, close in, flank round behind you,
+//    hide behind cover and peek out, wait for an opening, back off when hurt,
+//  - REFLEXES: it can sidestep your shots, if it's quick and careful enough.
+//
+// The brain loops through:
 //
 //   idle ──(sees a Lantern)──▶ move ──(picks a construct)──▶ windup ──▶ act ──▶ recover ─┐
 //                               ▲                                                       │
 //                               └───────────────────────────────────────────────────────┘
 //
-// A pack shouldn't feel like one creature, so every enemy:
-//  - thinks on its own clock (a personal reaction time, not every tick),
-//  - spreads targets between Lanterns and takes its own spot around them,
-//  - waits its turn: only MELEE_SLOTS can be in close on one Lantern, and
-//    only a couple can be winding up ranged attacks at once,
-//  - backs off for a breather after clawing, and circles in its own direction.
-//
-// Every construct has a WINDUP with a visible tell, so players can dodge,
-// shield or interrupt it. Enough damage during a windup staggers the enemy.
+// Attacks take turns (director.ts): only a couple can be coming at one
+// Lantern at once, with a beat between them. Every construct has a WINDUP
+// with a visible tell, so players can dodge, shield or interrupt it. Enough
+// damage during a windup staggers the enemy.
 
 import type { ConstructWorld } from '../constructs/system';
 import { DUMMY_HALF_W, isStanding, type Dummy, type TargetKind } from '../dummy';
 import type { Player } from '../player';
-import { ABILITIES, cancelAbility, startAbility, updateAbility, updateRedConstructs, type AbilityId } from './redConstructs';
+import { attackStarted, mayAttack, updatePressure, type Attacker } from './director';
+import { ABILITIES, cancelAbility, startAbility, updateAbility, updateRedConstructs, type AbilityDef, type AbilityId } from './redConstructs';
+import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
 
 export type EnemyKind = Exclude<TargetKind, 'dummy'>;
 export type EnemyState = 'idle' | 'move' | 'windup' | 'act' | 'recover';
 export type Role = 'berserker' | 'hunter' | 'gunner';
+/** How a faction thinks: rage never backs down and gets faster when hurt; machines stay cold and regroup. */
+export type Mind = 'rage' | 'machine';
 
 export interface EnemyDef {
 	kind: EnemyKind;
@@ -32,6 +38,7 @@ export interface EnemyDef {
 	faction: 'red' | 'manhunter';
 	/** One line for the codex and lab. */
 	description: string;
+	mind: Mind;
 	hp: number;
 	/** Top speed (px/s) before role, personality and rage. */
 	speed: number;
@@ -43,6 +50,8 @@ export interface EnemyDef {
 	poise: number;
 	/** Drawing size multiplier. */
 	scale: number;
+	/** How good it is at sidestepping shots (0 never, 1 as often as its personality allows). */
+	agility: number;
 }
 
 export const ENEMIES: Record<EnemyKind, EnemyDef> = {
@@ -51,12 +60,14 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		name: 'Rage Grunt',
 		faction: 'red',
 		description: "Atrocitus's foot soldiers. Each fights its own way: Berserkers charge, Hunters chain and flank, Gunners blast from range.",
+		mind: 'rage',
 		hp: 120,
 		speed: 150,
 		accel: 5,
 		sight: 640,
 		poise: 34,
-		scale: 1
+		scale: 1,
+		agility: 0.7
 	},
 	// Stage 2 and 3 fill in their behaviors; the numbers are placeholders until then.
 	plasmaSpitter: {
@@ -64,24 +75,28 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		name: 'Plasma Spitter',
 		faction: 'red',
 		description: 'Keeps its distance and spits burning plasma that leaves fire on the ground and melts constructs.',
+		mind: 'rage',
 		hp: 80,
-		speed: 150,
+		speed: 130,
 		accel: 4,
 		sight: 620,
 		poise: 26,
-		scale: 0.95
+		scale: 0.95,
+		agility: 0.6
 	},
 	rageBrute: {
 		kind: 'rageBrute',
 		name: 'Rage Brute',
 		faction: 'red',
 		description: 'Huge and slow. Winds up a charge that smashes through energy walls, and is dazed if it crashes into something.',
+		mind: 'rage',
 		hp: 420,
-		speed: 110,
+		speed: 100,
 		accel: 3,
 		sight: 560,
 		poise: 90,
-		scale: 1.35
+		scale: 1.35,
+		agility: 0.15
 	}
 };
 
@@ -95,6 +110,8 @@ export interface RoleDef {
 	/** Speed and health multipliers. */
 	speed: number;
 	hp: number;
+	/** Personality leanings, added to the random roll. */
+	leans: Partial<Personality>;
 }
 
 export const ROLES: Record<Role, RoleDef> = {
@@ -104,7 +121,8 @@ export const ROLES: Record<Role, RoleDef> = {
 		abilities: ['roar', 'slam', 'claws'],
 		range: 150,
 		speed: 1.1,
-		hp: 1.1
+		hp: 1.1,
+		leans: { aggression: 0.3, caution: -0.2 }
 	},
 	hunter: {
 		name: 'Hunter',
@@ -112,15 +130,17 @@ export const ROLES: Record<Role, RoleDef> = {
 		abilities: ['chain', 'claws'],
 		range: 200,
 		speed: 1.05,
-		hp: 1
+		hp: 1,
+		leans: { aggression: 0.15, patience: 0.2 }
 	},
 	gunner: {
 		name: 'Gunner',
-		description: 'Hangs back and strafes, firing bursts of Rage Blasts and throwing Rage Saws that come back.',
+		description: 'Hangs back and strafes, hides behind cover and pops out to fire bursts of Rage Blasts and Rage Saws.',
 		abilities: ['saw', 'blast'],
 		range: 290,
 		speed: 0.9,
-		hp: 0.85
+		hp: 0.85,
+		leans: { caution: 0.3, aggression: -0.15 }
 	}
 };
 
@@ -128,13 +148,22 @@ export const ROLE_LIST: Role[] = ['berserker', 'hunter', 'gunner'];
 
 /** How many enemies can be in close, clawing, on one Lantern at a time. */
 export const MELEE_SLOTS = 2;
-/** How many can be winding up or firing ranged constructs at one Lantern at once. */
-export const RANGED_SLOTS = 2;
 /** Enemies closer than this push apart, so a pack surrounds you instead of stacking. */
 export const ENEMY_SPACING = 34;
 
+/** Rolled per enemy, 0..1 each, so no two in a pack act the same. */
+export interface Personality {
+	/** Wants to be in your face: closes in, flanks, takes the first opening. */
+	aggression: number;
+	/** Careful: dodges more, uses cover, backs off (machines) when hurt. */
+	caution: number;
+	/** Sticks with a plan longer before changing its mind. */
+	patience: number;
+}
+
 export interface EnemyBrain {
 	role: Role;
+	persona: Personality;
 	/** The red constructs this particular enemy can use. */
 	kit: AbilityId[];
 	/** Damage multiplier: how strong this enemy is. */
@@ -157,8 +186,10 @@ export interface EnemyBrain {
 	/** A spot on the ground picked at the start of the windup (where a Rage Slam lands). */
 	markX: number;
 	markY: number;
-	/** 0..1: how hurt it is. Rage makes Red Lanterns faster and more relentless. */
+	/** 0..1: how hurt it is. Rage makes Red Lanterns faster and more relentless (machines don't get angry: 0). */
 	rage: number;
+	/** 0..1: how hurt it is, whatever it's made of. */
+	hurt: number;
 	/** The current attack already dealt its damage. */
 	hitDone: boolean;
 	/** Shots fired so far in this act (Rage Blast bursts). */
@@ -186,6 +217,31 @@ export interface EnemyBrain {
 	grit: number;
 	/** Times each construct has been used, so it mixes them up rather than repeating one. */
 	uses: Record<AbilityId, number>;
+
+	// ---- Tactics (tactics.ts) ----
+	/** What it's trying to do while moving. */
+	goal: Goal;
+	/** Seconds before it reconsiders its goal. */
+	goalTimer: number;
+	/** Where the goal is taking it (cover spot, last-seen spot, wander spot). */
+	goalX: number;
+	goalY: number;
+	/** Can it see its target right now? */
+	sees: boolean;
+	/** Where it last saw its target, and how many seconds ago. */
+	lastSeenX: number;
+	lastSeenY: number;
+	seenAgo: number;
+	/** Seconds until it looks around again (sight checks aren't free). */
+	lookIn: number;
+	/** Seconds of being on alert: it was hit, or an ally called out. Hunts the nearest Lantern even unseen. */
+	alert: number;
+	/** Seconds before it can try to dodge again. */
+	dodgeIn: number;
+	/** Seconds since it last took damage. */
+	sinceHit: number;
+	/** Its own clock, for idle drift and bobbing. */
+	clock: number;
 }
 
 /** An enemy: a target body with a brain. */
@@ -196,6 +252,17 @@ export interface Enemy extends Dummy {
 
 export function isEnemy(d: Dummy): d is Enemy {
 	return d.kind !== 'dummy' && 'brain' in d;
+}
+
+const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
+
+function rollPersonality(role: Role, rand: () => number): Personality {
+	const leans = ROLES[role].leans;
+	return {
+		aggression: clamp01(rand() * 0.8 + 0.1 + (leans.aggression ?? 0)),
+		caution: clamp01(rand() * 0.8 + 0.1 + (leans.caution ?? 0)),
+		patience: clamp01(rand() * 0.8 + 0.1 + (leans.patience ?? 0))
+	};
 }
 
 export function createEnemy(
@@ -213,7 +280,7 @@ export function createEnemy(
 	const cooldowns = {} as Record<AbilityId, number>;
 	const uses = {} as Record<AbilityId, number>;
 	for (const id of Object.keys(ABILITIES) as AbilityId[]) {
-		cooldowns[id] = 0.5 + rand() * 1.2;
+		cooldowns[id] = 0.8 + rand() * 1.6;
 		uses[id] = 0;
 	}
 	return {
@@ -237,6 +304,7 @@ export function createEnemy(
 		dir: -1,
 		brain: {
 			role,
+			persona: rollPersonality(role, rand),
 			kit: [...kit],
 			might: 1,
 			struck: [],
@@ -251,12 +319,13 @@ export function createEnemy(
 			markX: x,
 			markY: y,
 			rage: 0,
+			hurt: 0,
 			hitDone: false,
 			fired: 0,
 			engaged: false,
 			breather: 0,
 			think: rand() * 0.3,
-			reaction: 0.22 + rand() * 0.25,
+			reaction: 0.28 + rand() * 0.3,
 			speedMul: 0.88 + rand() * 0.24,
 			orbit: 0,
 			strafe: rand() < 0.5 ? 1 : -1,
@@ -264,9 +333,33 @@ export function createEnemy(
 			lastHp: hp,
 			air: 0,
 			grit: 1,
-			uses
+			uses,
+			goal: 'hold',
+			goalTimer: 0,
+			goalX: x,
+			goalY: y,
+			sees: false,
+			lastSeenX: x,
+			lastSeenY: y,
+			seenAgo: 99,
+			lookIn: 0,
+			alert: 0,
+			dodgeIn: rand(),
+			sinceHit: 99,
+			clock: rand() * 100
 		}
 	};
+}
+
+/** The ability an enemy is winding up or using, if any (for the director). */
+function attackOf(e: Enemy): AbilityDef | null {
+	const b = e.brain;
+	return b.ability && (b.state === 'windup' || b.state === 'act') ? ABILITIES[b.ability] : null;
+}
+
+/** The distance this enemy likes to fight from. */
+export function rangeOf(e: Enemy): number {
+	return ROLES[e.brain.role].range;
 }
 
 // ------------------------------------------------------------------- brains
@@ -274,23 +367,43 @@ export function createEnemy(
 /** One tick for every enemy: think, then the red constructs move. Moving the bodies happens in updateDummy. */
 export function updateEnemies(w: ConstructWorld, players: readonly Player[], dt: number) {
 	const pack = w.dummies.filter((d): d is Enemy => isEnemy(d) && isStanding(d));
-	for (const e of pack) think(e, pack, w, players, dt);
+	updatePressure(w.pressure, players, dt);
+	const attackers: (Attacker & { e: Enemy })[] = pack.map((e) => ({ e, target: e.brain.target, attack: attackOf(e) }));
+	for (const e of pack) think(e, pack, attackers, w, players, dt);
 	spreadAround(pack);
 	separate(pack, dt);
 	updateRedConstructs(w, players, dt);
 }
 
-function think(e: Enemy, pack: readonly Enemy[], w: ConstructWorld, players: readonly Player[], dt: number) {
+function think(
+	e: Enemy,
+	pack: readonly Enemy[],
+	attackers: (Attacker & { e: Enemy })[],
+	w: ConstructWorld,
+	players: readonly Player[],
+	dt: number
+) {
 	const def = ENEMIES[e.kind];
 	const b = e.brain;
 	const tempo = w.redTempo;
 	for (const id in b.cooldowns) b.cooldowns[id as AbilityId] = Math.max(0, b.cooldowns[id as AbilityId] - dt * tempo);
 	b.breather = Math.max(0, b.breather - dt);
-	b.rage = 1 - e.hp / e.maxHp;
+	b.dodgeIn = Math.max(0, b.dodgeIn - dt);
+	b.alert = Math.max(0, b.alert - dt);
+	b.goalTimer -= dt;
+	b.clock += dt;
+	b.sinceHit += dt;
+	b.hurt = 1 - e.hp / e.maxHp;
+	b.rage = def.mind === 'rage' ? b.hurt : 0;
 
 	// Poise: a burst of damage knocks it out of a windup
 	const took = Math.max(0, b.lastHp - e.hp);
 	b.lastHp = e.hp;
+	if (took > 0) {
+		b.sinceHit = 0;
+		// Getting shot puts it on alert, even if it didn't see who did it
+		b.alert = Math.max(b.alert, 4);
+	}
 	const poise = def.poise * b.grit;
 	b.poise = Math.max(0, b.poise - poise * 0.8 * dt) + took;
 	if (b.poise >= poise) {
@@ -306,15 +419,16 @@ function think(e: Enemy, pack: readonly Enemy[], w: ConstructWorld, players: rea
 		return;
 	}
 
-	const before = b.target;
-	b.target = pickTarget(e, pack, players, def.sight);
-	if (b.target !== before) b.engaged = false;
+	perceive(e, pack, players, w, dt);
 	const t = b.target;
 
 	switch (b.state) {
 		case 'idle': {
-			steer(e, (e.homeX - e.x) * 0.5, (e.homeY - e.y) * 0.5, def.accel * 0.5, dt);
-			if (t) b.state = 'move';
+			wander(e, dt);
+			if (t) {
+				b.state = 'move';
+				b.goalTimer = 0;
+			}
 			break;
 		}
 		case 'move': {
@@ -323,14 +437,16 @@ function think(e: Enemy, pack: readonly Enemy[], w: ConstructWorld, players: rea
 				b.engaged = false;
 				break;
 			}
-			moveTactically(e, t, dt);
+			if (b.goalTimer <= 0) chooseGoal(e, t, pack, w);
+			navigate(e, t, dt, w);
+			tryDodge(e, w);
 			b.think -= dt;
 			// In close, react fast; otherwise on its own personal clock
 			const close = b.engaged && Math.hypot(t.x - e.x, t.y - e.y) < 90;
 			if (close) b.think = Math.min(b.think, 0.1);
 			if (b.think <= 0) {
 				b.think = (b.reaction * (0.6 + Math.random() * 0.8)) / tempo;
-				decide(e, t, pack, w, players);
+				decide(e, t, pack, attackers, w, players);
 			}
 			break;
 		}
@@ -349,106 +465,100 @@ function think(e: Enemy, pack: readonly Enemy[], w: ConstructWorld, players: rea
 				const a = ABILITIES[b.ability!];
 				b.state = 'recover';
 				b.timer = a.recover;
-				b.cooldowns[a.id] = a.cooldown * (1 - 0.35 * b.rage) * (0.85 + Math.random() * 0.3);
-				// After clawing, sometimes step back and let someone else in
-				if (a.melee && Math.random() < 0.45 - 0.3 * b.rage) {
+				b.cooldowns[a.id] = a.cooldown * (1 - 0.3 * b.rage) * (0.85 + Math.random() * 0.3);
+				// After clawing, often step back and let someone else in
+				if (a.melee && Math.random() < 0.6 - 0.3 * b.rage) {
 					b.engaged = false;
-					b.breather = 0.8 + Math.random() * 1.2;
+					b.breather = 1 + Math.random() * 1.5;
 				}
+				// Rethink after every attack (a careful gunner goes back behind cover)
+				b.goalTimer = Math.min(b.goalTimer, 0.3);
 			}
 			break;
 		}
 		case 'recover': {
 			steer(e, 0, 0, def.accel, dt);
+			tryDodge(e, w);
 			b.timer -= dt;
 			if (b.timer <= 0) {
 				b.state = t ? 'move' : 'idle';
 				b.ability = null;
-				b.think = Math.min(b.think, b.reaction * 0.5);
+				b.think = Math.max(b.think, b.reaction * 0.8);
 			}
 			break;
 		}
 	}
-}
 
-/** Where to be: in close if it holds a melee slot, otherwise its own spot around the target, circling. */
-function moveTactically(e: Enemy, t: Player, dt: number) {
-	const def = ENEMIES[e.kind];
-	const b = e.brain;
-	const role = ROLES[b.role];
-	const dx = t.x - e.x;
-	const dy = t.y - e.y;
-	const dist = Math.hypot(dx, dy) || 1;
-	face(e, dx);
-
-	let gx: number;
-	let gy: number;
-	if (b.engaged) {
-		// Each comes in from its own side of the target. Hunters swing wide first to flank.
-		const r = b.role === 'hunter' && dist > 100 ? 70 : 34;
-		gx = t.x + Math.cos(b.orbit) * r;
-		gy = t.y + Math.sin(b.orbit) * r;
-	} else {
-		// Hold a spot on a ring around the target, leading it round in the strafe direction
-		const angle = b.orbit + b.strafe * 0.35;
-		const r = ROLES[b.role].range * (b.breather > 0 ? 1.15 : 1);
-		gx = t.x + Math.cos(angle) * r;
-		gy = t.y + Math.sin(angle) * r;
+	// Keep the director's picture of who's attacking up to date
+	const entry = attackers.find((a) => a.e === e);
+	if (entry) {
+		entry.target = b.target;
+		entry.attack = attackOf(e);
 	}
-
-	const speed = def.speed * role.speed * b.speedMul * (1 + 0.35 * b.rage);
-	const gdx = gx - e.x;
-	const gdy = gy - e.y;
-	const gd = Math.hypot(gdx, gdy);
-	// Slow down on arrival instead of overshooting and jittering
-	const want = gd < 6 ? 0 : Math.min(speed, gd * 4);
-	steer(e, gd > 0 ? (gdx / gd) * want : 0, gd > 0 ? (gdy / gd) * want : 0, def.accel, dt);
 }
 
 /** Pick what to do next: maybe ask for a melee slot, maybe start a construct. */
-function decide(e: Enemy, t: Player, pack: readonly Enemy[], w: ConstructWorld, players: readonly Player[]) {
+function decide(
+	e: Enemy,
+	t: Player,
+	pack: readonly Enemy[],
+	attackers: readonly (Attacker & { e: Enemy })[],
+	w: ConstructWorld,
+	players: readonly Player[]
+) {
 	const b = e.brain;
-	const role = ROLES[b.role];
-	if (Math.random() < 0.2) b.strafe = b.strafe === 1 ? -1 : 1;
+	if (Math.random() < 0.15) b.strafe = b.strafe === 1 ? -1 : 1;
+	const dist = Math.hypot(t.x - e.x, t.y - e.y);
 
+	// Melee fighters ask for a spot in close when they mean to go in (or the Lantern is right there)
 	const melee = b.kit.some((id) => ABILITIES[id].melee);
-	if (melee && !b.engaged && b.breather === 0) {
+	const wantsIn = b.goal === 'approach' || b.goal === 'flank' || dist < 90;
+	if (melee && !b.engaged && b.breather === 0 && wantsIn) {
 		const holders = pack.filter((o) => o !== e && o.brain.target === t && o.brain.engaged).length;
 		if (holders < MELEE_SLOTS) b.engaged = true;
 	}
 
-	const dist = Math.hypot(t.x - e.x, t.y - e.y);
-	// Least-used first (ties keep the role's order), so each enemy shows off its whole kit
+	// Can't see them: nothing to aim at
+	if (!b.sees) return;
+
+	const me = attackers.find((a) => a.e === e) ?? { target: t, attack: null };
+	const range = rangeOf(e);
+	// Least-used first (ties keep the kit's order), so each enemy shows off its whole kit
 	const order = [...b.kit].sort((x, y) => b.uses[x] - b.uses[y]);
+	let blocked = false;
 	for (const id of order) {
 		const a = ABILITIES[id];
 		if (b.cooldowns[id] > 0) continue;
 		if (dist < a.minRange || dist > a.maxRange + DUMMY_HALF_W) continue;
 		if (a.melee && !b.engaged) continue;
 		// Ranged fighters with nothing for close up back off to their range before shooting
-		if (!melee && dist < role.range * 0.7) continue;
+		if (!melee && dist < range * 0.7) continue;
 		if (id === 'roar' && !roarWorthIt(e, w, players)) continue;
-		if (!paceAllows(e, t, pack, id, w)) continue;
+		// Something in the way: don't waste it on a rock, go round
+		if (needsClearShot(a) && !clearShot(e, t, w)) {
+			blocked = true;
+			continue;
+		}
+		// Wait for a turn to attack this Lantern
+		if (!mayAttack(w.pressure, me, t, a, attackers, w.redTempo)) continue;
 		if (Math.random() > Math.min(1, a.chance * w.redTempo)) continue;
 		b.uses[id]++;
 		beginWindup(e, id, t);
+		attackStarted(w.pressure, t, w.redTempo);
 		return;
+	}
+	// Something's in the way with a shot ready: step out to take it. From
+	// cover that's a peek, so it waits a moment first rather than popping
+	// straight back out.
+	if (blocked && b.goal !== 'flank' && (b.goal !== 'cover' || Math.random() < 0.35)) {
+		b.goal = 'flank';
+		b.goalTimer = 1.2 + Math.random();
 	}
 }
 
-/** Don't let the whole pack fire at one Lantern at the same moment. */
-function paceAllows(e: Enemy, t: Player, pack: readonly Enemy[], id: AbilityId, w: ConstructWorld): boolean {
-	const a = ABILITIES[id];
-	if (a.melee) return true; // melee is already limited by slots
-	const busy = pack.filter((o) => {
-		if (o === e || o.brain.target !== t || !o.brain.ability) return false;
-		if (o.brain.state !== 'windup' && o.brain.state !== 'act') return false;
-		const other = ABILITIES[o.brain.ability];
-		return !other.melee && other.heavy === a.heavy;
-	}).length;
-	// Showcasing: let more join in at once
-	const extra = w.redTempo > 1 ? (a.heavy ? 1 : 2) : 0;
-	return busy < (a.heavy ? 1 : RANGED_SLOTS) + extra;
+/** Aimed constructs need a clear line; area and self-centred ones don't. */
+function needsClearShot(a: AbilityDef): boolean {
+	return a.tell === 'aim' && a.id !== 'skulls' && a.id !== 'spikes';
 }
 
 /** Roar only when there's something worth blowing away. */
@@ -490,30 +600,6 @@ function interrupt(e: Enemy, w: ConstructWorld, time: number) {
 	b.ability = null;
 	b.timer = time;
 	b.air = 0;
-}
-
-/**
- * Nearest Lantern who's up and in sight, but spread out: a Lantern who
- * already has enemies on them counts as further away. Sticks with its
- * current target unless another is clearly better.
- */
-function pickTarget(e: Enemy, pack: readonly Enemy[], players: readonly Player[], sight: number): Player | null {
-	const current = e.brain.target;
-	let best: Player | null = null;
-	let bestScore = Infinity;
-	for (const p of players) {
-		if (p.downed) continue;
-		const dist = Math.hypot(p.x - e.x, p.y - e.y);
-		if (dist > (p === current ? sight * 1.3 : sight)) continue;
-		const crowd = pack.filter((o) => o !== e && o.brain.target === p).length;
-		let score = dist + crowd * 160;
-		if (p === current) score *= 0.7;
-		if (score < bestScore) {
-			best = p;
-			bestScore = score;
-		}
-	}
-	return best;
 }
 
 /** Give enemies sharing a target evenly spaced spots around it, in the order they already stand. */
