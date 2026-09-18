@@ -1,17 +1,16 @@
 <script lang="ts">
-	// A mission: the briefing, the fight, and the result.
-	// For now there's Mission 1 (Safe Passage); each mission's rules live in
-	// its director in src/lib/engine/missions/.
+	// A mission: the briefing, the fight, and the result. Every mission reports
+	// the same things (objective, meters, radio chatter, results; see
+	// $lib/engine/missions/mission.ts), so this one page runs them all.
 	import { onMount, untrack } from 'svelte';
 	import ControlsCard from '$lib/components/ControlsCard.svelte';
 	import GameCanvas from '$lib/components/GameCanvas.svelte';
 	import PauseMenu from '$lib/components/PauseMenu.svelte';
 	import StoryScene from '$lib/components/StoryScene.svelte';
-	import { Game } from '$lib/engine/game';
 	import { LANTERNS } from '$lib/engine/lanterns';
-	import { MISSION_LIVES, SafePassage, TOTAL_ROCKS, buildBeltMap, type MissionState } from '$lib/engine/missions/safePassage';
-	import { OaLanding } from '$lib/engine/scenes/oaLanding';
-	import { OA_LANDING } from '$lib/story/scenes';
+	import type { CommsLine, MissionMeter, MissionState, MissionStat } from '$lib/engine/missions/mission';
+	import type { OaLanding } from '$lib/engine/scenes/oaLanding';
+	import { buildMission } from '$lib/missions';
 	import { profiles } from '$lib/profiles.svelte';
 	import { settings } from '$lib/settings.svelte';
 
@@ -22,19 +21,13 @@
 
 	const setup = $derived.by(() => {
 		void round; // Retry builds a fresh mission
-		const map = buildBeltMap();
-		const game = new Game({
-			players: [{ lantern: mission.lantern, keys: 'solo' }],
-			map,
+		return buildMission(mission.id, {
 			settings: untrack(() => settings.snapshot()),
 			profiles: untrack(() => profiles.snapshot()),
 			onProgress: (id, profile) => profiles.update(id, profile)
 		});
-		game.dummies.length = 0;
-		const director = new SafePassage(map);
-		game.director = director;
-		return { game, director };
 	});
+	const startLives = $derived(setup.director.lives);
 
 	/** Briefing first; then the controls card if it's the first time; then play. */
 	let briefing = $state(true);
@@ -57,7 +50,7 @@
 		showControls = !settings.current.seenControls;
 	}
 
-	/** After a win: the landing on Oa plays, then the results. */
+	/** After a win: the story scene plays (if the mission has one), then the results. */
 	let outro = $state<OaLanding | null>(null);
 	let outroDone = $state(false);
 	const OUTRO_DELAY = 2.5;
@@ -80,43 +73,43 @@
 	let status = $state({
 		state: 'intro' as MissionState,
 		timer: 3,
-		hull: 1,
-		progress: 0,
-		destroyed: 0,
-		spawned: 0,
-		lives: MISSION_LIVES,
-		far: false,
-		timeLeft: 0,
+		lives: 3,
+		objective: '',
+		meters: [] as MissionMeter[],
+		tally: '',
+		warning: null as string | null,
+		line: null as CommsLine | null,
 		stars: 0,
-		impacts: 0,
-		failReason: null as 'ship' | 'lantern' | null
+		starHint: '',
+		resultText: '',
+		stats: [] as MissionStat[]
 	});
 	onMount(() => {
 		const id = setInterval(() => {
-			const { game, director: d } = setup;
+			const { game, director: d, outro: makeOutro } = setup;
 			status = {
 				state: d.state,
 				timer: Math.ceil(d.timer),
-				hull: d.ship.hull / d.ship.maxHull,
-				progress: d.progress,
-				destroyed: d.destroyed,
-				spawned: d.spawned,
 				lives: d.lives,
-				far: d.state === 'playing' && d.farFrom(game),
-				timeLeft: Math.ceil(d.timeLeft),
+				objective: d.objective,
+				meters: d.meters(),
+				tally: d.tally?.() ?? '',
+				warning: d.warning(game),
+				line: d.line,
 				stars: d.stars,
-				impacts: d.impacts,
-				failReason: d.failReason
+				starHint: d.starHint,
+				resultText: d.resultText,
+				stats: d.stats()
 			};
-			if (d.state === 'won' && d.timer >= OUTRO_DELAY && !outro && !outroDone) {
-				outro = new OaLanding(OA_LANDING, d.ship.hull / d.ship.maxHull);
-				game.paused = true;
+			if (d.state === 'won' && d.timer >= OUTRO_DELAY && !outroDone && !outro) {
+				if (makeOutro) {
+					outro = makeOutro();
+					game.paused = true;
+				} else outroDone = true;
 			}
 		}, 100);
 		return () => clearInterval(id);
 	});
-
-	const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 </script>
 
 <svelte:window onkeydown={onKeydown} />
@@ -133,39 +126,44 @@
 				<div class="row">
 					<span class="title">{mission.number}. {mission.title}</span>
 					<span class="lives" title="Lives">
-						{#each { length: MISSION_LIVES } as _, i (i)}
+						{#each { length: startLives } as _, i (i)}
 							<span class:lost={i >= status.lives}>♥</span>
 						{/each}
 					</span>
 				</div>
-				<div class="meter" title="Tomar-Re's hull">
-					<span class="label">Hull</span>
-					<span class="track"><span class="fill hull" class:low={status.hull < 0.3} style:width="{status.hull * 100}%"></span></span>
-					<span class="value">{Math.round(status.hull * 100)}%</span>
-				</div>
-				<div class="meter" title="Across the belt">
-					<span class="label">Belt</span>
-					<span class="track">
-						<span class="fill progress" style:width="{status.progress * 100}%"></span>
-						<span class="ship" style:left="{status.progress * 100}%">▶</span>
-					</span>
-					<span class="value">{clock(status.timeLeft)}</span>
-				</div>
-				<div class="row small">
-					<span>Asteroids blasted <strong>{status.destroyed}</strong> / {TOTAL_ROCKS}</span>
-				</div>
+				<p class="objective">{status.objective}</p>
+				{#each status.meters as m (m.label)}
+					<div class="meter">
+						<span class="label">{m.label}</span>
+						<span class="track">
+							<span class="fill" class:hull={!m.marker} class:progress={!!m.marker} class:low={m.low} style:width="{m.value * 100}%"></span>
+							{#if m.marker}<span class="ship" style:left="{m.value * 100}%">{m.marker}</span>{/if}
+						</span>
+						<span class="value">{m.text}</span>
+					</div>
+				{/each}
+				{#if status.tally}
+					<div class="row small"><span>{status.tally}</span></div>
+				{/if}
 			</div>
 		</header>
+
+		{#if status.line && !paused && status.state !== 'lost'}
+			<div class="comms" aria-live="polite">
+				<span class="who">{status.line.who}</span>
+				<span>{status.line.text}</span>
+			</div>
+		{/if}
 
 		{#if status.state === 'intro' && !showControls && !paused}
 			<div class="banner">
 				<small>{mission.place}</small>
-				<strong>Engines in {status.timer}…</strong>
-				<span>Stay with the ship. Keep the rocks off it.</span>
+				<strong>Starting in {status.timer}…</strong>
+				<span>{status.objective}</span>
 			</div>
 		{/if}
-		{#if status.far && !paused}
-			<div class="warning">Get back to Tomar-Re's ship!</div>
+		{#if status.warning && !paused}
+			<div class="warning">{status.warning}</div>
 		{/if}
 	{/if}
 
@@ -207,22 +205,16 @@
 						<span class:on={i < status.stars}>★</span>
 					{/each}
 				</div>
-				<p>Tomar-Re made it home to Oa. But something red is moving on the frontier...</p>
-			{:else if status.failReason === 'ship'}
-				<p>Tomar-Re's ship broke apart in the storm.</p>
-			{:else}
-				<p>Hal went down one time too many.</p>
 			{/if}
+			<p>{status.resultText}</p>
 			<dl>
-				<dt>Asteroids blasted</dt>
-				<dd>{status.destroyed} / {TOTAL_ROCKS}</dd>
-				<dt>Hull left</dt>
-				<dd>{Math.round(status.hull * 100)}%</dd>
-				<dt>Hits on the ship</dt>
-				<dd>{status.impacts}</dd>
+				{#each status.stats as stat (stat.label)}
+					<dt>{stat.label}</dt>
+					<dd>{stat.value}</dd>
+				{/each}
 			</dl>
 			{#if status.state === 'won'}
-				<p class="hint">★ made it · ★ hull at least 50% · ★ 70+ asteroids blasted</p>
+				<p class="hint">{status.starHint}</p>
 			{/if}
 			<div class="actions">
 				<button class="primary" onclick={retry}>{status.state === 'won' ? 'Play again' : 'Retry'}</button>
@@ -289,12 +281,39 @@
 		justify-content: space-between;
 		align-items: center;
 	}
+	.objective {
+		margin: 0;
+		font-size: 0.8rem;
+		font-weight: 700;
+		color: #e6fbec;
+	}
+	.comms {
+		position: absolute;
+		top: 10px;
+		left: 50%;
+		translate: -50% 0;
+		width: min(30rem, calc(100% - 26rem));
+		min-width: 14rem;
+		display: grid;
+		gap: 0.15rem;
+		padding: 0.55rem 0.85rem;
+		border-radius: 10px;
+		background: rgba(3, 10, 6, 0.85);
+		border: 1px solid var(--green-dim);
+		font-size: 0.9rem;
+		line-height: 1.35;
+		pointer-events: none;
+	}
+	.comms .who {
+		font-family: var(--font-display);
+		font-weight: 700;
+		font-size: 0.7rem;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--green);
+	}
 	.row.small {
 		opacity: 0.85;
-	}
-	.row strong {
-		color: var(--green);
-		font-size: 1rem;
 	}
 	.title {
 		font-family: var(--font-display);

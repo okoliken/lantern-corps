@@ -19,8 +19,9 @@ import { isStanding, type Dummy } from '../dummy';
 import type { Drawable, Game } from '../game';
 import { seededRandom, type GameMap, type Obstacle } from '../map';
 import { drawEscortShip, drawShipShield } from '../draw/escort';
+import type { CommsLine, MissionDirector, MissionMeter, MissionState, MissionStat } from './mission';
 
-export type MissionState = 'intro' | 'playing' | 'won' | 'lost';
+export type { MissionState } from './mission';
 export type RockSize = 'small' | 'medium' | 'large';
 
 /** How each size of asteroid behaves. */
@@ -97,7 +98,7 @@ export function buildBeltMap(): GameMap {
 	return { name: 'The Durvan Belt', environment: 'space', width, height, spawn, battery: { x: 420, y: height / 2 + 50 }, dummies: [], obstacles };
 }
 
-export class SafePassage {
+export class SafePassage implements MissionDirector {
 	state: MissionState = 'intro';
 	timer = INTRO_TIME;
 	/** Seconds since the ship set off. */
@@ -165,6 +166,40 @@ export class SafePassage {
 	get stars(): number {
 		if (this.state !== 'won') return 0;
 		return 1 + (this.ship.hull >= this.ship.maxHull * 0.5 ? 1 : 0) + (this.destroyed >= 70 ? 1 : 0);
+	}
+
+	readonly objective = "Keep the asteroids off Tomar-Re's ship";
+	readonly starHint = '★ made it · ★ hull at least 50% · ★ 70+ asteroids blasted';
+	readonly line: CommsLine | null = null;
+
+	meters(): MissionMeter[] {
+		const hull = this.ship.hull / this.ship.maxHull;
+		const left = Math.ceil(this.timeLeft);
+		return [
+			{ label: 'Hull', value: hull, text: `${Math.round(hull * 100)}%`, low: hull < 0.3 },
+			{ label: 'Belt', value: this.progress, text: `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`, marker: '▶' }
+		];
+	}
+
+	warning(game: Game): string | null {
+		return this.state === 'playing' && this.farFrom(game) ? "Get back to Tomar-Re's ship!" : null;
+	}
+
+	get resultText(): string {
+		if (this.state === 'won') return 'Tomar-Re made it home to Oa. But something red is moving on the frontier...';
+		return this.failReason === 'ship' ? "Tomar-Re's ship broke apart in the storm." : 'Hal went down one time too many.';
+	}
+
+	tally(): string {
+		return `Asteroids blasted ${this.destroyed} / ${TOTAL_ROCKS}`;
+	}
+
+	stats(): MissionStat[] {
+		return [
+			{ label: 'Asteroids blasted', value: `${this.destroyed} / ${TOTAL_ROCKS}` },
+			{ label: 'Hull left', value: `${Math.round((this.ship.hull / this.ship.maxHull) * 100)}%` },
+			{ label: 'Hits on the ship', value: `${this.impacts}` }
+		];
 	}
 
 	/** Is Hal too far from the ship? */
