@@ -134,7 +134,7 @@ export function buildOutpostMap(): GameMap {
 		if (!blocked && clear(GATE, 180) && clear(TOWER, 220) && SURVIVOR_SPOTS.every((s) => clear(s, 120))) obstacles.push(o);
 	}
 	// The tower's footprint
-	obstacles.push({ kind: 'building', x: TOWER.x - 40, y: TOWER.y - 16, w: 80, h: 28, height: 0, blocksFlying: false, seed: 0.5 });
+	obstacles.push({ kind: 'building', x: TOWER.x - 40, y: TOWER.y - 16, w: 80, h: 28, height: 0, blocksFlying: false, seed: 0.5, hidden: true });
 	return {
 		name: 'Kel-Aris Station',
 		environment: 'planet',

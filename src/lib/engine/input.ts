@@ -37,6 +37,8 @@ export interface Intent {
 	shield: boolean;
 	/** Signature ability was pressed (Jet Strike / Fortress). */
 	signature: boolean;
+	/** Call for backup was pressed (missions where a partner can be called in). */
+	backup: boolean;
 	/** Where the mouse points, in WORLD coordinates. null = not aiming with a mouse. */
 	pointer: { x: number; y: number } | null;
 }
@@ -53,6 +55,7 @@ export const IDLE: Intent = {
 	target: false,
 	shield: false,
 	signature: false,
+	backup: false,
 	pointer: null
 };
 
@@ -84,7 +87,8 @@ export const ACTIONS = [
 	'shield',
 	'signature',
 	'fly',
-	'target'
+	'target',
+	'backup'
 ] as const;
 
 export type Action = (typeof ACTIONS)[number];
@@ -114,7 +118,8 @@ export const ACTION_LABELS: Record<Action, string> = {
 	shield: 'Bubble shield',
 	signature: 'Signature ability',
 	fly: 'Take off / land',
-	target: 'Lock target'
+	target: 'Lock target',
+	backup: 'Call for backup'
 };
 
 /** solo = single player; p1 / p2 = two players sharing one keyboard (P1 also has the mouse). */
@@ -143,7 +148,8 @@ export const DEFAULT_BINDINGS: Record<LayoutName, Bindings> = {
 		shield: ['ShiftLeft', 'KeyL'],
 		signature: ['KeyR', 'Mouse1'],
 		fly: ['Space'],
-		target: ['Tab']
+		target: ['Tab'],
+		backup: ['KeyB']
 	},
 	p1: {
 		up: ['KeyW'],
@@ -168,7 +174,8 @@ export const DEFAULT_BINDINGS: Record<LayoutName, Bindings> = {
 		shield: ['ShiftLeft'],
 		signature: ['KeyR'],
 		fly: ['Space'],
-		target: ['Tab']
+		target: ['Tab'],
+		backup: ['KeyT']
 	},
 	p2: {
 		up: ['ArrowUp'],
@@ -194,7 +201,8 @@ export const DEFAULT_BINDINGS: Record<LayoutName, Bindings> = {
 		shield: ['ShiftRight'],
 		signature: ['KeyP'],
 		fly: ['Enter'],
-		target: ['Comma']
+		target: ['Comma'],
+		backup: ['KeyO']
 	}
 };
 
@@ -428,6 +436,7 @@ export class BindingInput implements InputSource {
 			target: btn.consumePress(b.target),
 			shield: btn.consumePress(b.shield),
 			signature: btn.consumePress(b.signature),
+			backup: btn.consumePress(b.backup),
 			pointer: p && p.state.active ? p.toWorld(p.state.x, p.state.y) : null
 		};
 	}

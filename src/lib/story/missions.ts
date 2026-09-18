@@ -63,6 +63,27 @@ MISSIONS.push({
 	partner: 'kilowog'
 });
 
+MISSIONS.push({
+	id: 'colony-under-fire',
+	number: 3,
+	title: 'Colony Under Fire',
+	tagline: "John Stewart's first mission: get Mirrow's colonists out through Zilius Zox's fire.",
+	lantern: 'john',
+	environment: 'planet',
+	place: 'Sector 2814 · Mirrow Colony',
+	briefing: [
+		'Three days ago John Stewart was an architect on a building site in Detroit. Now he wears the ring of Sector 2814, and his first call has come in: Mirrow, a farming colony on the frontier, is burning.',
+		"Hal is on the other side of the sector, but he can be there if John calls. The colonists are hiding in their shelters. The shuttles are waiting. Something up there is laughing.",
+		'Get them out.'
+	],
+	objectives: [
+		'Reach each shelter; the colonists will follow you',
+		'Get them to the shuttles. Shield them (Shift) when fire comes down',
+		'Keep the last shuttle safe until it launches',
+		'Need help? Press B to call Hal (twice)'
+	]
+});
+
 export function missionById(id: string): MissionInfo | undefined {
 	return MISSIONS.find((m) => m.id === id);
 }

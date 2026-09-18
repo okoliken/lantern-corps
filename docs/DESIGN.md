@@ -249,6 +249,22 @@ night, the ring chooses John Stewart. Story scenes share `scenes/scene.ts` (`Dia
 back up at the battery). ★ done, ★ no lives lost, ★ under 5 minutes. Bots: the AI-Hal and a sloppy
 "human" bot both win in ~100s of fighting; the sloppy one sometimes loses a life or ends near-dead.
 
+**Mission 3: Colony Under Fire** (John Stewart solo, planet, Mirrow Colony; `missions/colonyUnderFire.ts`,
+art in `draw/colony.ts`). John's first mission. Three groups of 4 colonists hide in shelters; reaching
+one brings them out to follow John (sliding around solids) to the evacuation shuttles, and draws a wave.
+While colonists are out, Zilius Zox's fire barrage lands on them (red meteor strikes with warning
+rings; aimed where they're walking); each colonist group is a protectable (threat 3 per incoming
+fireball, so Shift shields them before John), 100 hp, 28 per unshielded hit. Then the last shuttle
+needs 50s of engine warm-up while Zox and 3 Grunts attack and the fire targets the shuttle (420 hull).
+Lose: John down 3 times, 2 groups lost, or the last shuttle destroyed. ★ done, ★ everyone saved,
+★ Zox beaten. Bots: using Shift wins in ~2 min (2-3 stars) with or without backup; never shielding
+loses the colonists.
+
+**Backup** (`missions/backup.ts`, action `backup`, default **B**): a mission can let a solo Lantern call
+a partner (`Backup(who, uses, seconds)`): they fly in (`Game.addPartner`, AI) and leave when their
+time's up (`Game.removePartner`). Mission 3: Hal, twice, 40s each. The panel tally shows the status.
+Footprint-only obstacles (`Obstacle.hidden`) make mission-drawn props solid without drawing a block.
+
 **One mission page for all** (`routes/mission/[id]`, built by `$lib/missions.ts`): every director
 implements `MissionDirector` (`missions/mission.ts`): objective line, meters, tally, warning, stars,
 stats, and **comms** (radio chatter: `Comms.say`, urgent lines cut in, old ones drop; `Comms.scene` for

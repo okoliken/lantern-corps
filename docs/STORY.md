@@ -138,9 +138,14 @@ back and let them fight, lure one faction into the other, or get caught in the m
   wave hits. Her last recording says the Red Lanterns' leader swore "the Guardians will burn for Sector
   666". Kilowog: "The Lost Sector." **Ending scene:** Detroit at night; the ring finds **John Stewart**
   (Marine, architect) on a construction site roof and makes him a Lantern (user's idea, 2026-09-18).
+- **Mission 3: Colony Under Fire** (John's first mission, played as John, solo with Hal on call as
+  backup): Mirrow, a farming colony, is burning. John leads its colonists from their shelters to the
+  evacuation shuttles through **Zilius Zox**'s fire, then holds the pad while the last shuttle's engines
+  warm up and Zox attacks. User's direction (2026-09-18): missions vary between space, planets and
+  Earth, and some are solo with backup on call.
 
-**Act 1 plan (agreed 2026-09-18, following the animated series):** 3. Colony Under Fire (Mirrow; rescue
-colonists with shields; Zilius Zox) → 4. The Interceptor (the Guardians refuse to send help past the
+**Act 1 plan (agreed 2026-09-18, following the animated series):** 3. Colony Under Fire (built: John's
+first mission) → 4. The Interceptor (the Guardians refuse to send help past the
 frontier, Sinestro backs them; Hal and Kilowog take the Interceptor; Aya wakes up) → 5. Boss: Razer
 (Atrocitus's lieutenant, who hates the Manhunters for killing his wife; captured, later an ally; first
 time the name Atrocitus is heard). Then Act 2 (the Manhunter vault), an Earth detour (Coast City, John

@@ -123,6 +123,8 @@ export interface Director {
 	cameraPoints?(): [number, number][];
 	/** Where to go next: an arrow at the edge of the screen points there when it's out of view. */
 	goal?(): { x: number; y: number } | null;
+	/** A player pressed Call for backup (missions where a partner can be called in). */
+	callBackup?(game: Game, caller: Player): void;
 }
 
 /** How big a Lantern is drawn next to Hal and John (Kilowog is huge). */
@@ -241,6 +243,48 @@ export class Game {
 		];
 	}
 
+	/**
+	 * Bring an AI partner into the fight (backup), starting at (x, y) in the
+	 * air. They join at the end of the player list; `removePartner` takes them
+	 * out again.
+	 */
+	addPartner(lantern: CrewId, x: number, y: number): Player {
+		const slot = this.players.length;
+		const ally = new AllyInput(this);
+		const p = createPlayer(slot, LANTERNS[lantern], ally, x, y);
+		ally.me = p;
+		p.flying = true;
+		p.altitude = 1;
+		if (this.profiles && isLanternId(lantern)) {
+			applyProgression(p, LANTERNS[lantern], this.profiles[lantern]);
+			p.willpower = p.maxWillpower;
+		}
+		// An input for the HUD's sake (an AI partner shows no keys)
+		this.inputs.push(new BindingInput(this.buttons, this.settings.bindings.p2));
+		this.layouts.push('p2');
+		this.aiSlots.add(slot);
+		this.players.push(p);
+		return p;
+	}
+
+	/** Take a partner added with `addPartner` back out (they've flown off). */
+	removePartner(p: Player) {
+		const slot = this.players.indexOf(p);
+		if (slot !== this.players.length - 1) return; // only the last one added, so slots stay put
+		this.players.pop();
+		this.inputs.pop();
+		this.layouts.pop();
+		this.aiSlots.delete(slot);
+		const cw = this.constructs;
+		cw.shields = cw.shields.filter((s) => s.target !== p && s.owner !== p);
+		cw.tethers = cw.tethers.filter((t) => t.owner !== p);
+		cw.fortresses = cw.fortresses.filter((f) => f.owner !== p);
+		cw.pressure.delete(p);
+		for (const q of this.players) if (q.protectTarget?.kind === 'ally' && q.protectTarget.player === p) q.protectTarget = null;
+		// Enemies after them look for someone else
+		for (const e of this.enemies) if (e.brain.target === p) e.brain.target = null;
+	}
+
 	private layouts: LayoutName[];
 	/** Players driven by an AI partner. */
 	private aiSlots = new Set<number>();
@@ -315,6 +359,7 @@ export class Game {
 
 		for (const p of this.players) {
 			const intent = p.input.read();
+			if (intent.backup) this.director?.callBackup?.(this, p);
 			if (this.godMode) p.invuln = Math.max(p.invuln, 0.1);
 			if (updatePlayerCombat(p, dt)) {
 				// Back on their feet next to the battery
@@ -536,7 +581,7 @@ export class Game {
 			// Skip anything well off screen (tall things poke up, so pad the top)
 			if (o.x > visible.right || o.x + o.w < visible.left) continue;
 			if (o.y - o.height > visible.bottom || o.y + o.h < visible.top) continue;
-			ground.push({ baseY: o.y + o.h, draw: () => drawObstacle(ctx, o, this.time, inSpace) });
+			if (!o.hidden) ground.push({ baseY: o.y + o.h, draw: () => drawObstacle(ctx, o, this.time, inSpace) });
 		}
 		for (const b of this.batteries) {
 			ground.push({ baseY: b.y, draw: () => drawBattery(ctx, b, env.hasGround, this.time) });

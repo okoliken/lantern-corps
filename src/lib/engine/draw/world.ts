@@ -76,10 +76,12 @@ export function drawStarfield(
 const GROUND_TILE = 64;
 
 /** How a planet's surface looks: 'dust' (Coast City's outskirts), 'oa' (the Corps' home), 'ash' (a burnt outpost). */
-export type GroundStyle = 'dust' | 'oa' | 'ash';
+export type GroundStyle = 'dust' | 'oa' | 'ash' | 'meadow';
 
 const GROUNDS: Record<GroundStyle, { void: string; base: string; dark: string; light: string; inlay?: string }> = {
 	dust: { void: '#15150f', base: '#3b3a2e', dark: 'rgba(20, 18, 12, 0.35)', light: 'rgba(120, 112, 88, 0.3)' },
+	// Mirrow Colony's farmland: grass and packed earth
+	meadow: { void: '#0c100a', base: '#2f3a26', dark: 'rgba(12, 18, 8, 0.35)', light: 'rgba(150, 175, 100, 0.22)' },
 	// Kel-Aris after the Red Lanterns: burnt grey ground with a warm cast
 	ash: { void: '#0e0b0b', base: '#2f2a2a', dark: 'rgba(12, 6, 5, 0.4)', light: 'rgba(150, 120, 110, 0.22)' },
 	oa: { void: '#060d0a', base: '#1d2a25', dark: 'rgba(5, 12, 9, 0.4)', light: 'rgba(110, 150, 130, 0.18)', inlay: 'rgba(61, 255, 110, 0.12)' }

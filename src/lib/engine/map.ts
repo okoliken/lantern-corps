@@ -24,6 +24,8 @@ export interface Obstacle extends Solid {
 	maxLife?: number;
 	/** Crates can be dragged by the Chain. */
 	movable?: boolean;
+	/** Only a footprint: something the mission draws itself (a tower, a shelter dome) is solid here. */
+	hidden?: boolean;
 }
 
 /** How much beam a crate can take. */
