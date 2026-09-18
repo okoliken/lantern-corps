@@ -42,6 +42,17 @@ scroll wheel. Settings are saved in the browser.
 both. They cost no willpower and work even when exhausted. Constructs are the special moves that cost
 willpower.
 
+**Quick cast** (on by default, Options): a construct's key USES it straight away: tap for one-shot
+constructs, hold for the beam, minigun and sniper charge. Scroll + construct button still works (and is
+the only way with Quick cast off).
+
+**What you see is what you hit:** shots and beams travel on the ground plane but are drawn at the ring's
+height, so every target has a **hurtbox** matching its drawn body (`BODY` in `dummy.ts`): a shot hits
+when its drawn position touches the drawn body. Aiming (mouse, aim assist, auto-target, AI partner,
+homing missiles) goes for the middle of the body at the shot's height. Enemy shots work the same way
+against the Lantern's drawn body (`hitsBody` / `bodyAim` in `player.ts`), so a Lantern flying high over a
+planet isn't hit by bolts passing under their feet.
+
 **Facing:** Lanterns face the way they move. Attacking turns them toward the aim, and they keep facing
 it for a moment (so steady fire doesn't flip them back and forth); moving away while doing so is a
 slower backpedal with the legs stepping backwards. Standing still, they look at the crosshair. Turning
