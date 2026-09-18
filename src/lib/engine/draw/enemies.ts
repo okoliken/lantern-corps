@@ -14,6 +14,7 @@ import { drawRedLanternAlien, redLanternHand, redLanternTop } from './redLantern
 import { drawLieutenant, isLieutenantKind, lieutenantHand, lieutenantTop } from './lieutenants';
 import { drawManhunterDrone, drawRedFighter, machineMuzzle } from './machines';
 import { axePath, drawRageTurret, drawWard, macePath, rage, rageCannonPath } from './redConstructs';
+import { displayFont, uiFont } from './fonts';
 
 const RED = '#ff2a2a';
 const BLACK = '#140808';
@@ -180,7 +181,7 @@ function drawEnemyOverlay(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 	// Lieutenants: their name, and a health bar from the start
 	if (def.lieutenant) {
 		ctx.save();
-		ctx.font = '800 11px system-ui, sans-serif';
+		ctx.font = displayFont(800, 10);
 		ctx.textAlign = 'center';
 		ctx.lineWidth = 3;
 		ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
@@ -201,7 +202,7 @@ function drawEnemyOverlay(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 	// Close-attack warning above the head
 	if (bodyTell) {
 		ctx.save();
-		ctx.font = '900 16px system-ui, sans-serif';
+		ctx.font = uiFont(900, 18, true);
 		ctx.textAlign = 'center';
 		ctx.lineWidth = 4;
 		ctx.strokeStyle = 'rgba(0,0,0,0.7)';

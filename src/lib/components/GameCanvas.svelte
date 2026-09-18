@@ -4,6 +4,7 @@
 	// $lib/engine and doesn't know Svelte exists.
 	import { onMount } from 'svelte';
 	import { fitCanvas } from '$lib/engine/canvas';
+	import { preloadFonts } from '$lib/engine/draw/fonts';
 	import { startLoop, type LoopStats } from '$lib/engine/loop';
 	import type { Game } from '$lib/engine/game';
 
@@ -19,6 +20,7 @@
 	let stats = $state<LoopStats>({ fps: 0, ups: 0 });
 
 	onMount(() => {
+		void preloadFonts();
 		const { ctx, view, destroy } = fitCanvas(canvas);
 		game.setView(view);
 		const detachButtons = game.buttons.attach(window, canvas);

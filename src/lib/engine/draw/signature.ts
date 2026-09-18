@@ -6,6 +6,7 @@ import type { Fortress } from '../constructs/system';
 import type { LanternDef } from '../lanterns';
 import { FORTRESS_DRONE_HOVER, TURRET_HEAD_HEIGHT, turretPosition } from '../constructs/signature';
 import { GREEN } from './lantern';
+import { displayFont } from './fonts';
 
 const CORE = '#eafff0';
 const TAU = Math.PI * 2;
@@ -418,7 +419,7 @@ export function drawCallout(ctx: CanvasRenderingContext2D, text: string, x: numb
 	ctx.globalAlpha = Math.max(0, alpha);
 	ctx.translate(x, y - t * 20);
 	ctx.scale(pop, pop);
-	ctx.font = '900 22px system-ui, sans-serif';
+	ctx.font = displayFont(900, 20);
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
 	ctx.lineWidth = 5;

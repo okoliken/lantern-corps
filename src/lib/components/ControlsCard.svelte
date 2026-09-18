@@ -100,7 +100,8 @@
 		border: 1px solid var(--green-dim);
 		border-bottom-width: 3px;
 		border-radius: 6px;
-		font-family: ui-monospace, monospace;
+		font-family: var(--font-ui);
+		font-weight: 700;
 		font-size: 0.8rem;
 		color: var(--green);
 		white-space: nowrap;

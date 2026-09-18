@@ -196,6 +196,10 @@
 	h2 {
 		margin: 0.5rem 0 0;
 		color: var(--green);
+		/* The display face is wide: keep names on one line */
+		font-size: 1.15rem;
+		letter-spacing: 0.02em;
+		white-space: nowrap;
 	}
 	.title {
 		margin: 0.1rem 0 0.6rem;

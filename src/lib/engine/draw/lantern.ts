@@ -12,6 +12,7 @@
 
 import { HEAD_R, STANDING_HEIGHT, computeSkeleton, turnScale, type LanternPose, type Point, type Skeleton } from '../animation';
 import type { LanternDef } from '../lanterns';
+import { uiFont } from './fonts';
 
 export type { LanternPose } from '../animation';
 
@@ -463,7 +464,7 @@ function shadeColor(hex: string, amount: number): string {
 /** Name tag above a Lantern's head. `lift` is how high they're floating (world px). */
 export function drawNameTag(ctx: CanvasRenderingContext2D, label: string, x: number, y: number, lift = 0) {
 	ctx.save();
-	ctx.font = '600 11px system-ui, sans-serif';
+	ctx.font = uiFont(600, 11);
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'bottom';
 	ctx.fillStyle = 'rgba(216, 245, 224, 0.85)';

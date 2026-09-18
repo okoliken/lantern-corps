@@ -11,6 +11,7 @@ import { drawRedEffect } from './redConstructs';
 import { isStanding, type Dummy } from '../dummy';
 import type { Target } from '../targeting';
 import { GREEN } from './lantern';
+import { uiFont } from './fonts';
 
 const CORE = '#eafff0';
 const TAU = Math.PI * 2;
@@ -1377,7 +1378,7 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 		case 'text': {
 			// Small floating note, e.g. "+25 XP"
 			ctx.globalAlpha = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
-			ctx.font = '700 12px system-ui, sans-serif';
+			ctx.font = uiFont(700, 12);
 			ctx.textAlign = 'center';
 			ctx.lineWidth = 3;
 			ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
@@ -1398,7 +1399,7 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			ctx.globalAlpha = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3;
 			ctx.translate(e.x, e.y - 64 - easeOut(t) * 30);
 			ctx.scale(pop, pop);
-			ctx.font = '800 14px system-ui, sans-serif';
+			ctx.font = uiFont(800, 15, true);
 			ctx.textAlign = 'center';
 			ctx.lineWidth = 3.5;
 			ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';

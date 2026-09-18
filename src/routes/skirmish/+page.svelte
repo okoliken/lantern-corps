@@ -222,6 +222,8 @@
 		font-size: 0.85rem;
 	}
 	.title {
+		font-family: var(--font-display);
+		font-size: 0.75rem;
 		font-weight: 800;
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
@@ -276,7 +278,8 @@
 		opacity: 0.7;
 	}
 	.banner strong {
-		font-size: 1.8rem;
+		font-family: var(--font-display);
+		font-size: 1.6rem;
 		color: #ff5a5a;
 		text-shadow: 0 0 14px rgba(255, 42, 42, 0.7);
 	}
@@ -378,6 +381,10 @@
 	.card h2 {
 		margin: 0.5rem 0 0;
 		color: var(--green);
+		/* The display face is wide: keep names on one line */
+		font-size: 1.15rem;
+		letter-spacing: 0.02em;
+		white-space: nowrap;
 	}
 	.subtitle {
 		margin: 0.1rem 0 0.9rem;

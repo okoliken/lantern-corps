@@ -246,7 +246,8 @@
 	.bind {
 		min-width: 6.5rem;
 		font-size: 0.8rem;
-		font-family: ui-monospace, monospace;
+		font-family: var(--font-ui);
+		font-weight: 700;
 	}
 	.bind.listening {
 		border-color: var(--green);

@@ -3,6 +3,7 @@
 
 import { BATTERY_MAX_CHARGE, RESTART_THRESHOLD, type Battery } from '../willpower';
 import { GREEN } from './lantern';
+import { displayFont, uiFont } from './fonts';
 
 const BOTTLE_GREEN = '#0F4F34';
 
@@ -274,13 +275,13 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		ctx.save();
 
 		// ---- Name and willpower number ----
-		ctx.font = '600 12px system-ui, sans-serif';
+		ctx.font = uiFont(700, 12);
 		ctx.textBaseline = 'bottom';
 		ctx.fillStyle = 'rgba(216, 245, 224, 0.9)';
 		ctx.textAlign = 'left';
 		const level = p.level !== null ? ` · Lv ${p.level}` : '';
 		ctx.fillText(`${p.name}${level} · ${p.slots[p.selected].name}`, x, labelY);
-		ctx.font = '11px ui-monospace, monospace';
+		ctx.font = uiFont(700, 11);
 		ctx.textAlign = 'right';
 		ctx.fillStyle = low ? '#ffb86b' : 'rgba(216, 245, 224, 0.7)';
 		ctx.fillText(`${p.charging ? '⚡ ' : ''}${p.exhausted ? 'EXHAUSTED ' : ''}${Math.floor(p.willpower)}`, x + barW, labelY);
@@ -323,7 +324,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		}
 		ctx.fillRect(x, surgeY, barW * p.surge.fill, 5);
 		ctx.shadowBlur = 0;
-		ctx.font = '700 10px system-ui, sans-serif';
+		ctx.font = displayFont(700, 9);
 		ctx.textBaseline = 'bottom';
 		if (ready || p.surge.active) {
 			ctx.textAlign = 'center';
@@ -360,13 +361,13 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 			// Short name in the middle, key number in the corner
 			ctx.textAlign = 'center';
 			ctx.textBaseline = 'middle';
-			ctx.font = `600 ${box < 34 ? 8 : 9}px system-ui, sans-serif`;
+			ctx.font = uiFont(600, box < 34 ? 9 : 10);
 			ctx.fillStyle = s.affordable ? 'rgba(216, 245, 224, 0.95)' : 'rgba(216, 245, 224, 0.35)';
 			ctx.fillText(abbreviate(s.short, box < 34 ? 6 : 7), sx + box / 2, slotsY + box / 2 + 3);
 			// The key, big enough to read at a glance (with quick cast it's the button that fires it)
 			ctx.textAlign = 'left';
 			ctx.textBaseline = 'top';
-			ctx.font = '800 11px ui-monospace, monospace';
+			ctx.font = uiFont(800, 12);
 			ctx.fillStyle = selected ? GREEN : 'rgba(216, 245, 224, 0.8)';
 			ctx.fillText(s.key, sx + 3, slotsY + 2);
 		});
@@ -395,13 +396,13 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		ctx.strokeRect(shx + 0.5, slotsY + 0.5, box - 1, box - 1);
 		ctx.textAlign = 'left';
 		ctx.textBaseline = 'top';
-		ctx.font = '9px ui-monospace, monospace';
+		ctx.font = uiFont(800, 11);
 		ctx.fillStyle = 'rgba(216, 245, 224, 0.55)';
 		ctx.fillText(p.shield.key, shx + 3, slotsY + 2);
 
 		// ---- Target line above the name ----
 		if (p.targetLabel) {
-			ctx.font = '11px system-ui, sans-serif';
+			ctx.font = uiFont(500, 11);
 			ctx.textAlign = 'left';
 			ctx.textBaseline = 'bottom';
 			ctx.fillStyle = 'rgba(216, 245, 224, 0.75)';
@@ -461,13 +462,13 @@ export function drawDownedNotice(ctx: CanvasRenderingContext2D, name: string, se
 	ctx.textBaseline = 'middle';
 	ctx.fillStyle = 'rgba(40, 0, 0, 0.25)';
 	ctx.fillRect(0, 0, width, height);
-	ctx.font = '900 28px system-ui, sans-serif';
+	ctx.font = displayFont(900, 26);
 	ctx.lineWidth = 6;
 	ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
 	ctx.fillStyle = '#ff5a5a';
 	ctx.strokeText(`${name.toUpperCase()} IS DOWN`, width / 2, height * 0.38);
 	ctx.fillText(`${name.toUpperCase()} IS DOWN`, width / 2, height * 0.38);
-	ctx.font = '600 15px system-ui, sans-serif';
+	ctx.font = uiFont(600, 15);
 	ctx.fillStyle = '#ffe0e0';
 	ctx.strokeText(`Back up in ${Math.ceil(secondsLeft)}…`, width / 2, height * 0.38 + 30);
 	ctx.fillText(`Back up in ${Math.ceil(secondsLeft)}…`, width / 2, height * 0.38 + 30);
