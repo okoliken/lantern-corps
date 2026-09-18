@@ -17,7 +17,7 @@ import { DUMMY_HALF_W, isStanding } from '../dummy';
 import type { Obstacle } from '../map';
 import { boxOverlap, type Solid } from '../physics';
 import type { Player } from '../player';
-import { ENEMIES, face, steer, type Enemy, type Role } from './enemies';
+import { ENEMIES, createEnemy, face, steer, type Enemy, type Role } from './enemies';
 
 export type AbilityId =
 	| 'claws'
@@ -35,6 +35,13 @@ export type AbilityId =
 	| 'meteors'
 	| 'beam'
 	| 'skulls'
+	// Built like a Green Lantern's constructs, in rage-red
+	| 'axe'
+	| 'mace'
+	| 'cannon'
+	| 'redWall'
+	| 'redShield'
+	| 'redTurret'
 	// Bleez
 	| 'swoop'
 	// Machines: Manhunter Drones and Red Lantern fighters
@@ -45,14 +52,15 @@ export type AbilityId =
 	| 'bombs';
 
 /** How far away a construct is used from. Kits take some of each. */
-export type Band = 'close' | 'mid' | 'long';
+export type Band = 'close' | 'mid' | 'long' | 'support';
 
 /**
  * What the windup looks like:
  * strike = body flashes, "!"   heavy = body flashes, "!!"
  * aim = orb in the hand and an aim line   sky = orb raised overhead, "!!"
+ * build = energy gathering in the hand, no warning (it isn't an attack)
  */
-export type Tell = 'strike' | 'heavy' | 'aim' | 'sky';
+export type Tell = 'strike' | 'heavy' | 'aim' | 'sky' | 'build';
 
 export interface AbilityDef {
 	id: AbilityId;
@@ -165,6 +173,40 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 		minRange: 150, maxRange: 520, damage: 11, knockback: 200, melee: false, heavy: false, chance: 0.7, speed: 210
 	}),
 
+	// ---- Weapons, the way a Green Lantern would build them ----
+	// A huge jagged battle-axe, swung in a wide arc in front
+	axe: def({
+		id: 'axe', name: 'Rage Axe', band: 'close', tell: 'strike', windup: 0.6, active: 0.25, recover: 0.55, cooldown: 4.5,
+		minRange: 0, maxRange: 90, damage: 18, knockback: 420, melee: true, heavy: false, chance: 0.85, radius: 100
+	}),
+	// A spiked mace brought down on the spot just ahead
+	mace: def({
+		id: 'mace', name: 'Blood Mace', band: 'close', tell: 'heavy', windup: 0.75, active: 0.2, recover: 0.7, cooldown: 6,
+		minRange: 0, maxRange: 110, damage: 24, knockback: 520, melee: true, heavy: false, chance: 0.75, radius: 58
+	}),
+	// A cannon forms on the arm and lobs a slow shell that bursts
+	cannon: def({
+		id: 'cannon', name: 'Rage Cannon', band: 'long', tell: 'aim', windup: 0.8, active: 0.2, recover: 0.6, cooldown: 6,
+		minRange: 150, maxRange: 520, damage: 18, knockback: 380, melee: false, heavy: true, chance: 0.7, speed: 380, radius: 62
+	}),
+
+	// ---- Support: not attacks, so they don't wait their turn, and reserves use them too ----
+	// A jagged barrier between it and the Lantern: blocks green shots and beams, lets red ones through
+	redWall: def({
+		id: 'redWall', name: 'Rage Wall', band: 'support', tell: 'build', windup: 0.5, active: 0.1, recover: 0.3, cooldown: 10,
+		minRange: 120, maxRange: 480, damage: 0, knockback: 0, melee: false, heavy: false, chance: 0.7
+	}),
+	// A bubble on a hurt ally (or itself) that soaks up damage
+	redShield: def({
+		id: 'redShield', name: 'Rage Shield', band: 'support', tell: 'build', windup: 0.45, active: 0.1, recover: 0.3, cooldown: 9,
+		minRange: 0, maxRange: 9999, damage: 0, knockback: 0, melee: false, heavy: false, chance: 0.8
+	}),
+	// A spiked turret that shoots at Lanterns until it's broken or burns out
+	redTurret: def({
+		id: 'redTurret', name: 'Rage Turret', band: 'support', tell: 'build', windup: 0.7, active: 0.1, recover: 0.4, cooldown: 16,
+		minRange: 180, maxRange: 700, damage: 0, knockback: 0, melee: false, heavy: false, chance: 0.6
+	}),
+
 	// ---- Bleez ----
 	// Rises on her wings, then dives straight through whoever's in the way
 	swoop: def({
@@ -212,14 +254,14 @@ export const ABILITY_LIST = (Object.keys(ABILITIES) as AbilityId[]).filter(
 	(id) => !MACHINE_ABILITIES.includes(id) && !SIGNATURE_ABILITIES.includes(id)
 );
 
-/** Which bands each role's kit is built from ('any' = a random band). */
+/** Which bands each role's kit is built from ('any' = a random fighting band). Everyone gets one support construct. */
 const KIT_PLAN: Record<Role, (Band | 'any')[]> = {
-	berserker: ['close', 'close', 'mid', 'any'],
-	hunter: ['close', 'mid', 'long', 'any'],
-	gunner: ['long', 'long', 'mid', 'any']
+	berserker: ['close', 'close', 'mid', 'any', 'support'],
+	hunter: ['close', 'mid', 'long', 'any', 'support'],
+	gunner: ['long', 'long', 'mid', 'any', 'support']
 };
 
-/** A random kit of four different constructs that suits the role. */
+/** A random kit of five different constructs that suits the role: four to fight with, one to support. */
 export function randomKit(role: Role, rand = Math.random): AbilityId[] {
 	const kit: AbilityId[] = [];
 	const bands: Band[] = ['close', 'mid', 'long'];
@@ -249,14 +291,24 @@ const BEAM_TICK = 0.36;
 const BEAM_TURN_RATE = 1.4;
 const SKULL_TURN_RATE = 2.6;
 const PUDDLE_TICK = 0.4;
+/** Rage Wall size, distance in front, health and lifetime. */
+const RED_WALL_LENGTH = 110;
+const RED_WALL_DISTANCE = 60;
+const RED_WALL_HP = 140;
+const RED_WALL_LIFE = 8;
+/** Rage Shield strength and lifetime. */
+const RED_SHIELD_HP = 90;
+const RED_SHIELD_LIFE = 8;
 /** How high Bleez climbs (0..1 of a slam's height) before a Blood Dive. */
 export const SWOOP_HEIGHT = 0.7;
 /** How high a Rage Slam leap goes, in px (drawing uses this). */
 export const SLAM_HEIGHT = 70;
 
 export interface RedShot {
+	/** Rage Cannon shells: how big the burst is. */
+	radius?: number;
 	/** bolt: Rage Blast · saw · hook: Barbed Chain · spear · skull · plasma: Napalm Vomit · orb: Rage Prison · laser: machines */
-	kind: 'bolt' | 'saw' | 'hook' | 'spear' | 'skull' | 'plasma' | 'orb' | 'laser';
+	kind: 'bolt' | 'saw' | 'hook' | 'spear' | 'skull' | 'plasma' | 'orb' | 'laser' | 'shell';
 	owner: Enemy;
 	x: number;
 	y: number;
@@ -422,7 +474,104 @@ export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Play
 		case 'pulse':
 			pulse(e, a, w, players);
 			break;
+		case 'axe':
+			cleave(e, a, w, players);
+			break;
+		case 'mace': {
+			const x = e.x + b.aimX * 55;
+			const y = e.y + b.aimY * 55;
+			areaHit(e, a, w, players, x, y, a.radius ?? 58, 50, 80);
+			w.effects.push({ kind: 'redMace', x: e.x, y: e.y, age: 0, life: 0.4, angle: Math.atan2(b.aimY, b.aimX), value: 55, radius: a.radius, lift: 40 });
+			w.effects.push({ kind: 'redBlast', x, y, age: 0, life: 0.45, radius: a.radius });
+			break;
+		}
+		case 'cannon': {
+			const shell = fire(e, w, 'shell', a, b.aimX, b.aimY);
+			shell.radius = a.radius;
+			break;
+		}
+		case 'redWall':
+			raiseWall(e, w, players);
+			break;
+		case 'redShield':
+			shieldAlly(e, w);
+			break;
+		case 'redTurret':
+			buildTurret(e, w);
+			break;
 	}
+}
+
+/** Rage Axe: everything in a wide arc in front. */
+function cleave(e: Enemy, a: AbilityDef, w: ConstructWorld, players: readonly Player[]) {
+	const b = e.brain;
+	const r = a.radius ?? 100;
+	for (const p of players) {
+		if (p.downed) continue;
+		const dx = p.x - e.x;
+		const dy = p.y - e.y;
+		const d = Math.hypot(dx, dy);
+		if (d > r + 10) continue;
+		if (d > 14 && (dx * b.aimX + dy * b.aimY) / d < 0.25) continue; // about 75 degrees either side
+		damagePlayer(w, p, power(e, a), e.x, e.y, a.knockback);
+	}
+	for (const t of w.turrets) if (Math.hypot(t.x - e.x, t.y - e.y) <= r) t.hp -= 40;
+	for (const o of wallsNear(w, e.x + b.aimX * r * 0.5, e.y + b.aimY * r * 0.5, r * 0.6)) damageWall(w, o, 60);
+	w.effects.push({ kind: 'redAxe', x: e.x, y: e.y, age: 0, life: 0.4, angle: Math.atan2(b.aimY, b.aimX), radius: r, lift: 40 });
+}
+
+/** Rage Wall: a jagged barrier across the line to the Lantern. Not on top of anyone. */
+function raiseWall(e: Enemy, w: ConstructWorld, players: readonly Player[]) {
+	const b = e.brain;
+	const cx = e.x + b.aimX * RED_WALL_DISTANCE;
+	const cy = e.y + b.aimY * RED_WALL_DISTANCE;
+	const across = Math.abs(b.aimX) >= Math.abs(b.aimY);
+	const ww = across ? 16 : RED_WALL_LENGTH;
+	const wh = across ? RED_WALL_LENGTH : 16;
+	const hp = RED_WALL_HP * b.might;
+	const wall: Obstacle = {
+		kind: 'redWall',
+		x: cx - ww / 2,
+		y: cy - wh / 2,
+		w: ww,
+		h: wh,
+		height: 50,
+		blocksFlying: false,
+		seed: Math.random(),
+		hp,
+		maxHp: hp,
+		life: RED_WALL_LIFE,
+		maxLife: RED_WALL_LIFE
+	};
+	if (players.some((p) => boxOverlap(p.x, p.y, 10, 6, wall))) return;
+	w.obstacles.push(wall);
+	w.effects.push({ kind: 'roar', x: cx, y: cy, age: 0, life: 0.35, radius: RED_WALL_LENGTH / 2, lift: 20 });
+}
+
+/** Rage Shield on the ally it picked (itself if none). */
+function shieldAlly(e: Enemy, w: ConstructWorld) {
+	const b = e.brain;
+	const ally = b.ally && isStanding(b.ally) ? b.ally : e;
+	const hp = RED_SHIELD_HP * b.might;
+	ally.ward = { hp, maxHp: hp, life: RED_SHIELD_LIFE };
+	b.ally = null;
+	w.effects.push({ kind: 'roar', x: ally.x, y: ally.y, age: 0, life: 0.4, radius: 40, lift: 36 });
+}
+
+/** Rage Turret: a static enemy of its own, just ahead of the builder. */
+function buildTurret(e: Enemy, w: ConstructWorld) {
+	const b = e.brain;
+	let x = e.x + b.aimX * 45 - b.aimY * 30;
+	let y = e.y + b.aimY * 45 + b.aimX * 30;
+	if (w.obstacles.some((o) => boxOverlap(x, y, 14, 8, o))) {
+		x = e.x;
+		y = e.y + 20;
+	}
+	const t = createEnemy('rageTurret', x, y);
+	t.brain.might = b.might;
+	t.brain.target = b.target;
+	w.dummies.push(t);
+	w.effects.push({ kind: 'roar', x, y, age: 0, life: 0.5, radius: 50, lift: 20 });
 }
 
 /** One tick of a construct in use. Returns true when it's finished. */
@@ -879,13 +1028,19 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 	s.travelled += Math.hypot(s.vx, s.vy) * dt;
 	s.life -= dt;
 	if (s.life <= 0) {
+		if (s.kind === 'shell') shellBurst(w, s, players);
 		// Plasma that falls short splatters into a burning puddle
 		if (s.kind === 'plasma' && Math.random() < 0.3) addPuddle(w, s.x, s.y, 24, s.damage * 1.6);
 		return false;
 	}
 
 	// Solid things. Energy walls take the hit (and stop it); saws bounce back once.
-	const solid = w.obstacles.find((o) => !s.ignore.includes(o) && boxOverlap(s.x, s.y, 3, 3, o));
+	// Their own Rage Walls let red shots through.
+	const solid = w.obstacles.find((o) => o.kind !== 'redWall' && !s.ignore.includes(o) && boxOverlap(s.x, s.y, 3, 3, o));
+	if (solid && s.kind === 'shell') {
+		shellBurst(w, s, players);
+		return false;
+	}
 	if (solid) {
 		if (solid.kind === 'wall') damageWall(w, solid, s.kind === 'saw' ? s.damage * 2.5 : s.damage);
 		impact(w, s);
@@ -908,6 +1063,10 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 
 	for (const t of w.turrets) {
 		if (Math.hypot(t.x - s.x, t.y - s.y) > 16) continue;
+		if (s.kind === 'shell') {
+			shellBurst(w, s, players);
+			return false;
+		}
 		t.hp -= s.damage;
 		impact(w, s);
 		if (s.kind !== 'saw') return false;
@@ -916,6 +1075,10 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 	for (const p of players) {
 		if (p.downed || s.hit.includes(p)) continue;
 		if (Math.hypot(p.x - s.x, p.y - s.y) > PLAYER_HIT_RADIUS) continue;
+		if (s.kind === 'shell') {
+			shellBurst(w, s, players);
+			return false;
+		}
 		const shielded = w.shields.some((sh) => sh.target === p) || inFortress(w, p.x, p.y);
 		switch (s.kind) {
 			case 'saw':
@@ -941,6 +1104,17 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 		return false;
 	}
 	return true;
+}
+
+/** A Rage Cannon shell bursts: hurts every Lantern, turret and energy wall in the blast. */
+function shellBurst(w: ConstructWorld, s: RedShot, players: readonly Player[]) {
+	const r = s.radius ?? 60;
+	for (const p of players) {
+		if (!p.downed && Math.hypot(p.x - s.x, p.y - s.y) <= r + 10) damagePlayer(w, p, s.damage, s.x, s.y, s.knockback);
+	}
+	for (const t of w.turrets) if (Math.hypot(t.x - s.x, t.y - s.y) <= r + 10) t.hp -= 45;
+	for (const o of wallsNear(w, s.x, s.y, r)) damageWall(w, o, 70);
+	w.effects.push({ kind: 'redBlast', x: s.x, y: s.y, age: 0, life: 0.55, radius: r });
 }
 
 function startReturn(s: RedShot) {

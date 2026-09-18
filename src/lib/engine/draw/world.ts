@@ -5,6 +5,7 @@
 // footprint on the ground; we draw its ROOF lifted up by `height`, and a
 // FRONT FACE filling the gap. That gives a simple 3/4 look.
 
+import { drawRageWall } from './redConstructs';
 import type { Obstacle } from '../map';
 
 /** The part of the world currently on screen, in world coordinates. */
@@ -129,6 +130,8 @@ export function drawObstacle(ctx: CanvasRenderingContext2D, o: Obstacle, time = 
 			return drawAsteroid(ctx, o);
 		case 'wall':
 			return space ? drawForceField(ctx, o, time) : drawEnergyWall(ctx, o, time);
+		case 'redWall':
+			return drawRageWall(ctx, o, time);
 	}
 }
 

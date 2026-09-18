@@ -119,7 +119,7 @@ export function drawCreature(ctx: CanvasRenderingContext2D, e: Enemy, x: number,
 		const [hx, hy] = HANDS[b.role];
 		const k = a.windup;
 		if (winding === 'saw') drawSaw(ctx, hx, hy, 2 + k * 5, time * 20);
-		else if (tell === 'aim') drawOrb(ctx, hx, hy, 1.5 + k * 3.5, time);
+		else if (tell === 'aim' || tell === 'build') drawOrb(ctx, hx, hy, 1.5 + k * 3.5, time);
 		else if (tell === 'sky') drawOrb(ctx, 0, -58 - k * 4, 2 + k * 5, time);
 	}
 	ctx.restore();

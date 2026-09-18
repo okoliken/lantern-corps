@@ -54,8 +54,8 @@ export interface EnemyDef {
 	scale: number;
 	/** How good it is at sidestepping shots (0 never, 1 as often as its personality allows). */
 	agility: number;
-	/** Hovers and moves any way like a Lantern, or flies like a ship: always forward, turning. */
-	movement: 'hover' | 'ship';
+	/** Hovers and moves any way like a Lantern, flies like a ship (always forward, turning), or stays put (a turret). */
+	movement: 'hover' | 'ship' | 'static';
 	/** A fixed kit. Without one it's a Rage Grunt: its ROLE picks the kit, range and leanings. */
 	kit?: AbilityId[];
 	/** Favourite fighting distance (enemies with a fixed kit). */
@@ -68,6 +68,8 @@ export interface EnemyDef {
 	lieutenant?: boolean;
 	/** Transforms into a bigger, angrier form once this hurt (0..1). */
 	transformAt?: number;
+	/** Burns out after this many seconds (built constructs, like a Rage Turret). */
+	lifetime?: number;
 }
 
 export const ENEMIES: Record<EnemyKind, EnemyDef> = {
@@ -145,7 +147,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		scale: 1.25,
 		agility: 0.2,
 		movement: 'hover',
-		kit: ['vomit', 'slam', 'blast', 'spikes'],
+		kit: ['vomit', 'slam', 'blast', 'spikes', 'redTurret'],
 		range: 190,
 		leans: { aggression: 0.25, patience: -0.1 },
 		lieutenant: true
@@ -165,7 +167,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		scale: 1.3,
 		agility: 0.1,
 		movement: 'hover',
-		kit: ['charge', 'claws', 'roar', 'slam'],
+		kit: ['charge', 'claws', 'roar', 'slam', 'mace'],
 		range: 150,
 		leans: { aggression: 0.4, caution: -0.3 },
 		lieutenant: true,
@@ -186,10 +188,30 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		scale: 1.05,
 		agility: 1,
 		movement: 'hover',
-		kit: ['swoop', 'spears', 'claws', 'cage'],
+		kit: ['swoop', 'spears', 'claws', 'cage', 'redShield'],
 		range: 240,
 		leans: { caution: 0.3, aggression: 0.2 },
 		lieutenant: true
+	},
+
+	// Built by a Red Lantern (the Rage Turret construct): stays put, shoots, burns out
+	rageTurret: {
+		kind: 'rageTurret',
+		name: 'Rage Turret',
+		faction: 'red',
+		description: 'A spiked red turret a Red Lantern built. It fires rage bolts at the nearest Lantern until it is broken or burns out.',
+		mind: 'rage',
+		hp: 90,
+		speed: 0,
+		accel: 20,
+		sight: 520,
+		poise: 999,
+		scale: 1,
+		agility: 0,
+		movement: 'static',
+		kit: ['blast'],
+		range: 420,
+		lifetime: 14
 	}
 };
 
@@ -246,6 +268,8 @@ export const ROLE_LIST: Role[] = ['berserker', 'hunter', 'gunner'];
 
 /** How many enemies can be in close, clawing, on one Lantern at a time. */
 export const MELEE_SLOTS = 2;
+/** Rage Turrets out at once, across the whole pack. */
+export const MAX_RED_TURRETS = 2;
 /** Enemies closer than this push apart, so a pack surrounds you instead of stacking. */
 export const ENEMY_SPACING = 34;
 
@@ -349,6 +373,11 @@ export interface EnemyBrain {
 	/** Transformed into its bigger form (Skallox), and how far into it (0..1, for drawing). */
 	transformed: boolean;
 	form: number;
+
+	/** The ally it's about to put a Rage Shield on. */
+	ally: Enemy | null;
+	/** Seconds before it burns out (built constructs); Infinity for everyone else. */
+	lifeLeft: number;
 
 	// ---- Ships (ships.ts) ----
 	/** Which way the ship's nose points (radians). */
@@ -462,6 +491,8 @@ export function createEnemy(
 			clock: rand() * 100,
 			squad: 'assault',
 			squadTime: 0,
+			ally: null,
+			lifeLeft: def.lifetime ?? Infinity,
 			transformed: false,
 			form: 0,
 			heading: Math.PI,
@@ -541,6 +572,15 @@ function think(
 		if (b.state === 'windup') interrupt(e, w, 0.45);
 	}
 
+	// Built constructs burn out
+	b.lifeLeft -= dt;
+	if (b.lifeLeft <= 0) {
+		e.hp = 0;
+		e.down = 0.5;
+		w.effects.push({ kind: 'redImpact', x: e.x, y: e.y, age: 0, life: 0.4, lift: 30 });
+		return;
+	}
+
 	// Hurt enough: transform (Skallox). A moment of roaring, then bigger, faster, stronger.
 	if (def.transformAt !== undefined && !b.transformed && b.hurt >= def.transformAt) transform(e, w);
 	if (b.transformed) b.form = Math.min(1, b.form + dt * 1.5);
@@ -564,7 +604,8 @@ function think(
 
 	switch (b.state) {
 		case 'idle': {
-			wander(e, dt);
+			if (def.movement === 'static') steer(e, 0, 0, def.accel, dt);
+			else wander(e, dt);
 			if (t) {
 				b.state = 'move';
 				b.goalTimer = 0;
@@ -577,9 +618,14 @@ function think(
 				b.engaged = false;
 				break;
 			}
-			if (b.goalTimer <= 0) chooseGoal(e, t, pack, w);
-			navigate(e, t, dt, w);
-			tryDodge(e, w);
+			if (def.movement === 'static') {
+				e.vx = e.vy = 0;
+				face(e, t.x - e.x);
+			} else {
+				if (b.goalTimer <= 0) chooseGoal(e, t, pack, w);
+				navigate(e, t, dt, w);
+				tryDodge(e, w);
+			}
 			b.think -= dt;
 			// In close, react fast; otherwise on its own personal clock
 			const close = b.engaged && Math.hypot(t.x - e.x, t.y - e.y) < 90;
@@ -664,8 +710,11 @@ function decide(
 		if (holders < MELEE_SLOTS) b.engaged = true;
 	}
 
-	// Can't see them: nothing to aim at. Held in reserve: wait to be sent in.
-	if (!b.sees || b.squad === 'reserve') return;
+	if (!b.sees) return;
+	// Shields, walls and turrets aren't attacks: no turn needed, and reserves use them too
+	if (trySupport(e, t, pack, dist)) return;
+	// Held in reserve: wait to be sent in
+	if (b.squad === 'reserve') return;
 
 	const me = attackers.find((a) => a.e === e) ?? { target: t, attack: null };
 	const range = rangeOf(e);
@@ -674,7 +723,7 @@ function decide(
 	let blocked = false;
 	for (const id of order) {
 		const a = ABILITIES[id];
-		if (b.cooldowns[id] > 0) continue;
+		if (a.band === 'support' || b.cooldowns[id] > 0) continue;
 		if (dist < a.minRange || dist > a.maxRange + DUMMY_HALF_W) continue;
 		if (a.melee && !b.engaged) continue;
 		// Ranged fighters with nothing for close up back off to their range before shooting
@@ -700,6 +749,39 @@ function decide(
 		b.goal = 'flank';
 		b.goalTimer = 1.2 + Math.random();
 	}
+}
+
+/**
+ * Support constructs, when they'd help:
+ *  - Rage Shield on an ally who's getting hurt (or itself),
+ *  - Rage Wall when it's being shot at from range,
+ *  - Rage Turret when it's at a distance and there aren't many out already.
+ */
+function trySupport(e: Enemy, t: Player, pack: readonly Enemy[], dist: number): boolean {
+	const b = e.brain;
+	for (const id of b.kit) {
+		const a = ABILITIES[id];
+		if (a.band !== 'support' || b.cooldowns[id] > 0) continue;
+		if (dist < a.minRange || dist > a.maxRange) continue;
+		let worth = false;
+		if (id === 'redShield') {
+			const underFire = (o: Enemy) => !o.ward && o.brain.sinceHit < 1.5 && (o.brain.hurt > 0.2 || o.brain.squad === 'assault');
+			const ally = pack
+				.filter((o) => o.kind !== 'rageTurret' && Math.hypot(o.x - e.x, o.y - e.y) < 320 && underFire(o))
+				.sort((x, y) => y.brain.hurt - x.brain.hurt)[0];
+			b.ally = ally ?? null;
+			worth = ally !== undefined;
+		} else if (id === 'redWall') {
+			worth = b.sinceHit < 1.5 || (b.goal === 'hold' && Math.random() < 0.25);
+		} else if (id === 'redTurret') {
+			worth = pack.filter((o) => o.kind === 'rageTurret').length < MAX_RED_TURRETS;
+		}
+		if (!worth || Math.random() > a.chance) continue;
+		b.uses[id]++;
+		beginWindup(e, id, t);
+		return true;
+	}
+	return false;
 }
 
 /** Aimed constructs need a clear line; area and self-centred ones don't. */
@@ -794,12 +876,19 @@ function separate(pack: readonly Enemy[], dt: number) {
 				dy = Math.sin(i * 2.4 + j);
 				dist = 1;
 			}
-			// Push harder the more they overlap (a soft spring, not a hard wall)
+			// Push harder the more they overlap (a soft spring, not a hard wall).
+			// Turrets are built into the ground: only the other one moves.
 			const push = (want - dist) * 90 * dt;
-			a.vx -= (dx / dist) * push;
-			a.vy -= (dy / dist) * push;
-			c.vx += (dx / dist) * push;
-			c.vy += (dy / dist) * push;
+			const aFixed = ENEMIES[a.kind].movement === 'static';
+			const cFixed = ENEMIES[c.kind].movement === 'static';
+			if (!aFixed) {
+				a.vx -= (dx / dist) * push * (cFixed ? 2 : 1);
+				a.vy -= (dy / dist) * push * (cFixed ? 2 : 1);
+			}
+			if (!cFixed) {
+				c.vx += (dx / dist) * push * (aFixed ? 2 : 1);
+				c.vy += (dy / dist) * push * (aFixed ? 2 : 1);
+			}
 		}
 	}
 }

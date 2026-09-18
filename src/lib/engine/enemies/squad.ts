@@ -45,8 +45,8 @@ const ALL_IN_TIME = 4;
 const ALL_IN_HEALTH = 0.3;
 const ROTATE_EVERY = 8;
 
-/** Enemies that always fight and don't take up a squad place's worth of waiting. */
-const leadsFromFront = (e: Enemy) => ENEMIES[e.kind].lieutenant === true || ENEMIES[e.kind].movement === 'ship';
+/** Enemies that always fight, and don't take one of the squad's places. */
+const leadsFromFront = (e: Enemy) => ENEMIES[e.kind].lieutenant === true || ENEMIES[e.kind].movement !== 'hover';
 
 export function assaultSize(players: readonly Player[]): number {
 	const up = players.filter((p) => !p.downed).length;
@@ -99,8 +99,9 @@ export function updateSquads(pack: readonly Enemy[], players: readonly Player[],
 	};
 
 	// Too many attacking (a fresh pack arriving): the least suited wait
+	// Lieutenants, ships and turrets fight on top of the squad, not instead of it
 	const movable = assault.filter((e) => !leadsFromFront(e)).sort((a, b) => score(a) - score(b));
-	let count = assault.length;
+	let count = movable.length;
 	for (const e of movable) {
 		if (count <= size) break;
 		if (e.brain.state === 'windup' || e.brain.state === 'act') continue; // finish what it started

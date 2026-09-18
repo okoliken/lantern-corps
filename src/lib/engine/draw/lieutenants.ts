@@ -95,7 +95,7 @@ export function drawLieutenant(ctx: CanvasRenderingContext2D, e: Enemy, x: numbe
 
 	if (!defeated) {
 		const [hx, hy] = HANDS[e.kind as 'zox' | 'skallox'];
-		if (tell === 'aim') orb(ctx, hx, hy, 1.5 + k * 4, time);
+		if (tell === 'aim' || tell === 'build') orb(ctx, hx, hy, 1.5 + k * 4, time);
 		else if (tell === 'sky') orb(ctx, 0, -66 - k * 4, 2 + k * 5, time);
 	}
 	ctx.restore();
@@ -566,7 +566,7 @@ function drawBleez(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number
 	segment(ctx, sk.front.shoulder, sk.front.elbow, 2.3, 2, flash ? '#ffffff' : BLACK_LIT);
 	segment(ctx, sk.front.elbow, sk.front.hand, 2, 1.7, flash ? '#ffffff' : RED_SUIT);
 	ring(ctx, sk.front.hand[0], sk.front.hand[1]);
-	if (!defeated && tell === 'aim') orb(ctx, sk.front.hand[0], sk.front.hand[1], 1.5 + k * 3, time);
+	if (!defeated && (tell === 'aim' || tell === 'build')) orb(ctx, sk.front.hand[0], sk.front.hand[1], 1.5 + k * 3, time);
 	// Claws flare on a slash
 	if (!defeated && (winding === 'claws' || acting === 'claws')) {
 		ctx.save();

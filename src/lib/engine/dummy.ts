@@ -19,7 +19,7 @@ export const DUMMY_RESPAWN = 3;
 export const DEFEAT_LINGER = 0.9;
 
 /** What kind of target: a training dummy, or which enemy. */
-export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez';
+export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret';
 
 export interface Dummy {
 	kind: TargetKind;
@@ -48,6 +48,8 @@ export interface Dummy {
 	gone: boolean;
 	/** Which way it faces: 1 right, -1 left. */
 	dir: 1 | -1;
+	/** A Red Lantern's Rage Shield around it: soaks up damage until broken or expired. */
+	ward?: { hp: number; maxHp: number; life: number };
 }
 
 export function createDummy(x: number, y: number): Dummy {
@@ -83,8 +85,16 @@ export function isStanding(d: Dummy): boolean {
  */
 export function hitDummy(d: Dummy, damage: number, knockback: number, fromX: number, fromY: number): boolean {
 	if (!isStanding(d)) return false;
-	d.hp -= damage;
 	d.flash = 0.12;
+	// A Rage Shield takes the hit first (and the knockback)
+	if (d.ward) {
+		const absorbed = Math.min(d.ward.hp, damage);
+		d.ward.hp -= absorbed;
+		damage -= absorbed;
+		if (d.ward.hp <= 0) d.ward = undefined;
+		if (damage <= 0) return false;
+	}
+	d.hp -= damage;
 
 	// Caged targets can't be knocked around; that's the point of the cage.
 	if (knockback > 0 && d.caged === 0) {
@@ -114,6 +124,7 @@ export function updateDummy(d: Dummy, dt: number, solids: readonly Solid[], fric
 	d.prevX = d.x;
 	d.prevY = d.y;
 	d.flash = Math.max(0, d.flash - dt);
+	if (d.ward && (d.ward.life -= dt) <= 0) d.ward = undefined;
 
 	if (!isStanding(d)) {
 		if (d.gone) return;

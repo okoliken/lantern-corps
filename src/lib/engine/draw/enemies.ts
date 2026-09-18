@@ -15,6 +15,7 @@ import { segment, poly } from './lantern';
 import { creatureHand, drawCreature } from './creatures';
 import { drawLieutenant, isLieutenantKind, lieutenantHand, lieutenantTop } from './lieutenants';
 import { drawManhunterDrone, drawRedFighter, machineMuzzle } from './machines';
+import { axePath, drawRageTurret, drawWard, macePath, rage, rageCannonPath } from './redConstructs';
 
 const RED = '#ff2a2a';
 const RED_DEEP = '#7a0b0b';
@@ -56,6 +57,11 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, y - RED_HAND_LIFT - 30, machineMuzzle(e, x, y), time);
 		return;
 	}
+	if (e.kind === 'rageTurret') {
+		drawRageTurret(ctx, e, x, y, hasGround, time);
+		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, y - 78, [x + e.brain.aimX * 26, y - RED_HAND_LIFT], time);
+		return;
+	}
 	if (isLieutenantKind(e.kind)) {
 		drawLieutenant(ctx, e, x, y, hasGround, time);
 		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, lieutenantTop(e, y), lieutenantHand(e, x, y), time);
@@ -72,6 +78,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 /** Where an enemy's projectiles, beams and chains come from, in world coordinates. */
 export function enemyMuzzle(e: Enemy, x: number, y: number): [number, number] {
 	if (e.kind === 'manhunterDrone' || e.kind === 'redFighter') return machineMuzzle(e, x, y);
+	if (e.kind === 'rageTurret') return [x + e.brain.aimX * 26, y - RED_HAND_LIFT];
 	if (isLieutenantKind(e.kind)) return lieutenantHand(e, x, y);
 	return creatureHand(e, x, y);
 }
@@ -214,6 +221,38 @@ function drawEnemyOverlay(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 	const progress = windupProgress(e);
 	const color = def.faction === 'manhunter' ? '#ffb040' : RED;
 
+	// A Rage Shield around it
+	if (e.ward) drawWard(ctx, x, (y + top) / 2 + 4, (y - top) * 0.5, e.ward.hp / e.ward.maxHp, time);
+
+	// Weapon constructs forming in the hand during the windup
+	if (winding === 'axe' || winding === 'mace' || winding === 'cannon') {
+		const [hx, hy] = muzzle;
+		ctx.save();
+		ctx.translate(hx, hy);
+		ctx.globalAlpha = 0.4 + 0.6 * progress;
+		const aimAngle = Math.atan2(b.aimY, b.aimX);
+		if (winding === 'cannon') {
+			ctx.rotate(aimAngle);
+			if (b.aimX < 0) ctx.scale(1, -1);
+			ctx.scale(0.5 + 0.5 * progress, 0.5 + 0.5 * progress);
+			rage(ctx, rageCannonPath(), time);
+		} else {
+			// Raised back over the shoulder, ready to swing
+			ctx.scale(e.dir, 1);
+			ctx.rotate(-Math.PI / 2 - 0.6 * progress);
+			if (winding === 'axe') rage(ctx, axePath(40 * (0.5 + 0.5 * progress)), time);
+			else {
+				const handle = new Path2D();
+				handle.moveTo(0, 0);
+				handle.lineTo(34, 0);
+				rage(ctx, handle, time, 2.5);
+				ctx.translate(36, 0);
+				rage(ctx, macePath(10 * (0.5 + 0.5 * progress)), time);
+			}
+		}
+		ctx.restore();
+	}
+
 	// Ranged tells: an aim line in the last part of the windup (that's when the aim locks)
 	if ((windTell === 'aim' || winding === 'charge') && progress > 0.4) {
 		const [ox, oy] = muzzle;
@@ -225,7 +264,7 @@ function drawEnemyOverlay(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 		ctx.lineDashOffset = -time * 40;
 		ctx.beginPath();
 		ctx.moveTo(ox, oy);
-		const long: (typeof winding)[] = ['beam', 'spikes', 'charge', 'sweep', 'strafe', 'eyeLaser'];
+		const long: (typeof winding)[] = ['beam', 'spikes', 'charge', 'sweep', 'strafe', 'eyeLaser', 'cannon'];
 		const reach = long.includes(winding) ? 260 : 120;
 		ctx.lineTo(ox + b.aimX * reach, oy + b.aimY * reach);
 		ctx.stroke();

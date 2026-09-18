@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DOWNED_TIME, HIT_INVULN, damagePlayer, revivePlayer, updatePlayerCombat } from '../combat';
-import { createConstructWorld, type ConstructWorld } from '../constructs/system';
-import { isStanding, updateDummy } from '../dummy';
+import { createConstructWorld, updateConstructWorld, updatePlayerConstructs, type ConstructWorld } from '../constructs/system';
+import { hitDummy, isStanding, updateDummy } from '../dummy';
 import { IDLE } from '../input';
 import { LANTERNS } from '../lanterns';
 import { createPlayer, updatePlayer, type Player } from '../player';
@@ -660,5 +660,104 @@ describe('squads: a big pack takes turns', () => {
 		const john = createPlayer(1, LANTERNS.john, { read: () => IDLE }, 80, 0);
 		run(w, [hal, john], 2, () => (hal.invuln = john.invuln = 1));
 		expect(pack.filter((e) => e.brain.squad === 'assault').length).toBe(ASSAULT_SIZE + ASSAULT_PER_EXTRA_LANTERN);
+	});
+});
+
+describe('Red Lanterns build constructs too', () => {
+	it('Rage Wall: a barrier that stops green shots but lets red shots through', () => {
+		const e = grunt(300, 0, 'gunner');
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		force(e, 'redWall', p);
+		run(w, [p], 0.1);
+		const wall = w.obstacles.find((o) => o.kind === 'redWall');
+		expect(wall).toBeDefined();
+		// A green bolt from the Lantern toward the enemy hits the wall
+		updatePlayerConstructs(p, { ...IDLE, shot: true }, DT, w);
+		const hpBefore = wall!.hp!;
+		for (let i = 0; i < 40; i++) updateConstructWorld(w, DT);
+		expect(wall!.hp).toBeLessThan(hpBefore);
+		expect(e.hp).toBe(e.maxHp);
+		// A red bolt the other way passes straight through
+		force(e, 'blast', p);
+		run(w, [p], 0.8);
+		expect(p.health).toBeLessThan(p.maxHealth);
+	});
+
+	it('Rage Shield on an ally soaks up damage', () => {
+		const caster = grunt(300, 0, 'gunner');
+		const ally = grunt(260, 60, 'berserker');
+		ally.hp = ally.maxHp * 0.6;
+		ally.brain.lastHp = ally.hp;
+		ally.brain.sinceHit = 0.2;
+		const w = createConstructWorld([], [caster, ally]);
+		const p = lantern();
+		caster.brain.ally = ally;
+		force(caster, 'redShield', p);
+		run(w, [p], 0.05);
+		expect(ally.ward).toBeDefined();
+		const hp = ally.hp;
+		hitDummy(ally, 30, 0, 0, 0);
+		expect(ally.hp).toBe(hp);
+	});
+
+	it('Rage Turret: builds a turret that shoots at the Lantern, then burns out', () => {
+		const e = grunt(400, 0, 'gunner');
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		force(e, 'redTurret', p);
+		run(w, [p], 0.1);
+		const turret = w.dummies.find((d) => d.kind === 'rageTurret') as Enemy;
+		expect(turret).toBeDefined();
+		const where = [turret.x, turret.y];
+		run(w, [p], 5, () => (p.invuln = 0));
+		expect([turret.x, turret.y]).toEqual(where); // it doesn't move
+		expect(p.health).toBeLessThan(p.maxHealth);
+		run(w, [p], 12);
+		expect(isStanding(turret)).toBe(false);
+	});
+
+	it('Rage Cannon shell bursts and hurts everyone near where it lands', () => {
+		const e = grunt(300, 0, 'gunner');
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		const q = createPlayer(1, LANTERNS.john, { read: () => IDLE }, 0, 40);
+		force(e, 'cannon', p);
+		run(w, [p, q], 1.2);
+		expect(p.health).toBeLessThan(p.maxHealth);
+		expect(q.health).toBeLessThan(q.maxHealth);
+	});
+
+	it('Rage Axe cleaves in front, not behind', () => {
+		const e = grunt(0, 0, 'berserker');
+		const w = createConstructWorld([], [e]);
+		const front = lantern(60, 0);
+		const behind = createPlayer(1, LANTERNS.john, { read: () => IDLE }, -60, 0);
+		force(e, 'axe', front);
+		run(w, [front, behind], 0.05);
+		expect(front.health).toBeLessThan(front.maxHealth);
+		expect(behind.health).toBe(behind.maxHealth);
+	});
+
+	it('reserves help from the back: shielding the attackers who are getting hurt', () => {
+		const pack = [0, 1, 2, 3, 4, 5].map((i) => grunt(Math.cos(i) * 300, Math.sin(i) * 300, 'gunner'));
+		for (const e of pack) e.brain.kit = ['blast', 'redShield'];
+		const w = createConstructWorld([], pack);
+		const p = lantern();
+		let shielded = false;
+		run(w, [p], 6, () => {
+			p.invuln = 1;
+			p.health = p.maxHealth;
+			// The Lantern keeps shooting whoever is attacking
+			for (const e of pack) {
+				if (e.brain.squad === 'assault' && isStanding(e)) {
+					e.brain.sinceHit = 0;
+					if (e.hp > e.maxHp * 0.5) e.hp -= 0.4;
+				}
+				if (e.ward && e.brain.squad === 'assault') shielded = true;
+			}
+		});
+		expect(shielded).toBe(true);
+		expect(pack.some((e) => e.brain.squad === 'reserve' && e.brain.uses.redShield > 0)).toBe(true);
 	});
 });

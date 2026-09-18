@@ -32,11 +32,12 @@ const spec: SceneSpec = {
 };
 
 describe('random kits', () => {
-	it('gives four different constructs', () => {
+	it('gives five different constructs, one of them a support construct (wall, shield or turret)', () => {
 		for (let i = 0; i < 50; i++) {
 			const kit = randomKit('hunter');
-			expect(kit).toHaveLength(4);
-			expect(new Set(kit).size).toBe(4);
+			expect(kit).toHaveLength(5);
+			expect(kit.filter((id) => ABILITIES[id].band === 'support')).toHaveLength(1);
+			expect(new Set(kit).size).toBe(5);
 		}
 	});
 
@@ -64,10 +65,11 @@ describe('scenes', () => {
 
 	it('waits for its intro, sends every pack with random kits and might, and wraps up with a win', () => {
 		const { director, seen } = play(spec, 90);
-		const enemies = [...seen].filter((d) => isEnemy(d as never)) as ReturnType<Game['spawnEnemy']>[];
+		// (Rage Turrets they build don't count: they aren't part of the packs)
+		const enemies = [...seen].filter((d) => isEnemy(d as never) && (d as { kind: string }).kind !== 'rageTurret') as ReturnType<Game['spawnEnemy']>[];
 		expect(enemies).toHaveLength(4);
 		for (const e of enemies) {
-			expect(e.brain.kit).toHaveLength(4);
+			expect(e.brain.kit).toHaveLength(5);
 			expect(e.brain.might).toBe(1.3);
 		}
 		expect(director.done).toBe(true);

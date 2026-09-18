@@ -152,6 +152,8 @@ export interface Effect {
 		| 'scythe'
 		| 'spikeBurst'
 		| 'redTrail'
+		| 'redAxe'
+		| 'redMace'
 		// Machines
 		| 'pulse';
 	x: number;
