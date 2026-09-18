@@ -19,6 +19,7 @@ import { boxOverlap, type Solid } from '../physics';
 import type { Player } from '../player';
 import { RESTART_THRESHOLD, canSpend, spend } from '../willpower';
 import type { PressureMap } from '../enemies/director';
+import { createSquadState, type SquadState } from '../enemies/squad';
 import {
 	BUBBLE_SHIELD,
 	HELD_BEHAVIORS,
@@ -217,10 +218,12 @@ export interface ConstructWorld {
 	redTempo: number;
 	/** Whose turn it is to attack each Lantern (enemies/director.ts). */
 	pressure: PressureMap;
+	/** Which enemies attack now and which wait in reserve (enemies/squad.ts). */
+	squad: SquadState;
 }
 
 export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[], space = false): ConstructWorld {
-	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], pillarStrikes: [], effects: [], space, events: [], red: { shots: [], chains: [], strikes: [], puddles: [], beams: [], cages: [] }, redTempo: 1, pressure: new Map() };
+	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], pillarStrikes: [], effects: [], space, events: [], red: { shots: [], chains: [], strikes: [], puddles: [], beams: [], cages: [] }, redTempo: 1, pressure: new Map(), squad: createSquadState() };
 }
 
 // --------------------------------------------------------------- tuning

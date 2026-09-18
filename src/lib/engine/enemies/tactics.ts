@@ -9,6 +9,7 @@
 //   wait        hang back a little: others are already attacking
 //   retreat     back right off (machines, when badly damaged)
 //   investigate go to where it last saw the Lantern
+//   reserve     held back by the squad leader (squad.ts): circle well out of the fight
 // It sticks with a goal for a while (longer if patient), then weighs up again.
 
 import { castBeam } from '../beam';
@@ -19,13 +20,15 @@ import type { Player } from '../player';
 import { ENEMIES, face, rangeOf, roleSpeed, steer, type Enemy } from './enemies';
 import { ABILITIES } from './redConstructs';
 
-export type Goal = 'hold' | 'approach' | 'flank' | 'cover' | 'wait' | 'retreat' | 'investigate';
+export type Goal = 'hold' | 'approach' | 'flank' | 'cover' | 'wait' | 'retreat' | 'investigate' | 'reserve';
 
 /** Seconds it keeps hunting a Lantern it has lost sight of. */
 export const MEMORY = 5;
 /** Spotting a Lantern alerts allies this close (machines share data further). */
 const CALL_RADIUS = 420;
 const MACHINE_CALL_RADIUS = 900;
+/** Reserves circle at least this far from the Lantern. */
+const RESERVE_DISTANCE = 400;
 /** How far from a Lantern's feet an enemy in melee stands (the creatures are big). */
 const MELEE_RING = 48;
 /** Idle enemies drift around their spawn spot, within this distance. */
@@ -121,7 +124,12 @@ export function perceive(e: Enemy, pack: readonly Enemy[], players: readonly Pla
 	if (t !== before) {
 		b.engaged = false;
 		b.goalTimer = 0;
-		if (t && !before) callAllies(e, pack, t);
+		if (t && !before) {
+			callAllies(e, pack, t);
+			// Joining the fight: wait for the squad leader to send it in (squad.ts)
+			b.squad = 'reserve';
+			b.squadTime = 0;
+		}
 	}
 	b.target = t;
 }
@@ -173,6 +181,13 @@ export function chooseGoal(e: Enemy, t: Player, pack: readonly Enemy[], w: Const
 		b.goalX = b.lastSeenX;
 		b.goalY = b.lastSeenY;
 		b.goalTimer = 1;
+		return;
+	}
+
+	// Held back: keep out of it until sent in
+	if (b.squad === 'reserve') {
+		b.goal = 'reserve';
+		b.goalTimer = 1 + Math.random();
 		return;
 	}
 
@@ -250,6 +265,12 @@ export function navigate(e: Enemy, t: Player, dt: number, w: ConstructWorld) {
 	const d = Math.hypot(dx, dy) || 1;
 
 	const ring = (angle: number, r: number): [number, number] => [t.x + Math.cos(angle) * r, t.y + Math.sin(angle) * r];
+	// A spot on the ring, but reached by going round it, never across the middle
+	const around = (angle: number, r: number): [number, number] => {
+		const now = Math.atan2(e.y - t.y, e.x - t.x);
+		const turn = wrap(angle - now);
+		return ring(now + Math.max(-0.5, Math.min(0.5, turn)), r);
+	};
 	let [gx, gy] = [e.x, e.y];
 	let pace = 1;
 
@@ -265,11 +286,11 @@ export function navigate(e: Enemy, t: Player, dt: number, w: ConstructWorld) {
 				break;
 			case 'hold':
 				// Its own spot on a ring around the target, drifting round slowly
-				[gx, gy] = ring(b.orbit + b.strafe * 0.35 + Math.sin(b.clock * 0.4) * 0.3, range * (b.breather > 0 ? 1.15 : 1));
+				[gx, gy] = around(b.orbit + b.strafe * 0.35 + Math.sin(b.clock * 0.4) * 0.3, range * (b.breather > 0 ? 1.15 : 1));
 				pace = 0.7;
 				break;
 			case 'wait':
-				[gx, gy] = ring(b.orbit + b.strafe * 0.2, range * 1.25);
+				[gx, gy] = around(b.orbit + b.strafe * 0.2, range * 1.25);
 				pace = 0.5;
 				break;
 			case 'flank': {
@@ -301,6 +322,11 @@ export function navigate(e: Enemy, t: Player, dt: number, w: ConstructWorld) {
 				[gx, gy] = [b.lastSeenX, b.lastSeenY];
 				pace = 0.8;
 				break;
+			case 'reserve':
+				// Well back, spread round the fight, circling slowly and watching
+				[gx, gy] = around(b.orbit + b.squadTime * 0.1 * b.strafe, Math.max(RESERVE_DISTANCE, range * 1.5));
+				pace = 0.55;
+				break;
 		}
 	}
 
@@ -319,7 +345,7 @@ export function navigate(e: Enemy, t: Player, dt: number, w: ConstructWorld) {
 	steer(e, gd > 0 ? (gdx / gd) * want : 0, gd > 0 ? (gdy / gd) * want : 0, def.accel, dt);
 
 	// Face the Lantern while fighting; otherwise face the way it's going
-	const fighting = b.engaged || d < range * 1.5 || b.goal === 'hold' || b.goal === 'wait' || b.goal === 'cover';
+	const fighting = b.engaged || d < range * 1.5 || b.goal === 'hold' || b.goal === 'wait' || b.goal === 'cover' || b.goal === 'reserve';
 	if (fighting && b.sees) face(e, dx);
 	else if (Math.abs(e.vx) > 20) face(e, e.vx);
 }

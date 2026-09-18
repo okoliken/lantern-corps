@@ -25,6 +25,7 @@ import type { Player } from '../player';
 import { attackStarted, mayAttack, updatePressure, type Attacker } from './director';
 import { ABILITIES, SWOOP_HEIGHT, cancelAbility, startAbility, updateAbility, updateRedConstructs, type AbilityDef, type AbilityId } from './redConstructs';
 import { flyShip } from './ships';
+import { updateSquads, type SquadRole } from './squad';
 import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
 
 export type EnemyKind = Exclude<TargetKind, 'dummy'>;
@@ -340,6 +341,11 @@ export interface EnemyBrain {
 	/** Its own clock, for idle drift and bobbing. */
 	clock: number;
 
+	/** Fighting now, or held back until the squad leader sends it in (squad.ts). */
+	squad: SquadRole;
+	/** Seconds in its current squad role. */
+	squadTime: number;
+
 	/** Transformed into its bigger form (Skallox), and how far into it (0..1, for drawing). */
 	transformed: boolean;
 	form: number;
@@ -454,6 +460,8 @@ export function createEnemy(
 			dodgeIn: rand(),
 			sinceHit: 99,
 			clock: rand() * 100,
+			squad: 'assault',
+			squadTime: 0,
 			transformed: false,
 			form: 0,
 			heading: Math.PI,
@@ -489,6 +497,7 @@ export function enemyLabel(e: Enemy): string {
 export function updateEnemies(w: ConstructWorld, players: readonly Player[], dt: number) {
 	const pack = w.dummies.filter((d): d is Enemy => isEnemy(d) && isStanding(d));
 	updatePressure(w.pressure, players, dt);
+	updateSquads(pack, players, w, dt);
 	const attackers: (Attacker & { e: Enemy })[] = pack.map((e) => ({ e, target: e.brain.target, attack: attackOf(e) }));
 	for (const e of pack) think(e, pack, attackers, w, players, dt);
 	spreadAround(pack);
@@ -650,13 +659,13 @@ function decide(
 	// Melee fighters ask for a spot in close when they mean to go in (or the Lantern is right there)
 	const melee = b.kit.some((id) => ABILITIES[id].melee);
 	const wantsIn = b.goal === 'approach' || b.goal === 'flank' || dist < 90;
-	if (melee && !b.engaged && b.breather === 0 && wantsIn) {
+	if (melee && !b.engaged && b.breather === 0 && wantsIn && b.squad === 'assault') {
 		const holders = pack.filter((o) => o !== e && o.brain.target === t && o.brain.engaged).length;
 		if (holders < MELEE_SLOTS) b.engaged = true;
 	}
 
-	// Can't see them: nothing to aim at
-	if (!b.sees) return;
+	// Can't see them: nothing to aim at. Held in reserve: wait to be sent in.
+	if (!b.sees || b.squad === 'reserve') return;
 
 	const me = attackers.find((a) => a.e === e) ?? { target: t, attack: null };
 	const range = rangeOf(e);

@@ -18,7 +18,9 @@ export const DEMO_WAVES: WaveMember[][] = [
 	// Atrocitus's lieutenants start turning up, each with an escort
 	['zox', 'berserker', 'gunner'],
 	['skallox', 'hunter', 'manhunterDrone'],
-	['bleez', 'redFighter', 'gunner', 'hunter']
+	['bleez', 'redFighter', 'gunner', 'hunter'],
+	// A big pack: watch it attack in squads, with reserves moving up
+	['berserker', 'hunter', 'gunner', 'berserker', 'hunter', 'gunner', 'manhunterDrone']
 ];
 
 export const isRole = (m: WaveMember): m is Role => m in ROLES;

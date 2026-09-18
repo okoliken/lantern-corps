@@ -9,6 +9,7 @@ import type { Obstacle } from '../map';
 import { ATTACK_BUDGET } from './director';
 import { ENEMIES, ENEMY_SPACING, MELEE_SLOTS, createEnemy, updateEnemies, type Enemy, type Role } from './enemies';
 import { clearShot, tryDodge } from './tactics';
+import { ASSAULT_PER_EXTRA_LANTERN, ASSAULT_SIZE } from './squad';
 import { ABILITIES, randomKit, type AbilityId } from './redConstructs';
 
 const DT = 1 / 60;
@@ -512,8 +513,16 @@ describe('machines', () => {
 		e.brain.kit = ['pulse'];
 		const w = createConstructWorld([], [e]);
 		const p = lantern();
-		run(w, [p], 1.2);
-		expect(p.health).toBeLessThan(p.maxHealth);
+		// The Lantern keeps crowding it until it reacts
+		let shoved = false;
+		run(w, [p], 3, () => {
+			if (p.health < p.maxHealth) shoved = true;
+			if (!shoved) {
+				p.x = e.x - 55;
+				p.y = e.y;
+			}
+		});
+		expect(shoved).toBe(true);
 		expect(Math.hypot(e.x - p.x, e.y - p.y)).toBeGreaterThan(90);
 	});
 
@@ -596,5 +605,60 @@ describe('lieutenants from the animated series', () => {
 				for (const id of randomKit(role)) expect(['swoop', 'eyeLaser', 'sweep', 'pulse', 'strafe', 'bombs']).not.toContain(id);
 			}
 		}
+	});
+});
+
+describe('squads: a big pack takes turns', () => {
+	const ring7 = () => [0, 1, 2, 3, 4, 5, 6].map((i) => grunt(Math.cos(i * 0.9) * 330, Math.sin(i * 0.9) * 330, (['berserker', 'hunter', 'gunner'] as const)[i % 3]));
+
+	it(`with 7 enemies, only ${ASSAULT_SIZE} attack; the rest hold back in reserve`, () => {
+		const pack = ring7();
+		const w = createConstructWorld([], pack);
+		const p = lantern();
+		let most = 0;
+		run(w, [p], 5, () => {
+			p.invuln = 1;
+			p.health = p.maxHealth;
+			most = Math.max(most, pack.filter((e) => e.brain.target && e.brain.squad === 'assault').length);
+			for (const e of pack) if (e.brain.squad === 'reserve') expect(e.brain.state === 'windup' || e.brain.state === 'act').toBe(false);
+		});
+		expect(most).toBe(ASSAULT_SIZE);
+		const reserves = pack.filter((e) => e.brain.squad === 'reserve');
+		expect(reserves.length).toBe(pack.length - ASSAULT_SIZE);
+		// Reserves keep their distance
+		for (const e of reserves) {
+			expect(Math.hypot(e.x - p.x, e.y - p.y)).toBeGreaterThan(250);
+		}
+	});
+
+	it('when an attacker falls, a reserve moves up to take its place', () => {
+		const pack = ring7();
+		const w = createConstructWorld([], pack);
+		const p = lantern();
+		run(w, [p], 2, () => (p.invuln = 1));
+		const fallen = pack.find((e) => e.brain.squad === 'assault')!;
+		fallen.hp = 0;
+		fallen.down = 1;
+		run(w, [p], 0.2, () => (p.invuln = 1));
+		expect(pack.filter((e) => isStanding(e) && e.brain.squad === 'assault').length).toBe(ASSAULT_SIZE);
+	});
+
+	it('blood in the water: when a Lantern is nearly down, everyone piles in', () => {
+		const pack = ring7();
+		const w = createConstructWorld([], pack);
+		const p = lantern();
+		run(w, [p], 1.5, () => (p.invuln = 1));
+		p.health = p.maxHealth * 0.2;
+		run(w, [p], 0.1, () => (p.invuln = 1));
+		expect(pack.every((e) => e.brain.squad === 'assault')).toBe(true);
+	});
+
+	it('two Lanterns face a bigger assault', () => {
+		const pack = ring7();
+		const w = createConstructWorld([], pack);
+		const hal = lantern(-80, 0);
+		const john = createPlayer(1, LANTERNS.john, { read: () => IDLE }, 80, 0);
+		run(w, [hal, john], 2, () => (hal.invuln = john.invuln = 1));
+		expect(pack.filter((e) => e.brain.squad === 'assault').length).toBe(ASSAULT_SIZE + ASSAULT_PER_EXTRA_LANTERN);
 	});
 });
