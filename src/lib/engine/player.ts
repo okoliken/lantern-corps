@@ -24,6 +24,10 @@ export interface Player {
 	vy: number;
 	/** Which way the Lantern faces on screen: 1 = right, -1 = left. */
 	dir: 1 | -1;
+	/** Drawn facing, easing toward `dir` so turning around takes a moment instead of snapping. */
+	facing: number;
+	/** Seconds left facing the aim after attacking, before turning back to the way you move. */
+	aimHold: number;
 	/** Advances while walking; drives the leg swing animation. Always 0 in the air. */
 	walkPhase: number;
 	/** Off the ground (or heading there). In space this is always true. */
@@ -99,6 +103,8 @@ export interface Player {
 	shieldCooldown: number;
 	/** Seconds until the next free ring shot. */
 	shotCooldown: number;
+	/** Ring shots fired so far in the current double-tap. */
+	burstShots: number;
 
 	// ---- Signature ability (see constructs/signature.ts) ----
 	/** 0..SURGE_MAX. Fills as you fight; full = signature ability ready. */
@@ -142,6 +148,12 @@ const OPEN_WORLD: WorldRules = { solids: [], alwaysFlying: false };
 export const FLY_SPEED_BONUS = 1.25;
 /** Holding the beam or minigun steady slows you down. */
 export const FIRING_SPEED_FACTOR = 0.55;
+/** Moving away from the way you face (backing off while shooting) is slower. */
+export const BACKPEDAL_SPEED_FACTOR = 0.8;
+/** Seconds to turn all the way around. */
+export const TURN_TIME = 0.12;
+/** After attacking, keep facing the aim this long (so steady fire doesn't flip you back and forth). */
+export const AIM_HOLD_TIME = 0.45;
 /** Seconds to rise from the ground to full height (and back down). */
 export const TAKEOFF_TIME = 0.35;
 /** The collision box around a Lantern's anchor (their feet): 16 x 10 px. */
@@ -161,6 +173,8 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		vx: 0,
 		vy: 0,
 		dir: 1,
+		facing: 1,
+		aimHold: 0,
 		walkPhase: 0,
 		flying: false,
 		altitude: 0,
@@ -176,6 +190,7 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		protectTarget: null,
 		shieldCooldown: 0,
 		shotCooldown: 0,
+		burstShots: 0,
 		surge: 0,
 		dash: null,
 		shotTimer: 0,
@@ -255,8 +270,13 @@ export function updatePlayer(p: Player, intent: Intent, dt: number, world: World
 
 	// ---- Steering ----
 	const { accel, decel } = p.def;
-	const maxSpeed = p.def.maxSpeed * (p.flying ? FLY_SPEED_BONUS : 1) * (p.firing ? FIRING_SPEED_FACTOR : 1);
 	const moving = intent.moveX !== 0 || intent.moveY !== 0;
+	const backpedal = p.aimHold > 0 && intent.moveX * p.dir < -0.3;
+	const maxSpeed =
+		p.def.maxSpeed *
+		(p.flying ? FLY_SPEED_BONUS : 1) *
+		(p.firing ? FIRING_SPEED_FACTOR : 1) *
+		(backpedal ? BACKPEDAL_SPEED_FACTOR : 1);
 
 	// Steer velocity toward where the input points. Speeding up uses accel,
 	// coasting to a stop uses decel. That gives a slight "flying" feel
@@ -270,9 +290,11 @@ export function updatePlayer(p: Player, intent: Intent, dt: number, world: World
 	const blocking = p.flying ? world.solids.filter((s) => s.blocksFlying) : world.solids;
 	moveBody(p, dt, blocking, FEET_HALF_W, FEET_HALF_H);
 
-	// Only left/right input flips the character. Moving straight up or down
-	// keeps whichever way they were already facing.
-	if (intent.moveX !== 0) p.dir = intent.moveX > 0 ? 1 : -1;
+	// Face the way you move. Only left/right input flips the character: moving
+	// straight up or down keeps whichever way they were already facing. Right
+	// after attacking they keep facing the aim instead (targeting.ts).
+	p.aimHold = Math.max(0, p.aimHold - dt);
+	if (intent.moveX !== 0 && p.aimHold === 0) p.dir = intent.moveX > 0 ? 1 : -1;
 
 	// Facing follows movement. Input is already normalized. The ring's aim
 	// starts here too; targeting may then point it at a target instead.
@@ -283,9 +305,17 @@ export function updatePlayer(p: Player, intent: Intent, dt: number, world: World
 	p.aimX = p.faceX;
 	p.aimY = p.faceY;
 
-	// Walking legs cycle faster the faster you go. Flying Lanterns don't walk.
+	// Walking legs cycle faster the faster you go, and run backwards when
+	// backing away from the way you face. Flying Lanterns don't walk.
 	const speed = Math.hypot(p.vx, p.vy);
-	p.walkPhase = !p.flying && speed > 5 ? p.walkPhase + speed * dt * 0.045 : 0;
+	const stepDir = p.vx * p.dir < -20 ? -1 : 1;
+	p.walkPhase = !p.flying && speed > 5 ? p.walkPhase + stepDir * speed * dt * 0.045 : 0;
+}
+
+/** Ease the drawn facing toward `dir`, so turning around is a quick turn rather than a flip. */
+export function updateFacing(p: Player, dt: number) {
+	const step = (2 * dt) / TURN_TIME;
+	p.facing = p.facing < p.dir ? Math.min(p.dir, p.facing + step) : Math.max(p.dir, p.facing - step);
 }
 
 /** Keep a player inside a rectangle, killing velocity into the edge. */

@@ -147,9 +147,10 @@ export function constructLabel(def: ConstructDef, inSpace: boolean): { name: str
 }
 
 /**
- * The ring's basic shot: quick green bolts, on their own button. FREE: it
- * costs no willpower and works even when exhausted, so a Lantern can always
- * fight back. Constructs are the special moves that cost willpower.
+ * The ring's basic shot: green bolts in a double tap ("pum-pum ... pum-pum"),
+ * on their own button. FREE: it costs no willpower and works even when
+ * exhausted, so a Lantern can always fight back. Constructs are the special
+ * moves that cost willpower.
  */
 export const RING_SHOT: ConstructDef = {
 	id: 'ringShot',
@@ -157,13 +158,16 @@ export const RING_SHOT: ConstructDef = {
 	behavior: 'rapid',
 	shape: 'bolt',
 	cost: 0,
-	/** About five shots a second. */
-	cooldown: 0.2,
-	damage: 9,
+	/** Rest after each double tap. With the gap, a little under four bolts a second. */
+	cooldown: 0.42,
+	damage: 10,
 	knockback: 60,
 	range: 520,
-	speed: 950
+	speed: 820
 };
+/** Bolts per tap, and the seconds between them. A tap always fires the whole burst. */
+export const RING_SHOT_BURST = 2;
+export const RING_SHOT_GAP = 0.11;
 
 /**
  * Every Lantern can raise a bubble shield, on its own key rather than a

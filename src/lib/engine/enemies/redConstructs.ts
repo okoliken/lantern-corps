@@ -79,82 +79,82 @@ const def = (d: AbilityDef) => d;
 export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	// ---- close ----
 	claws: def({
-		id: 'claws', name: 'Rage Claws', band: 'close', tell: 'strike', windup: 0.42, active: 0.18, recover: 0.45, cooldown: 0.9,
+		id: 'claws', name: 'Rage Claws', band: 'close', tell: 'strike', windup: 0.5, active: 0.18, recover: 0.45, cooldown: 1.2,
 		minRange: 0, maxRange: 56, damage: 12, knockback: 320, melee: true, heavy: false, chance: 1
 	}),
 	// A huge blade swung all the way round
 	scythe: def({
-		id: 'scythe', name: 'Blood Scythe', band: 'close', tell: 'heavy', windup: 0.55, active: 0.35, recover: 0.55, cooldown: 3.5,
+		id: 'scythe', name: 'Blood Scythe', band: 'close', tell: 'heavy', windup: 0.66, active: 0.35, recover: 0.55, cooldown: 4.5,
 		minRange: 0, maxRange: 85, damage: 20, knockback: 520, melee: true, heavy: false, chance: 0.9, radius: 95
 	}),
 	// A blast of fury all around: shreds shields, turrets and walls
 	roar: def({
-		id: 'roar', name: 'Rage Roar', band: 'close', tell: 'heavy', windup: 0.6, active: 0.15, recover: 0.6, cooldown: 10,
+		id: 'roar', name: 'Rage Roar', band: 'close', tell: 'heavy', windup: 0.72, active: 0.15, recover: 0.6, cooldown: 13,
 		minRange: 0, maxRange: 140, damage: 8, knockback: 560, melee: false, heavy: true, chance: 0.7, radius: 160
 	}),
 	// Barrels straight through whoever's in the way; crashing into a wall dazes it
 	charge: def({
-		id: 'charge', name: 'Rage Charge', band: 'close', tell: 'heavy', windup: 0.6, active: 0.45, recover: 0.8, cooldown: 6,
-		minRange: 120, maxRange: 340, damage: 22, knockback: 600, melee: false, heavy: true, chance: 0.7, speed: 780
+		id: 'charge', name: 'Rage Charge', band: 'close', tell: 'heavy', windup: 0.72, active: 0.45, recover: 0.8, cooldown: 7.8,
+		minRange: 120, maxRange: 340, damage: 22, knockback: 600, melee: false, heavy: true, chance: 0.7, speed: 620
 	}),
 
 	// ---- mid ----
 	// Leaps and crashes down where the target WAS when it jumped
 	slam: def({
-		id: 'slam', name: 'Rage Slam', band: 'mid', tell: 'heavy', windup: 0.35, active: 0.7, recover: 0.7, cooldown: 7,
+		id: 'slam', name: 'Rage Slam', band: 'mid', tell: 'heavy', windup: 0.42, active: 0.7, recover: 0.7, cooldown: 9.1,
 		minRange: 110, maxRange: 300, damage: 22, knockback: 480, melee: false, heavy: true, chance: 0.45, radius: 72
 	}),
 	// Hooks a Lantern and yanks them in
 	chain: def({
-		id: 'chain', name: 'Barbed Chain', band: 'mid', tell: 'aim', windup: 0.5, active: 1.2, recover: 0.3, cooldown: 6.5,
-		minRange: 120, maxRange: 340, damage: 6, knockback: 0, melee: false, heavy: false, chance: 0.6, speed: 950
+		id: 'chain', name: 'Barbed Chain', band: 'mid', tell: 'aim', windup: 0.6, active: 1.2, recover: 0.3, cooldown: 8.5,
+		minRange: 120, maxRange: 340, damage: 6, knockback: 0, melee: false, heavy: false, chance: 0.6, speed: 760
 	}),
 	// The Red Lanterns' signature: a torrent of burning plasma that leaves fire behind
 	vomit: def({
-		id: 'vomit', name: 'Napalm Vomit', band: 'mid', tell: 'aim', windup: 0.45, active: 1, recover: 0.5, cooldown: 6,
-		minRange: 30, maxRange: 190, damage: 5, knockback: 40, melee: false, heavy: false, chance: 0.8, speed: 330
+		id: 'vomit', name: 'Napalm Vomit', band: 'mid', tell: 'aim', windup: 0.54, active: 1, recover: 0.5, cooldown: 7.8,
+		minRange: 30, maxRange: 190, damage: 5, knockback: 40, melee: false, heavy: false, chance: 0.8, speed: 260
 	}),
 	// A line of spikes bursting out of the ground toward the target
 	spikes: def({
-		id: 'spikes', name: 'Blood Spikes', band: 'mid', tell: 'aim', windup: 0.5, active: 0.6, recover: 0.45, cooldown: 5,
+		id: 'spikes', name: 'Blood Spikes', band: 'mid', tell: 'aim', windup: 0.6, active: 0.6, recover: 0.45, cooldown: 6.5,
 		minRange: 90, maxRange: 420, damage: 16, knockback: 260, melee: false, heavy: false, chance: 0.75, radius: 30
 	}),
 	// An orb that locks a Lantern in a cage of red bars
 	cage: def({
-		id: 'cage', name: 'Rage Prison', band: 'mid', tell: 'aim', windup: 0.55, active: 0.2, recover: 0.4, cooldown: 9,
-		minRange: 120, maxRange: 380, damage: 6, knockback: 0, melee: false, heavy: false, chance: 0.6, speed: 620
+		id: 'cage', name: 'Rage Prison', band: 'mid', tell: 'aim', windup: 0.66, active: 0.2, recover: 0.4, cooldown: 11.7,
+		minRange: 120, maxRange: 380, damage: 6, knockback: 0, melee: false, heavy: false, chance: 0.6, speed: 500
 	}),
 
 	// ---- long ----
 	// Three bolts in quick succession
 	blast: def({
-		id: 'blast', name: 'Rage Blast', band: 'long', tell: 'aim', windup: 0.5, active: 0.45, recover: 0.35, cooldown: 2.2,
-		minRange: 90, maxRange: 460, damage: 7, knockback: 90, melee: false, heavy: false, chance: 0.8, speed: 540
+		id: 'blast', name: 'Rage Blast', band: 'long', tell: 'aim', windup: 0.6, active: 0.45, recover: 0.35, cooldown: 2.9,
+		minRange: 90, maxRange: 460, damage: 7, knockback: 90, melee: false, heavy: false, chance: 0.8, speed: 430
 	}),
 	// Flies out, then comes back to the thrower, hitting on the way out AND back
 	saw: def({
-		id: 'saw', name: 'Rage Saw', band: 'long', tell: 'aim', windup: 0.55, active: 0.2, recover: 0.45, cooldown: 5,
-		minRange: 90, maxRange: 340, damage: 12, knockback: 160, melee: false, heavy: false, chance: 0.55, speed: 470
+		id: 'saw', name: 'Rage Saw', band: 'long', tell: 'aim', windup: 0.66, active: 0.2, recover: 0.45, cooldown: 6.5,
+		minRange: 90, maxRange: 340, damage: 12, knockback: 160, melee: false, heavy: false, chance: 0.55, speed: 380
 	}),
 	// A fan of five jagged spears
 	spears: def({
-		id: 'spears', name: 'Blood Spears', band: 'long', tell: 'aim', windup: 0.6, active: 0.15, recover: 0.45, cooldown: 4.5,
-		minRange: 120, maxRange: 460, damage: 10, knockback: 180, melee: false, heavy: false, chance: 0.75, speed: 720
+		id: 'spears', name: 'Blood Spears', band: 'long', tell: 'aim', windup: 0.72, active: 0.15, recover: 0.45, cooldown: 5.9,
+		minRange: 120, maxRange: 460, damage: 10, knockback: 180, melee: false, heavy: false, chance: 0.75, speed: 580
 	}),
 	// Marks the ground, then red meteors rain down on the marks
 	meteors: def({
-		id: 'meteors', name: 'Rage Meteors', band: 'long', tell: 'sky', windup: 0.7, active: 0.3, recover: 0.6, cooldown: 8,
+		id: 'meteors', name: 'Rage Meteors', band: 'long', tell: 'sky', windup: 0.84, active: 0.3, recover: 0.6, cooldown: 10.4,
 		minRange: 150, maxRange: 520, damage: 24, knockback: 380, melee: false, heavy: true, chance: 0.7, radius: 58
 	}),
 	// A burning ray that follows its target (damage is per second)
 	beam: def({
-		id: 'beam', name: 'Rage Beam', band: 'long', tell: 'aim', windup: 0.7, active: 1.1, recover: 0.6, cooldown: 7,
+		id: 'beam', name: 'Rage Beam', band: 'long', tell: 'aim', windup: 0.84, active: 1.1, recover: 0.6, cooldown: 9.1,
 		minRange: 150, maxRange: 480, damage: 34, knockback: 60, melee: false, heavy: false, chance: 0.7
 	}),
 	// Slow red skulls that hunt their target down
 	skulls: def({
-		id: 'skulls', name: 'Skull Seekers', band: 'long', tell: 'aim', windup: 0.6, active: 0.4, recover: 0.5, cooldown: 7,
-		minRange: 150, maxRange: 520, damage: 11, knockback: 200, melee: false, heavy: false, chance: 0.7, speed: 260
+		id: 'skulls', name: 'Skull Seekers', band: 'long', tell: 'aim', windup: 0.72, active: 0.4, recover: 0.5, cooldown: 9.1,
+		minRange: 150, maxRange: 520, damage: 11, knockback: 200, melee: false, heavy: false, chance: 0.7, speed: 210
 	})
 };
 

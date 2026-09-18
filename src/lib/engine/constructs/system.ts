@@ -24,6 +24,8 @@ import {
 	MAX_TRAPS_PER_PLAYER,
 	MAX_TURRETS_PER_PLAYER,
 	RING_SHOT,
+	RING_SHOT_BURST,
+	RING_SHOT_GAP,
 	STRUCTURE_BEHAVIORS,
 	type ConstructDef
 } from './defs';
@@ -270,7 +272,8 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
 	}
 
 	if (intent.shield) castShield(p, w);
-	if (intent.shot) ringShot(p, w);
+	// A double tap finishes even if the button was let go after the first bolt
+	if (intent.shot || p.burstShots > 0) ringShot(p, w);
 
 	// ---- Switching constructs ----
 	const before = p.selected;
@@ -660,11 +663,17 @@ function shockwave(p: Player, def: ConstructDef, w: ConstructWorld) {
 
 // -------------------------------------------------------------- ring shot
 
-/** The free basic attack: a bolt straight along the aim, about five a second. */
+/** The free basic attack: bolts straight along the aim, two at a time. */
 function ringShot(p: Player, w: ConstructWorld) {
 	if (p.shotCooldown > 0) return;
 	launch(p, RING_SHOT, 'bolt', p.aimX, p.aimY, w);
-	p.shotCooldown = RING_SHOT.cooldown * p.def.traits.cooldown;
+	p.burstShots++;
+	if (p.burstShots < RING_SHOT_BURST) {
+		p.shotCooldown = RING_SHOT_GAP;
+	} else {
+		p.burstShots = 0;
+		p.shotCooldown = RING_SHOT.cooldown * p.def.traits.cooldown;
+	}
 	// Arm points and kicks back a little (see animation.ts)
 	p.shotTimer = SHOT_POSE_TIME;
 }

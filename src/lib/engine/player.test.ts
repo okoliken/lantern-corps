@@ -6,6 +6,7 @@ import {
 	TAKEOFF_TIME,
 	clampToBounds,
 	createPlayer,
+	updateFacing,
 	updatePlayer,
 	type Solid,
 	type WorldRules
@@ -66,6 +67,30 @@ describe('updatePlayer: movement', () => {
 		expect(p.dir).toBe(-1);
 		hold(p, RIGHT, 0.2);
 		expect(p.dir).toBe(1);
+	});
+
+	it('right after attacking, backs away still facing the aim, legs stepping backwards and a bit slower', () => {
+		const p = make();
+		p.dir = 1;
+		p.aimHold = 5;
+		hold(p, RIGHT, 0.4);
+		const forward = p.vx;
+		p.walkPhase = 0;
+		p.vx = 0;
+		hold(p, LEFT, 0.4);
+		expect(p.dir).toBe(1);
+		expect(p.walkPhase).toBeLessThan(0);
+		expect(-p.vx).toBeLessThan(forward);
+	});
+
+	it('turns around smoothly: the drawn facing eases over to the new direction', () => {
+		const p = make();
+		hold(p, LEFT, DT * 1);
+		expect(p.dir).toBe(-1);
+		updateFacing(p, DT);
+		expect(p.facing).toBeGreaterThan(-1);
+		for (let i = 0; i < 20; i++) updateFacing(p, DT);
+		expect(p.facing).toBe(-1);
 	});
 
 	it('keeps facing the same way when moving straight up or down', () => {

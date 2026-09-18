@@ -16,6 +16,8 @@
 export interface LanternPose {
 	/** 1 = facing right, -1 = facing left. */
 	dir: 1 | -1;
+	/** Drawn facing, -1..1, lagging behind `dir` while turning around. Omitted = no turn. */
+	facing?: number;
 	/** Walk cycle angle. 0 when standing still or flying. */
 	walkPhase: number;
 	/** 0 = standing on the ground, 1 = fully airborne. In between during take-off/landing. */
@@ -193,6 +195,14 @@ function downedAngles(time: number): Angles {
 }
 
 // --------------------------------------------------------------- skeleton
+
+/**
+ * Width multiplier while turning around: the figure mirrors straight away,
+ * then widens back out, so a turn reads as a quick spin instead of a flip.
+ */
+export function turnScale(pose: LanternPose): number {
+	return pose.facing === undefined ? 1 : Math.max(0.2, pose.facing * pose.dir);
+}
 
 export function computeSkeleton(pose: LanternPose, time: number): Skeleton {
 	if (pose.downed) return solve(downedAngles(time), -4, 4);

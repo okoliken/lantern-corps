@@ -172,10 +172,26 @@ describe('mouse aim', () => {
 		expect(p.attackTarget).toBeNull();
 	});
 
-	it('the Lantern turns to face the crosshair', () => {
+	it('standing still, the Lantern turns to face the crosshair', () => {
 		const p = lantern();
 		updateTargeting(p, false, world([p]), 460, { pointer: { x: -100, y: 0 } });
 		expect(p.dir).toBe(-1);
+	});
+
+	it('walking away from the crosshair, the Lantern faces the way it walks (not backwards)', () => {
+		const p = lantern();
+		p.vx = 250; // walking right
+		updateTargeting(p, false, world([p]), 460, { pointer: { x: -100, y: 0 } });
+		expect(p.dir).toBe(1);
+	});
+
+	it('attacking turns the Lantern toward the aim, and it keeps facing it for a moment', () => {
+		const p = lantern();
+		p.vx = 250;
+		p.shotTimer = 0.2;
+		updateTargeting(p, false, world([p]), 460, { pointer: { x: -100, y: 0 } });
+		expect(p.dir).toBe(-1);
+		expect(p.aimHold).toBeGreaterThan(0);
 	});
 });
 

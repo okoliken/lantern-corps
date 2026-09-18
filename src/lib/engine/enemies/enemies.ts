@@ -52,7 +52,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		faction: 'red',
 		description: "Atrocitus's foot soldiers. Each fights its own way: Berserkers charge, Hunters chain and flank, Gunners blast from range.",
 		hp: 120,
-		speed: 185,
+		speed: 150,
 		accel: 5,
 		sight: 640,
 		poise: 34,
@@ -396,7 +396,7 @@ function moveTactically(e: Enemy, t: Player, dt: number) {
 		gy = t.y + Math.sin(angle) * r;
 	}
 
-	const speed = def.speed * role.speed * b.speedMul * (1 + 0.6 * b.rage);
+	const speed = def.speed * role.speed * b.speedMul * (1 + 0.35 * b.rage);
 	const gdx = gx - e.x;
 	const gdy = gy - e.y;
 	const gd = Math.hypot(gdx, gdy);

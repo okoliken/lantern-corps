@@ -10,7 +10,7 @@
 // The origin (x, y) is the Lantern's ANCHOR: their feet when walking, the
 // spot below them when flying.
 
-import { HEAD_R, STANDING_HEIGHT, computeSkeleton, type LanternPose, type Point, type Skeleton } from '../animation';
+import { HEAD_R, STANDING_HEIGHT, computeSkeleton, turnScale, type LanternPose, type Point, type Skeleton } from '../animation';
 import type { LanternDef } from '../lanterns';
 
 export type { LanternPose } from '../animation';
@@ -41,7 +41,7 @@ const WHITE = '#eafff0';
 export function ringPosition(x: number, y: number, pose: LanternPose, time: number, scale = 1): Point {
 	const s = FIGURE_SCALE * scale;
 	const [hx, hy] = computeSkeleton(pose, time).front.hand;
-	return [x + hx * pose.dir * s, y + hy * s];
+	return [x + hx * pose.dir * turnScale(pose) * s, y + hy * s];
 }
 
 export function drawLantern(
@@ -74,7 +74,7 @@ export function drawLantern(
 		ctx.fill();
 	}
 
-	ctx.scale(pose.dir, 1);
+	ctx.scale(pose.dir * turnScale(pose), 1);
 
 	// ---- Aura while airborne ----
 	if (pose.glow && air > 0 && !pose.downed) {

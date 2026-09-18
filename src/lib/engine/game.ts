@@ -63,7 +63,7 @@ import { defaultSettings, type Settings } from './settings';
 import { XP_PER_DEFEAT, addXp, applyProgression, type Profile, type Profiles } from './progression';
 import { LANTERNS, type LanternId } from './lanterns';
 import { buildTestMap, seededRandom, type GameMap, type Obstacle } from './map';
-import { FEET_HALF_H, FEET_HALF_W, clampToBounds, createPlayer, updatePlayer, type Player, type WorldRules } from './player';
+import { FEET_HALF_H, FEET_HALF_W, clampToBounds, createPlayer, updateFacing, updatePlayer, type Player, type WorldRules } from './player';
 import { BUBBLE_SHIELD, constructLabel } from './constructs/defs';
 import { autoReach, sameTarget, targetPosition, updateTargeting, type Target, type TargetWorld } from './targeting';
 import { BATTERY_MAX_CHARGE, canSpend, updateBattery, updateWillpower, type Battery } from './willpower';
@@ -306,6 +306,7 @@ export class Game {
 				pointer,
 				aimAssist: this.settings.aimAssist
 			});
+			updateFacing(p, dt);
 			// Now the aim is known, find the ring on the aimed skeleton
 			this.updateRing(p);
 			updateWillpower(p, dt, this.batteries);
@@ -417,7 +418,8 @@ export class Game {
 			...p,
 			// Lean comes from horizontal speed: flying sideways fast = full lean.
 			// Jet Strike is always full speed.
-			lean: p.dash ? 1 : p.flying ? Math.min(Math.abs(p.vx) / p.def.maxSpeed, 1) : 0,
+			// Flying backwards (facing a target while backing off) stays upright.
+			lean: p.dash ? 1 : p.flying ? Math.min(Math.max(0, p.vx * p.dir) / p.def.maxSpeed, 1) : 0,
 			hoverHeight: this.map.environment === 'space' ? HOVER_SPACE : HOVER_PLANET,
 			glow: true,
 			shadow: env.hasGround,

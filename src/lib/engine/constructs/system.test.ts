@@ -8,7 +8,7 @@ import { LANTERNS, type LanternId } from '../lanterns';
 import { CRATE_HP, type Obstacle } from '../map';
 import { createPlayer, type Player } from '../player';
 import { MAX_WILLPOWER, RESTART_THRESHOLD } from '../willpower';
-import { BUBBLE_SHIELD, RING_SHOT, CONSTRUCTS, LOADOUTS, constructLabel, MAX_TRAPS_PER_PLAYER, MAX_TURRETS_PER_PLAYER, type ConstructDef, type ConstructId } from './defs';
+import { BUBBLE_SHIELD, RING_SHOT, RING_SHOT_BURST, RING_SHOT_GAP, CONSTRUCTS, LOADOUTS, constructLabel, MAX_TRAPS_PER_PLAYER, MAX_TURRETS_PER_PLAYER, type ConstructDef, type ConstructId } from './defs';
 import {
 	absorbWithShield,
 	costOf,
@@ -380,15 +380,25 @@ describe('ring shot (free)', () => {
 		expect(w.projectiles.some((pr) => pr.kind === 'bolt')).toBe(true);
 	});
 
-	it('is rate limited to about five shots a second', () => {
+	it('fires double taps: two bolts close together, then a rest (under four a second)', () => {
 		const { p, w } = setup('john', 'beam');
-		let fired = 0;
+		const firedAt: number[] = [];
 		for (let i = 0; i < 60; i++) {
 			const before = w.projectiles.length;
 			updatePlayerConstructs(p, SHOT, DT, w);
-			if (w.projectiles.length > before) fired++;
+			if (w.projectiles.length > before) firedAt.push(i * DT);
 		}
-		expect(fired).toBe(Math.ceil(1 / RING_SHOT.cooldown));
+		expect(firedAt.length).toBeGreaterThanOrEqual(3);
+		expect(firedAt.length).toBeLessThanOrEqual(4);
+		expect(firedAt[1] - firedAt[0]).toBeCloseTo(RING_SHOT_GAP, 1);
+		expect(firedAt[2] - firedAt[1]).toBeGreaterThan(RING_SHOT.cooldown - DT);
+	});
+
+	it('a single tap still fires the whole double tap', () => {
+		const { p, w } = setup('john', 'beam');
+		updatePlayerConstructs(p, SHOT, DT, w);
+		for (let i = 0; i < 30; i++) updatePlayerConstructs(p, IDLE, DT, w);
+		expect(w.projectiles.filter((pr) => pr.kind === 'bolt').length).toBe(RING_SHOT_BURST);
 	});
 
 	it('goes straight along the aim', () => {

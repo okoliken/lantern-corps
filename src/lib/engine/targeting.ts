@@ -17,7 +17,7 @@ import { castBeam } from './beam';
 import type { ConstructDef } from './constructs/defs';
 import { isStanding, type Dummy } from './dummy';
 import type { Obstacle } from './map';
-import type { Player } from './player';
+import { AIM_HOLD_TIME, type Player } from './player';
 
 export type Target =
 	| { kind: 'enemy'; dummy: Dummy }
@@ -230,6 +230,8 @@ export function updateTargeting(
 	p.protectTarget = p.lock?.kind === 'ally' ? p.lock : null;
 	const lockedAttack = p.lock && p.lock.kind !== 'ally' ? p.lock : null;
 	const busy = p.firing || p.actionTimer > 0 || p.shotTimer > 0;
+	// Attacking turns you toward the aim, and you keep facing it for a moment
+	if (busy) p.aimHold = AIM_HOLD_TIME;
 
 	if (lockedAttack) {
 		p.attackTarget = lockedAttack;
@@ -247,8 +249,11 @@ export function updateTargeting(
 			p.aimX = dirX;
 			p.aimY = dirY;
 		}
-		// With a mouse, the character always looks toward the crosshair
-		if (Math.abs(dx) > 4) p.dir = dx > 0 ? 1 : -1;
+		// With a mouse, the character looks toward the crosshair while attacking
+		// (and just after), or while standing still. Otherwise they face the
+		// way they're moving (player.ts), so walking away means turning away.
+		const still = Math.abs(p.vx) < 30;
+		if ((p.aimHold > 0 || still) && Math.abs(dx) > 4) p.dir = dx > 0 ? 1 : -1;
 	} else {
 		p.aimReach = null;
 		// While a construct is running, stick with the current auto target so
