@@ -18,13 +18,22 @@ function setup() {
 }
 
 describe('Sparring with Kilowog', () => {
-	it('Kilowog arrives after a moment and fights as a Green Lantern', () => {
+	it('Kilowog arrives, then Sinestro, both fighting as Green Lanterns', () => {
 		const { sparring, run } = setup();
-		expect(sparring.kilowog).toBeNull();
+		expect(sparring.foes.kilowog).toBeUndefined();
 		run(3);
 		expect(sparring.state).toBe('fighting');
-		expect(sparring.kilowog?.kind).toBe('kilowog');
+		expect(sparring.foes.kilowog?.kind).toBe('kilowog');
+		run(1.5);
+		expect(sparring.foes.sinestro?.kind).toBe('sinestro');
 		expect(ENEMIES.kilowog.faction).toBe('corps');
+		expect(ENEMIES.sinestro.faction).toBe('corps');
+	});
+
+	it('Kilowog fights with hammers; Sinestro is the fiercer of the two', () => {
+		expect(ENEMIES.kilowog.kit?.filter((a) => a.startsWith('hammer') || a === 'bigHammer').length).toBeGreaterThanOrEqual(4);
+		expect(ENEMIES.sinestro.hp).toBeGreaterThan(ENEMIES.kilowog.hp);
+		expect(ENEMIES.sinestro.speed).toBeGreaterThan(ENEMIES.kilowog.speed);
 	});
 
 	it('his constructs are drawn green', () => {
@@ -35,16 +44,23 @@ describe('Sparring with Kilowog', () => {
 			game.update(1 / 60);
 			for (const e of game.constructs.effects) seen.add(e);
 		}
-		const his = [...seen].filter((e) => e.kind === 'redBlast' || e.kind === 'redMace' || e.kind === 'redAxe' || e.kind === 'slamMark' || e.kind === 'roar');
+		const his = [...seen].filter((e) => e.kind === 'redBlast' || e.kind === 'redMace' || e.kind === 'redAxe' || e.kind === 'slamMark' || e.kind === 'roar' || e.kind === 'bigHammer' || e.kind === 'swordArc');
 		expect(his.length).toBeGreaterThan(0);
-		expect(his.filter((e) => !e.green).map((e) => `${e.kind}:${e.life}:${e.radius}`)).toEqual([]);
+		// Red art gets recolored; their own constructs are drawn green already
+		const native = new Set(['bigHammer', 'hammerSpin', 'hammerDrop', 'swordArc']);
+		expect(his.filter((e) => !e.green && !native.has(e.kind)).map((e) => e.kind)).toEqual([]);
+		expect(his.filter((e) => e.green && native.has(e.kind))).toEqual([]);
 	});
 
-	it('beating him wins; he yields', () => {
+	it('beating both wins; beating one is not enough', () => {
 		const { sparring, run } = setup();
-		run(3);
-		sparring.kilowog!.hp = 0;
-		sparring.kilowog!.down = 1;
+		run(4.5);
+		sparring.foes.kilowog!.hp = 0;
+		sparring.foes.kilowog!.down = 1;
+		run(0.1);
+		expect(sparring.state).toBe('fighting');
+		sparring.foes.sinestro!.hp = 0;
+		sparring.foes.sinestro!.down = 1;
 		run(0.1);
 		expect(sparring.state).toBe('won');
 	});

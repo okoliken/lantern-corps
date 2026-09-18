@@ -8,6 +8,7 @@
 
 import { AUTO_TURRET_HEAD, FIST_OUT_TIME, SENTRY_DRONE_HOVER, type AidStation, type Effect, type Projectile, type Shield, type Trap, type Turret } from '../constructs/system';
 import { drawRedEffect } from './redConstructs';
+import { drawCorpsEffect } from './corpsConstructs';
 import { drawDebris } from './escort';
 import { isStanding, type Dummy } from '../dummy';
 import type { Target } from '../targeting';
@@ -30,7 +31,7 @@ interface EnergyStyle {
 }
 
 /** Draw a Path2D (already positioned by the caller's transform) as ring energy. */
-function energy(ctx: CanvasRenderingContext2D, path: Path2D, { edge = 2, body = 1, alpha = 1, time }: EnergyStyle) {
+export function energy(ctx: CanvasRenderingContext2D, path: Path2D, { edge = 2, body = 1, alpha = 1, time }: EnergyStyle) {
 	ctx.save();
 	ctx.globalAlpha *= alpha;
 	ctx.lineJoin = 'round';
@@ -74,7 +75,7 @@ function energy(ctx: CanvasRenderingContext2D, path: Path2D, { edge = 2, body = 
 }
 
 /** Tiny sparks drifting off a construct. Deterministic from time, so no state needed. */
-function sparks(ctx: CanvasRenderingContext2D, x: number, y: number, spread: number, count: number, time: number, seed = 0) {
+export function sparks(ctx: CanvasRenderingContext2D, x: number, y: number, spread: number, count: number, time: number, seed = 0) {
 	ctx.save();
 	ctx.fillStyle = CORE;
 	ctx.shadowColor = GREEN;
@@ -94,7 +95,7 @@ function sparks(ctx: CanvasRenderingContext2D, x: number, y: number, spread: num
 // ----------------------------------------------------------------- shapes
 // All drawn pointing along +x from the origin (the hand).
 
-function swordPath(len: number): Path2D {
+export function swordPath(len: number): Path2D {
 	const p = new Path2D();
 	// Blade: straight edges tapering to a point
 	p.moveTo(10, -4);
@@ -112,7 +113,7 @@ function swordPath(len: number): Path2D {
 	return p;
 }
 
-function fistPath(size: number): Path2D {
+export function fistPath(size: number): Path2D {
 	const s = size;
 	const p = new Path2D();
 	// Wrist cuff
@@ -1369,6 +1370,12 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 		}
 		case 'roar':
 		case 'slamMark':
+		case 'bigHammer':
+		case 'hammerSpin':
+		case 'hammerDrop':
+		case 'swordArc':
+			drawCorpsEffect(ctx, e, lift, time);
+			break;
 		case 'redBlast':
 		case 'redImpact':
 		case 'scythe':

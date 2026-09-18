@@ -7,14 +7,16 @@ export type LanternId = 'hal' | 'john';
 export interface Look {
 	skin: string;
 	hair: string;
-	/** Hal's hair sits up with a side sweep; John's is cropped short. */
-	hairStyle: 'swept' | 'cropped';
+	/** Hal's hair sits up with a side sweep; John's is cropped short; Sinestro's is slicked back to a widow's peak. */
+	hairStyle: 'swept' | 'cropped' | 'peak';
 	/** Hal wears the domino mask; John goes without one. */
 	mask: boolean;
 	/** A beaked, crested head instead of a human one (Tomar-Re). */
 	avian?: { beak: string; crest: string };
 	/** A big, bald, heavy-jawed head (Kilowog of Bolovax Vik). */
 	bolovaxian?: boolean;
+	/** A thin pencil mustache (Sinestro). */
+	mustache?: boolean;
 }
 
 export interface LanternDef {

@@ -50,6 +50,7 @@ import {
 	type LanternPose
 } from './draw/lantern';
 import { inCorpsGreen } from './draw/corps';
+import { drawCorpsShot } from './draw/corpsConstructs';
 import { drawObstacle, drawPlanetGround, drawStarfield, makeStars, type WorldRect } from './draw/world';
 import { DUMMY_HALF_H, DUMMY_HALF_W, createDummy, isStanding, updateDummy, type Dummy } from './dummy';
 import { SIGNATURES, updateSignature, updateSignatureWorld } from './constructs/signature';
@@ -641,6 +642,10 @@ export class Game {
 		for (const s of cw.red.shots) {
 			const x = lerp(s.prevX, s.x, alpha);
 			const y = lerp(s.prevY, s.y, alpha);
+			if (s.kind === 'hammer' || s.kind === 'fist' || s.kind === 'blade') {
+				drawCorpsShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
+				continue;
+			}
 			tinted(ctx, ENEMIES[s.owner.kind].faction === 'corps', () => {
 				if (s.kind === 'hook') drawRedChain(ctx, ...this.redHand(s.owner, alpha), x, y - RED_HAND_LIFT, this.time);
 				drawRedShot(ctx, s, x, y, RED_HAND_LIFT, this.time);

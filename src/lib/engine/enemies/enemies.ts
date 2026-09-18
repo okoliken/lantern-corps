@@ -138,19 +138,39 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		name: 'Kilowog',
 		faction: 'corps',
 		description:
-			"The Corps' drill sergeant, and the biggest Lantern you'll ever meet. He spars for real: a hammer brought down on you, axe swings, leaping slams, shoulder charges, ring blasts, and a bellow that bursts bubble shields. He goes easy on nobody, poozer.",
+			"The Corps' drill sergeant, and the biggest Lantern you'll ever meet. He loves a hammer: a giant one brought down with a shockwave, a hammer cyclone, thrown hammers that come back, hammers raining from the sky, and a fist the size of a car.",
 		mind: 'rage',
-		hp: 3000,
-		speed: 145,
+		hp: 1800,
+		speed: 140,
 		accel: 3,
 		sight: 900,
-		poise: 280,
+		poise: 300,
 		scale: 1.45,
 		agility: 0.25,
 		movement: 'hover',
-		kit: ['mace', 'axe', 'slam', 'charge', 'blast', 'roar'],
-		range: 140,
+		kit: ['bigHammer', 'hammerSpin', 'hammerThrow', 'hammerRain', 'bigFist', 'charge', 'roar'],
+		range: 150,
 		leans: { aggression: 0.3, caution: -0.2 },
+		lieutenant: true
+	},
+	sinestro: {
+		kind: 'sinestro',
+		name: 'Sinestro',
+		faction: 'corps',
+		description:
+			"The greatest Lantern in the Corps, and he knows it. Fast, precise and merciless: sword lunges, fans of blades that land where you're going, a storm of blades in every direction, cages, a beam, and a giant fist.",
+		mind: 'rage',
+		hp: 2200,
+		speed: 185,
+		accel: 5,
+		sight: 1000,
+		poise: 340,
+		scale: 1.12,
+		agility: 0.75,
+		movement: 'hover',
+		kit: ['sword', 'bladeFan', 'bladeStorm', 'bigFist', 'cage', 'beam'],
+		range: 210,
+		leans: { aggression: 0.5, caution: -0.3, patience: -0.3 },
 		lieutenant: true
 	},
 
@@ -547,6 +567,9 @@ export function enemyLabel(e: Enemy): string {
 	return ENEMIES[e.kind].kit ? ENEMIES[e.kind].name : ROLES[e.brain.role].species;
 }
 
+/** Effects that are already drawn in Corps green (the rest get recolored for a sparring Green Lantern). */
+const CORPS_ART: ReadonlySet<string> = new Set(['bigHammer', 'hammerSpin', 'hammerDrop', 'swordArc', 'callout']);
+
 // ------------------------------------------------------------------- brains
 
 /** One tick for every enemy: think, then the red constructs move. Moving the bodies happens in updateDummy. */
@@ -559,7 +582,7 @@ export function updateEnemies(w: ConstructWorld, players: readonly Player[], dt:
 		const before = w.effects.length;
 		think(e, pack, attackers, w, players, dt);
 		// A Green Lantern sparring with you makes green constructs, not red ones
-		if (ENEMIES[e.kind].faction === 'corps') for (let i = before; i < w.effects.length; i++) w.effects[i].green = true;
+		if (ENEMIES[e.kind].faction === 'corps') for (let i = before; i < w.effects.length; i++) if (!CORPS_ART.has(w.effects[i].kind)) w.effects[i].green = true;
 	}
 	spreadAround(pack);
 	separate(pack, dt);

@@ -367,6 +367,15 @@ function drawHead(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, ring
 		}
 	}
 
+	if (def.look.mustache) {
+		ctx.strokeStyle = def.look.hair;
+		ctx.lineWidth = 0.7;
+		ctx.beginPath();
+		ctx.moveTo(R - 2.2, 3.5);
+		ctx.quadraticCurveTo(R - 0.6, 3.1, R + 0.9, 3.4);
+		ctx.stroke();
+	}
+
 	// Mouth
 	ctx.strokeStyle = shadeColor(skin, -0.4);
 	ctx.lineWidth = 0.5;
@@ -537,6 +546,15 @@ function drawHair(ctx: CanvasRenderingContext2D, def: Figure) {
 		hair.quadraticCurveTo(R + 1.6, -R - 0.9, R + 0.6, -R + 1.6);
 		hair.quadraticCurveTo(3.2, -3.3, 0.8, -2.2);
 		hair.quadraticCurveTo(-1.6, -1.2, -1.4, 2.2);
+		hair.closePath();
+	} else if (def.look.hairStyle === 'peak') {
+		// Sinestro: slicked straight back, coming to a sharp widow's peak over the brow
+		hair.moveTo(-R - 0.3, 1.8);
+		hair.arc(0, 0, R + 0.4, Math.PI * 0.95, Math.PI * 1.72);
+		hair.lineTo(R - 0.4, -3.8);
+		hair.lineTo(1.2, -3.2);
+		hair.lineTo(-0.2, -1.6);
+		hair.lineTo(-0.8, 1.8);
 		hair.closePath();
 	} else {
 		// John: close-cropped, tight to the skull with a sharp line-up

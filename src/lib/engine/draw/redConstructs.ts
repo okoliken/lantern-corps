@@ -2,6 +2,7 @@
 // Same energy language as the green constructs, in angry red and ragged shapes.
 // Machines (Manhunters, fighters) fire clean, thin lasers instead.
 
+import { drawFallingHammer, drawHammerWarning } from './corpsConstructs';
 import type { Effect } from '../constructs/system';
 import { ENEMIES, type Enemy } from '../enemies/enemies';
 import type { Obstacle } from '../map';
@@ -233,6 +234,10 @@ export function drawRedGround(ctx: CanvasRenderingContext2D, puddles: readonly R
 			drawBomb(ctx, s, time);
 			continue;
 		}
+		if (s.kind === 'hammer') {
+			drawHammerWarning(ctx, s, time);
+			continue;
+		}
 		if (s.kind !== 'meteor') continue;
 		const k = 1 - s.delay / s.warning;
 		ctx.save();
@@ -288,6 +293,7 @@ function drawBomb(ctx: CanvasRenderingContext2D, s: RedStrike, time: number) {
 export function drawFallingMeteors(ctx: CanvasRenderingContext2D, strikes: readonly RedStrike[], time: number) {
 	const FALL = 0.4;
 	for (const s of strikes) {
+		if (s.kind === 'hammer') drawFallingHammer(ctx, s, time);
 		if (s.kind !== 'meteor' || s.delay > FALL) continue;
 		const k = 1 - s.delay / FALL; // 0 high up .. 1 landing
 		const height = (1 - k) * 420;

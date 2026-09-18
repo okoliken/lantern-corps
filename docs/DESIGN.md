@@ -210,12 +210,18 @@ briefing until done.
 **Kilowog** is drawn with the Lantern skeleton plus `Figure.bulk` (2.3: torso and gut scale fully,
 arms and legs partly, so he's mostly barrel chest) and `Look.bolovaxian` (`draw/corps.ts`).
 
-**Sparring** (`/spar`, `missions/sparring.ts`): one on one with Kilowog on the training grounds. He's
-an enemy of faction `'corps'` (3000 hp, might 1.5, kit hammer/axe/slam/charge/blast/roar, leads his
-shots). Red-construct art he makes is drawn in Corps green (`Effect.green`, `inCorpsGreen`: a hue
-filter plus green glow). First one down loses; he shouts as the fight goes. Bots: a perfect kiter
-wins in ~60s, a sloppy "human" bot in ~45s, standing still loses in ~20s. Offered after training
-and on the mission list.
+**Sparring** (`/spar`, `missions/sparring.ts`): two on one with Kilowog and Sinestro on the training
+grounds, like Hal's training in the 2011 movie. Sinestro steps in a moment after Kilowog. Both are
+enemies of faction `'corps'` that lead their shots. Their own constructs (`enemies/corpsConstructs.ts`,
+art in `draw/corpsConstructs.ts`) are real ring energy, and any Red Lantern art they borrow (charge,
+roar, cage, beam) is recolored green (`Effect.green`, `inCorpsGreen`).
+- **Kilowog** (1800 hp, might 0.9): Giant Hammer (huge hammer raised overhead, slammed ahead with a
+  shockwave ring), Hammer Cyclone (spins two hammers while closing in), Hammer Toss (thrown, comes
+  back), Hammer Drop (six hammers fall on marks around you), Giant Fist, charge, roar.
+- **Sinestro**, the fiercer one (2200 hp, might 1.15, faster, agile, aggressive): Sword Lunge, Blade
+  Volley (7 blades, led), Blade Storm (16 blades in every direction), Giant Fist, green cage and beam.
+First one down loses; both must go down to win. They shout as it goes. Bots: fights last 30–70s and
+are won a bit under half the time, usually with little health left; standing still loses in ~10s.
 
 **Mission 1: Safe Passage** (Hal, space, the Durvan Belt; `missions/safePassage.ts`). Tomar-Re's
 damaged cruiser crosses the belt left to right (~2½ minutes) while **100 asteroids** drift in, in 9

@@ -22,9 +22,9 @@
 			<a class="mission" href="/spar">
 				<span class="number">⚔</span>
 				<span class="text">
-					<strong>Spar with Kilowog</strong>
-					<small>Oa · one on one</small>
-					<span>Think you learned something? Prove it against the Corps' drill sergeant.</span>
+					<strong>Spar with Kilowog & Sinestro</strong>
+					<small>Oa · two on one</small>
+					<span>Think you learned something? Prove it against the Corps' drill sergeant and its greatest Lantern.</span>
 				</span>
 			</a>
 		</li>

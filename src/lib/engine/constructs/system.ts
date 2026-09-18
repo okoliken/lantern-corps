@@ -174,7 +174,12 @@ export interface Effect {
 		| 'redAxe'
 		| 'redMace'
 		// Machines
-		| 'pulse';
+		| 'pulse'
+		// Green Lanterns you spar with (drawn in Corps green: draw/corpsConstructs.ts)
+		| 'bigHammer'
+		| 'hammerSpin'
+		| 'hammerDrop'
+		| 'swordArc';
 	x: number;
 	y: number;
 	age: number;

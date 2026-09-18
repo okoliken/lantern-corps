@@ -1,6 +1,6 @@
 <script lang="ts">
-	// Sparring with Kilowog: one on one on Oa's training grounds. The rules are
-	// in $lib/engine/missions/sparring.ts.
+	// Sparring with Kilowog and Sinestro on Oa's training grounds. The rules
+	// are in $lib/engine/missions/sparring.ts.
 	import { onMount, untrack } from 'svelte';
 	import GameCanvas from '$lib/components/GameCanvas.svelte';
 	import PauseMenu from '$lib/components/PauseMenu.svelte';
@@ -35,7 +35,7 @@
 		setup.game.buttons.clear();
 	}
 
-	let status = $state({ state: 'intro' as SparState, health: 1, elapsed: 0 });
+	let status = $state({ state: 'intro' as SparState, kilowog: 1, sinestro: 1, elapsed: 0 });
 	const over = $derived(status.state === 'won' || status.state === 'lost');
 
 	function onKeydown(e: KeyboardEvent) {
@@ -47,7 +47,7 @@
 	onMount(() => {
 		const id = setInterval(() => {
 			const s = setup.sparring;
-			status = { state: s.state, health: s.kilowogHealth, elapsed: Math.round(s.elapsed) };
+			status = { state: s.state, kilowog: s.health('kilowog'), sinestro: s.health('sinestro'), elapsed: Math.round(s.elapsed) };
 		}, 100);
 		return () => clearInterval(id);
 	});
@@ -73,17 +73,21 @@
 				<span class="name">Kilowog</span>
 				<span class="sub">Sparring · first one down loses</span>
 			</div>
-			<span class="track"><span class="fill" style:width="{status.health * 100}%"></span></span>
+			<span class="track"><span class="fill" style:width="{status.kilowog * 100}%"></span></span>
+			<div class="row">
+				<span class="name sinestro">Sinestro</span>
+			</div>
+			<span class="track"><span class="fill" style:width="{status.sinestro * 100}%"></span></span>
 			{#if status.state === 'intro'}
-				<p class="tip">Anything goes: ring shots, constructs, shields, your signature. He hits hard, so keep moving.</p>
+				<p class="tip">Two on one. Anything goes: ring shots, constructs, shields, your signature. Watch for the hammer overhead and keep moving.</p>
 			{/if}
 		</section>
 	{:else}
 		<div class="end" class:won={status.state === 'won'}>
-			<h2>{status.state === 'won' ? 'You beat Kilowog!' : 'Kilowog wins'}</h2>
+			<h2>{status.state === 'won' ? 'You beat them both!' : 'Down you go'}</h2>
 			<p class="line">
 				{status.state === 'won'
-					? `"Alright, alright! You pass, poozer. Don't let it go to your head."`
+					? `"You pass, poozer." Sinestro just nods. From him, that's a lot.`
 					: `"Get up, poozer! A Red Lantern won't wait for you to catch your breath."`}
 			</p>
 			{#if status.state === 'won'}<p>Took {status.elapsed} seconds as {LANTERNS[data.lantern].name}.</p>{/if}
@@ -157,6 +161,9 @@
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
 		color: #e0b4b8;
+	}
+	.name.sinestro {
+		color: #e07aa8;
 	}
 	.sub {
 		font-size: 0.75rem;

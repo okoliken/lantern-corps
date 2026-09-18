@@ -18,6 +18,7 @@ import type { Obstacle } from '../map';
 import { boxOverlap, type Solid } from '../physics';
 import { bodyAim, hitsBody, type Player } from '../player';
 import { ENEMIES, createEnemy, face, steer, type Enemy, type Role } from './enemies';
+import { CORPS_ABILITIES, startCorpsAbility, updateCorpsAbility } from './corpsConstructs';
 
 export type AbilityId =
 	| 'claws'
@@ -49,7 +50,16 @@ export type AbilityId =
 	| 'sweep'
 	| 'pulse'
 	| 'strafe'
-	| 'bombs';
+	| 'bombs'
+	// Green Lanterns you spar with (corpsConstructs.ts)
+	| 'bigHammer'
+	| 'hammerSpin'
+	| 'hammerThrow'
+	| 'hammerRain'
+	| 'bigFist'
+	| 'sword'
+	| 'bladeFan'
+	| 'bladeStorm';
 
 /** How far away a construct is used from. Kits take some of each. */
 export type Band = 'close' | 'mid' | 'long' | 'support';
@@ -241,13 +251,49 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	bombs: def({
 		id: 'bombs', name: 'Bombing Run', band: 'close', tell: 'aim', windup: 0.25, active: 0.55, recover: 0.2, cooldown: 7,
 		minRange: 0, maxRange: 140, damage: 14, knockback: 300, melee: false, heavy: true, chance: 0.8, radius: 46
+	}),
+
+	// ---- Kilowog: hammers, hammers, hammers (corpsConstructs.ts) ----
+	bigHammer: def({
+		id: 'bigHammer', name: 'Giant Hammer', band: 'close', tell: 'heavy', windup: 0.85, active: 0.3, recover: 0.75, cooldown: 5,
+		minRange: 0, maxRange: 180, damage: 30, knockback: 720, melee: false, heavy: true, chance: 0.95, radius: 115
+	}),
+	hammerSpin: def({
+		id: 'hammerSpin', name: 'Hammer Cyclone', band: 'close', tell: 'heavy', windup: 0.55, active: 1.3, recover: 0.7, cooldown: 7.5,
+		minRange: 0, maxRange: 200, damage: 12, knockback: 420, melee: false, heavy: false, chance: 0.8, radius: 125, speed: 170
+	}),
+	hammerThrow: def({
+		id: 'hammerThrow', name: 'Hammer Toss', band: 'mid', tell: 'aim', windup: 0.55, active: 0.2, recover: 0.4, cooldown: 3.8,
+		minRange: 110, maxRange: 440, damage: 18, knockback: 440, melee: false, heavy: false, chance: 0.85, speed: 500
+	}),
+	hammerRain: def({
+		id: 'hammerRain', name: 'Hammer Drop', band: 'long', tell: 'sky', windup: 0.8, active: 0.3, recover: 0.6, cooldown: 8.5,
+		minRange: 140, maxRange: 560, damage: 22, knockback: 460, melee: false, heavy: true, chance: 0.8, radius: 62
+	}),
+	bigFist: def({
+		id: 'bigFist', name: 'Giant Fist', band: 'mid', tell: 'aim', windup: 0.5, active: 0.2, recover: 0.4, cooldown: 3.6,
+		minRange: 70, maxRange: 420, damage: 22, knockback: 760, melee: false, heavy: false, chance: 0.85, speed: 860
+	}),
+
+	// ---- Sinestro: fast, precise, merciless ----
+	sword: def({
+		id: 'sword', name: 'Sword Lunge', band: 'close', tell: 'strike', windup: 0.35, active: 0.3, recover: 0.3, cooldown: 1.8,
+		minRange: 0, maxRange: 230, damage: 22, knockback: 440, melee: true, heavy: false, chance: 1, radius: 120, speed: 760
+	}),
+	bladeFan: def({
+		id: 'bladeFan', name: 'Blade Volley', band: 'long', tell: 'aim', windup: 0.5, active: 0.15, recover: 0.3, cooldown: 3,
+		minRange: 120, maxRange: 540, damage: 12, knockback: 200, melee: false, heavy: false, chance: 0.9, speed: 740
+	}),
+	bladeStorm: def({
+		id: 'bladeStorm', name: 'Blade Storm', band: 'mid', tell: 'heavy', windup: 0.65, active: 0.2, recover: 0.45, cooldown: 7.5,
+		minRange: 0, maxRange: 280, damage: 15, knockback: 320, melee: false, heavy: true, chance: 0.8, speed: 560
 	})
 };
 
 /** What the machines use. They're never part of a Red Lantern's random kit. */
 export const MACHINE_ABILITIES: readonly AbilityId[] = ['eyeLaser', 'sweep', 'pulse', 'strafe', 'bombs'];
 /** Signature moves of named Red Lanterns, never handed out in random kits. */
-const SIGNATURE_ABILITIES: readonly AbilityId[] = ['swoop'];
+const SIGNATURE_ABILITIES: readonly AbilityId[] = ['swoop', ...CORPS_ABILITIES];
 
 /** Every red construct a Red Lantern's kit can be built from. */
 export const ABILITY_LIST = (Object.keys(ABILITIES) as AbilityId[]).filter(
@@ -305,8 +351,10 @@ export const SLAM_HEIGHT = 70;
 export interface RedShot {
 	/** Rage Cannon shells: how big the burst is. */
 	radius?: number;
-	/** bolt: Rage Blast · saw · hook: Barbed Chain · spear · skull · plasma: Napalm Vomit · orb: Rage Prison · laser: machines */
-	kind: 'bolt' | 'saw' | 'hook' | 'spear' | 'skull' | 'plasma' | 'orb' | 'laser' | 'shell';
+	/** bolt: Rage Blast · saw · hook: Barbed Chain · spear · skull · plasma: Napalm Vomit · orb: Rage Prison · laser: machines · hammer, fist, blade: Green Lanterns */
+	kind: 'bolt' | 'saw' | 'hook' | 'spear' | 'skull' | 'plasma' | 'orb' | 'laser' | 'shell' | 'hammer' | 'fist' | 'blade';
+	/** Big constructs (a thrown hammer, a giant fist) hit this much wider than a bolt. */
+	size?: number;
 	owner: Enemy;
 	x: number;
 	y: number;
@@ -338,7 +386,7 @@ export interface RedChain {
 
 /** Something about to hit the ground: a meteor, or one spike in a line. */
 export interface RedStrike {
-	kind: 'meteor' | 'spike' | 'bomb';
+	kind: 'meteor' | 'spike' | 'bomb' | 'hammer';
 	x: number;
 	y: number;
 	radius: number;
@@ -398,7 +446,7 @@ export function createRedWorld(): RedWorld {
 }
 
 /** Damage for one hit of a construct: angrier and mightier enemies hit harder. */
-function power(e: Enemy, a: AbilityDef): number {
+export function power(e: Enemy, a: AbilityDef): number {
 	return a.damage * e.brain.might * (1 + 0.5 * e.brain.rage);
 }
 
@@ -415,6 +463,7 @@ export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Play
 	b.hitDone = false;
 	b.struck = [];
 
+	if (CORPS_ABILITIES.has(a.id)) return startCorpsAbility(e, a, w, players);
 	switch (a.id) {
 		case 'claws':
 			e.vx += b.aimX * 340;
@@ -580,6 +629,10 @@ export function updateAbility(e: Enemy, w: ConstructWorld, players: readonly Pla
 	b.elapsed += dt;
 	b.timer -= dt;
 
+	if (CORPS_ABILITIES.has(a.id)) {
+		updateCorpsAbility(e, a, w, players, dt);
+		return b.timer <= 0;
+	}
 	switch (a.id) {
 		case 'claws':
 			if (!b.hitDone) {
@@ -708,11 +761,11 @@ function track(e: Enemy, amount: number) {
 	face(e, dx);
 }
 
-function fire(e: Enemy, w: ConstructWorld, kind: RedShot['kind'], a: AbilityDef, dx: number, dy: number): RedShot {
+export function fire(e: Enemy, w: ConstructWorld, kind: RedShot['kind'], a: AbilityDef, dx: number, dy: number, lead = true): RedShot {
 	const speed = a.speed ?? 500;
 	// A trained Green Lantern leads his shots: aim where the target will be
 	const t = e.brain.target;
-	if (isCorps(e) && t) {
+	if (lead && isCorps(e) && t) {
 		const eta = Math.hypot(t.x - e.x, t.y - e.y) / speed;
 		const lx = t.x + t.vx * eta - e.x;
 		const ly = t.y + t.vy * eta - e.y;
@@ -760,7 +813,7 @@ function clawHit(e: Enemy, a: AbilityDef, w: ConstructWorld, players: readonly P
 }
 
 /** Hurt every Lantern, turret and energy wall in a circle. */
-function areaHit(e: Enemy, a: AbilityDef, w: ConstructWorld, players: readonly Player[], x: number, y: number, r: number, turretDamage: number, wallDamage: number) {
+export function areaHit(e: Enemy, a: AbilityDef, w: ConstructWorld, players: readonly Player[], x: number, y: number, r: number, turretDamage: number, wallDamage: number) {
 	for (const p of players) {
 		if (!p.downed && Math.hypot(p.x - x, p.y - y) <= r + 10) damagePlayer(w, p, power(e, a), x, y, a.knockback);
 	}
@@ -982,7 +1035,9 @@ function updateStrike(s: RedStrike, w: ConstructWorld, players: readonly Player[
 	const big = s.kind !== 'spike';
 	for (const t of w.turrets) if (Math.hypot(t.x - s.x, t.y - s.y) <= s.radius + 8) t.hp -= big ? 40 : 20;
 	for (const o of wallsNear(w, s.x, s.y, s.radius)) damageWall(w, o, big ? 60 : 30);
-	if (s.kind === 'meteor') {
+	if (s.kind === 'hammer') {
+		w.effects.push({ kind: 'hammerDrop', x: s.x, y: s.y, age: 0, life: 0.5, radius: s.radius });
+	} else if (s.kind === 'meteor') {
 		w.effects.push({ kind: 'redBlast', x: s.x, y: s.y, age: 0, life: 0.6, radius: s.radius * 1.2 });
 		if (Math.random() < 0.5) addPuddle(w, s.x, s.y, 34, s.damage * 0.25);
 	} else if (s.kind === 'bomb') {
@@ -1006,7 +1061,7 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 	const ownerUp = isStanding(owner);
 	if (s.kind === 'hook' && !ownerUp) return false;
 
-	if (s.kind === 'saw') {
+	if (s.kind === 'saw' || s.kind === 'hammer') {
 		if (!s.returning && s.travelled >= s.out) startReturn(s);
 		if (s.returning && ownerUp) {
 			// Home back in on the thrower
@@ -1051,9 +1106,9 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 		return false;
 	}
 	if (solid) {
-		if (solid.kind === 'wall') damageWall(w, solid, s.kind === 'saw' ? s.damage * 2.5 : s.damage);
+		if (solid.kind === 'wall') damageWall(w, solid, s.kind === 'saw' || s.kind === 'hammer' || s.kind === 'fist' ? s.damage * 2.5 : s.damage);
 		impact(w, s);
-		if (s.kind === 'saw' && !s.returning) {
+		if ((s.kind === 'saw' || s.kind === 'hammer') && !s.returning) {
 			s.x = s.prevX;
 			s.y = s.prevY;
 			startReturn(s);
@@ -1078,20 +1133,23 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 		}
 		t.hp -= s.damage;
 		impact(w, s);
-		if (s.kind !== 'saw') return false;
+		if (s.kind !== 'saw' && s.kind !== 'hammer' && s.kind !== 'fist') return false;
 	}
 
 	for (const p of players) {
 		if (p.downed || s.hit.includes(p)) continue;
 		// Hits what it's drawn touching: the Lantern's body, not a spot at their feet
-		if (!hitsBody(p, s.x, s.y, RED_HAND_LIFT)) continue;
+		if (!touches(p, s)) continue;
 		if (s.kind === 'shell') {
 			shellBurst(w, s, players);
 			return false;
 		}
 		const shielded = w.shields.some((sh) => sh.target === p) || inFortress(w, p.x, p.y);
 		switch (s.kind) {
+			// Big constructs plough through, hitting each Lantern once per pass
 			case 'saw':
+			case 'hammer':
+			case 'fist':
 				s.hit.push(p);
 				damagePlayer(w, p, s.damage, s.x - s.vx, s.y - s.vy, s.knockback);
 				impact(w, s);
@@ -1137,6 +1195,16 @@ function impact(w: ConstructWorld, s: RedShot) {
 }
 
 const isCorps = (e: Enemy) => ENEMIES[e.kind].faction === 'corps';
+
+/** Does a shot touch a Lantern's body? Big constructs reach further than a bolt. */
+function touches(p: Player, s: RedShot): boolean {
+	const size = s.size ?? 0;
+	if (!size) return hitsBody(p, s.x, s.y, RED_HAND_LIFT);
+	for (const [ox, oy] of [[0, 0], [size, 0], [-size, 0], [0, size], [0, -size]]) {
+		if (hitsBody(p, s.x + ox, s.y + oy, RED_HAND_LIFT)) return true;
+	}
+	return false;
+}
 
 const inFortress = (w: ConstructWorld, x: number, y: number) => w.fortresses.some((f) => Math.hypot(x - f.x, y - f.y) <= f.radius);
 
