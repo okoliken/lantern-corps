@@ -13,6 +13,7 @@ import { ABILITIES, RED_HAND_LIFT, SLAM_HEIGHT } from '../enemies/redConstructs'
 import { isStanding } from '../dummy';
 import { segment, poly } from './lantern';
 import { creatureHand, drawCreature } from './creatures';
+import { drawLieutenant, isLieutenantKind, lieutenantHand, lieutenantTop } from './lieutenants';
 import { drawManhunterDrone, drawRedFighter, machineMuzzle } from './machines';
 
 const RED = '#ff2a2a';
@@ -55,6 +56,11 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, y - RED_HAND_LIFT - 30, machineMuzzle(e, x, y), time);
 		return;
 	}
+	if (isLieutenantKind(e.kind)) {
+		drawLieutenant(ctx, e, x, y, hasGround, time);
+		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, lieutenantTop(e, y), lieutenantHand(e, x, y), time);
+		return;
+	}
 	// Rage Grunts are creatures, one species per role
 	drawCreature(ctx, e, x, y, hasGround, time);
 	if (isStanding(e)) {
@@ -66,6 +72,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 /** Where an enemy's projectiles, beams and chains come from, in world coordinates. */
 export function enemyMuzzle(e: Enemy, x: number, y: number): [number, number] {
 	if (e.kind === 'manhunterDrone' || e.kind === 'redFighter') return machineMuzzle(e, x, y);
+	if (isLieutenantKind(e.kind)) return lieutenantHand(e, x, y);
 	return creatureHand(e, x, y);
 }
 
@@ -240,9 +247,22 @@ function drawEnemyOverlay(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 		ctx.restore();
 	}
 
+	// Lieutenants: their name, and a health bar from the start
+	if (def.lieutenant) {
+		ctx.save();
+		ctx.font = '800 11px system-ui, sans-serif';
+		ctx.textAlign = 'center';
+		ctx.lineWidth = 3;
+		ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
+		ctx.fillStyle = '#ffb3b3';
+		const label = e.brain.transformed ? `${def.name} ✦` : def.name;
+		ctx.strokeText(label.toUpperCase(), x, top - 5);
+		ctx.fillText(label.toUpperCase(), x, top - 5);
+		ctx.restore();
+	}
 	// Health bar once hurt
-	if (e.hp < e.maxHp) {
-		const w = 36 * Math.sqrt(def.scale);
+	if (e.hp < e.maxHp || def.lieutenant) {
+		const w = (def.lieutenant ? 56 : 36) * Math.sqrt(def.scale);
 		ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
 		ctx.fillRect(x - w / 2 - 1, top - 1, w + 2, 6);
 		ctx.fillStyle = color;
@@ -257,8 +277,9 @@ function drawEnemyOverlay(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 		ctx.strokeStyle = 'rgba(0,0,0,0.7)';
 		ctx.fillStyle = tell ? '#ffffff' : color;
 		const mark = windTell === 'strike' ? '!' : '!!';
-		ctx.strokeText(mark, x, top - 6);
-		ctx.fillText(mark, x, top - 6);
+		const markY = def.lieutenant ? top - 20 : top - 6;
+		ctx.strokeText(mark, x, markY);
+		ctx.fillText(mark, x, markY);
 		ctx.restore();
 	}
 }

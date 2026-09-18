@@ -142,7 +142,7 @@ export interface Effect {
 	value?: number;
 	/** Big shout-out text (signature ability names). */
 	text?: string;
-	/** A damage number for damage TAKEN by a Lantern (shown red). */
+	/** Damage TAKEN by a Lantern, or an enemy's callout: shown red. */
 	hurt?: boolean;
 	/** Height it's drawn above the ground plane, fixed when it was created. */
 	lift?: number;

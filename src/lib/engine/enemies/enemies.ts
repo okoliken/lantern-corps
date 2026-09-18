@@ -23,7 +23,7 @@ import type { ConstructWorld } from '../constructs/system';
 import { DUMMY_HALF_W, isStanding, type Dummy, type TargetKind } from '../dummy';
 import type { Player } from '../player';
 import { attackStarted, mayAttack, updatePressure, type Attacker } from './director';
-import { ABILITIES, cancelAbility, startAbility, updateAbility, updateRedConstructs, type AbilityDef, type AbilityId } from './redConstructs';
+import { ABILITIES, SWOOP_HEIGHT, cancelAbility, startAbility, updateAbility, updateRedConstructs, type AbilityDef, type AbilityId } from './redConstructs';
 import { flyShip } from './ships';
 import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
 
@@ -63,6 +63,10 @@ export interface EnemyDef {
 	leans?: Partial<Personality>;
 	/** Ships: how fast they turn, in radians per second. */
 	turnRate?: number;
+	/** A named character from the show: its name shows above it, and it's announced when it arrives. */
+	lieutenant?: boolean;
+	/** Transforms into a bigger, angrier form once this hurt (0..1). */
+	transformAt?: number;
 }
 
 export const ENEMIES: Record<EnemyKind, EnemyDef> = {
@@ -122,6 +126,69 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		range: 320,
 		turnRate: 2.1,
 		leans: { aggression: 0.3 }
+	},
+
+	// ---- Lieutenants: Atrocitus's inner circle, from the animated series ----
+	zox: {
+		kind: 'zox',
+		name: 'Zilius Zox',
+		faction: 'red',
+		description:
+			"A round, grinning Red Lantern who is mostly mouth. He floods the ground with napalm, bounces in for belly slams, and laughs at you the whole time.",
+		mind: 'rage',
+		hp: 520,
+		speed: 115,
+		accel: 3.5,
+		sight: 680,
+		poise: 90,
+		scale: 1.25,
+		agility: 0.2,
+		movement: 'hover',
+		kit: ['vomit', 'slam', 'blast', 'spikes'],
+		range: 190,
+		leans: { aggression: 0.25, patience: -0.1 },
+		lieutenant: true
+	},
+	skallox: {
+		kind: 'skallox',
+		name: 'Skallox',
+		faction: 'red',
+		description:
+			'A horned brute who smashes through walls with his charge. Hurt him badly and he TRANSFORMS into a bigger, faster monster, so finish him fast or get ready for round two.',
+		mind: 'rage',
+		hp: 780,
+		speed: 105,
+		accel: 3,
+		sight: 620,
+		poise: 140,
+		scale: 1.3,
+		agility: 0.1,
+		movement: 'hover',
+		kit: ['charge', 'claws', 'roar', 'slam'],
+		range: 150,
+		leans: { aggression: 0.4, caution: -0.3 },
+		lieutenant: true,
+		transformAt: 0.5
+	},
+	bleez: {
+		kind: 'bleez',
+		name: 'Bleez',
+		faction: 'red',
+		description:
+			'Fast and cruel, on torn black wings. She circles out of reach, hurls blood spears, climbs high and dives straight through you, and is hard to pin down with shots.',
+		mind: 'rage',
+		hp: 400,
+		speed: 185,
+		accel: 5,
+		sight: 720,
+		poise: 70,
+		scale: 1.05,
+		agility: 1,
+		movement: 'hover',
+		kit: ['swoop', 'spears', 'claws', 'cage'],
+		range: 240,
+		leans: { caution: 0.3, aggression: 0.2 },
+		lieutenant: true
 	}
 };
 
@@ -273,6 +340,10 @@ export interface EnemyBrain {
 	/** Its own clock, for idle drift and bobbing. */
 	clock: number;
 
+	/** Transformed into its bigger form (Skallox), and how far into it (0..1, for drawing). */
+	transformed: boolean;
+	form: number;
+
 	// ---- Ships (ships.ts) ----
 	/** Which way the ship's nose points (radians). */
 	heading: number;
@@ -383,6 +454,8 @@ export function createEnemy(
 			dodgeIn: rand(),
 			sinceHit: 99,
 			clock: rand() * 100,
+			transformed: false,
+			form: 0,
 			heading: Math.PI,
 			pass: 0
 		}
@@ -459,6 +532,10 @@ function think(
 		if (b.state === 'windup') interrupt(e, w, 0.45);
 	}
 
+	// Hurt enough: transform (Skallox). A moment of roaring, then bigger, faster, stronger.
+	if (def.transformAt !== undefined && !b.transformed && b.hurt >= def.transformAt) transform(e, w);
+	if (b.transformed) b.form = Math.min(1, b.form + dt * 1.5);
+
 	// Caged or stunned: can't act, and whatever it was doing is cancelled
 	if (e.caged > 0 || e.stun > 0) {
 		if (b.state === 'windup' || b.state === 'act') interrupt(e, w, 0.2);
@@ -511,6 +588,8 @@ function think(
 			if (t && !a.melee && b.timer > a.windup * 0.3) aimAt(e, t);
 			if (t) face(e, t.x - e.x);
 			b.timer -= dt;
+			// Climbing into the air before a dive
+			if (a.id === 'swoop') b.air = SWOOP_HEIGHT * Math.min(1, 1 - b.timer / a.windup);
 			if (b.timer <= 0) startAbility(e, w, players);
 			break;
 		}
@@ -647,6 +726,18 @@ export function beginWindup(e: Enemy, id: AbilityId, t: Player) {
 	const reach = Math.min(dist, a.maxRange);
 	b.markX = e.x + (dx / dist) * reach;
 	b.markY = e.y + (dy / dist) * reach;
+}
+
+function transform(e: Enemy, w: ConstructWorld) {
+	const b = e.brain;
+	interrupt(e, w, 0.9);
+	b.transformed = true;
+	b.might *= 1.3;
+	b.speedMul *= 1.3;
+	b.grit *= 1.4;
+	e.stun = 0;
+	w.effects.push({ kind: 'roar', x: e.x, y: e.y, age: 0, life: 0.8, radius: 140, lift: 40 });
+	w.effects.push({ kind: 'callout', x: e.x, y: e.y - 120, age: 0, life: 1.8, text: `${ENEMIES[e.kind].name.toUpperCase()} TRANSFORMS!`, hurt: true });
 }
 
 /** Knocked out of what it was doing: a short stagger. */

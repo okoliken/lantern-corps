@@ -9,7 +9,7 @@ import type { Obstacle } from '../map';
 import { ATTACK_BUDGET } from './director';
 import { ENEMIES, ENEMY_SPACING, MELEE_SLOTS, createEnemy, updateEnemies, type Enemy, type Role } from './enemies';
 import { clearShot, tryDodge } from './tactics';
-import { ABILITIES, type AbilityId } from './redConstructs';
+import { ABILITIES, randomKit, type AbilityId } from './redConstructs';
 
 const DT = 1 / 60;
 const lantern = (x = 0, y = 0) => createPlayer(0, LANTERNS.hal, { read: () => IDLE }, x, y);
@@ -560,5 +560,41 @@ describe('machines', () => {
 		const laser = w.red.shots.find((s) => s.kind === 'laser')!;
 		expect(laser.vx).toBeLessThan(0);
 		expect(Math.abs(laser.vy)).toBeLessThan(Math.abs(laser.vx) * 0.2);
+	});
+});
+
+describe('lieutenants from the animated series', () => {
+	it('Skallox transforms when badly hurt: bigger, faster, harder hitting', () => {
+		const e = createEnemy('skallox', 300, 0);
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		const might = e.brain.might;
+		run(w, [p], 0.2, () => (p.invuln = 1));
+		expect(e.brain.transformed).toBe(false);
+		e.hp = e.maxHp * 0.45;
+		run(w, [p], 0.5, () => (p.invuln = 1));
+		expect(e.brain.transformed).toBe(true);
+		expect(e.brain.might).toBeGreaterThan(might);
+		expect(w.effects.some((fx) => fx.kind === 'callout' && fx.text?.includes('TRANSFORMS'))).toBe(true);
+	});
+
+	it("Bleez climbs into the air on her dive's windup, then comes down through the Lantern", () => {
+		const e = createEnemy('bleez', 250, 0);
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		Object.assign(e.brain, { state: 'windup', ability: 'swoop', timer: ABILITIES.swoop.windup, target: p, aimX: -1, aimY: 0 });
+		run(w, [p], ABILITIES.swoop.windup * 0.9);
+		expect(e.brain.air).toBeGreaterThan(0.4);
+		run(w, [p], ABILITIES.swoop.active + 0.3);
+		expect(p.health).toBeLessThan(p.maxHealth);
+		expect(e.brain.air).toBe(0);
+	});
+
+	it("signature and machine moves never turn up in a Red Lantern grunt's random kit", () => {
+		for (let i = 0; i < 200; i++) {
+			for (const role of ['berserker', 'hunter', 'gunner'] as const) {
+				for (const id of randomKit(role)) expect(['swoop', 'eyeLaser', 'sweep', 'pulse', 'strafe', 'bombs']).not.toContain(id);
+			}
+		}
 	});
 });

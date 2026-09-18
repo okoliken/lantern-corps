@@ -35,6 +35,8 @@ export type AbilityId =
 	| 'meteors'
 	| 'beam'
 	| 'skulls'
+	// Bleez
+	| 'swoop'
 	// Machines: Manhunter Drones and Red Lantern fighters
 	| 'eyeLaser'
 	| 'sweep'
@@ -163,6 +165,13 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 		minRange: 150, maxRange: 520, damage: 11, knockback: 200, melee: false, heavy: false, chance: 0.7, speed: 210
 	}),
 
+	// ---- Bleez ----
+	// Rises on her wings, then dives straight through whoever's in the way
+	swoop: def({
+		id: 'swoop', name: 'Blood Dive', band: 'mid', tell: 'heavy', windup: 0.65, active: 0.45, recover: 0.6, cooldown: 5,
+		minRange: 110, maxRange: 360, damage: 18, knockback: 480, melee: false, heavy: false, chance: 0.8, speed: 760
+	}),
+
 	// ---- Manhunter Drone ----
 	// Its eye glows, then fires two quick laser bolts
 	eyeLaser: def({
@@ -195,9 +204,13 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 
 /** What the machines use. They're never part of a Red Lantern's random kit. */
 export const MACHINE_ABILITIES: readonly AbilityId[] = ['eyeLaser', 'sweep', 'pulse', 'strafe', 'bombs'];
+/** Signature moves of named Red Lanterns, never handed out in random kits. */
+const SIGNATURE_ABILITIES: readonly AbilityId[] = ['swoop'];
 
 /** Every red construct a Red Lantern's kit can be built from. */
-export const ABILITY_LIST = (Object.keys(ABILITIES) as AbilityId[]).filter((id) => !MACHINE_ABILITIES.includes(id));
+export const ABILITY_LIST = (Object.keys(ABILITIES) as AbilityId[]).filter(
+	(id) => !MACHINE_ABILITIES.includes(id) && !SIGNATURE_ABILITIES.includes(id)
+);
 
 /** Which bands each role's kit is built from ('any' = a random band). */
 const KIT_PLAN: Record<Role, (Band | 'any')[]> = {
@@ -236,6 +249,8 @@ const BEAM_TICK = 0.36;
 const BEAM_TURN_RATE = 1.4;
 const SKULL_TURN_RATE = 2.6;
 const PUDDLE_TICK = 0.4;
+/** How high Bleez climbs (0..1 of a slam's height) before a Blood Dive. */
+export const SWOOP_HEIGHT = 0.7;
 /** How high a Rage Slam leap goes, in px (drawing uses this). */
 export const SLAM_HEIGHT = 70;
 
@@ -471,6 +486,12 @@ export function updateAbility(e: Enemy, w: ConstructWorld, players: readonly Pla
 		}
 		case 'charge':
 			updateCharge(e, a, w, players, dt);
+			break;
+		case 'swoop':
+			// A charge from the air: she comes down out of the sky as she goes
+			updateCharge(e, a, w, players, dt);
+			b.air = SWOOP_HEIGHT * Math.max(0, 1 - b.elapsed / a.active);
+			if (b.timer <= 0) b.air = 0;
 			break;
 		case 'slam': {
 			const progress = Math.min(1, b.elapsed / a.active);

@@ -410,8 +410,8 @@ function drawTurret(ctx: CanvasRenderingContext2D, x: number, y: number, aim: nu
 
 // ---------------------------------------------------------------- callout
 
-/** The big ability name that pops up over a Lantern's head. */
-export function drawCallout(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, t: number) {
+/** The big ability name that pops up over a Lantern's head (red for enemies). */
+export function drawCallout(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, t: number, red = false) {
 	const pop = t < 0.12 ? 0.6 + (t / 0.12) * 0.55 : t < 0.2 ? 1.15 - ((t - 0.12) / 0.08) * 0.15 : 1;
 	const alpha = t < 0.75 ? 1 : 1 - (t - 0.75) / 0.25;
 	ctx.save();
@@ -424,9 +424,9 @@ export function drawCallout(ctx: CanvasRenderingContext2D, text: string, x: numb
 	ctx.lineWidth = 5;
 	ctx.strokeStyle = 'rgba(3, 6, 10, 0.85)';
 	ctx.strokeText(text, 0, 0);
-	ctx.shadowColor = GREEN;
+	ctx.shadowColor = red ? '#ff2a2a' : GREEN;
 	ctx.shadowBlur = 16;
-	ctx.fillStyle = CORE;
+	ctx.fillStyle = red ? '#ffd6d6' : CORE;
 	ctx.fillText(text, 0, 0);
 	ctx.restore();
 }

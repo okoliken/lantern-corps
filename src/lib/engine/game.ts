@@ -32,7 +32,7 @@ import { drawFallingMeteors, drawRedBeam, drawRedCage, drawRedChain, drawRedEffe
 import { AllyInput } from './ally';
 import { RED_HAND_LIFT } from './enemies/redConstructs';
 import { updatePlayerCombat, revivePlayer } from './combat';
-import { createEnemy, enemyLabel, isEnemy, updateEnemies, type Enemy, type EnemyKind, type Role } from './enemies/enemies';
+import { ENEMIES, createEnemy, enemyLabel, isEnemy, updateEnemies, type Enemy, type EnemyKind, type Role } from './enemies/enemies';
 import {
 	FIGURE_HALF_WIDTH,
 	FIGURE_HEIGHT,
@@ -353,6 +353,10 @@ export class Game {
 		const e = createEnemy(kind, x, y, role);
 		this.dummies.push(e);
 		this.constructs.effects.push({ kind: 'roar', x, y, age: 0, life: 0.5, radius: 50, lift: 30 });
+		// Named characters get announced
+		if (ENEMIES[kind].lieutenant) {
+			this.constructs.effects.push({ kind: 'callout', x, y: y - 110, age: 0, life: 2, text: ENEMIES[kind].name.toUpperCase(), hurt: true });
+		}
 		return e;
 	}
 
@@ -632,7 +636,7 @@ export class Game {
 				const o = e.owner;
 				const cx = o ? lerp(o.prevX, o.x, alpha) : e.x;
 				const cy = o ? lerp(o.prevY, o.y, alpha) - FIGURE_HEIGHT - this.poseFor(o).hoverHeight * o.altitude * 1.35 - 34 : e.y;
-				drawCallout(ctx, e.text ?? '', cx, cy, e.age / e.life);
+				drawCallout(ctx, e.text ?? '', cx, cy, e.age / e.life, e.hurt);
 				continue;
 			}
 			if (e.kind === 'pop' && e.owner) {

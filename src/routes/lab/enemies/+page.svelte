@@ -10,7 +10,7 @@
 	import { settings } from '$lib/settings.svelte';
 
 	/** Enemies with a fixed kit (no roles): one button each. */
-	const OTHERS: EnemyKind[] = ['manhunterDrone', 'redFighter'];
+	const OTHERS: EnemyKind[] = ['manhunterDrone', 'redFighter', 'zox', 'skallox', 'bleez'];
 
 	let lantern = $state<LanternId>('hal');
 	let environment = $state<EnvironmentKind>('planet');
