@@ -30,7 +30,7 @@ import {
 	drawShield,
 	drawTrap
 } from './draw/constructs';
-import { drawBattery, drawBeam, drawChargeLink, drawCrosshair, drawDownedNotice, drawHud } from './draw/effects';
+import { drawBattery, drawBeam, drawChargeLink, drawCrosshair, drawDownedNotice, drawGoalArrow, drawHud } from './draw/effects';
 import { drawEnemy, enemyMuzzle } from './draw/enemies';
 import { drawSpaceRock } from './draw/escort';
 import { drawFallingMeteors, drawRedBeam, drawRedCage, drawRedChain, drawRedEffect, drawRedGround, drawRedShot } from './draw/redConstructs';
@@ -121,6 +121,8 @@ export interface Director {
 	drawables?(ctx: CanvasRenderingContext2D, alpha: number, time: number): Drawable[];
 	/** Things the camera should keep in view along with the players (it centres between them all). */
 	cameraPoints?(): [number, number][];
+	/** Where to go next: an arrow at the edge of the screen points there when it's out of view. */
+	goal?(): { x: number; y: number } | null;
 }
 
 /** How big a Lantern is drawn next to Hal and John (Kilowog is huge). */
@@ -593,7 +595,8 @@ export class Game {
 
 			const who = this.aiSlots.has(p.slot) ? 'AI' : `P${p.slot + 1}`;
 			const tag = this.showSlots ? `${who} · ${p.def.name}` : p.def.name;
-			const lift = pose.hoverHeight * p.altitude * 1.35;
+			// Above the head, however big the Lantern is
+			const lift = p.bodyTop - FIGURE_HEIGHT;
 			tags.push(() => drawNameTag(ctx, tag, x, y, lift));
 		}
 
@@ -720,12 +723,13 @@ export class Game {
 				smart: p.smartRing ? { key: buttonLabel(this.inputs[i].bindings.construct[0] ?? ''), pick: p.smartPick } : null,
 				slots: p.loadout.map((def, s) => ({
 					...constructLabel(def, cw.space),
-					key: shortLabel(this.inputs[i].bindings[SLOT_ACTIONS[s]]),
+					// An AI partner has no keys to show
+					key: this.aiSlots.has(i) ? '' : shortLabel(this.inputs[i].bindings[SLOT_ACTIONS[s]]),
 					cooldown: def.cooldown > 0 ? Math.min(1, p.cooldowns[s] / (def.cooldown * p.def.traits.cooldown)) : 0,
 					affordable: canSpend(p, def.behavior === 'beam' ? 15 : costOf(p, def))
 				})),
 				shield: {
-					key: shortLabel(this.inputs[i].bindings.shield),
+					key: this.aiSlots.has(i) ? '' : shortLabel(this.inputs[i].bindings.shield),
 					cooldown: Math.min(1, p.shieldCooldown / (BUBBLE_SHIELD.cooldown * p.def.traits.cooldown)),
 					affordable: canSpend(p, BUBBLE_SHIELD.cost),
 					active: cw.shields.some((sh) => sh.target === p)
@@ -734,7 +738,7 @@ export class Game {
 				surge: {
 					fill: p.surge / 100,
 					name: SIGNATURES[p.def.id].name,
-					key: shortLabel(this.inputs[i].bindings.signature),
+					key: this.aiSlots.has(i) ? '' : shortLabel(this.inputs[i].bindings.signature),
 					active: p.dash !== null || cw.fortresses.some((f) => f.owner === p)
 				}
 			})),
@@ -746,6 +750,12 @@ export class Game {
 		// Solo: a big notice while down. (Co-op shows it per player in M7.)
 		if (this.downedNotice && this.players.length === 1 && this.players[0].downed) {
 			drawDownedNotice(ctx, this.players[0].def.name, this.players[0].downTimer, width, height);
+		}
+
+		const goal = this.director?.goal?.();
+		if (goal) {
+			const { zoom } = this.camera;
+			drawGoalArrow(ctx, (goal.x - this.camera.x) * zoom + width / 2, (goal.y - this.camera.y) * zoom + height / 2, width, height, this.time);
 		}
 
 		if (this.usesMouse && this.pointer.active && !this.paused) drawCrosshair(ctx, this.pointer.x, this.pointer.y, this.time);

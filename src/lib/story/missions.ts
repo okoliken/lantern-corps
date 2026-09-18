@@ -3,7 +3,7 @@
 // (src/lib/engine/missions/).
 
 import type { EnvironmentKind } from '$lib/engine/environment';
-import type { LanternId } from '$lib/engine/lanterns';
+import type { CrewId, LanternId } from '$lib/engine/lanterns';
 
 export interface MissionInfo {
 	id: string;
@@ -20,6 +20,8 @@ export interface MissionInfo {
 	briefing: string[];
 	/** What you have to do, short and clear. */
 	objectives: string[];
+	/** Who fights beside you (an AI partner). */
+	partner?: CrewId;
 }
 
 export const MISSIONS: MissionInfo[] = [
@@ -43,6 +45,23 @@ export const MISSIONS: MissionInfo[] = [
 		]
 	}
 ];
+
+MISSIONS.push({
+	id: 'silent-outpost',
+	number: 2,
+	title: 'Silent Outpost',
+	tagline: 'Kel-Aris Station went dark. Find out why, with Kilowog at your side.',
+	lantern: 'hal',
+	environment: 'planet',
+	place: 'Sector 2814 · Kel-Aris Station',
+	briefing: [
+		"Tomar-Re was right. Kel-Aris Station, on the frontier of your sector, hasn't answered in two days. Its Lantern, Tolen Vex of Sector 2815, went silent with it.",
+		'The Guardians want to know what happened. Kilowog wants to come along. "Somebody\'s gotta keep you alive, poozer."',
+		'Whatever hit Kel-Aris might still be there.'
+	],
+	objectives: ['Search the station', 'Find the station crew and get them to safety', 'Find out what happened to Tolen Vex'],
+	partner: 'kilowog'
+});
 
 export function missionById(id: string): MissionInfo | undefined {
 	return MISSIONS.find((m) => m.id === id);

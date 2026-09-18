@@ -253,6 +253,38 @@ export interface HudPlayer {
  * Willpower bar and construct slots, in screen space. Player 1 bottom-left,
  * player 2 bottom-right, so co-op players can each find their own.
  */
+/**
+ * The next objective is off screen: a glowing arrow at the edge, pointing at
+ * it. (sx, sy) is where it is in screen px (possibly far outside the view).
+ */
+export function drawGoalArrow(ctx: CanvasRenderingContext2D, sx: number, sy: number, width: number, height: number, time: number) {
+	const margin = 60;
+	if (sx > margin && sx < width - margin && sy > margin && sy < height - margin) return;
+	const cx = width / 2;
+	const cy = height / 2;
+	const angle = Math.atan2(sy - cy, sx - cx);
+	// Where the line from the middle leaves the (inset) screen
+	const kx = (width / 2 - margin) / Math.max(1e-6, Math.abs(Math.cos(angle)));
+	const ky = (height / 2 - margin) / Math.max(1e-6, Math.abs(Math.sin(angle)));
+	const r = Math.min(kx, ky);
+	const pulse = 0.7 + 0.3 * Math.sin(time * 5);
+	ctx.save();
+	ctx.translate(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+	ctx.rotate(angle);
+	ctx.globalAlpha = pulse;
+	ctx.shadowColor = GREEN;
+	ctx.shadowBlur = 12;
+	ctx.fillStyle = GREEN;
+	ctx.beginPath();
+	ctx.moveTo(18, 0);
+	ctx.lineTo(-10, -12);
+	ctx.lineTo(-4, 0);
+	ctx.lineTo(-10, 12);
+	ctx.closePath();
+	ctx.fill();
+	ctx.restore();
+}
+
 export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], width: number, height: number, time: number) {
 	const margin = 18;
 	const count = players[0]?.slots.length ?? 10;

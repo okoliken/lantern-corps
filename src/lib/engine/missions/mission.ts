@@ -46,6 +46,9 @@ export interface MissionDirector extends Director {
 	tally?(): string;
 }
 
+/** Lines that can wait their turn before old ones get dropped. */
+const MAX_WAITING = 2;
+
 export interface CommsLine {
 	who: string;
 	text: string;
@@ -60,8 +63,16 @@ export class Comms {
 	private queue: CommsLine[] = [];
 	private left = 0;
 
-	say(who: string, text: string) {
+	/** Queue a line. `urgent` cuts in right away and drops anything still waiting ("It's a trap!"). */
+	say(who: string, text: string, urgent = false) {
+		if (urgent) {
+			this.queue = [{ who, text }];
+			this.next();
+			return;
+		}
 		this.queue.push({ who, text });
+		// Don't let chatter fall far behind what's happening
+		if (this.queue.length > MAX_WAITING) this.queue.shift();
 		if (!this.current) this.next();
 	}
 
@@ -69,6 +80,12 @@ export class Comms {
 		if (!this.current) return;
 		this.left -= dt;
 		if (this.left <= 0) this.next();
+	}
+
+	/** A scripted conversation: replaces whatever's waiting, and every line gets its turn. */
+	scene(lines: [who: string, text: string][]) {
+		this.queue = lines.map(([who, text]) => ({ who, text }));
+		this.next();
 	}
 
 	/** Drop anything still waiting (the mission ended). */

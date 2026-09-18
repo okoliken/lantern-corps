@@ -131,6 +131,18 @@ back and let them fight, lure one faction into the other, or get caught in the m
   **Ending:** the ship lands on Oa. Tomar-Re thanks Hal, then warns him: something struck his ship
   before the belt, "a light the color of blood", and frontier outposts are going silent (Kel-Aris
   Station stopped answering). That leads into Silent Outpost and the Red Lanterns.
+- **Mission 2: Silent Outpost** (2026-09-18): Hal and Kilowog search Kel-Aris Station. Ambushed by Rage
+  Grunts; they rescue three hiding station crew; at the comms tower, Skallox leads the last wave. The
+  station's Lantern, **Tolen Vex of Sector 2815** (original), died there; her ring leaves to seek a new
+  bearer, and her last recording says the Red Lanterns' leader swore "the Guardians will burn for Sector
+  666". Kilowog: "The Lost Sector."
+
+**Act 1 plan (agreed 2026-09-18, following the animated series):** 3. Colony Under Fire (Mirrow; rescue
+colonists with shields; Zilius Zox) → 4. The Interceptor (the Guardians refuse to send help past the
+frontier, Sinestro backs them; Hal and Kilowog take the Interceptor; Aya wakes up) → 5. Boss: Razer
+(Atrocitus's lieutenant, who hates the Manhunters for killing his wife; captured, later an ally; first
+time the name Atrocitus is heard). Then Act 2 (the Manhunter vault), an Earth detour (Coast City, John
+Stewart joins, a DC guest hero), Act 3 (Ysmault, Atrocitus; Sinestro's distrust grows).
 
 ## Acts & missions
 Mission types come from what's happening in the story. Planets are original; Oa and Ysmault are canon.

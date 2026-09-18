@@ -5,6 +5,7 @@
 import { Game, type GameOptions } from '$lib/engine/game';
 import type { MissionDirector } from '$lib/engine/missions/mission';
 import { SafePassage, buildBeltMap } from '$lib/engine/missions/safePassage';
+import { SilentOutpost, buildOutpostMap } from '$lib/engine/missions/silentOutpost';
 import { OaLanding } from '$lib/engine/scenes/oaLanding';
 import { OA_LANDING } from '$lib/story/scenes';
 
@@ -19,6 +20,20 @@ type Options = Pick<GameOptions, 'settings' | 'profiles' | 'onProgress'>;
 
 export function buildMission(id: string, options: Options): MissionRun {
 	switch (id) {
+		case 'silent-outpost': {
+			const map = buildOutpostMap();
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: 'hal', keys: 'solo' },
+					{ lantern: 'kilowog', keys: 'p2', ai: true }
+				],
+				map
+			});
+			const director = new SilentOutpost();
+			game.director = director;
+			return { game, director, outro: null };
+		}
 		case 'safe-passage':
 		default: {
 			const map = buildBeltMap();

@@ -41,7 +41,7 @@
 			</li>
 		{/each}
 		<li class="locked">
-			<span class="number">2</span>
+			<span class="number">{MISSIONS.length + 1}</span>
 			<span class="text">
 				<strong>Coming soon</strong>
 				<span>The story continues…</span>

@@ -239,6 +239,25 @@ lands beside it, Tomar-Re (a beaked, crested alien: `Look.avian`) climbs out, sa
 then warns him about a blood-red light and frontier outposts going silent (the sky turns red), setting
 up the Red Lanterns. Click / Space to go on (lines also move on by themselves), Esc skips. Then the results.
 
+**Mission 2: Silent Outpost** (Hal with Kilowog as AI partner, planet, Kel-Aris Station;
+`missions/silentOutpost.ts`, art in `draw/outpost.ts`). Phases: search (walk to the gate) → ambush (3
+Rage Grunts) → survivors (find 3 station crew by their blinking beacons; each rescue brings a wave;
+a construct bubble carries them to the pad; the station's own Lantern battery comes back online) →
+tower → hold (Skallox + 5 Grunts) → the fallen Lantern's ring leaves to find a new bearer and her last
+recording names Sector 666. Grunts here are toughness 4, might 1.7. 3 lives (Hal only; Kilowog gets
+back up at the battery). ★ done, ★ no lives lost, ★ under 5 minutes. Bots: the AI-Hal and a sloppy
+"human" bot both win in ~100s of fighting; the sloppy one sometimes loses a life or ends near-dead.
+
+**One mission page for all** (`routes/mission/[id]`, built by `$lib/missions.ts`): every director
+implements `MissionDirector` (`missions/mission.ts`): objective line, meters, tally, warning, stars,
+stats, and **comms** (radio chatter: `Comms.say`, urgent lines cut in, old ones drop; `Comms.scene` for
+scripted conversations). `Director.goal()` puts an arrow at the screen edge toward the next objective.
+
+**Crew Lanterns:** `CrewId` = the playable `LanternId`s (Hal, John: `PLAYABLE`) plus partners the story
+brings (Kilowog). Kilowog has a hammer-first loadout, `bulk`/`figureScale`/`build` for his shape,
+signature **Hammer Quake** (smash + knockback + stun around him), no progression. The AI partner lets
+the smart ring pick his constructs and brawls up close.
+
 **Lantern health:** 150, regenerates 6/s after 4s without taking damage; 0.5s invulnerable after a hit.
 A downed Lantern lies still (no turning or aiming).
 
