@@ -21,9 +21,9 @@
 
 import type { ConstructWorld } from '../constructs/system';
 import { DUMMY_HALF_W, isStanding, type Dummy, type TargetKind } from '../dummy';
-import type { Player } from '../player';
+import { bodyAim, type Player } from '../player';
 import { attackStarted, mayAttack, updatePressure, type Attacker } from './director';
-import { ABILITIES, SWOOP_HEIGHT, cancelAbility, startAbility, updateAbility, updateRedConstructs, type AbilityDef, type AbilityId } from './redConstructs';
+import { ABILITIES, RED_HAND_LIFT, SWOOP_HEIGHT, cancelAbility, startAbility, updateAbility, updateRedConstructs, type AbilityDef, type AbilityId } from './redConstructs';
 import { flyShip } from './ships';
 import { updateSquads, type SquadRole } from './squad';
 import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
@@ -642,7 +642,7 @@ function think(
 			steer(e, 0, 0, def.accel * 2, dt);
 			const a = ABILITIES[b.ability!];
 			// Ranged constructs keep tracking for most of the windup, then lock (so they can be dodged)
-			if (t && !a.melee && b.timer > a.windup * 0.3) aimAt(e, t);
+			if (t && !a.melee && b.timer > a.windup * 0.3) aimAt(e, aimPointFor(a, t));
 			if (t) face(e, t.x - e.x);
 			b.timer -= dt;
 			// Climbing into the air before a dive
@@ -813,7 +813,7 @@ export function beginWindup(e: Enemy, id: AbilityId, t: Player) {
 	b.timer = a.windup;
 	b.hitDone = false;
 	b.fired = 0;
-	aimAt(e, t);
+	aimAt(e, aimPointFor(a, t));
 	// The landing spot, no further than the construct reaches
 	const dx = t.x - e.x;
 	const dy = t.y - e.y;
@@ -833,6 +833,15 @@ function transform(e: Enemy, w: ConstructWorld) {
 	e.stun = 0;
 	w.effects.push({ kind: 'roar', x: e.x, y: e.y, age: 0, life: 0.8, radius: 140, lift: 40 });
 	w.effects.push({ kind: 'callout', x: e.x, y: e.y - 120, age: 0, life: 1.8, text: `${ENEMIES[e.kind].name.toUpperCase()} TRANSFORMS!`, hurt: true });
+}
+
+/**
+ * Shots fly at hand height, so aim them at the Lantern's body as drawn (a
+ * Lantern flying high over a planet is well above their feet). Everything
+ * else (claws, slams, things on the ground) goes for where they stand.
+ */
+function aimPointFor(a: AbilityDef, t: Player): { x: number; y: number } {
+	return a.tell === 'aim' && !a.melee ? bodyAim(t, RED_HAND_LIFT) : t;
 }
 
 /** Knocked out of what it was doing: a short stagger. */

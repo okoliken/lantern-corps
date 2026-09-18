@@ -68,7 +68,12 @@
 		{ title: 'Choose construct', actions: ['prevConstruct', 'nextConstruct', ...SLOT_ACTIONS] }
 	];
 
-	const options: { key: 'aimAssist' | 'toggleShot' | 'damageNumbers' | 'reduceFlashing'; label: string; help: string }[] = [
+	const options: { key: 'aimAssist' | 'toggleShot' | 'quickCast' | 'damageNumbers' | 'reduceFlashing'; label: string; help: string }[] = [
+		{
+			key: 'quickCast',
+			label: 'Quick cast',
+			help: "A construct's key uses it straight away: tap for one-shot constructs, hold for the beam and guns. Off: the keys only pick, and the construct button uses it."
+		},
 		{ key: 'aimAssist', label: 'Aim assist', help: 'Mouse aim gently snaps onto an enemy right next to the crosshair.' },
 		{ key: 'toggleShot', label: 'Toggle ring shot', help: 'Tap once to start shooting, tap again to stop. No need to hold.' },
 		{ key: 'damageNumbers', label: 'Damage numbers', help: 'Show how much damage each hit does.' },

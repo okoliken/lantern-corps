@@ -11,7 +11,7 @@
 // doesn't depend on Game and is easy to test on its own.
 
 import { castBeam, castThrough } from '../beam';
-import { DUMMY_HALF_H, DUMMY_HALF_W, dummyBox, hitDummy, isStanding, type Dummy } from '../dummy';
+import { DUMMY_HALF_H, DUMMY_HALF_W, aimPoint, distanceToBody, hitDummy, hurtbox, isStanding, type Dummy } from '../dummy';
 import type { Intent } from '../input';
 import type { RedWorld } from '../enemies/redConstructs';
 import type { Obstacle } from '../map';
@@ -373,7 +373,7 @@ function useBeam(p: Player, def: ConstructDef, held: boolean, dt: number, w: Con
 
 	// Cast along the ground plane from the feet: obstacles are footprints,
 	// so that's where "what am I pointing at" lives in this view.
-	const { length, hit } = castAtTargets(p.x + p.ringDX, p.y, p.aimX, p.aimY, def.range, w);
+	const { length, hit } = castAtTargets(p.x + p.ringDX, p.y, p.aimX, p.aimY, def.range, w, p.ringLift);
 	p.beamLength = length;
 	if (!hit) return;
 
@@ -451,7 +451,7 @@ function fireSniper(p: Player, def: ConstructDef, charge: number, w: ConstructWo
 	type Hit = Obstacle | (Solid & { dummy: Dummy });
 	const targets: Hit[] = [
 		...w.obstacles.filter((o) => o.kind !== 'wall'),
-		...w.dummies.filter(isStanding).map((d) => ({ ...dummyBox(d), dummy: d }))
+		...w.dummies.filter(isStanding).map((d) => ({ ...hurtbox(d, p.ringLift), dummy: d }))
 	];
 
 	let length = def.range;
@@ -930,7 +930,8 @@ function updateProjectiles(w: ConstructWorld, dt: number) {
 		pr.y += pr.vy * dt;
 		pr.life -= dt;
 
-		const dummy = w.dummies.find((d) => isStanding(d) && boxOverlap(pr.x, pr.y, 3, 3, dummyBox(d)));
+		// Hits what it's drawn touching (see hurtbox in dummy.ts)
+		const dummy = w.dummies.find((d) => isStanding(d) && boxOverlap(pr.x, pr.y, 3, 3, hurtbox(d, pr.lift)));
 		// Your own constructs pass through your energy walls
 		const solid = w.obstacles.find((o) => o.kind !== 'wall' && !pr.ignore.includes(o) && boxOverlap(pr.x, pr.y, 3, 3, o));
 
@@ -986,7 +987,7 @@ function updateSaw(w: ConstructWorld, pr: Projectile, dt: number): boolean {
 	const r = pr.def.radius ?? 14;
 	for (const d of w.dummies) {
 		if (!isStanding(d) || pr.cut?.includes(d)) continue;
-		if (Math.hypot(d.x - pr.x, d.y - pr.y) > r + DUMMY_HALF_W) continue;
+		if (distanceToBody(d, pr.x, pr.y, pr.lift) > r) continue;
 		pr.cut?.push(d);
 		hitDummyWithFx(w, d, pr.damage, pr.knockback, pr.x - pr.vx * 0.05, pr.y - pr.vy * 0.05, p, pr.damage, !pr.noSurge);
 		w.effects.push({ kind: 'impact', x: d.x, y: d.y, age: 0, life: 0.15, owner: p, lift: pr.lift });
@@ -1008,7 +1009,9 @@ function steerMissile(pr: Projectile, dt: number) {
 	}
 	const speed = Math.hypot(pr.vx, pr.vy);
 	const current = Math.atan2(pr.vy, pr.vx);
-	const wanted = Math.atan2(t.y - pr.y, t.x - pr.x);
+	// Home in on the body at the missile's own height
+	const [tx, ty] = aimPoint(t, pr.lift);
+	const wanted = Math.atan2(ty - pr.y, tx - pr.x);
 	const diff = Math.atan2(Math.sin(wanted - current), Math.cos(wanted - current));
 	const turn = Math.max(-MISSILE_TURN_RATE * dt, Math.min(MISSILE_TURN_RATE * dt, diff));
 	pr.vx = Math.cos(current + turn) * speed;
@@ -1042,7 +1045,8 @@ function projectileHit(w: ConstructWorld, pr: Projectile, dummy: Dummy | null, s
 function explode(w: ConstructWorld, pr: Projectile) {
 	const r = pr.def.radius ?? 50;
 	for (const d of w.dummies) {
-		if (isStanding(d) && Math.hypot(d.x - pr.x, d.y - pr.y) <= r + DUMMY_HALF_W) {
+		// The splash reaches bodies (as drawn) within its radius
+		if (isStanding(d) && distanceToBody(d, pr.x, pr.y, pr.lift) <= r * 0.75) {
 			hitDummyWithFx(w, d, pr.damage, pr.knockback, pr.x, pr.y, pr.owner, pr.damage, !pr.noSurge);
 		}
 	}
@@ -1247,10 +1251,10 @@ function detonate(w: ConstructWorld, t: Trap) {
 type BeamTarget = Obstacle | (Solid & { dummy: Dummy });
 
 /** Nearest breakable-or-solid thing (or dummy) along a ray. Your own walls don't stop you. */
-function castAtTargets(x: number, y: number, dx: number, dy: number, range: number, w: ConstructWorld) {
+function castAtTargets(x: number, y: number, dx: number, dy: number, range: number, w: ConstructWorld, lift: number) {
 	const targets: BeamTarget[] = [
 		...w.obstacles.filter((o) => o.kind !== 'wall'),
-		...w.dummies.filter(isStanding).map((d) => ({ ...dummyBox(d), dummy: d }))
+		...w.dummies.filter(isStanding).map((d) => ({ ...hurtbox(d, lift), dummy: d }))
 	];
 	return castBeam<BeamTarget>(x, y, dx, dy, targets, range);
 }

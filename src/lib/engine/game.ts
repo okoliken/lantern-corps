@@ -237,6 +237,7 @@ export class Game {
 			input.bindings = bindings;
 			input.options = {
 				toggleShot: settings.toggleShot,
+				quickCast: settings.quickCast,
 				pointer: usesMouse(bindings)
 					? { state: this.pointer, toWorld: (sx, sy) => this.screenToWorld(sx, sy) }
 					: undefined
@@ -449,6 +450,9 @@ export class Game {
 		const [rx, ry] = ringPosition(0, 0, pose, this.time);
 		p.ringDX = rx;
 		p.ringLift = -ry;
+		// Where the body is drawn, so enemy shots hit what they're seen to touch
+		p.bodyBottom = pose.hoverHeight * p.altitude * 1.35;
+		p.bodyTop = p.bodyBottom + FIGURE_HEIGHT;
 	}
 
 	/**

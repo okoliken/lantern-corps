@@ -16,7 +16,7 @@ import { absorbWithShield, removeObstacle, type ConstructWorld } from '../constr
 import { DUMMY_HALF_W, isStanding } from '../dummy';
 import type { Obstacle } from '../map';
 import { boxOverlap, type Solid } from '../physics';
-import type { Player } from '../player';
+import { bodyAim, hitsBody, type Player } from '../player';
 import { ENEMIES, createEnemy, face, steer, type Enemy, type Role } from './enemies';
 
 export type AbilityId =
@@ -276,8 +276,6 @@ export function randomKit(role: Role, rand = Math.random): AbilityId[] {
 
 /** How high above the ground red projectiles fly (about hand height on a hovering Red Lantern). */
 export const RED_HAND_LIFT = 50;
-/** How close a red projectile has to get to a Lantern's feet to hit. */
-const PLAYER_HIT_RADIUS = 18;
 const CHAIN_PULL_SPEED = 620;
 const CHAIN_PULL_TIME = 0.4;
 /** The chain lets go this close. */
@@ -697,8 +695,8 @@ export function cancelAbility(e: Enemy, w: ConstructWorld) {
 /** Turn the aim part of the way toward the target. */
 function track(e: Enemy, amount: number) {
 	const b = e.brain;
-	const t = b.target;
-	if (!t) return;
+	if (!b.target) return;
+	const t = bodyAim(b.target, RED_HAND_LIFT);
 	const dx = t.x - e.x;
 	const dy = t.y - e.y;
 	const len = Math.hypot(dx, dy) || 1;
@@ -922,7 +920,7 @@ function updateBeam(bm: RedBeam, w: ConstructWorld, players: readonly Player[], 
 	if (bm.time <= 0 || !isStanding(e) || e.stun > 0 || e.caged > 0) return false;
 
 	// Sweep slowly toward the target
-	const t = e.brain.target;
+	const t = e.brain.target ? bodyAim(e.brain.target, RED_HAND_LIFT) : null;
 	if (t) {
 		const want = Math.atan2(t.y - e.y, t.x - e.x);
 		const diff = Math.atan2(Math.sin(want - bm.angle), Math.cos(want - bm.angle));
@@ -952,11 +950,11 @@ function updateBeam(bm: RedBeam, w: ConstructWorld, players: readonly Player[], 
 	if (hit && hit.kind === 'wall') damageWall(w, hit, bm.dps * BEAM_TICK * 1.5);
 	for (const p of players) {
 		if (p.downed) continue;
-		const along = (p.x - e.x) * dx + (p.y - e.y) * dy;
-		if (along < 0 || along > bm.length) continue;
-		const off = Math.abs((p.x - e.x) * dy - (p.y - e.y) * dx);
+		// Anywhere along the drawn beam touching the drawn body
+		let touches = false;
+		for (let d = 0; d <= bm.length && !touches; d += 6) touches = hitsBody(p, e.x + dx * d, e.y + dy * d, RED_HAND_LIFT);
 		const kb = bm.style === 'laser' ? ABILITIES.sweep.knockback : ABILITIES.beam.knockback;
-		if (off <= PLAYER_HIT_RADIUS + (bm.style === 'laser' ? 0 : 4)) damagePlayer(w, p, bm.dps * BEAM_TICK, e.x, e.y, kb);
+		if (touches) damagePlayer(w, p, bm.dps * BEAM_TICK, e.x, e.y, kb);
 	}
 	for (const tr of w.turrets) {
 		const along = (tr.x - e.x) * dx + (tr.y - e.y) * dy;
@@ -1015,7 +1013,8 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 		for (const p of players) if (!p.downed && (!prey || Math.hypot(p.x - s.x, p.y - s.y) < Math.hypot(prey.x - s.x, prey.y - s.y))) prey = p;
 		if (prey) {
 			const current = Math.atan2(s.vy, s.vx);
-			const want = Math.atan2(prey.y - s.y, prey.x - s.x);
+			const aim = bodyAim(prey, RED_HAND_LIFT);
+			const want = Math.atan2(aim.y - s.y, aim.x - s.x);
 			const diff = Math.atan2(Math.sin(want - current), Math.cos(want - current));
 			const angle = current + Math.max(-SKULL_TURN_RATE * dt, Math.min(SKULL_TURN_RATE * dt, diff));
 			s.vx = Math.cos(angle) * s.speed;
@@ -1074,7 +1073,8 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 
 	for (const p of players) {
 		if (p.downed || s.hit.includes(p)) continue;
-		if (Math.hypot(p.x - s.x, p.y - s.y) > PLAYER_HIT_RADIUS) continue;
+		// Hits what it's drawn touching: the Lantern's body, not a spot at their feet
+		if (!hitsBody(p, s.x, s.y, RED_HAND_LIFT)) continue;
 		if (s.kind === 'shell') {
 			shellBurst(w, s, players);
 			return false;

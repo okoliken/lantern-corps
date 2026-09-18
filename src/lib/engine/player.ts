@@ -6,6 +6,7 @@ import type { LanternDef } from './lanterns';
 import type { Target } from './targeting';
 import { approach, boxOverlap, moveBody, type Solid } from './physics';
 import { MAX_WILLPOWER } from './willpower';
+import { STANDING_HEIGHT } from './animation';
 
 export type { Solid } from './physics';
 
@@ -47,6 +48,13 @@ export interface Player {
 	 */
 	ringDX: number;
 	ringLift: number;
+	/**
+	 * Where the body is drawn: its bottom and top, in px above the anchor
+	 * (the Game keeps these up to date). Enemy shots hit what they're drawn
+	 * touching, so a Lantern flying high isn't hit by bolts passing under them.
+	 */
+	bodyBottom: number;
+	bodyTop: number;
 	/** How far away the mouse crosshair is (world px), or null when not mouse aiming. */
 	aimReach: number | null;
 
@@ -189,6 +197,8 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		aimY: 0,
 		ringDX: 0,
 		ringLift: 0,
+		bodyBottom: 0,
+		bodyTop: STANDING_HEIGHT * 1.35,
 		aimReach: null,
 		lock: null,
 		attackTarget: null,
@@ -323,6 +333,21 @@ export function updatePlayer(p: Player, intent: Intent, dt: number, world: World
 export function updateFacing(p: Player, dt: number) {
 	const step = (2 * dt) / TURN_TIME;
 	p.facing = p.facing < p.dir ? Math.min(p.dir, p.facing + step) : Math.max(p.dir, p.facing - step);
+}
+
+/** Half the width of a Lantern's drawn body. */
+const BODY_HALF_W = 13;
+
+/** Is a shot at (x, y) on the ground plane, drawn `lift` px up, touching the Lantern's drawn body? */
+export function hitsBody(p: Player, x: number, y: number, lift: number): boolean {
+	if (Math.abs(x - p.x) > BODY_HALF_W) return false;
+	const drawnY = y - lift;
+	return drawnY >= p.y - p.bodyTop && drawnY <= p.y - p.bodyBottom + 6;
+}
+
+/** Where a shot flying at `lift` has to go (on the ground plane) to hit the middle of the Lantern's body. */
+export function bodyAim(p: Player, lift: number): { x: number; y: number } {
+	return { x: p.x, y: p.y - (p.bodyBottom + p.bodyTop) / 2 + lift };
 }
 
 /** Keep a player inside a rectangle, killing velocity into the edge. */

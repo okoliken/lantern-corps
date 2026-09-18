@@ -363,6 +363,12 @@ export class PointerState {
 export interface BindingInputOptions {
 	/** Tap the shot button to start/stop shooting, instead of holding it. */
 	toggleShot?: boolean;
+	/**
+	 * Quick cast: a construct's key USES it straight away (tap for one-shot
+	 * constructs, hold for the beam, minigun, sniper charge), instead of just
+	 * picking it for the construct button.
+	 */
+	quickCast?: boolean;
 	/** Mouse position and how to turn screen pixels into world coordinates. */
 	pointer?: { state: PointerState; toWorld: (sx: number, sy: number) => { x: number; y: number } };
 }
@@ -405,13 +411,19 @@ export class BindingInput implements InputSource {
 		const next = btn.consumePress(b.nextConstruct);
 		const p = options.pointer;
 
+		// Slot keys pick a construct. With quick cast they also use it: a press
+		// fires it, and holding keeps a beam or minigun going (or a sniper charging).
+		const pressedSlot = SLOT_ACTIONS.findIndex((a) => btn.consumePress(b[a]));
+		const heldSlot = options.quickCast ? SLOT_ACTIONS.findIndex((a) => btn.anyHeld(b[a])) : -1;
+		const quickPress = options.quickCast === true && pressedSlot >= 0;
+
 		return {
 			...moveFromButtons(btn, b),
 			toggleFly: btn.consumePress(b.fly),
 			shot,
-			construct: btn.anyHeld(b.construct),
-			constructPressed: btn.consumePress(b.construct),
-			select: SLOT_ACTIONS.findIndex((a) => btn.consumePress(b[a])),
+			construct: btn.anyHeld(b.construct) || heldSlot >= 0 || quickPress,
+			constructPressed: btn.consumePress(b.construct) || quickPress,
+			select: pressedSlot >= 0 ? pressedSlot : heldSlot,
 			cycle: (next ? 1 : 0) - (prev ? 1 : 0),
 			target: btn.consumePress(b.target),
 			shield: btn.consumePress(b.shield),

@@ -15,7 +15,7 @@
 
 import { BUBBLE_SHIELD } from './constructs/defs';
 import type { ConstructWorld } from './constructs/system';
-import { isStanding, type Dummy } from './dummy';
+import { aimPoint, isStanding, type Dummy } from './dummy';
 import { isEnemy, rangeOf, type Enemy } from './enemies/enemies';
 import { IDLE, type InputSource, type Intent } from './input';
 import type { Player } from './player';
@@ -91,8 +91,9 @@ export class AllyInput implements InputSource {
 		if (enemies.length > 0 && !me.flying) intent.toggleFly = true;
 		this.move(me, partner, enemies, target, intent);
 		if (target) {
-			// The game lifts the pointer to ring height; aim so it lands on the enemy
-			intent.pointer = { x: target.x, y: target.y - me.ringLift };
+			// Put the crosshair on the enemy's drawn body (the game adds ring height back on)
+			const [ax, ay] = aimPoint(target, me.ringLift);
+			intent.pointer = { x: ax, y: ay - me.ringLift };
 			intent.shot = true;
 		}
 		this.defend(me, partner, enemies, intent);

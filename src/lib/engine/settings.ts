@@ -10,6 +10,8 @@ export interface Settings {
 	aimAssist: boolean;
 	/** Tap the shot button to start/stop shooting instead of holding it. */
 	toggleShot: boolean;
+	/** Construct keys use the construct straight away (not just pick it). */
+	quickCast: boolean;
 	/** Floating damage numbers. */
 	damageNumbers: boolean;
 	/** Tone down flashing and blinking effects. */
@@ -25,6 +27,7 @@ export function defaultSettings(): Settings {
 		bindings: structuredClone(DEFAULT_BINDINGS),
 		aimAssist: true,
 		toggleShot: false,
+		quickCast: true,
 		damageNumbers: true,
 		reduceFlashing: false,
 		seenControls: false
@@ -41,7 +44,7 @@ export function parseSettings(raw: unknown): Settings {
 	if (!raw || typeof raw !== 'object') return settings;
 	const saved = raw as Partial<Record<keyof Settings, unknown>>;
 
-	for (const flag of ['aimAssist', 'toggleShot', 'damageNumbers', 'reduceFlashing', 'seenControls'] as const) {
+	for (const flag of ['aimAssist', 'toggleShot', 'quickCast', 'damageNumbers', 'reduceFlashing', 'seenControls'] as const) {
 		if (typeof saved[flag] === 'boolean') settings[flag] = saved[flag];
 	}
 

@@ -13,10 +13,10 @@
 import type { ConstructWorld } from '../constructs/system';
 import type { Obstacle } from '../map';
 import { boxOverlap } from '../physics';
-import type { Player } from '../player';
+import { bodyAim, type Player } from '../player';
 import { attackStarted, mayAttack, type Attacker } from './director';
 import { ENEMIES, beginWindup, face, type Enemy } from './enemies';
-import { ABILITIES, startAbility, updateAbility, type AbilityId } from './redConstructs';
+import { ABILITIES, RED_HAND_LIFT, startAbility, updateAbility, type AbilityId } from './redConstructs';
 
 /** Nose within this angle of the target counts as lined up. */
 const LINED_UP = 0.28;
@@ -67,9 +67,10 @@ export function flyShip(
 				if (d > LOOP_DISTANCE * 0.9) b.goal = 'approach';
 				break;
 			}
-			// Line up, leading the target a little
+			// Line up on the Lantern's body at laser height, leading them a little
 			const lead = Math.min(d / 820, 0.45);
-			want = Math.atan2(dy + t.vy * lead, dx + t.vx * lead);
+			const aim = bodyAim(t, RED_HAND_LIFT);
+			want = Math.atan2(aim.y - e.y + t.vy * lead, aim.x - e.x + t.vx * lead);
 			const lined = Math.abs(wrap(want - b.heading)) < LINED_UP;
 			b.think -= dt;
 			if (lined && b.sees && b.think <= 0) {
@@ -84,7 +85,10 @@ export function flyShip(
 			break;
 		}
 		case 'windup': {
-			if (t) want = Math.atan2(t.y - e.y, t.x - e.x);
+			if (t) {
+				const aim = bodyAim(t, RED_HAND_LIFT);
+				want = Math.atan2(aim.y - e.y, aim.x - e.x);
+			}
 			b.timer -= dt;
 			if (b.timer <= 0) startAbility(e, w, players);
 			break;

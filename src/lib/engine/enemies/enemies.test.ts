@@ -4,13 +4,13 @@ import { createConstructWorld, updateConstructWorld, updatePlayerConstructs, typ
 import { hitDummy, isStanding, updateDummy } from '../dummy';
 import { IDLE } from '../input';
 import { LANTERNS } from '../lanterns';
-import { createPlayer, updatePlayer, type Player } from '../player';
+import { bodyAim, createPlayer, hitsBody, updatePlayer, type Player } from '../player';
 import type { Obstacle } from '../map';
 import { ATTACK_BUDGET } from './director';
 import { ENEMIES, ENEMY_SPACING, MAX_RED_TURRETS, MELEE_SLOTS, createEnemy, updateEnemies, type Enemy, type Role } from './enemies';
 import { clearShot, tryDodge } from './tactics';
 import { ASSAULT_PER_EXTRA_LANTERN, ASSAULT_SIZE } from './squad';
-import { ABILITIES, randomKit, type AbilityId } from './redConstructs';
+import { ABILITIES, RED_HAND_LIFT, randomKit, type AbilityId } from './redConstructs';
 
 const DT = 1 / 60;
 const lantern = (x = 0, y = 0) => createPlayer(0, LANTERNS.hal, { read: () => IDLE }, x, y);
@@ -789,5 +789,34 @@ describe('Rage Turret limit', () => {
 		});
 		expect(most).toBeGreaterThan(0);
 		expect(most).toBeLessThanOrEqual(MAX_RED_TURRETS);
+	});
+});
+
+describe('enemy shots hit what they are seen to hit', () => {
+	it('a Lantern flying high over a planet is hit by bolts aimed at their body, not ones passing under their feet', () => {
+		const p = lantern();
+		p.bodyBottom = 78; // hovering high: body drawn from 78 to 152 px above the ground
+		p.bodyTop = 152;
+		// A bolt at hand height (50) passing right through their feet spot on the ground: drawn below them
+		expect(hitsBody(p, p.x, p.y, RED_HAND_LIFT)).toBe(false);
+		// Aimed at their body
+		const aim = bodyAim(p, RED_HAND_LIFT);
+		expect(hitsBody(p, aim.x, aim.y, RED_HAND_LIFT)).toBe(true);
+	});
+
+	it('a Red Lantern shooting at a high flyer aims at their body, and connects', () => {
+		const e = grunt(300, 0, 'gunner');
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		p.bodyBottom = 78;
+		p.bodyTop = 152;
+		force(e, 'blast', p);
+		// force() aims at the feet; the brain re-aims at the body once the attack starts
+		e.brain.timer = 0.3;
+		run(w, [p], 1.2, () => {
+			p.bodyBottom = 78;
+			p.bodyTop = 152;
+		});
+		expect(p.health).toBeLessThan(p.maxHealth);
 	});
 });

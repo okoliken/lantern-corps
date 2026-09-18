@@ -2,7 +2,7 @@
 // Hal/John traits. Each test builds a tiny world by hand.
 
 import { describe, expect, it } from 'vitest';
-import { DUMMY_HP, createDummy, updateDummy, type Dummy } from '../dummy';
+import { BODY, DUMMY_HP, createDummy, updateDummy, type Dummy } from '../dummy';
 import { IDLE, type Intent } from '../input';
 import { LANTERNS, type LanternId } from '../lanterns';
 import { CRATE_HP, type Obstacle } from '../map';
@@ -88,7 +88,7 @@ describe('beam (hold)', () => {
 		run(p, w, HOLD, 0.5);
 		expect(d.hp).toBeLessThan(DUMMY_HP);
 		expect(p.willpower).toBeLessThan(MAX_WILLPOWER);
-		expect(p.beamLength).toBeCloseTo(150 - 12, 0);
+		expect(p.beamLength).toBeCloseTo(150 - BODY.dummy.halfWidth, 0);
 	});
 
 	it(`won't start while exhausted`, () => {
@@ -444,8 +444,8 @@ describe('everything comes out of the ring', () => {
 		const { p, w } = setup('john', 'beam', [d]);
 		p.ringDX = 20;
 		run(p, w, HOLD, DT);
-		// Dummy's near edge is at 88; from the ring at x=20 that's 68 away
-		expect(p.beamLength).toBeCloseTo(68, 0);
+		// The body's near edge is at 100 - its half width; measured from the ring at x=20
+		expect(p.beamLength).toBeCloseTo(100 - BODY.dummy.halfWidth - 20, 0);
 	});
 });
 
@@ -701,5 +701,50 @@ describe("John's new constructs", () => {
 			press(p, w, 1);
 		}
 		expect(w.traps.filter((t) => t.kind === 'mine')).toHaveLength(MAX_MINES_PER_PLAYER);
+	});
+});
+
+describe('what you see is what you hit', () => {
+	/** A Lantern flying over a planet: their ring (and shots) are drawn high above the ground. */
+	function highFlyer(lift: number, dummies: Dummy[]) {
+		const { p, w } = setup('hal', 'beam', dummies);
+		p.ringLift = lift;
+		return { p, w };
+	}
+	const fireAt = (p: Player, w: ConstructWorld, gx: number, gy: number) => {
+		const len = Math.hypot(gx - p.x, gy - p.y);
+		p.aimX = (gx - p.x) / len;
+		p.aimY = (gy - p.y) / len;
+		run(p, w, { ...IDLE, shot: true }, DT);
+		run(p, w, IDLE, 0.6);
+	};
+
+	it("a shot drawn through the enemy's chest or head hits, even from a Lantern flying high above", () => {
+		for (const part of [0.2, 0.5, 0.85]) {
+			const d = createDummy(300, 0);
+			const lift = 129;
+			const { p, w } = highFlyer(lift, [d]);
+			// The crosshair on that part of the drawn body: the shot's ground point is that far down, plus the lift
+			fireAt(p, w, 300, d.y - BODY.dummy.height * part + lift);
+			expect(d.hp, `part ${part}`).toBeLessThan(DUMMY_HP);
+		}
+	});
+
+	it("a shot drawn clearly over the enemy's head misses", () => {
+		const d = createDummy(300, 0);
+		const lift = 129;
+		const { p, w } = highFlyer(lift, [d]);
+		fireAt(p, w, 300, d.y - BODY.dummy.height - 40 + lift);
+		expect(d.hp).toBe(DUMMY_HP);
+	});
+
+	it('the beam stops at the drawn body, wherever along it you aim', () => {
+		const d = createDummy(250, 0);
+		const { p, w } = highFlyer(60, [d]);
+		p.aimX = 1;
+		p.aimY = 0;
+		p.y = d.y - 40 + 60; // the beam is drawn across the enemy's middle
+		run(p, w, HOLD, 0.3);
+		expect(d.hp).toBeLessThan(DUMMY_HP);
 	});
 });

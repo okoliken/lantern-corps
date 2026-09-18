@@ -157,7 +157,63 @@ export function updateDummy(d: Dummy, dt: number, solids: readonly Solid[], fric
 	}
 }
 
-/** The target's footprint as a Solid, so rays and projectiles can hit it. */
+/** The target's footprint as a Solid (what it stands on: for moving and colliding). */
 export function dummyBox(d: Dummy): Solid {
 	return { x: d.x - DUMMY_HALF_W, y: d.y - DUMMY_HALF_H, w: DUMMY_HALF_W * 2, h: DUMMY_HALF_H * 2, blocksFlying: false };
+}
+
+// ------------------------------------------------------------------ hurtboxes
+//
+// What you SEE is what you hit. Shots and beams travel along the ground plane
+// but are drawn `lift` px higher (at the height of the ring that fired them),
+// and a target is drawn as a tall body standing up from its feet. So a shot
+// hits when its DRAWN position touches the target's DRAWN body:
+//
+//   drawn shot y = shot y - lift,   drawn body = from (feet y - height) to feet y
+//   => the shot's ground y must be within [feet y - height + lift, feet y + lift]
+//
+// A footprint-only check (the old way) meant a bolt you saw fly through an
+// enemy's chest could miss, and only one thin slice of its body counted.
+
+/** How big each kind of target is drawn: half its width, and its height above its feet (world px). */
+export const BODY: Record<TargetKind, { halfWidth: number; height: number }> = {
+	dummy: { halfWidth: 15, height: 62 },
+	rageGrunt: { halfWidth: 19, height: 92 },
+	manhunterDrone: { halfWidth: 24, height: 86 },
+	redFighter: { halfWidth: 38, height: 78 },
+	zox: { halfWidth: 36, height: 112 },
+	skallox: { halfWidth: 30, height: 128 },
+	bleez: { halfWidth: 24, height: 100 },
+	rageTurret: { halfWidth: 18, height: 76 }
+};
+/** A little slack below the feet, and the size of a bolt. */
+const HURT_SLACK = 8;
+
+/** How high a target is off the ground right now (a leap, a dive), and how much bigger it's grown. */
+function airAndGrowth(d: Dummy): [number, number] {
+	const brain = (d as { brain?: { air: number; form: number } }).brain;
+	return brain ? [brain.air * 70, 1 + 0.28 * brain.form] : [0, 1];
+}
+
+/** The target's body as seen by a shot flying at `lift`, as a box on the ground plane. */
+export function hurtbox(d: Dummy, lift: number): Solid {
+	const body = BODY[d.kind];
+	const [air, grow] = airAndGrowth(d);
+	const hw = body.halfWidth * grow;
+	const h = body.height * grow;
+	return { x: d.x - hw, y: d.y - air - h + lift, w: hw * 2, h: h + HURT_SLACK, blocksFlying: false };
+}
+
+/** Where to aim a shot flying at `lift` so it goes through the middle of the target's body. */
+export function aimPoint(d: Dummy, lift: number): [number, number] {
+	const box = hurtbox(d, lift);
+	return [d.x, box.y + (box.h - HURT_SLACK) / 2];
+}
+
+/** Distance from a point on the ground plane (at `lift`) to the target's body; 0 if inside it. */
+export function distanceToBody(d: Dummy, x: number, y: number, lift: number): number {
+	const b = hurtbox(d, lift);
+	const dx = Math.max(b.x - x, 0, x - (b.x + b.w));
+	const dy = Math.max(b.y - y, 0, y - (b.y + b.h));
+	return Math.hypot(dx, dy);
 }

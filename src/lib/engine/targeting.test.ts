@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createDummy, type Dummy } from './dummy';
+import { BODY, aimPoint, createDummy, type Dummy } from './dummy';
 import { IDLE } from './input';
 import { LANTERNS } from './lanterns';
 import { CRATE_HP, type Obstacle } from './map';
@@ -63,13 +63,18 @@ describe('auto target', () => {
 		expect(findAutoTarget(p, w, autoReach(CONSTRUCTS.cannon))).not.toBeNull();
 	});
 
-	it('points the ring at the target', () => {
+	it("points the ring at the middle of the target's body, as drawn at the ring's height", () => {
 		const p = lantern();
+		p.ringLift = 50;
 		const d = createDummy(100, 40);
 		updateTargeting(p, false, world([p], [d]));
-		const len = Math.hypot(100, 40);
-		expect(p.aimX).toBeCloseTo(100 / len);
-		expect(p.aimY).toBeCloseTo(40 / len);
+		const [ax, ay] = aimPoint(d, 50);
+		const len = Math.hypot(ax, ay);
+		expect(p.aimX).toBeCloseTo(ax / len);
+		expect(p.aimY).toBeCloseTo(ay / len);
+		// A shot along that line, drawn 50px up, passes through the drawn body
+		expect(ay - 50).toBeLessThan(d.y);
+		expect(ay - 50).toBeGreaterThan(d.y - BODY.dummy.height);
 	});
 
 	it('aims where you face when there is nothing to target', () => {
@@ -105,7 +110,7 @@ describe('lock on', () => {
 		const d = createDummy(-200, 0);
 		updateTargeting(p, true, world([p], [d]));
 		expect(p.attackTarget).toEqual({ kind: 'enemy', dummy: d });
-		expect(p.aimX).toBeCloseTo(-1);
+		expect(p.aimX).toBeLessThan(-0.95);
 	});
 
 	it('breaks when the target is destroyed', () => {
@@ -206,7 +211,7 @@ describe('the John bug: keyboard aim pulled onto a hidden target', () => {
 
 	it('keyboard auto-target only looks in a narrow cone ahead', () => {
 		const p = lantern();
-		const offToSide = createDummy(150, 110); // ~36 degrees off
+		const offToSide = createDummy(150, 150); // ~45 degrees off (its body ~38 degrees)
 		expect(findAutoTarget(p, world([p], [offToSide]))).toBeNull();
 	});
 });

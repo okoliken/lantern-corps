@@ -170,3 +170,40 @@ describe('labels', () => {
 		expect(shortLabel(['ShiftLeft', 'KeyL'])).toBe('LShift');
 	});
 });
+
+describe('quick cast', () => {
+	const make = (quickCast: boolean) => {
+		const buttons = new ButtonState();
+		const input = new BindingInput(buttons, structuredClone(DEFAULT_BINDINGS.solo), { quickCast });
+		return { buttons, input };
+	};
+
+	it('tapping a construct key uses it straight away', () => {
+		const { buttons, input } = make(true);
+		buttons.press('Digit6');
+		buttons.release('Digit6');
+		const intent = input.read();
+		expect(intent.select).toBe(5);
+		expect(intent.constructPressed).toBe(true);
+	});
+
+	it('holding a construct key keeps it going (beam, minigun, sniper charge)', () => {
+		const { buttons, input } = make(true);
+		buttons.press('Digit1');
+		input.read();
+		const held = input.read();
+		expect(held.select).toBe(0);
+		expect(held.construct).toBe(true);
+		buttons.release('Digit1');
+		expect(input.read().construct).toBe(false);
+	});
+
+	it('turned off, construct keys only pick', () => {
+		const { buttons, input } = make(false);
+		buttons.press('Digit3');
+		const intent = input.read();
+		expect(intent.select).toBe(2);
+		expect(intent.constructPressed).toBe(false);
+		expect(intent.construct).toBe(false);
+	});
+});

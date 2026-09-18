@@ -363,10 +363,11 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 			ctx.font = `600 ${box < 34 ? 8 : 9}px system-ui, sans-serif`;
 			ctx.fillStyle = s.affordable ? 'rgba(216, 245, 224, 0.95)' : 'rgba(216, 245, 224, 0.35)';
 			ctx.fillText(abbreviate(s.short, box < 34 ? 6 : 7), sx + box / 2, slotsY + box / 2 + 3);
+			// The key, big enough to read at a glance (with quick cast it's the button that fires it)
 			ctx.textAlign = 'left';
 			ctx.textBaseline = 'top';
-			ctx.font = '9px ui-monospace, monospace';
-			ctx.fillStyle = 'rgba(216, 245, 224, 0.55)';
+			ctx.font = '800 11px ui-monospace, monospace';
+			ctx.fillStyle = selected ? GREEN : 'rgba(216, 245, 224, 0.8)';
 			ctx.fillText(s.key, sx + 3, slotsY + 2);
 		});
 

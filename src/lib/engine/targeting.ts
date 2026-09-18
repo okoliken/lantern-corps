@@ -15,7 +15,7 @@
 
 import { castBeam } from './beam';
 import type { ConstructDef } from './constructs/defs';
-import { isStanding, type Dummy } from './dummy';
+import { aimPoint, isStanding, type Dummy } from './dummy';
 import type { Obstacle } from './map';
 import { AIM_HOLD_TIME, type Player } from './player';
 
@@ -148,7 +148,7 @@ export function hasLineOfSight(p: Player, x: number, y: number, w: TargetWorld, 
 /** Keyboard aiming: auto-target only within this angle of where you face. */
 export const KEYBOARD_HALF_ANGLE = (30 * Math.PI) / 180;
 /** Mouse aim assist: snap only to something this close to the crosshair direction. */
-export const ASSIST_HALF_ANGLE = (10 * Math.PI) / 180;
+export const ASSIST_HALF_ANGLE = (12 * Math.PI) / 180;
 
 /** Is (x, y) within `range` and within `halfAngle` of the direction (dirX, dirY)? */
 function inCone(p: Player, x: number, y: number, range: number, dirX: number, dirY: number, halfAngle: number): boolean {
@@ -168,13 +168,19 @@ export interface AutoTargetOptions {
 	halfAngle?: number;
 }
 
+/** Where on the ground plane a shot from this Lantern's ring has to go to hit the enemy's body. */
+const enemyAim = (p: Player, d: Dummy): [number, number] => aimPoint(d, p.ringLift);
+
 /** The nearest visible enemy in the cone; failing that, the nearest visible breakable object. */
 export function findAutoTarget(p: Player, w: TargetWorld, reach = AUTO_RANGE, opts: AutoTargetOptions = {}): Target | null {
 	const { dirX = p.faceX, dirY = p.faceY, halfAngle = KEYBOARD_HALF_ANGLE } = opts;
 	let best: Target | null = null;
 	let bestDist = Infinity;
 	for (const d of w.dummies) {
-		if (!isStanding(d) || !inCone(p, d.x, d.y, reach, dirX, dirY, halfAngle) || !hasLineOfSight(p, d.x, d.y, w)) continue;
+		if (!isStanding(d) || !hasLineOfSight(p, d.x, d.y, w)) continue;
+		// The cone is checked against where the shot would go to hit its body, not its feet
+		const [ax, ay] = enemyAim(p, d);
+		if (!inCone(p, ax, ay, reach, dirX, dirY, halfAngle) && !inCone(p, d.x, d.y, reach, dirX, dirY, halfAngle)) continue;
 		const dist = Math.hypot(d.x - p.x, d.y - p.y);
 		if (dist < bestDist) {
 			best = { kind: 'enemy', dummy: d };
@@ -266,9 +272,9 @@ export function updateTargeting(
 		}
 	}
 
-	// Aim at the attack target, if there is one
+	// Aim at the attack target, if there is one (an enemy's body, at the ring's height)
 	if (p.attackTarget) {
-		const [tx, ty] = targetPosition(p.attackTarget);
+		const [tx, ty] = p.attackTarget.kind === 'enemy' ? enemyAim(p, p.attackTarget.dummy) : targetPosition(p.attackTarget);
 		const dx = tx - (p.x + p.ringDX);
 		const dy = ty - p.y;
 		const len = Math.hypot(dx, dy);

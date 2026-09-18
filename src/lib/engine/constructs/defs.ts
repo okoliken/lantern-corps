@@ -107,7 +107,7 @@ export const CONSTRUCTS = {
 	},
 	minigun: {
 		id: 'minigun', name: 'Minigun', behavior: 'rapid', shape: 'minigun',
-		cost: 0.6, cooldown: 0.08, damage: 5, knockback: 30, range: 460, speed: 950
+		cost: 0.6, cooldown: 0.08, damage: 5, knockback: 30, range: 460, speed: 1300
 	},
 	cannon: {
 		id: 'cannon', name: 'Cannon', behavior: 'heavy', shape: 'cannon',
@@ -177,7 +177,7 @@ export const CONSTRUCTS = {
 	},
 	shotgun: {
 		id: 'shotgun', name: 'Shotgun', behavior: 'spread', shape: 'shotgun',
-		cost: 6, cooldown: 0.8, damage: 7, knockback: 70, range: 260, speed: 900, count: 7
+		cost: 6, cooldown: 0.8, damage: 7, knockback: 70, range: 260, speed: 1200, count: 7
 	},
 
 	// ---- John: engineering ----
@@ -218,7 +218,8 @@ export const RING_SHOT: ConstructDef = {
 	damage: 10,
 	knockback: 60,
 	range: 520,
-	speed: 820
+	// Fast enough to feel instant: across the screen in under half a second
+	speed: 1300
 };
 /** Bolts per tap, and the seconds between them. A tap always fires the whole burst. */
 export const RING_SHOT_BURST = 2;
