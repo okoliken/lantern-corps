@@ -30,6 +30,7 @@ import {
 } from './draw/constructs';
 import { drawBattery, drawBeam, drawChargeLink, drawCrosshair, drawDownedNotice, drawHud } from './draw/effects';
 import { drawEnemy, enemyMuzzle } from './draw/enemies';
+import { drawSpaceRock } from './draw/escort';
 import { drawFallingMeteors, drawRedBeam, drawRedCage, drawRedChain, drawRedEffect, drawRedGround, drawRedShot } from './draw/redConstructs';
 import { AllyInput } from './ally';
 import { RED_HAND_LIFT } from './enemies/redConstructs';
@@ -101,6 +102,24 @@ export interface GameOptions {
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+/** Something drawn in the world, sorted by depth: lower `baseY` is further back. */
+export interface Drawable {
+	baseY: number;
+	draw: () => void;
+}
+
+/** What runs a fight or a mission on top of the Game. */
+export interface Director {
+	update(game: Game, dt: number): void;
+	/** Extra things of its own to draw in the world (a ship to escort...), depth-sorted with everything else. */
+	drawables?(ctx: CanvasRenderingContext2D, alpha: number, time: number): Drawable[];
+	/** Things the camera should keep in view along with the players (it centres between them all). */
+	cameraPoints?(): [number, number][];
+}
+
+/** XP for knocking an asteroid apart, much less than for beating an enemy. */
+const XP_PER_ROCK = 5;
+
 
 /** Aim the camera at the Lantern's chest, not their feet. */
 const CAMERA_AIM_UP = 30;
@@ -156,8 +175,8 @@ export class Game {
 	nameTags = true;
 	/** Camera also keeps enemies attacking the Lanterns in shot (for watching/recording). */
 	frameEnemies = false;
-	/** Runs the fight: sends waves of enemies (the demo), later missions. */
-	director: { update(game: Game, dt: number): void } | null = null;
+	/** Runs the fight: sends waves of enemies (the demo), a scene, a mission. */
+	director: Director | null = null;
 
 	private rules: WorldRules;
 	private inputs: BindingInput[];
@@ -340,6 +359,11 @@ export class Game {
 				d.vx = d.vy = 0;
 				d.brain.state = 'idle';
 			}
+			// Drifting things (asteroids) keep their speed and pass over everything; their director removes them
+			if (d.drift) {
+				updateDummy(d, dt, [], false);
+				continue;
+			}
 			updateDummy(d, dt, enemy ? flyerSolids : map.obstacles, !enemy);
 			d.x = Math.min(Math.max(d.x, DUMMY_HALF_W), map.width - DUMMY_HALF_W);
 			d.y = Math.min(Math.max(d.y, DUMMY_HALF_H), map.height - DUMMY_HALF_H);
@@ -353,7 +377,7 @@ export class Game {
 		this.director?.update(this, dt);
 
 		const [tx, ty, fw, fh] = this.cameraTarget();
-		if (this.players.length > 1 || this.frameEnemies) this.camera.fit(fw, fh, dt, this.view);
+		if (this.players.length > 1 || this.frameEnemies || this.director?.cameraPoints) this.camera.fit(fw, fh, dt, this.view);
 		this.camera.follow(tx, ty, dt, this.view, map.width, map.height);
 	}
 
@@ -382,9 +406,10 @@ export class Game {
 			const p = event.by;
 			const id = p.def.id;
 			const profile = this.profiles[id];
-			const gained = addXp(profile, XP_PER_DEFEAT);
+			const xp = event.what.kind === 'spaceRock' ? XP_PER_ROCK : XP_PER_DEFEAT;
+			const gained = addXp(profile, xp);
 			const headY = p.y - FIGURE_HEIGHT - this.poseFor(p).hoverHeight * p.altitude * 1.35;
-			cw.effects.push({ kind: 'text', x: p.x, y: headY - 6, age: 0, life: 1.1, text: `+${XP_PER_DEFEAT} XP` });
+			cw.effects.push({ kind: 'text', x: p.x, y: headY - 6, age: 0, life: 1.1, text: `+${xp} XP` });
 			if (gained > 0) {
 				cw.effects.push({ kind: 'callout', x: p.x, y: p.y, age: 0, life: 1.6, text: 'LEVEL UP!', owner: p });
 				// New points are spent at Corps HQ; the level shows in the HUD right away
@@ -407,19 +432,25 @@ export class Game {
 				if (t && Math.hypot(e.x - t.x, e.y - t.y) < 420) points.push([e.x, e.y - CAMERA_AIM_UP]);
 			}
 		}
+		// Anchors: the players, plus anything the director wants kept in view (the ship to escort)
+		const anchors: [number, number][] = [
+			...this.players.map((p): [number, number] => [p.x, p.y - CAMERA_AIM_UP]),
+			...(this.director?.cameraPoints?.() ?? [])
+		];
+		points.push(...anchors);
 		const xs = points.map((p) => p[0]);
 		const ys = points.map((p) => p[1]);
 		const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
 		const margin = 170;
-		// Centre on the players, so enemies coming and going don't yank the view around
+		// Centre on the anchors, so enemies coming and going don't yank the view around
 		let x = 0;
 		let y = 0;
-		for (const p of this.players) {
-			x += p.x;
-			y += p.y - CAMERA_AIM_UP;
+		for (const [ax, ay] of anchors) {
+			x += ax;
+			y += ay;
 		}
-		x /= this.players.length;
-		y /= this.players.length;
+		x /= anchors.length;
+		y /= anchors.length;
 		const width = 2 * Math.max(x - minX, maxX - x) + margin * 2;
 		const height = 2 * Math.max(y - minY, maxY - y) + margin * 2;
 		return [x, y, width, height];
@@ -501,7 +532,6 @@ export class Game {
 		// ---- Everything with depth, sorted back to front ----
 		// Ground things sort by their base y: lower on screen = in front.
 		// Flying Lanterns are above it all, so they're drawn after.
-		type Drawable = { baseY: number; draw: () => void };
 		const ground: Drawable[] = [];
 		const air: Drawable[] = [];
 
@@ -524,9 +554,12 @@ export class Game {
 				baseY: y,
 				draw: isEnemy(d)
 					? () => drawEnemy(ctx, d, x, y, env.hasGround, this.time)
-					: () => drawDummy(ctx, d, x, y, env.hasGround, this.time, this.settings.reduceFlashing)
+					: d.drift
+						? () => drawSpaceRock(ctx, d, x, y, this.time)
+						: () => drawDummy(ctx, d, x, y, env.hasGround, this.time, this.settings.reduceFlashing)
 			});
 		}
+		if (this.director?.drawables) ground.push(...this.director.drawables(ctx, alpha, this.time));
 
 		const overlays: (() => void)[] = [];
 		const tags: (() => void)[] = [];
@@ -733,7 +766,9 @@ export class Game {
 			t.kind === 'enemy'
 				? isEnemy(t.dummy)
 					? enemyLabel(t.dummy)
-					: 'Dummy'
+					: t.dummy.kind === 'spaceRock'
+						? 'Asteroid'
+						: 'Dummy'
 				: t.kind === 'ally'
 					? t.player.def.name
 					: 'Crate';

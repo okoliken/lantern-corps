@@ -175,6 +175,22 @@ Every construct, whether preset or custom, uses one of 8 **behavior types**:
   It's freeform in *look*, bounded in *behavior*, so everything stays balanced.
 - *Later idea:* type any word and an AI (called from a SvelteKit server route) picks the behavior type.
 
+## Missions (`/missions`, `/mission/[id]`)
+Mission data (title, place, briefing, objectives, who you play) lives in `src/lib/story/missions.ts`;
+each mission's rules are a director in `src/lib/engine/missions/`. A director can add its own things to
+draw (`drawables`) and things for the camera to keep in view (`cameraPoints`).
+
+**Mission 1: Safe Passage** (Hal, space, the Durvan Belt; `missions/safePassage.ts`). Tomar-Re's
+damaged cruiser crosses the belt left to right (~2½ minutes) while **100 asteroids** drift in, in 9
+waves, most aimed at where the ship will be. Asteroids are drifting targets (`Dummy.drift`), so every
+weapon works on them; they're heavy (little knockback), crack as they're hit, and break into debris.
+Hitting the ship costs hull (small 8 / medium 16 / large 30 of 400); hitting Hal hurts him. The Lantern
+battery rides on the ship. 3 lives. Win = ship across; ★ made it, ★ hull ≥ 50%, ★ 70+ blasted.
+A ring-shot-only bot wins about 5 times in 6.
+
+**Lantern health:** 150, regenerates 6/s after 4s without taking damage; 0.5s invulnerable after a hit.
+A downed Lantern lies still (no turning or aiming).
+
 ## Red Lantern Ambush (`/skirmish`)
 The first playable scene, from the main menu: pick Hal or John and Coast City or space, then five
 Red Lanterns (2 Brutes, a Stalker, 2 Spitters) fly in one after another. **Three lives**; beat all
@@ -263,7 +279,7 @@ Next: Act 1 boss → Manhunter Sentry/Adapter/Prime → Dex-Starr → Atrocitus.
   - [x] Red Lantern constructs: Rage Wall, Rage Shield, Rage Turret, Rage Axe, Blood Mace, Rage Cannon
   - [x] Red Lanterns redrawn as humanoid aliens on the Lantern skeleton (build proportions per role, random
         heads/skins/tails/spines, four-armed Stalkers); `/skirmish` Red Lantern Ambush scene (5 vs 1, 3 lives)
-- [ ] **M6** First mission: objective, win/lose, HUD, restart
+- [x] **M6** First mission: "Safe Passage" (escort through an asteroid storm): briefing, objective HUD, win/lose, stars, retry
 
 **Phase 1.5: Characters** (before enemies, by request)
 - [x] **C1** Controls & accessibility: mouse aim, free ring shot, remappable bindings, pause menu, options, first-time card

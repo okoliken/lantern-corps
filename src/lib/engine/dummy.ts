@@ -19,7 +19,7 @@ export const DUMMY_RESPAWN = 3;
 export const DEFEAT_LINGER = 0.9;
 
 /** What kind of target: a training dummy, or which enemy. */
-export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret';
+export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'spaceRock';
 
 export interface Dummy {
 	kind: TargetKind;
@@ -50,6 +50,12 @@ export interface Dummy {
 	dir: 1 | -1;
 	/** A Red Lantern's Rage Shield around it: soaks up damage until broken or expired. */
 	ward?: { hp: number; maxHp: number; life: number };
+	/**
+	 * A round thing floating free (an asteroid in a mission): it keeps its
+	 * speed (no friction), passes over the map, and is `radius` px across the
+	 * middle, drawn `float` px above its ground point.
+	 */
+	drift?: { radius: number; float: number; spin: number; seed: number };
 }
 
 export function createDummy(x: number, y: number): Dummy {
@@ -97,6 +103,8 @@ export function hitDummy(d: Dummy, damage: number, knockback: number, fromX: num
 	d.hp -= damage;
 
 	// Caged targets can't be knocked around; that's the point of the cage.
+	// Asteroids are heavy: a shot barely nudges them (bigger ones even less).
+	if (d.drift) knockback *= 0.25 * (14 / d.drift.radius);
 	if (knockback > 0 && d.caged === 0) {
 		const dx = d.x - fromX;
 		const dy = d.y - fromY;
@@ -184,7 +192,9 @@ export const BODY: Record<TargetKind, { halfWidth: number; height: number }> = {
 	zox: { halfWidth: 36, height: 112 },
 	skallox: { halfWidth: 30, height: 128 },
 	bleez: { halfWidth: 24, height: 100 },
-	rageTurret: { halfWidth: 18, height: 76 }
+	rageTurret: { halfWidth: 18, height: 76 },
+	// Real size comes from its drift radius
+	spaceRock: { halfWidth: 20, height: 40 }
 };
 /** A little slack below the feet, and the size of a bolt. */
 const HURT_SLACK = 8;
@@ -197,6 +207,11 @@ function airAndGrowth(d: Dummy): [number, number] {
 
 /** The target's body as seen by a shot flying at `lift`, as a box on the ground plane. */
 export function hurtbox(d: Dummy, lift: number): Solid {
+	// A floating round thing: a circle's worth of body around its drawn centre
+	if (d.drift) {
+		const { radius: r, float } = d.drift;
+		return { x: d.x - r, y: d.y - float - r + lift, w: r * 2, h: r * 2, blocksFlying: false };
+	}
 	const body = BODY[d.kind];
 	const [air, grow] = airAndGrowth(d);
 	const hw = body.halfWidth * grow;
@@ -207,7 +222,7 @@ export function hurtbox(d: Dummy, lift: number): Solid {
 /** Where to aim a shot flying at `lift` so it goes through the middle of the target's body. */
 export function aimPoint(d: Dummy, lift: number): [number, number] {
 	const box = hurtbox(d, lift);
-	return [d.x, box.y + (box.h - HURT_SLACK) / 2];
+	return [d.x, box.y + (box.h - (d.drift ? 0 : HURT_SLACK)) / 2];
 }
 
 /** Distance from a point on the ground plane (at `lift`) to the target's body; 0 if inside it. */

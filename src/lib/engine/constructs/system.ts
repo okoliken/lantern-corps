@@ -144,6 +144,7 @@ export interface Effect {
 		| 'claw'
 		| 'hammer'
 		| 'afterimage'
+		| 'debris'
 		// Red Lantern constructs (see enemies/redConstructs.ts)
 		| 'roar'
 		| 'slamMark'
@@ -216,6 +217,8 @@ export interface WorldEvent {
 	type: 'defeat';
 	/** The Lantern who landed the defeating hit. */
 	by: Player;
+	/** What was defeated. */
+	what: Dummy;
 }
 
 export interface ConstructWorld {
@@ -1278,7 +1281,7 @@ export function hitDummyWithFx(
 	if (!isStanding(d)) return;
 	if (by && surge) gainSurge(by, damage * SURGE_PER_DAMAGE);
 	const broke = hitDummy(d, damage, knockback, fromX, fromY);
-	if (broke && by) w.events.push({ type: 'defeat', by });
+	if (broke && by) w.events.push({ type: 'defeat', by, what: d });
 	if (shown >= 1) w.effects.push({ kind: 'number', x: d.x, y: d.y, age: 0, life: 1, value: Math.round(shown) });
 	if (broke) w.effects.push({ kind: 'burst', x: d.x, y: d.y - 20, age: 0, life: 0.65 });
 }

@@ -8,6 +8,7 @@
 
 import { AUTO_TURRET_HEAD, FIST_OUT_TIME, SENTRY_DRONE_HOVER, type AidStation, type Effect, type Projectile, type Shield, type Trap, type Turret } from '../constructs/system';
 import { drawRedEffect } from './redConstructs';
+import { drawDebris } from './escort';
 import { isStanding, type Dummy } from '../dummy';
 import type { Target } from '../targeting';
 import { GREEN } from './lantern';
@@ -1128,6 +1129,9 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			}
 			break;
 		}
+		case 'debris':
+			drawDebris(ctx, e, lift);
+			break;
 		case 'afterimage': {
 			// A fading green ghost streaking behind Hal's Afterburner
 			const k = e.age / e.life;

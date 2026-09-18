@@ -9,7 +9,8 @@
 	<p class="oath">In brightest day, in blackest night…</p>
 
 	<nav>
-		<a class="btn" href="/play">Play</a>
+		<a class="btn primary" href="/missions">Missions</a>
+		<a class="btn" href="/play">Free play</a>
 		<a class="btn ambush" href="/skirmish">Red Lantern Ambush</a>
 		<a class="btn" href="/hq">Corps HQ</a>
 		{#if dev}
@@ -58,6 +59,11 @@
 	.btn:hover {
 		background: var(--green);
 		color: var(--bg);
+	}
+	.btn.primary {
+		background: var(--green);
+		color: var(--bg);
+		box-shadow: 0 0 18px rgba(61, 255, 110, 0.35);
 	}
 	.btn.ambush {
 		border-color: #ff3a3a;

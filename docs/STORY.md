@@ -121,6 +121,12 @@ back and let them fight, lure one faction into the other, or get caught in the m
 
 ---
 
+## Built so far
+- **Mission 1: Safe Passage** (the user's story, 2026-09-18): Tomar-Re of Sector 2813, his cruiser
+  holed in the Durvan Belt and his ring nearly spent, can fly or shield but not both. Hal clears a path
+  through a storm of 100 asteroids. (This takes the place of the old Act 1 idea "The Ambush" in the
+  Durvan Belt as the game's opening.)
+
 ## Acts & missions
 Mission types come from what's happening in the story. Planets are original; Oa and Ysmault are canon.
 
