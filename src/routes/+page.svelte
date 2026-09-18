@@ -10,6 +10,7 @@
 
 	<nav>
 		<a class="btn" href="/play">Play</a>
+		<a class="btn ambush" href="/skirmish">Red Lantern Ambush</a>
 		<a class="btn" href="/hq">Corps HQ</a>
 		{#if dev}
 			<a class="btn lab" href="/lab">Lab (dev only)</a>
@@ -56,6 +57,15 @@
 	}
 	.btn:hover {
 		background: var(--green);
+		color: var(--bg);
+	}
+	.btn.ambush {
+		border-color: #ff3a3a;
+		color: #ff6a6a;
+		box-shadow: 0 0 14px rgba(255, 42, 42, 0.25);
+	}
+	.btn.ambush:hover {
+		background: #ff3a3a;
 		color: var(--bg);
 	}
 	.btn.lab {

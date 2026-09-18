@@ -150,6 +150,8 @@ export class Game {
 
 	/** Draw the health / willpower / construct bars. */
 	hud = true;
+	/** Show the big "is down, back up in..." notice (off when being down means game over). */
+	downedNotice = true;
 	/** Draw the Lanterns' names above their heads. */
 	nameTags = true;
 	/** Camera also keeps enemies attacking the Lanterns in shot (for watching/recording). */
@@ -699,7 +701,7 @@ export class Game {
 		);
 
 		// Solo: a big notice while down. (Co-op shows it per player in M7.)
-		if (this.players.length === 1 && this.players[0].downed) {
+		if (this.downedNotice && this.players.length === 1 && this.players[0].downed) {
 			drawDownedNotice(ctx, this.players[0].def.name, this.players[0].downTimer, width, height);
 		}
 

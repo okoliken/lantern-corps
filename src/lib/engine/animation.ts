@@ -44,7 +44,21 @@ export interface LanternPose {
 	downed?: boolean;
 	/** 0..1 victory pose. */
 	victory?: number;
+	/** Body proportions (Red Lanterns come in all shapes). Omitted = a Lantern's. */
+	build?: Build;
+	/** Extra forward stoop, in radians (a hunched alien). The head stays level. */
+	hunch?: number;
 }
+
+/** Bone length multipliers. 1 = a Lantern's proportions. */
+export interface Build {
+	leg: number;
+	torso: number;
+	arm: number;
+	neck: number;
+}
+
+const HUMAN: Build = { leg: 1, torso: 1, arm: 1, neck: 1 };
 
 export type Point = [number, number];
 
@@ -205,7 +219,7 @@ export function turnScale(pose: LanternPose): number {
 }
 
 export function computeSkeleton(pose: LanternPose, time: number): Skeleton {
-	if (pose.downed) return solve(downedAngles(time), -4, 4);
+	if (pose.downed) return solve(downedAngles(time), -4, 4, pose.build ?? HUMAN);
 
 	const air = clamp01(pose.altitude);
 	// Take-off and landing: a crouch that peaks a quarter of the way up
@@ -295,35 +309,42 @@ export function computeSkeleton(pose: LanternPose, time: number): Skeleton {
 		}, win);
 	}
 
+	const hunch = pose.hunch ?? 0;
+	if (hunch !== 0) {
+		a.lean += hunch;
+		a.head -= hunch * 0.8;
+	}
+
 	// Height: on the ground the lowest foot touches y = 0; in the air the body
 	// rises by the hover height (with a slow bob).
-	const legsOnly = solve(a, 0, 0);
+	const build = pose.build ?? HUMAN;
+	const legsOnly = solve(a, 0, 0, build);
 	const groundHipY = -Math.max(legsOnly.front.foot[1], legsOnly.back.foot[1]);
-	const airHipY = -(THIGH + SHIN) - pose.hoverHeight + Math.sin(time * 2.2) * 1.6;
-	return solve(a, lerp(groundHipY, airHipY, air), 0);
+	const airHipY = -(THIGH + SHIN) * build.leg - pose.hoverHeight + Math.sin(time * 2.2) * 1.6;
+	return solve(a, lerp(groundHipY, airHipY, air), 0, build);
 }
 
 /** Forward kinematics: from the hip outward, one bone at a time. */
-function solve(a: Angles, hipY: number, hipX: number): Skeleton {
+function solve(a: Angles, hipY: number, hipX: number, b: Build = HUMAN): Skeleton {
 	const hip: Point = [hipX, hipY];
 	// Torso "up" direction, leaning forward by a.lean
 	const up: Point = [Math.sin(a.lean), -Math.cos(a.lean)];
 	// Across the body, toward the front
 	const across: Point = [Math.cos(a.lean), Math.sin(a.lean)];
 
-	const neck = add(hip, up, TORSO);
+	const neck = add(hip, up, TORSO * b.torso);
 	const headUp: Point = [Math.sin(a.lean + a.head), -Math.cos(a.lean + a.head)];
-	const headCenter = add(neck, headUp, NECK + HEAD_R);
-	const shoulderBase = add(hip, up, TORSO - 2.2);
+	const headCenter = add(neck, headUp, NECK * b.neck + HEAD_R);
+	const shoulderBase = add(hip, up, TORSO * b.torso - 2.2);
 
 	const limbs = (side: 1 | -1, thigh: number, knee: number, shoulderA: number, elbow: number): Limbs => {
 		// Shoulders sit toward the back of the chest, so the chest shows in front of the arm
 		const shoulder = add(shoulderBase, across, side === 1 ? -0.4 : -1.9);
-		const elbowP = add(shoulder, down(shoulderA), UPPER_ARM);
-		const hand = add(elbowP, down(shoulderA + elbow), FOREARM);
+		const elbowP = add(shoulder, down(shoulderA), UPPER_ARM * b.arm);
+		const hand = add(elbowP, down(shoulderA + elbow), FOREARM * b.arm);
 		const hipJoint = add(hip, across, 1.6 * side);
-		const kneeP = add(hipJoint, down(thigh), THIGH);
-		const foot = add(kneeP, down(thigh - knee), SHIN);
+		const kneeP = add(hipJoint, down(thigh), THIGH * b.leg);
+		const foot = add(kneeP, down(thigh - knee), SHIN * b.leg);
 		return { shoulder, elbow: elbowP, hand, hipJoint, knee: kneeP, foot };
 	};
 

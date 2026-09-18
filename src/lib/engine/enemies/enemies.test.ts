@@ -7,7 +7,7 @@ import { LANTERNS } from '../lanterns';
 import { createPlayer, updatePlayer, type Player } from '../player';
 import type { Obstacle } from '../map';
 import { ATTACK_BUDGET } from './director';
-import { ENEMIES, ENEMY_SPACING, MELEE_SLOTS, createEnemy, updateEnemies, type Enemy, type Role } from './enemies';
+import { ENEMIES, ENEMY_SPACING, MAX_RED_TURRETS, MELEE_SLOTS, createEnemy, updateEnemies, type Enemy, type Role } from './enemies';
 import { clearShot, tryDodge } from './tactics';
 import { ASSAULT_PER_EXTRA_LANTERN, ASSAULT_SIZE } from './squad';
 import { ABILITIES, randomKit, type AbilityId } from './redConstructs';
@@ -773,5 +773,21 @@ describe('all in is a burst, not a siege', () => {
 		expect(pack.every((e) => e.brain.squad === 'assault')).toBe(true);
 		run(w, [p], 6, () => (p.invuln = 1));
 		expect(pack.filter((e) => e.brain.squad === 'assault').length).toBeLessThanOrEqual(ASSAULT_SIZE + 1);
+	});
+});
+
+describe('Rage Turret limit', () => {
+	it(`never more than ${MAX_RED_TURRETS} out, even when several want to build at once`, () => {
+		const pack = [0, 1, 2, 3, 4].map((i) => grunt(Math.cos(i) * 400, Math.sin(i) * 400, 'gunner'));
+		for (const e of pack) e.brain.kit = ['redTurret'];
+		const w = createConstructWorld([], pack);
+		const p = lantern();
+		let most = 0;
+		run(w, [p], 8, () => {
+			p.invuln = 1;
+			most = Math.max(most, w.dummies.filter((d) => d.kind === 'rageTurret' && isStanding(d)).length);
+		});
+		expect(most).toBeGreaterThan(0);
+		expect(most).toBeLessThanOrEqual(MAX_RED_TURRETS);
 	});
 });

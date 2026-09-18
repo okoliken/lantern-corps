@@ -78,7 +78,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		name: 'Rage Grunt',
 		faction: 'red',
 		description:
-			"Atrocitus's foot soldiers. A red ring picks its bearer for rage, not shape: hulking Rage Beasts charge in, insect-like Rage Stalkers chain and flank, floating Rage Maws spit from range.",
+			"Atrocitus's foot soldiers: aliens from every corner of the universe, chosen by the red ring for their rage. Hulking Rage Brutes charge in, four-armed Rage Stalkers chain and flank, big-headed Rage Spitters blast from range.",
 		mind: 'rage',
 		hp: 120,
 		speed: 150,
@@ -234,7 +234,7 @@ export interface RoleDef {
 export const ROLES: Record<Role, RoleDef> = {
 	berserker: {
 		name: 'Berserker',
-		species: 'Rage Beast',
+		species: 'Rage Brute',
 		description: 'Charges in with Rage Claws, leaps into a Rage Slam, and roars to blow apart shields and turrets.',
 		abilities: ['roar', 'slam', 'claws'],
 		range: 150,
@@ -254,7 +254,7 @@ export const ROLES: Record<Role, RoleDef> = {
 	},
 	gunner: {
 		name: 'Gunner',
-		species: 'Rage Maw',
+		species: 'Rage Spitter',
 		description: 'Hangs back and strafes, hides behind cover and pops out to fire bursts of Rage Blasts and Rage Saws.',
 		abilities: ['saw', 'blast'],
 		range: 290,
@@ -776,7 +776,9 @@ function trySupport(e: Enemy, t: Player, pack: readonly Enemy[], dist: number): 
 		} else if (id === 'redWall') {
 			worth = b.sinceHit < 1.5 || (b.goal === 'hold' && Math.random() < 0.25);
 		} else if (id === 'redTurret') {
-			worth = pack.filter((o) => o.kind === 'rageTurret').length < MAX_RED_TURRETS;
+			// Count the ones being built right now too, or two builders could both go over the limit
+			const building = pack.filter((o) => o.brain.ability === 'redTurret' && (o.brain.state === 'windup' || o.brain.state === 'act')).length;
+			worth = pack.filter((o) => o.kind === 'rageTurret').length + building < MAX_RED_TURRETS;
 		}
 		if (!worth || Math.random() > a.chance) continue;
 		b.uses[id]++;

@@ -70,18 +70,21 @@ balancing.
 
 ### Red Lanterns (rage)
 Fast and in your face. **They push you to use shields, walls and cages.**
-A red ring picks its bearer for rage, not shape, so **Red Lanterns are all kinds of creatures, not
-humans in suits** (user rule, 2026-09-18). They share the look: dark red and black, jagged, glowing
-red eyes and mouths, the Red Lantern emblem, a flickering red aura, plasma dripping.
+A red ring picks its bearer for rage, from any species, so **Red Lanterns are humanoid aliens: two
+arms, two legs, moving like Lanterns, but never human** (user rule, 2026-09-18, refined the same day
+after the four-legged creature version "didn't feel authentic"). Every one has its own anatomy: body
+build from its role, plus a random alien head, skin and oddities (tails, spines, extra arms, animal
+legs). They share the look: black suits with ragged red panels, the emblem on the chest, the ring on
+the hand, glowing red eyes, plasma dripping, a flickering red aura.
 Shared trait: **Rage** builds as they take damage, making them faster and angrier. They never retreat.
 
 **Rank and file (Rage Grunts, one species per fighting role):**
 
 | Enemy | Role | Behavior | Weakness | Teaches |
 |---|---|---|---|---|
-| **Rage Beast** | Berserker | Hulking, horned, four-legged. Charges in with claws, leaps into slams, roars to shred shields | Knockback and cages stop the rush | Movement, spacing, shields |
-| **Rage Stalker** | Hunter | Mantis-like insect with scythe arms and wings. Circles to your back, drags you in with a Barbed Chain | Keep it in front of you; lock on | Watching your flanks |
-| **Rage Maw** | Gunner | Floating tentacled thing that is mostly mouth. Hides behind cover, pops out to spit blasts and saws | Low health; flush it out of cover | Dodging, reading tells |
+| **Rage Brute** | Berserker | Hulking and hunched, backward-bending legs, horned or split-jawed head, spiked shoulder armour. Charges in with claws, leaps into slams, roars to shred shields | Knockback and cages stop the rush | Movement, spacing, shields |
+| **Rage Stalker** | Hunter | Tall and thin with **four arms**, a long skull or a flaring crest, a whip tail. Circles to your back, drags you in with a Barbed Chain | Keep it in front of you; lock on | Watching your flanks |
+| **Rage Spitter** | Gunner | Squat, big tentacle-faced or one-eyed head, tattered red cape. Hides behind cover, pops out to blast | Low health; flush it out of cover | Dodging, reading tells |
 | **Red Lantern Fighter** | Warship | Atrocitus's small attack ships. Strafing runs along their nose, bombing runs overhead, then loop round | Step out of its line; it can't stop or turn fast | Reading lines of fire |
 
 **Lieutenants, from the animated series** (named, tough, announced when they arrive):
@@ -176,7 +179,7 @@ connected to Hal and John (Flash / Barry Allen is Hal's best friend; John served
 animated series), and the animated series' own allies (Kilowog, Razer, Aya).
 
 ## Build order for enemies
-1. ~~Rage Grunt~~ done: Rage Beast, Rage Stalker, Rage Maw (creatures, 2026-09-18)
+1. ~~Rage Grunt~~ done: Rage Brute, Rage Stalker, Rage Spitter (humanoid aliens, 2026-09-18)
 2. ~~Manhunter Drone~~ done: flying robot with lasers
 3. ~~Red Lantern Fighter~~ done: strafing and bombing runs
 4. ~~Zilius Zox, Skallox, Bleez~~ done: lieutenants from the animated series

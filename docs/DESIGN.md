@@ -164,6 +164,12 @@ Every construct, whether preset or custom, uses one of 8 **behavior types**:
   It's freeform in *look*, bounded in *behavior*, so everything stays balanced.
 - *Later idea:* type any word and an AI (called from a SvelteKit server route) picks the behavior type.
 
+## Red Lantern Ambush (`/skirmish`)
+The first playable scene, from the main menu: pick Hal or John and Coast City or space, then five
+Red Lanterns (2 Brutes, a Stalker, 2 Spitters) fly in one after another. **Three lives**; beat all
+five to win. Victory / defeat screens with Play again. Logic in `src/lib/engine/skirmish.ts`
+(health ×3, damage ×1.25). With an AI playing, fights last 25–60s and end with Hal on ~15–35 health.
+
 ## Enemy AI
 Every enemy thinks for itself (`src/lib/engine/enemies/`):
 - **Personality**, rolled at spawn: aggression, caution, patience (roles and enemy kinds lean them).
@@ -244,6 +250,8 @@ Next: Act 1 boss → Manhunter Sentry/Adapter/Prime → Dex-Starr → Atrocitus.
   - [x] Ten constructs per Lantern (Hal: Warhammer, Rocket Pod, Buzzsaw, Afterburner, Shotgun; John: Cannon,
         Cage, Shockwave, Mines, Aid Station); 10-slot HUD and bindings
   - [x] Red Lantern constructs: Rage Wall, Rage Shield, Rage Turret, Rage Axe, Blood Mace, Rage Cannon
+  - [x] Red Lanterns redrawn as humanoid aliens on the Lantern skeleton (build proportions per role, random
+        heads/skins/tails/spines, four-armed Stalkers); `/skirmish` Red Lantern Ambush scene (5 vs 1, 3 lives)
 - [ ] **M6** First mission: objective, win/lose, HUD, restart
 
 **Phase 1.5: Characters** (before enemies, by request)
