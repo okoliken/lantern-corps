@@ -12,6 +12,7 @@ import { ENEMIES, type Enemy, type Role } from '../enemies/enemies';
 import { ABILITIES, RED_HAND_LIFT, SLAM_HEIGHT } from '../enemies/redConstructs';
 import { isStanding } from '../dummy';
 import { segment, poly } from './lantern';
+import { creatureHand, drawCreature } from './creatures';
 import { drawManhunterDrone, drawRedFighter, machineMuzzle } from './machines';
 
 const RED = '#ff2a2a';
@@ -54,13 +55,18 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, y - RED_HAND_LIFT - 30, machineMuzzle(e, x, y), time);
 		return;
 	}
-	drawRedLantern(ctx, e, x, y, hasGround, time);
+	// Rage Grunts are creatures, one species per role
+	drawCreature(ctx, e, x, y, hasGround, time);
+	if (isStanding(e)) {
+		const s = FIGURE_SCALE * ENEMIES[e.kind].scale;
+		drawEnemyOverlay(ctx, e, x, y, y - (HOVER + 60) * s - e.brain.air * SLAM_HEIGHT, creatureHand(e, x, y), time);
+	}
 }
 
 /** Where an enemy's projectiles, beams and chains come from, in world coordinates. */
 export function enemyMuzzle(e: Enemy, x: number, y: number): [number, number] {
 	if (e.kind === 'manhunterDrone' || e.kind === 'redFighter') return machineMuzzle(e, x, y);
-	return [x + e.dir * 12, y - RED_HAND_LIFT];
+	return creatureHand(e, x, y);
 }
 
 /** 0..1 through the current windup. */

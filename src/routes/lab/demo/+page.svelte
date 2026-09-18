@@ -1,5 +1,5 @@
 <script lang="ts">
-	// The co-op demo: Hal and John together against waves of Red Lanterns.
+	// The co-op demo: Hal and John together against waves of Red Lanterns and Manhunters.
 	// Watch both Lanterns fight on their own (AI), play one with an AI
 	// partner, or play both on one keyboard.
 	import { onMount, untrack } from 'svelte';
@@ -124,12 +124,12 @@
 		<div class="overlay">
 			{#if status.state === 'countdown'}
 				<div class="banner">
-					<small>{status.wave === 1 ? 'Red Lanterns incoming' : `Wave ${status.wave - 1} cleared`}</small>
+					<small>{status.wave === 1 ? 'Enemies incoming' : `Wave ${status.wave - 1} cleared`}</small>
 					<strong>Wave {status.wave} in {status.timer}</strong>
 					<small>{status.pack}</small>
 				</div>
 			{:else}
-				<div class="count">Wave {status.wave} · {status.left} Red Lantern{status.left === 1 ? '' : 's'} left</div>
+				<div class="count">Wave {status.wave} · {status.left} {status.left === 1 ? 'enemy' : 'enemies'} left</div>
 			{/if}
 		</div>
 	</div>

@@ -70,7 +70,8 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		kind: 'rageGrunt',
 		name: 'Rage Grunt',
 		faction: 'red',
-		description: "Atrocitus's foot soldiers. Each fights its own way: Berserkers charge, Hunters chain and flank, Gunners blast from range.",
+		description:
+			"Atrocitus's foot soldiers. A red ring picks its bearer for rage, not shape: hulking Rage Beasts charge in, insect-like Rage Stalkers chain and flank, floating Rage Maws spit from range.",
 		mind: 'rage',
 		hp: 120,
 		speed: 150,
@@ -126,6 +127,8 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 
 export interface RoleDef {
 	name: string;
+	/** The kind of creature that fights this way (draw/creatures.ts). */
+	species: string;
 	description: string;
 	/** Its default kit (random kits are built per enemy with randomKit). */
 	abilities: AbilityId[];
@@ -141,6 +144,7 @@ export interface RoleDef {
 export const ROLES: Record<Role, RoleDef> = {
 	berserker: {
 		name: 'Berserker',
+		species: 'Rage Beast',
 		description: 'Charges in with Rage Claws, leaps into a Rage Slam, and roars to blow apart shields and turrets.',
 		abilities: ['roar', 'slam', 'claws'],
 		range: 150,
@@ -150,6 +154,7 @@ export const ROLES: Record<Role, RoleDef> = {
 	},
 	hunter: {
 		name: 'Hunter',
+		species: 'Rage Stalker',
 		description: 'Circles to your flank, drags you in with a Barbed Chain, then goes for the claws.',
 		abilities: ['chain', 'claws'],
 		range: 200,
@@ -159,6 +164,7 @@ export const ROLES: Record<Role, RoleDef> = {
 	},
 	gunner: {
 		name: 'Gunner',
+		species: 'Rage Maw',
 		description: 'Hangs back and strafes, hides behind cover and pops out to fire bursts of Rage Blasts and Rage Saws.',
 		abilities: ['saw', 'blast'],
 		range: 290,
@@ -399,9 +405,9 @@ export function roleSpeed(e: Enemy): number {
 	return ENEMIES[e.kind].kit ? 1 : ROLES[e.brain.role].speed;
 }
 
-/** What to call it: the grunt's role, or the enemy's own name. */
+/** What to call it: the grunt's species, or the enemy's own name. */
 export function enemyLabel(e: Enemy): string {
-	return ENEMIES[e.kind].kit ? ENEMIES[e.kind].name : ROLES[e.brain.role].name;
+	return ENEMIES[e.kind].kit ? ENEMIES[e.kind].name : ROLES[e.brain.role].species;
 }
 
 // ------------------------------------------------------------------- brains

@@ -26,6 +26,8 @@ export const MEMORY = 5;
 /** Spotting a Lantern alerts allies this close (machines share data further). */
 const CALL_RADIUS = 420;
 const MACHINE_CALL_RADIUS = 900;
+/** How far from a Lantern's feet an enemy in melee stands (the creatures are big). */
+const MELEE_RING = 48;
 /** Idle enemies drift around their spawn spot, within this distance. */
 const WANDER_RADIUS = 90;
 /** Shots passing closer than this are worth dodging. */
@@ -253,7 +255,7 @@ export function navigate(e: Enemy, t: Player, dt: number, w: ConstructWorld) {
 
 	if (b.engaged) {
 		// Each comes in from its own side of the target. Hunters swing wide first to flank.
-		const r = b.role === 'hunter' && d > 100 ? 70 : 34;
+		const r = b.role === 'hunter' && d > 110 ? 80 : MELEE_RING;
 		[gx, gy] = ring(b.orbit, r);
 	} else {
 		switch (b.goal) {

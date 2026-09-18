@@ -32,7 +32,7 @@ import { drawFallingMeteors, drawRedBeam, drawRedCage, drawRedChain, drawRedEffe
 import { AllyInput } from './ally';
 import { RED_HAND_LIFT } from './enemies/redConstructs';
 import { updatePlayerCombat, revivePlayer } from './combat';
-import { ENEMIES, createEnemy, enemyLabel, isEnemy, updateEnemies, type Enemy, type EnemyKind, type Role } from './enemies/enemies';
+import { createEnemy, enemyLabel, isEnemy, updateEnemies, type Enemy, type EnemyKind, type Role } from './enemies/enemies';
 import {
 	FIGURE_HALF_WIDTH,
 	FIGURE_HEIGHT,
@@ -715,7 +715,7 @@ export class Game {
 		const name = (t: Target) =>
 			t.kind === 'enemy'
 				? isEnemy(t.dummy)
-					? ENEMIES[t.dummy.kind].name
+					? enemyLabel(t.dummy)
 					: 'Dummy'
 				: t.kind === 'ally'
 					? t.player.def.name
