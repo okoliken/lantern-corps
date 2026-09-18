@@ -1,24 +1,19 @@
 <script lang="ts">
-	// The co-op demo: Hal and John together against waves of Red Lanterns and Manhunters.
-	// Watch both Lanterns fight on their own (AI), play one with an AI
-	// partner, or play both on one keyboard.
+	// The co-op lab: Hal and John together against waves of Red Lanterns and
+	// Manhunters. Play one with an AI partner, or both on one keyboard.
 	import { onMount, untrack } from 'svelte';
 	import GameCanvas from '$lib/components/GameCanvas.svelte';
 	import type { EnvironmentKind } from '$lib/engine/environment';
 	import { Game } from '$lib/engine/game';
 	import { LANTERNS, type LanternId } from '$lib/engine/lanterns';
-	import { DEMO_WAVES, WAVE_BREAK, Waves, memberName } from '$lib/engine/waves';
+	import { COOP_WAVES, Waves, memberName } from '$lib/engine/waves';
 	import { settings } from '$lib/settings.svelte';
 
-	type Mode = 'watch' | 'partner' | 'couch';
-	let mode = $state<Mode>('watch');
+	type Mode = 'partner' | 'couch';
+	let mode = $state<Mode>('partner');
 	let you = $state<LanternId>('hal');
-	/** Hides everything but the game, for recording. */
-	let recording = $state(false);
 	let environment = $state<EnvironmentKind>('space');
 	let godMode = $state(false);
-	/** Both sides use their constructs much more often. */
-	let showcase = $state(false);
 	let debug = $state(false);
 	let round = $state(0);
 
@@ -26,13 +21,13 @@
 
 	const setup = $derived.by(() => {
 		void round; // Restart makes a fresh game
-		// Tougher than normal, so each fight lasts long enough to show every red construct
-		const waves = new Waves(DEMO_WAVES);
+		// Tougher than normal, so each fight lasts long enough to see every red construct
+		const waves = new Waves(COOP_WAVES);
 		waves.toughness = 3;
 		const game = new Game({
 			players: [
-				{ lantern: you, keys: mode === 'couch' ? 'p1' : 'solo', ai: mode === 'watch' },
-				{ lantern: partner, keys: 'p2', ai: mode !== 'couch' }
+				{ lantern: you, keys: mode === 'couch' ? 'p1' : 'solo' },
+				{ lantern: partner, keys: 'p2', ai: mode === 'partner' }
 			],
 			environment,
 			showSlots: true,
@@ -40,15 +35,11 @@
 		});
 		game.director = waves;
 		game.dummies.length = 0; // no training dummies in a real fight
-		game.frameEnemies = mode === 'watch';
 		game.nameTags = false;
 		return { game, waves };
 	});
 
 	$effect(() => {
-		setup.game.showcase = showcase;
-		// Showcasing: less waiting around between fights
-		setup.waves.breakTime = showcase ? 2 : WAVE_BREAK;
 		setup.game.godMode = godMode;
 		setup.game.debug = debug;
 	});
@@ -56,11 +47,6 @@
 	// Poll the fight for the overlay (the engine doesn't know about Svelte)
 	let status = $state({ wave: 1, state: 'countdown', timer: 3, left: 0, pack: '' });
 	onMount(() => {
-		// H toggles the recording view
-		const onKey = (e: KeyboardEvent) => {
-			if (e.code === 'KeyH' && mode === 'watch') recording = !recording;
-		};
-		window.addEventListener('keydown', onKey);
 		const id = setInterval(() => {
 			const { game, waves } = setup;
 			status = {
@@ -71,55 +57,43 @@
 				pack: waves.pack.map(memberName).join(', ')
 			};
 		}, 150);
-		return () => {
-			clearInterval(id);
-			window.removeEventListener('keydown', onKey);
-		};
+		return () => clearInterval(id);
 	});
 </script>
 
 <div class="page">
-	{#if !recording}
-		<div class="controls">
+	<div class="controls">
+		<span class="group">
+			<button class:on={mode === 'partner'} onclick={() => (mode = 'partner')}>Play + AI partner</button>
+			<button class:on={mode === 'couch'} onclick={() => (mode = 'couch')}>2 players</button>
+		</span>
+		{#if mode === 'partner'}
 			<span class="group">
-				<button class:on={mode === 'watch'} onclick={() => (mode = 'watch')}>Watch (both AI)</button>
-				<button class:on={mode === 'partner'} onclick={() => (mode = 'partner')}>Play + AI partner</button>
-				<button class:on={mode === 'couch'} onclick={() => (mode = 'couch')}>2 players</button>
-			</span>
-			{#if mode === 'partner'}
-				<span class="group">
-					You:
-					{#each ['hal', 'john'] as const as id (id)}
-						<button class:on={you === id} onclick={() => (you = id)}>{LANTERNS[id].name}</button>
-					{/each}
-				</span>
-			{/if}
-			<span class="group">
-				{#each ['space', 'planet'] as const as env (env)}
-					<button class:on={environment === env} onclick={() => (environment = env)}>{env}</button>
+				You:
+				{#each ['hal', 'john'] as const as id (id)}
+					<button class:on={you === id} onclick={() => (you = id)}>{LANTERNS[id].name}</button>
 				{/each}
 			</span>
-			<label title="Both sides use their constructs much more often"><input type="checkbox" bind:checked={showcase} /> Showcase constructs</label>
-			<label><input type="checkbox" bind:checked={godMode} /> God mode</label>
-			<label><input type="checkbox" bind:checked={debug} /> Show AI thinking</label>
-			<button onclick={() => round++}>Restart</button>
-			{#if mode === 'watch'}
-				<button onclick={() => (recording = true)}>Recording view (H)</button>
-			{/if}
-		</div>
-		<div class="controls help">
-			{#if mode === 'watch'}
-				Hal and John fight on their own. Recording view hides these controls, the stats and the cursor; press H to bring them back.
-			{:else if mode === 'partner'}
-				Move WASD · aim with the mouse · click to shoot · right-click constructs · 1–0 pick · Shift shield · R signature{environment === 'planet' ? ' · Space take off' : ''}
-			{:else}
-				P1: WASD + mouse, F shot, G construct, Shift shield, R signature · P2: arrows, . shot, / construct, Right Shift shield, P signature
-			{/if}
-		</div>
-	{/if}
-	<div class="stage" class:recording>
+		{/if}
+		<span class="group">
+			{#each ['space', 'planet'] as const as env (env)}
+				<button class:on={environment === env} onclick={() => (environment = env)}>{env}</button>
+			{/each}
+		</span>
+		<label><input type="checkbox" bind:checked={godMode} /> God mode</label>
+		<label><input type="checkbox" bind:checked={debug} /> Show AI thinking</label>
+		<button onclick={() => round++}>Restart</button>
+	</div>
+	<div class="controls help">
+		{#if mode === 'partner'}
+			Move WASD · aim with the mouse · click to shoot · 1–0 use a construct · Shift shield · R signature{environment === 'planet' ? ' · Space take off' : ''}
+		{:else}
+			P1: WASD + mouse, F shot, G construct, Shift shield, R signature · P2: arrows, . shot, / construct, Right Shift shield, P signature
+		{/if}
+	</div>
+	<div class="stage">
 		{#key setup}
-			<GameCanvas game={setup.game} showStats={!recording} />
+			<GameCanvas game={setup.game} showStats />
 		{/key}
 		<div class="overlay">
 			{#if status.state === 'countdown'}
@@ -184,9 +158,6 @@
 		position: relative;
 		flex: 1;
 		min-height: 0;
-	}
-	.recording {
-		cursor: none;
 	}
 	.overlay {
 		position: absolute;

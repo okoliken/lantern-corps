@@ -24,12 +24,7 @@ export interface AllyWorld {
 	readonly players: readonly Player[];
 	readonly dummies: readonly Dummy[];
 	readonly constructs: ConstructWorld;
-	/** Show off: use constructs much more often, and all of them. */
-	readonly showcase?: boolean;
 }
-
-/** Hal's constructs that need him right up close. */
-const CLOSE_UP = new Set(['sword', 'fist', 'hammer', 'shotgun']);
 
 /** Enemies that fight from range (worth pulling in with the chain). */
 const ENEMY_IS_RANGED = (e: Enemy) => rangeOf(e) >= 250;
@@ -64,8 +59,6 @@ export class AllyInput implements InputSource {
 	private shieldRest = 0;
 	/** Seconds before it reconsiders shielding against a big attack it has already seen coming. */
 	private shieldRoll = 0;
-	/** How many times each construct has been used (a showcase spreads them around). */
-	private used = new Map<string, number>();
 
 	constructor(private world: AllyWorld) {}
 
@@ -99,7 +92,7 @@ export class AllyInput implements InputSource {
 		this.defend(me, partner, enemies, intent);
 		if (target && me.surge >= 100 && this.signatureRest === 0 && this.worthASignature(me, partner, enemies)) {
 			intent.signature = true;
-			this.signatureRest = this.world.showcase ? 14 : 30;
+			this.signatureRest = 30;
 		}
 		this.useConstructs(me, target, enemies, intent);
 		return intent;
@@ -178,7 +171,6 @@ export class AllyInput implements InputSource {
 	private worthASignature(me: Player, partner: Player | null, enemies: Enemy[]): boolean {
 		const near = enemies.filter((e) => dist(e, me) < 360).length;
 		const hurt = me.health < 60 || (partner !== null && partner.health < 60);
-		if (this.world.showcase) return near >= 2;
 		return near >= 3 || (near >= 2 && hurt);
 	}
 
@@ -228,16 +220,15 @@ export class AllyInput implements InputSource {
 			this.runPlan(intent);
 			return;
 		}
-		const showcase = this.world.showcase ?? false;
 		this.decideIn -= TICK;
 		if (this.decideIn > 0 || me.exhausted) return;
-		this.decideIn = showcase ? 0.1 + Math.random() * 0.15 : 0.35 + Math.random() * 0.4;
+		this.decideIn = 0.35 + Math.random() * 0.4;
 
 		const d = dist(me, target);
 		const slotOf = (id: string) => me.loadout.findIndex((c) => c.id === id);
 		const ready = (id: string) => {
 			const i = slotOf(id);
-			return i >= 0 && me.cooldowns[i] === 0 && me.willpower >= me.loadout[i].cost + (showcase ? 0 : 10);
+			return i >= 0 && me.cooldowns[i] === 0 && me.willpower >= me.loadout[i].cost + 10;
 		};
 		const press = (id: string): Plan => ({ slot: slotOf(id), hold: 0, selected: false });
 		const hold = (id: string, seconds: number): Plan => ({ slot: slotOf(id), hold: seconds, selected: false });
@@ -251,61 +242,42 @@ export class AllyInput implements InputSource {
 		const near = (r: number) => enemies.filter((e) => dist(e, me) < r).length;
 		if (me.def.id === 'hal') {
 			if (d < 90) add('sword', press('sword'), true);
-			if (d < 110 && (clustered || showcase)) add('hammer', press('hammer'), true);
-			if (d < 120 && (clustered || showcase)) add('fist', press('fist'), true);
-			if (d < 200 && (near(220) >= 2 || showcase)) add('shotgun', press('shotgun'), true);
+			if (d < 110 && clustered) add('hammer', press('hammer'), true);
+			if (d < 120 && clustered) add('fist', press('fist'), true);
+			if (d < 200 && near(220) >= 2) add('shotgun', press('shotgun'), true);
 			// Burn straight through a target that's lined up and not too far
-			if (d > 110 && d < 250 && (showcase || Math.random() < 0.3)) add('afterburner', press('afterburner'));
-			if (d > 150 && d < 520 && (enemies.length >= 2 || showcase)) add('rockets', press('rockets'));
+			if (d > 110 && d < 250 && Math.random() < 0.3) add('afterburner', press('afterburner'));
+			if (d > 150 && d < 520 && enemies.length >= 2) add('rockets', press('rockets'));
 			if (d > 100 && d < 320) add('buzzsaw', press('buzzsaw'));
-			if (d > 170 && d < 340 && (showcase || ENEMY_IS_RANGED(target))) add('chain', press('chain'), true);
-			if (d < 440 && me.willpower > (showcase ? 20 : 40)) {
-				if (showcase) {
-					add('minigun', hold('minigun', 0.9));
-					add('beam', hold('beam', 0.9));
-				} else {
-					const gun = Math.random() < 0.5 ? 'minigun' : 'beam';
-					add(gun, hold(gun, 0.9));
-				}
+			if (d > 170 && d < 340 && ENEMY_IS_RANGED(target)) add('chain', press('chain'), true);
+			if (d < 440 && me.willpower > 40) {
+				const gun = Math.random() < 0.5 ? 'minigun' : 'beam';
+				add(gun, hold(gun, 0.9));
 			}
 		} else {
 			const turrets = this.world.constructs.turrets.filter((t) => t.owner === me).length;
-			const rushing = enemies.some((e) => e.brain.target === me && dist(e, me) < (showcase ? 260 : 160) && (showcase || e.brain.engaged));
+			const rushing = enemies.some((e) => e.brain.target === me && dist(e, me) < 160 && e.brain.engaged);
 			const partner = this.world.players.find((o) => o !== me && !o.downed) ?? null;
 			const hurt = me.health < 60 || (partner !== null && partner.health < 60);
 			const aidUp = this.world.constructs.aids.some((a) => a.owner === me);
 			if (hurt && !aidUp) add('aid', press('aid'));
-			if (rushing && (showcase || Math.random() < 0.5)) add('wall', press('wall'));
-			if (near(150) >= 2 || (showcase && near(170) >= 1)) add('shockwave', press('shockwave'));
+			if (rushing && Math.random() < 0.5) add('wall', press('wall'));
+			if (near(150) >= 2) add('shockwave', press('shockwave'));
 			if (rushing) add('mines', press('mines'));
-			if (rushing && (showcase || Math.random() < 0.4)) add('cage', press('cage'));
-			if (turrets < (showcase ? 2 : 1) && enemies.length >= 2) add('turret', press('turret'));
-			if (d < 320 && (clustered || showcase)) add('pillars', press('pillars'));
-			if (d > 150 && d < 500 && (clustered || showcase)) add('cannon', press('cannon'));
+			if (rushing && Math.random() < 0.4) add('cage', press('cage'));
+			if (turrets < 1 && enemies.length >= 2) add('turret', press('turret'));
+			if (d < 320 && clustered) add('pillars', press('pillars'));
+			if (d > 150 && d < 500 && clustered) add('cannon', press('cannon'));
 			if (d > 140) add('sniper', hold('sniper', 1));
-			if (d < 400 && me.willpower > (showcase ? 20 : 45)) add('beam', hold('beam', 1));
-			if (showcase && !aidUp) add('aid', press('aid'));
+			if (d < 400 && me.willpower > 45) add('beam', hold('beam', 1));
 		}
 
-		if (showcase && me.def.id === 'hal') {
-			// If a close-up construct is overdue, dive in so it can be used next
-			const least = me.loadout.map((c) => c.id).sort((a, b) => this.uses(a) - this.uses(b))[0];
-			this.closeIn = CLOSE_UP.has(least) && ready(least);
-		} else {
-			this.closeIn = false;
-		}
+		this.closeIn = false;
 		if (options.length === 0) return;
-
-		// Normally the best option; in a showcase, whichever has been used least
-		const pick = showcase ? options.reduce((a, b) => (this.uses(b.id) < this.uses(a.id) ? b : a)) : options[0];
+		const pick = options[0];
 		this.plan = pick.plan;
 		if (pick.closeIn) this.closeIn = true;
-		this.used.set(pick.id, this.uses(pick.id) + 1);
 		this.runPlan(intent);
-	}
-
-	private uses(id: string): number {
-		return this.used.get(id) ?? 0;
 	}
 
 	private runPlan(intent: Intent) {

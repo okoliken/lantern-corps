@@ -150,32 +150,13 @@ export class Game {
 	godMode = false;
 	/** Enemies stand still and don't attack. Toggled from the enemy lab. */
 	freezeEnemies = false;
-	private showingOff = false;
-	/**
-	 * Demo showcase: AI Lanterns use constructs far more (and recover willpower
-	 * faster to afford them), and Red Lanterns use theirs more eagerly.
-	 */
-	get showcase(): boolean {
-		return this.showingOff;
-	}
-	set showcase(on: boolean) {
-		if (on === this.showingOff) return;
-		this.showingOff = on;
-		this.constructs.redTempo = on ? 1.5 : 1;
-		for (const p of this.players) {
-			if (this.aiSlots.has(p.slot)) p.regenMultiplier *= on ? 3 : 1 / 3;
-		}
-	}
-
 	/** Draw the health / willpower / construct bars. */
 	hud = true;
 	/** Show the big "is down, back up in..." notice (off when being down means game over). */
 	downedNotice = true;
 	/** Draw the Lanterns' names above their heads. */
 	nameTags = true;
-	/** Camera also keeps enemies attacking the Lanterns in shot (for watching/recording). */
-	frameEnemies = false;
-	/** Runs the fight: sends waves of enemies (the demo), a scene, a mission. */
+	/** Runs the fight: sends waves of enemies (the co-op lab), a scene, a mission. */
 	director: Director | null = null;
 
 	private rules: WorldRules;
@@ -377,11 +358,11 @@ export class Game {
 		this.director?.update(this, dt);
 
 		const [tx, ty, fw, fh] = this.cameraTarget();
-		if (this.players.length > 1 || this.frameEnemies || this.director?.cameraPoints) this.camera.fit(fw, fh, dt, this.view);
+		if (this.players.length > 1 || this.director?.cameraPoints) this.camera.fit(fw, fh, dt, this.view);
 		this.camera.follow(tx, ty, dt, this.view, map.width, map.height);
 	}
 
-	/** Put an enemy into the world (labs, the demo, and later mission spawners). */
+	/** Put an enemy into the world (labs, scenes, missions). */
 	spawnEnemy(kind: EnemyKind, x: number, y: number, role: Role = 'berserker'): Enemy {
 		const e = createEnemy(kind, x, y, role);
 		this.dummies.push(e);
@@ -421,28 +402,19 @@ export class Game {
 
 	/**
 	 * What the camera frames: the middle and size of a box around every player
-	 * (and, when framing enemies, the ones attacking them), with room around
-	 * it for bodies, name tags and incoming attacks. With one player that's just them.
+	 * (and anything the director wants in view, like a ship to escort), with
+	 * room around it for bodies, name tags and incoming attacks.
 	 */
 	private cameraTarget(): [number, number, number, number] {
-		const points = this.players.map((p) => [p.x, p.y - CAMERA_AIM_UP]);
-		if (this.frameEnemies) {
-			for (const e of this.enemies) {
-				const t = e.brain.target;
-				if (t && Math.hypot(e.x - t.x, e.y - t.y) < 420) points.push([e.x, e.y - CAMERA_AIM_UP]);
-			}
-		}
 		// Anchors: the players, plus anything the director wants kept in view (the ship to escort)
 		const anchors: [number, number][] = [
 			...this.players.map((p): [number, number] => [p.x, p.y - CAMERA_AIM_UP]),
 			...(this.director?.cameraPoints?.() ?? [])
 		];
-		points.push(...anchors);
-		const xs = points.map((p) => p[0]);
-		const ys = points.map((p) => p[1]);
+		const xs = anchors.map((p) => p[0]);
+		const ys = anchors.map((p) => p[1]);
 		const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
 		const margin = 170;
-		// Centre on the anchors, so enemies coming and going don't yank the view around
 		let x = 0;
 		let y = 0;
 		for (const [ax, ay] of anchors) {

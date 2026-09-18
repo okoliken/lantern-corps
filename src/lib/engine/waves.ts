@@ -1,4 +1,4 @@
-// Waves of enemies for the demo: a countdown, a pack arrives around the
+// Waves of enemies for the co-op lab: a countdown, a pack arrives around the
 // Lanterns, and when it's beaten the next, bigger one comes.
 
 import { ENEMIES, ROLES, type EnemyKind, type Role } from './enemies/enemies';
@@ -10,7 +10,7 @@ import { boxOverlap } from './physics';
 export type WaveMember = Role | Exclude<EnemyKind, 'rageGrunt'>;
 
 /** Each wave's pack. After the last, it keeps sending the last one. */
-export const DEMO_WAVES: WaveMember[][] = [
+export const COOP_WAVES: WaveMember[][] = [
 	['berserker', 'gunner'],
 	['hunter', 'berserker', 'manhunterDrone'],
 	['berserker', 'gunner', 'redFighter', 'manhunterDrone'],
@@ -25,7 +25,7 @@ export const DEMO_WAVES: WaveMember[][] = [
 
 export const isRole = (m: WaveMember): m is Role => m in ROLES;
 
-/** What to call a wave member in the demo's overlay. */
+/** What to call a wave member in the co-op lab's overlay. */
 export function memberName(m: WaveMember): string {
 	return isRole(m) ? ROLES[m].name : ENEMIES[m].name;
 }
@@ -46,12 +46,12 @@ export class Waves {
 	/** Packs beaten so far. */
 	cleared = 0;
 
-	/** Health and stagger-resistance multiplier (the demo makes them tougher so fights last). */
+	/** Health and stagger-resistance multiplier (the co-op lab makes them tougher so fights last). */
 	toughness = 1;
 	/** Seconds between waves. */
 	breakTime = WAVE_BREAK;
 
-	constructor(private waves: WaveMember[][] = DEMO_WAVES) {}
+	constructor(private waves: WaveMember[][] = COOP_WAVES) {}
 
 	update(game: Game, dt: number) {
 		if (this.state === 'countdown') {

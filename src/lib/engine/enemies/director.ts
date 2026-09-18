@@ -71,7 +71,7 @@ export function updatePressure(map: PressureMap, players: readonly Player[], dt:
 /** Attacks cost 1 token, big area attacks 2. */
 export const attackCost = (a: AbilityDef) => (a.heavy ? 2 : 1);
 
-/** How many tokens a Lantern has right now. Higher tempo (showcase) allows one more. */
+/** How many tokens a Lantern has right now. Higher tempo (a harder fight) allows one more. */
 export function budgetFor(map: PressureMap, p: Player, tempo: number): number {
 	const entry = pressureOn(map, p);
 	let budget = ATTACK_BUDGET + (tempo > 1.5 ? 1 : 0);

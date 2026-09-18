@@ -337,7 +337,7 @@ export interface EnemyBrain {
 	lastHp: number;
 	/** 0..1 height off the ground during a Rage Slam leap. */
 	air: number;
-	/** Poise multiplier: tougher enemies (the demo's packs) are harder to stagger too. */
+	/** Poise multiplier: tougher enemies (co-op lab packs, scenes) are harder to stagger too. */
 	grit: number;
 	/** Times each construct has been used, so it mixes them up rather than repeating one. */
 	uses: Record<AbilityId, number>;

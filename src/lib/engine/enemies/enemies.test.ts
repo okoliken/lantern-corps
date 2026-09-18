@@ -832,3 +832,21 @@ describe('enemy shots hit what they are seen to hit', () => {
 		expect(p.health).toBeLessThan(p.maxHealth);
 	});
 });
+
+describe('random kits', () => {
+	it('gives five different constructs, one of them a support construct (wall, shield or turret)', () => {
+		for (let i = 0; i < 50; i++) {
+			const kit = randomKit('hunter');
+			expect(kit).toHaveLength(5);
+			expect(kit.filter((id) => ABILITIES[id].band === 'support')).toHaveLength(1);
+			expect(new Set(kit).size).toBe(5);
+		}
+	});
+
+	it('suits the role: gunners lean long-range, berserkers close', () => {
+		for (let i = 0; i < 50; i++) {
+			expect(randomKit('gunner').filter((id) => ABILITIES[id].band === 'long').length).toBeGreaterThanOrEqual(2);
+			expect(randomKit('berserker').filter((id) => ABILITIES[id].band === 'close').length).toBeGreaterThanOrEqual(2);
+		}
+	});
+});

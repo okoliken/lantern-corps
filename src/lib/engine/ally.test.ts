@@ -92,29 +92,6 @@ describe('AI partner', () => {
 		expect(ally.read()).toEqual(IDLE);
 	});
 
-	it('in a showcase, both AI Lanterns use every construct in their loadout', () => {
-		const game = new Game({ players: [{ lantern: 'hal', keys: 'solo', ai: true }, { lantern: 'john', keys: 'p2', ai: true }], map: arena() });
-		game.setView({ width: 1400, height: 800 });
-		game.godMode = true;
-		game.showcase = true;
-		// This is about knowing when to use each construct, not about budgeting willpower
-		game.infiniteWillpower = true;
-		const used = new Set<string>();
-		// Ten constructs each: give them a minute and a half to get round them all
-		for (let i = 0; i < 90 * 60; i++) {
-			if (game.enemies.length < 3) game.spawnEnemy('rageGrunt', 1200 + Math.cos(i) * 300, 1200 + Math.sin(i) * 300, 'berserker');
-			const before = game.players.map((p) => [...p.cooldowns]);
-			game.update(1 / 60);
-			game.players.forEach((p, k) =>
-				p.loadout.forEach((def, j) => {
-					if (p.cooldowns[j] > before[k][j] + 0.05 || (p.selected === j && p.firing)) used.add(`${p.def.id}:${def.id}`);
-				})
-			);
-		}
-		const all = game.players.flatMap((p) => p.loadout.map((def) => `${p.def.id}:${def.id}`));
-		expect(all.filter((id) => !used.has(id))).toEqual([]);
-	});
-
 	it('in a real game, an AI John fights Red Lanterns and wins', () => {
 		const game = new Game({ players: [{ lantern: 'john', keys: 'p2', ai: true }], map: arena() });
 		game.setView({ width: 800, height: 600 });

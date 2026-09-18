@@ -262,18 +262,18 @@ Next: Act 1 boss → Manhunter Sentry/Adapter/Prime → Dex-Starr → Atrocitus.
         Berserker (Rage Claws, Rage Slam, Rage Roar), Hunter (Barbed Chain, Rage Claws), Gunner (Rage Blast, Rage Saw).
         Pack AI: own reaction times, targets split between Lanterns, spots around the target, max 2 in melee,
         ranged pacing, stagger on burst damage. Walls block red shots, Fortress keeps them out, roars shred shields/turrets.
-  - [x] AI partner (an InputSource that plays Hal or John) and /lab/demo: co-op waves of up to 4 Red Lanterns
+  - [x] AI partner (an InputSource that plays Hal or John) and the co-op lab (/lab/demo): waves of enemies
   - [x] 15 red constructs (claws, Blood Scythe, Rage Roar, Rage Charge, Rage Slam, Barbed Chain, Napalm Vomit, Blood Spikes,
         Rage Prison, Rage Blast, Rage Saw, Blood Spears, Rage Meteors, Rage Beam, Skull Seekers); every enemy gets a random
         4-construct kit shaped by its role; `might` damage multiplier
-  - [x] /trailer: self-playing 16:9 gameplay trailer (scenes.ts): Hal vs 5 in Coast City, Hal + John in space
+  - [x] ~~/trailer~~ self-playing trailer, removed 2026-09-18 with the demo's watch/recording/showcase modes (in git history if needed)
   - [x] Feel & pacing pass (2026-09-18): face the way you move, turn to shoot, backpedal, smooth turns; double-tap ring
         shot; slower, more readable red attacks
   - [x] Enemy brains: personalities, sight + memory, goals (flank, cover, wait, retreat...), dodging, attack director
   - [x] Machines: Manhunter Drone (flying robot, lasers), Red Lantern Fighter (ship, strafing/bombing runs)
   - [x] Red Lanterns as creatures: Rage Beast / Rage Stalker / Rage Maw
-  - [x] Lieutenants from the show: Zilius Zox, Skallox (transforms), Bleez (Blood Dive); demo waves 5-7
-  - [x] Squad tactics (assault + reserve, rotation, all-in); demo wave 8 is a pack of 7
+  - [x] Lieutenants from the show: Zilius Zox, Skallox (transforms), Bleez (Blood Dive); co-op lab waves 5-7
+  - [x] Squad tactics (assault + reserve, rotation, all-in); co-op lab wave 8 is a pack of 7
   - [x] Ten constructs per Lantern (Hal: Warhammer, Rocket Pod, Buzzsaw, Afterburner, Shotgun; John: Cannon,
         Cage, Shockwave, Mines, Aid Station); 10-slot HUD and bindings
   - [x] Red Lantern constructs: Rage Wall, Rage Shield, Rage Turret, Rage Axe, Blood Mace, Rage Cannon

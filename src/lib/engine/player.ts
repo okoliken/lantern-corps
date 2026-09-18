@@ -71,8 +71,6 @@ export interface Player {
 	// ---- Health (see combat.ts) ----
 	health: number;
 	maxHealth: number;
-	/** Health never drops below this (0 normally; cinematic scenes keep heroes standing). */
-	minHealth: number;
 	/** Seconds of invulnerability left (just hit, or just got back up). */
 	invuln: number;
 	/** Seconds since they last took damage (health regenerates after a while). */
@@ -218,7 +216,6 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		health: PLAYER_MAX_HEALTH,
 		maxHealth: PLAYER_MAX_HEALTH,
 		sinceHurt: 99,
-		minHealth: 0,
 		invuln: 0,
 		downTimer: 0,
 		willpower: MAX_WILLPOWER,

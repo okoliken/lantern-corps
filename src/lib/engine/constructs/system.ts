@@ -242,7 +242,7 @@ export interface ConstructWorld {
 	red: RedWorld;
 	/**
 	 * How eagerly Red Lanterns use their constructs: 1 normally. Higher means
-	 * shorter cooldowns and fewer hesitations (the demo showcase).
+	 * shorter cooldowns and fewer hesitations (a harder fight).
 	 */
 	redTempo: number;
 	/** Whose turn it is to attack each Lantern (enemies/director.ts). */
