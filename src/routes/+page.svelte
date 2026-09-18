@@ -9,11 +9,7 @@
 	<p class="oath">In brightest day, in blackest night…</p>
 
 	<nav>
-		<a class="btn" href="/training">Training</a>
 		<a class="btn primary" href="/missions">Missions</a>
-		<a class="btn" href="/play">Free play</a>
-		<a class="btn ambush" href="/skirmish">Red Lantern Ambush</a>
-		<a class="btn" href="/hq">Corps HQ</a>
 		{#if dev}
 			<a class="btn lab" href="/lab">Lab (dev only)</a>
 		{/if}
@@ -65,15 +61,6 @@
 		background: var(--green);
 		color: var(--bg);
 		box-shadow: 0 0 18px rgba(61, 255, 110, 0.35);
-	}
-	.btn.ambush {
-		border-color: #ff3a3a;
-		color: #ff6a6a;
-		box-shadow: 0 0 14px rgba(255, 42, 42, 0.25);
-	}
-	.btn.ambush:hover {
-		background: #ff3a3a;
-		color: var(--bg);
 	}
 	.btn.lab {
 		border-style: dashed;
