@@ -19,7 +19,7 @@ export const DUMMY_RESPAWN = 3;
 export const DEFEAT_LINGER = 0.9;
 
 /** What kind of target: a training dummy, or which enemy. */
-export type TargetKind = 'dummy' | 'rageGrunt' | 'plasmaSpitter' | 'rageBrute';
+export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter';
 
 export interface Dummy {
 	kind: TargetKind;

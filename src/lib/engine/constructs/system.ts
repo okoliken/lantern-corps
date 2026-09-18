@@ -127,7 +127,9 @@ export interface Effect {
 		| 'redImpact'
 		| 'scythe'
 		| 'spikeBurst'
-		| 'redTrail';
+		| 'redTrail'
+		// Machines
+		| 'pulse';
 	x: number;
 	y: number;
 	age: number;

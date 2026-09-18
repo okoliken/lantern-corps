@@ -24,6 +24,7 @@ import { DUMMY_HALF_W, isStanding, type Dummy, type TargetKind } from '../dummy'
 import type { Player } from '../player';
 import { attackStarted, mayAttack, updatePressure, type Attacker } from './director';
 import { ABILITIES, cancelAbility, startAbility, updateAbility, updateRedConstructs, type AbilityDef, type AbilityId } from './redConstructs';
+import { flyShip } from './ships';
 import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
 
 export type EnemyKind = Exclude<TargetKind, 'dummy'>;
@@ -52,6 +53,16 @@ export interface EnemyDef {
 	scale: number;
 	/** How good it is at sidestepping shots (0 never, 1 as often as its personality allows). */
 	agility: number;
+	/** Hovers and moves any way like a Lantern, or flies like a ship: always forward, turning. */
+	movement: 'hover' | 'ship';
+	/** A fixed kit. Without one it's a Rage Grunt: its ROLE picks the kit, range and leanings. */
+	kit?: AbilityId[];
+	/** Favourite fighting distance (enemies with a fixed kit). */
+	range?: number;
+	/** Personality leanings (enemies with a fixed kit). */
+	leans?: Partial<Personality>;
+	/** Ships: how fast they turn, in radians per second. */
+	turnRate?: number;
 }
 
 export const ENEMIES: Record<EnemyKind, EnemyDef> = {
@@ -67,36 +78,49 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		sight: 640,
 		poise: 34,
 		scale: 1,
-		agility: 0.7
+		agility: 0.7,
+		movement: 'hover'
 	},
-	// Stage 2 and 3 fill in their behaviors; the numbers are placeholders until then.
-	plasmaSpitter: {
-		kind: 'plasmaSpitter',
-		name: 'Plasma Spitter',
-		faction: 'red',
-		description: 'Keeps its distance and spits burning plasma that leaves fire on the ground and melts constructs.',
-		mind: 'rage',
-		hp: 80,
-		speed: 130,
+	// A flying robot: the Guardians' first peacekeepers. Cold logic, not rage.
+	manhunterDrone: {
+		kind: 'manhunterDrone',
+		name: 'Manhunter Drone',
+		faction: 'manhunter',
+		description:
+			"The Guardians' first peacekeepers, built to hunt. A flying robot with one burning eye: laser bolts, a sweeping laser, and a pulse that shoves you away. Drones gang up on one target and pull back to regroup when damaged.",
+		mind: 'machine',
+		hp: 140,
+		speed: 140,
 		accel: 4,
-		sight: 620,
-		poise: 26,
-		scale: 0.95,
-		agility: 0.6
+		sight: 700,
+		poise: 44,
+		scale: 1,
+		agility: 0.35,
+		movement: 'hover',
+		kit: ['eyeLaser', 'sweep', 'pulse'],
+		range: 280,
+		leans: { caution: 0.2, patience: 0.3 }
 	},
-	rageBrute: {
-		kind: 'rageBrute',
-		name: 'Rage Brute',
+	// A Red Lantern warship from Atrocitus's fleet
+	redFighter: {
+		kind: 'redFighter',
+		name: 'Red Lantern Fighter',
 		faction: 'red',
-		description: 'Huge and slow. Winds up a charge that smashes through energy walls, and is dazed if it crashes into something.',
+		description:
+			'A small, fast Red Lantern warship. It lines up on you for strafing runs, drops rage bombs as it flies over, then loops round for another pass. It never stops moving, so get out of its line.',
 		mind: 'rage',
-		hp: 420,
-		speed: 100,
+		hp: 90,
+		speed: 250,
 		accel: 3,
-		sight: 560,
-		poise: 90,
-		scale: 1.35,
-		agility: 0.15
+		sight: 820,
+		poise: 60,
+		scale: 1,
+		agility: 0,
+		movement: 'ship',
+		kit: ['strafe', 'bombs'],
+		range: 320,
+		turnRate: 2.1,
+		leans: { aggression: 0.3 }
 	}
 };
 
@@ -242,6 +266,12 @@ export interface EnemyBrain {
 	sinceHit: number;
 	/** Its own clock, for idle drift and bobbing. */
 	clock: number;
+
+	// ---- Ships (ships.ts) ----
+	/** Which way the ship's nose points (radians). */
+	heading: number;
+	/** Seconds left flying straight on after an attack run, before looping round. */
+	pass: number;
 }
 
 /** An enemy: a target body with a brain. */
@@ -256,8 +286,7 @@ export function isEnemy(d: Dummy): d is Enemy {
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
-function rollPersonality(role: Role, rand: () => number): Personality {
-	const leans = ROLES[role].leans;
+function rollPersonality(leans: Partial<Personality>, rand: () => number): Personality {
 	return {
 		aggression: clamp01(rand() * 0.8 + 0.1 + (leans.aggression ?? 0)),
 		caution: clamp01(rand() * 0.8 + 0.1 + (leans.caution ?? 0)),
@@ -271,10 +300,11 @@ export function createEnemy(
 	y: number,
 	role: Role = 'berserker',
 	rand = Math.random,
-	kit: AbilityId[] = ROLES[role].abilities
+	kit: AbilityId[] = ENEMIES[kind].kit ?? ROLES[role].abilities
 ): Enemy {
 	const def = ENEMIES[kind];
-	const hp = Math.round(def.hp * ROLES[role].hp);
+	const hp = Math.round(def.hp * (def.kit ? 1 : ROLES[role].hp));
+	const leans = def.kit ? (def.leans ?? {}) : ROLES[role].leans;
 	// A short, slightly different grace period on every construct, so a pack
 	// that arrives together doesn't attack together
 	const cooldowns = {} as Record<AbilityId, number>;
@@ -304,7 +334,7 @@ export function createEnemy(
 		dir: -1,
 		brain: {
 			role,
-			persona: rollPersonality(role, rand),
+			persona: rollPersonality(leans, rand),
 			kit: [...kit],
 			might: 1,
 			struck: [],
@@ -346,7 +376,9 @@ export function createEnemy(
 			alert: 0,
 			dodgeIn: rand(),
 			sinceHit: 99,
-			clock: rand() * 100
+			clock: rand() * 100,
+			heading: Math.PI,
+			pass: 0
 		}
 	};
 }
@@ -359,7 +391,17 @@ function attackOf(e: Enemy): AbilityDef | null {
 
 /** The distance this enemy likes to fight from. */
 export function rangeOf(e: Enemy): number {
-	return ROLES[e.brain.role].range;
+	return ENEMIES[e.kind].range ?? ROLES[e.brain.role].range;
+}
+
+/** Role speed multiplier (only Rage Grunts have roles). */
+export function roleSpeed(e: Enemy): number {
+	return ENEMIES[e.kind].kit ? 1 : ROLES[e.brain.role].speed;
+}
+
+/** What to call it: the grunt's role, or the enemy's own name. */
+export function enemyLabel(e: Enemy): string {
+	return ENEMIES[e.kind].kit ? ENEMIES[e.kind].name : ROLES[e.brain.role].name;
 }
 
 // ------------------------------------------------------------------- brains
@@ -421,6 +463,12 @@ function think(
 
 	perceive(e, pack, players, w, dt);
 	const t = b.target;
+
+	if (def.movement === 'ship') {
+		flyShip(e, t, attackers, w, players, dt);
+		syncAttacker(e, attackers);
+		return;
+	}
 
 	switch (b.state) {
 		case 'idle': {
@@ -489,10 +537,14 @@ function think(
 		}
 	}
 
-	// Keep the director's picture of who's attacking up to date
+	syncAttacker(e, attackers);
+}
+
+/** Keep the director's picture of who's attacking up to date. */
+function syncAttacker(e: Enemy, attackers: (Attacker & { e: Enemy })[]) {
 	const entry = attackers.find((a) => a.e === e);
 	if (entry) {
-		entry.target = b.target;
+		entry.target = e.brain.target;
 		entry.attack = attackOf(e);
 	}
 }
@@ -532,7 +584,7 @@ function decide(
 		if (dist < a.minRange || dist > a.maxRange + DUMMY_HALF_W) continue;
 		if (a.melee && !b.engaged) continue;
 		// Ranged fighters with nothing for close up back off to their range before shooting
-		if (!melee && dist < range * 0.7) continue;
+		if (!melee && a.band !== 'close' && dist < range * 0.7) continue;
 		if (id === 'roar' && !roarWorthIt(e, w, players)) continue;
 		// Something in the way: don't waste it on a rock, go round
 		if (needsClearShot(a) && !clearShot(e, t, w)) {
@@ -573,7 +625,7 @@ function roarWorthIt(e: Enemy, w: ConstructWorld, players: readonly Player[]): b
 	return e.brain.rage > 0.5;
 }
 
-function beginWindup(e: Enemy, id: AbilityId, t: Player) {
+export function beginWindup(e: Enemy, id: AbilityId, t: Player) {
 	const b = e.brain;
 	const a = ABILITIES[id];
 	b.state = 'windup';

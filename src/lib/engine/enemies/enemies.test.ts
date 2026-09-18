@@ -484,3 +484,81 @@ describe('Red Lantern constructs', () => {
 		expect(hits[1]).toBeCloseTo(hits[0] * 2, 5);
 	});
 });
+
+describe('machines', () => {
+	const drone = (x: number, y: number) => {
+		const e = createEnemy('manhunterDrone', x, y);
+		for (const id in e.brain.cooldowns) e.brain.cooldowns[id as AbilityId] = 0;
+		e.brain.think = 0;
+		return e;
+	};
+
+	it('a Manhunter Drone hangs back at range and shoots eye lasers', () => {
+		const e = drone(300, 0);
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		let lasers = 0;
+		run(w, [p], 4, () => {
+			p.invuln = 0;
+			p.health = p.maxHealth;
+			lasers = Math.max(lasers, w.red.shots.filter((s) => s.kind === 'laser').length);
+		});
+		expect(lasers).toBeGreaterThan(0);
+		expect(Math.hypot(e.x - p.x, e.y - p.y)).toBeGreaterThan(180);
+	});
+
+	it('a drone shoves away a Lantern who gets right up close', () => {
+		const e = drone(60, 0);
+		e.brain.kit = ['pulse'];
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		run(w, [p], 1.2);
+		expect(p.health).toBeLessThan(p.maxHealth);
+		expect(Math.hypot(e.x - p.x, e.y - p.y)).toBeGreaterThan(90);
+	});
+
+	it('damaged drones pull back instead of fighting to the end (machines, not rage)', () => {
+		let retreated = 0;
+		for (let i = 0; i < 12; i++) {
+			const e = drone(250, 0);
+			e.hp = e.maxHp * 0.3;
+			e.brain.lastHp = e.hp;
+			e.brain.persona.caution = 1;
+			const w = createConstructWorld([], [e]);
+			const p = lantern();
+			run(w, [p], 0.5, () => (p.invuln = 1));
+			if (e.brain.goal === 'retreat') retreated++;
+		}
+		expect(retreated).toBeGreaterThan(6);
+	});
+
+	it('a Red Lantern fighter never stops: it makes passes, strafing along its nose', () => {
+		const e = createEnemy('redFighter', 500, 0);
+		e.brain.cooldowns.strafe = 0;
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		let slowest = Infinity;
+		let strafed = false;
+		let ticks = 0;
+		run(w, [p], 5, () => {
+			p.invuln = 1;
+			// (after getting up to speed from a standstill)
+			if (++ticks > 60) slowest = Math.min(slowest, Math.hypot(e.vx, e.vy));
+			if (e.brain.ability === 'strafe' && e.brain.state === 'act') strafed = true;
+		});
+		expect(strafed).toBe(true);
+		expect(slowest).toBeGreaterThan(100);
+	});
+
+	it("a fighter's laser flies where its nose points", () => {
+		const e = createEnemy('redFighter', 300, 0);
+		e.brain.heading = Math.PI;
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		force(e, 'strafe', p);
+		run(w, [p], 0.1);
+		const laser = w.red.shots.find((s) => s.kind === 'laser')!;
+		expect(laser.vx).toBeLessThan(0);
+		expect(Math.abs(laser.vy)).toBeLessThan(Math.abs(laser.vx) * 0.2);
+	});
+});

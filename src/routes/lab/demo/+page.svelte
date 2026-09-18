@@ -7,8 +7,7 @@
 	import type { EnvironmentKind } from '$lib/engine/environment';
 	import { Game } from '$lib/engine/game';
 	import { LANTERNS, type LanternId } from '$lib/engine/lanterns';
-	import { DEMO_WAVES, WAVE_BREAK, Waves } from '$lib/engine/waves';
-	import { ROLES } from '$lib/engine/enemies/enemies';
+	import { DEMO_WAVES, WAVE_BREAK, Waves, memberName } from '$lib/engine/waves';
 	import { settings } from '$lib/settings.svelte';
 
 	type Mode = 'watch' | 'partner' | 'couch';
@@ -69,7 +68,7 @@
 				state: waves.state,
 				timer: Math.ceil(waves.timer),
 				left: game.enemies.length,
-				pack: waves.pack.map((r) => ROLES[r].name).join(', ')
+				pack: waves.pack.map(memberName).join(', ')
 			};
 		}, 150);
 		return () => {

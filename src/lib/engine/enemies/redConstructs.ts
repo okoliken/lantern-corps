@@ -34,7 +34,13 @@ export type AbilityId =
 	| 'spears'
 	| 'meteors'
 	| 'beam'
-	| 'skulls';
+	| 'skulls'
+	// Machines: Manhunter Drones and Red Lantern fighters
+	| 'eyeLaser'
+	| 'sweep'
+	| 'pulse'
+	| 'strafe'
+	| 'bombs';
 
 /** How far away a construct is used from. Kits take some of each. */
 export type Band = 'close' | 'mid' | 'long';
@@ -155,10 +161,43 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	skulls: def({
 		id: 'skulls', name: 'Skull Seekers', band: 'long', tell: 'aim', windup: 0.72, active: 0.4, recover: 0.5, cooldown: 9.1,
 		minRange: 150, maxRange: 520, damage: 11, knockback: 200, melee: false, heavy: false, chance: 0.7, speed: 210
+	}),
+
+	// ---- Manhunter Drone ----
+	// Its eye glows, then fires two quick laser bolts
+	eyeLaser: def({
+		id: 'eyeLaser', name: 'Eye Laser', band: 'long', tell: 'aim', windup: 0.6, active: 0.3, recover: 0.4, cooldown: 3,
+		minRange: 60, maxRange: 520, damage: 8, knockback: 80, melee: false, heavy: false, chance: 0.85, speed: 900
+	}),
+	// A thin laser held on the target and dragged across (damage per second)
+	sweep: def({
+		id: 'sweep', name: 'Laser Sweep', band: 'long', tell: 'aim', windup: 0.8, active: 1, recover: 0.6, cooldown: 8,
+		minRange: 120, maxRange: 460, damage: 24, knockback: 40, melee: false, heavy: false, chance: 0.6
+	}),
+	// A ring of force that shoves away anyone who gets too close
+	pulse: def({
+		id: 'pulse', name: 'Repulse Pulse', band: 'close', tell: 'heavy', windup: 0.55, active: 0.15, recover: 0.5, cooldown: 5,
+		minRange: 0, maxRange: 110, damage: 6, knockback: 520, melee: false, heavy: false, chance: 0.9, radius: 120
+	}),
+
+	// ---- Red Lantern fighter ----
+	// Lined up on a Lantern: a stream of laser bolts straight ahead, without slowing down
+	strafe: def({
+		id: 'strafe', name: 'Strafing Run', band: 'long', tell: 'aim', windup: 0.35, active: 0.55, recover: 0.2, cooldown: 3.4,
+		minRange: 80, maxRange: 420, damage: 7, knockback: 90, melee: false, heavy: false, chance: 0.9, speed: 820
+	}),
+	// Flying over: drops a line of rage bombs that go off a moment later
+	bombs: def({
+		id: 'bombs', name: 'Bombing Run', band: 'close', tell: 'aim', windup: 0.25, active: 0.55, recover: 0.2, cooldown: 7,
+		minRange: 0, maxRange: 140, damage: 14, knockback: 300, melee: false, heavy: true, chance: 0.8, radius: 46
 	})
 };
 
-export const ABILITY_LIST = Object.keys(ABILITIES) as AbilityId[];
+/** What the machines use. They're never part of a Red Lantern's random kit. */
+export const MACHINE_ABILITIES: readonly AbilityId[] = ['eyeLaser', 'sweep', 'pulse', 'strafe', 'bombs'];
+
+/** Every red construct a Red Lantern's kit can be built from. */
+export const ABILITY_LIST = (Object.keys(ABILITIES) as AbilityId[]).filter((id) => !MACHINE_ABILITIES.includes(id));
 
 /** Which bands each role's kit is built from ('any' = a random band). */
 const KIT_PLAN: Record<Role, (Band | 'any')[]> = {
@@ -201,8 +240,8 @@ const PUDDLE_TICK = 0.4;
 export const SLAM_HEIGHT = 70;
 
 export interface RedShot {
-	/** bolt: Rage Blast · saw · hook: Barbed Chain · spear · skull · plasma: Napalm Vomit · orb: Rage Prison */
-	kind: 'bolt' | 'saw' | 'hook' | 'spear' | 'skull' | 'plasma' | 'orb';
+	/** bolt: Rage Blast · saw · hook: Barbed Chain · spear · skull · plasma: Napalm Vomit · orb: Rage Prison · laser: machines */
+	kind: 'bolt' | 'saw' | 'hook' | 'spear' | 'skull' | 'plasma' | 'orb' | 'laser';
 	owner: Enemy;
 	x: number;
 	y: number;
@@ -234,7 +273,7 @@ export interface RedChain {
 
 /** Something about to hit the ground: a meteor, or one spike in a line. */
 export interface RedStrike {
-	kind: 'meteor' | 'spike';
+	kind: 'meteor' | 'spike' | 'bomb';
 	x: number;
 	y: number;
 	radius: number;
@@ -259,6 +298,10 @@ export interface RedPuddle {
 
 export interface RedBeam {
 	owner: Enemy;
+	/** A ragged Rage Beam, or a Manhunter's thin laser. */
+	style: 'rage' | 'laser';
+	/** How fast it swings toward its target (radians per second). */
+	turnRate: number;
 	angle: number;
 	/** How far it reaches this tick (stopped by walls and domes). */
 	length: number;
@@ -346,10 +389,24 @@ export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Play
 		case 'meteors':
 			meteorShower(e, a, w);
 			break;
-		case 'beam': {
-			w.red.beams.push({ owner: e, angle: Math.atan2(b.aimY, b.aimX), length: 0, time: a.active, tick: 0, dps: a.damage * b.might });
+		case 'beam':
+		case 'sweep': {
+			const laser = a.id === 'sweep';
+			w.red.beams.push({
+				owner: e,
+				style: laser ? 'laser' : 'rage',
+				turnRate: laser ? 1 : BEAM_TURN_RATE,
+				angle: Math.atan2(b.aimY, b.aimX),
+				length: 0,
+				time: a.active,
+				tick: 0,
+				dps: a.damage * b.might
+			});
 			break;
 		}
+		case 'pulse':
+			pulse(e, a, w, players);
+			break;
 	}
 }
 
@@ -426,11 +483,33 @@ export function updateAbility(e: Enemy, w: ConstructWorld, players: readonly Pla
 			}
 			break;
 		}
-		case 'beam': {
+		case 'beam':
+		case 'sweep': {
 			steer(e, 0, 0, accel * 2, dt);
 			if (!w.red.beams.some((bm) => bm.owner === e)) b.timer = 0;
 			break;
 		}
+		case 'eyeLaser':
+			steer(e, 0, 0, accel, dt);
+			if (b.fired < 2 && b.elapsed >= b.fired * 0.14) {
+				track(e, 0.3);
+				fire(e, w, 'laser', a, b.aimX, b.aimY);
+				b.fired++;
+			}
+			break;
+		// Fighters keep flying through their attacks (ships.ts steers them)
+		case 'strafe':
+			if (b.fired < 5 && b.elapsed >= b.fired * 0.11) {
+				fire(e, w, 'laser', a, Math.cos(b.heading), Math.sin(b.heading));
+				b.fired++;
+			}
+			break;
+		case 'bombs':
+			if (b.fired < 3 && b.elapsed >= b.fired * 0.18) {
+				w.red.strikes.push({ kind: 'bomb', x: e.x, y: e.y, radius: a.radius ?? 46, delay: 0.75, warning: 0.75, damage: power(e, a), knockback: a.knockback });
+				b.fired++;
+			}
+			break;
 		default:
 			steer(e, 0, 0, accel, dt);
 	}
@@ -532,6 +611,16 @@ function roar(e: Enemy, a: AbilityDef, w: ConstructWorld, players: readonly Play
 	for (const t of w.turrets) if (Math.hypot(t.x - e.x, t.y - e.y) <= r + 10) t.hp -= 70;
 	for (const o of wallsNear(w, e.x, e.y, r)) damageWall(w, o, 90);
 	w.effects.push({ kind: 'roar', x: e.x, y: e.y, age: 0, life: 0.6, radius: r, lift: 36 });
+}
+
+/** A ring of force: shoves every Lantern nearby away, and knocks turrets about. */
+function pulse(e: Enemy, a: AbilityDef, w: ConstructWorld, players: readonly Player[]) {
+	const r = a.radius ?? 120;
+	for (const p of players) {
+		if (!p.downed && Math.hypot(p.x - e.x, p.y - e.y) <= r + 10) damagePlayer(w, p, power(e, a), e.x, e.y, a.knockback);
+	}
+	for (const t of w.turrets) if (Math.hypot(t.x - e.x, t.y - e.y) <= r + 10) t.hp -= 25;
+	w.effects.push({ kind: 'pulse', x: e.x, y: e.y, age: 0, life: 0.45, radius: r, lift: 40 });
 }
 
 function updateCharge(e: Enemy, a: AbilityDef, w: ConstructWorld, players: readonly Player[], dt: number) {
@@ -667,7 +756,7 @@ function updateBeam(bm: RedBeam, w: ConstructWorld, players: readonly Player[], 
 	if (t) {
 		const want = Math.atan2(t.y - e.y, t.x - e.x);
 		const diff = Math.atan2(Math.sin(want - bm.angle), Math.cos(want - bm.angle));
-		bm.angle += Math.max(-BEAM_TURN_RATE * dt, Math.min(BEAM_TURN_RATE * dt, diff));
+		bm.angle += Math.max(-bm.turnRate * dt, Math.min(bm.turnRate * dt, diff));
 		face(e, t.x - e.x);
 	}
 	const dx = Math.cos(bm.angle);
@@ -696,7 +785,8 @@ function updateBeam(bm: RedBeam, w: ConstructWorld, players: readonly Player[], 
 		const along = (p.x - e.x) * dx + (p.y - e.y) * dy;
 		if (along < 0 || along > bm.length) continue;
 		const off = Math.abs((p.x - e.x) * dy - (p.y - e.y) * dx);
-		if (off <= PLAYER_HIT_RADIUS + 4) damagePlayer(w, p, bm.dps * BEAM_TICK, e.x, e.y, ABILITIES.beam.knockback);
+		const kb = bm.style === 'laser' ? ABILITIES.sweep.knockback : ABILITIES.beam.knockback;
+		if (off <= PLAYER_HIT_RADIUS + (bm.style === 'laser' ? 0 : 4)) damagePlayer(w, p, bm.dps * BEAM_TICK, e.x, e.y, kb);
 	}
 	for (const tr of w.turrets) {
 		const along = (tr.x - e.x) * dx + (tr.y - e.y) * dy;
@@ -711,11 +801,14 @@ function updateStrike(s: RedStrike, w: ConstructWorld, players: readonly Player[
 	for (const p of players) {
 		if (!p.downed && Math.hypot(p.x - s.x, p.y - s.y) <= s.radius + 8) damagePlayer(w, p, s.damage, s.x, s.y, s.knockback);
 	}
-	for (const t of w.turrets) if (Math.hypot(t.x - s.x, t.y - s.y) <= s.radius + 8) t.hp -= s.kind === 'meteor' ? 40 : 20;
-	for (const o of wallsNear(w, s.x, s.y, s.radius)) damageWall(w, o, s.kind === 'meteor' ? 60 : 30);
+	const big = s.kind !== 'spike';
+	for (const t of w.turrets) if (Math.hypot(t.x - s.x, t.y - s.y) <= s.radius + 8) t.hp -= big ? 40 : 20;
+	for (const o of wallsNear(w, s.x, s.y, s.radius)) damageWall(w, o, big ? 60 : 30);
 	if (s.kind === 'meteor') {
 		w.effects.push({ kind: 'redBlast', x: s.x, y: s.y, age: 0, life: 0.6, radius: s.radius * 1.2 });
 		if (Math.random() < 0.5) addPuddle(w, s.x, s.y, 34, s.damage * 0.25);
+	} else if (s.kind === 'bomb') {
+		w.effects.push({ kind: 'redBlast', x: s.x, y: s.y, age: 0, life: 0.5, radius: s.radius * 1.1 });
 	} else {
 		w.effects.push({ kind: 'spikeBurst', x: s.x, y: s.y, age: 0, life: 0.55, radius: s.radius });
 	}

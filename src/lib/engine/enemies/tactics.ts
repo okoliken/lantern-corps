@@ -16,7 +16,7 @@ import type { ConstructWorld } from '../constructs/system';
 import type { Obstacle } from '../map';
 import { boxOverlap } from '../physics';
 import type { Player } from '../player';
-import { ENEMIES, ROLES, face, rangeOf, steer, type Enemy } from './enemies';
+import { ENEMIES, face, rangeOf, roleSpeed, steer, type Enemy } from './enemies';
 import { ABILITIES } from './redConstructs';
 
 export type Goal = 'hold' | 'approach' | 'flank' | 'cover' | 'wait' | 'retreat' | 'investigate';
@@ -308,7 +308,7 @@ export function navigate(e: Enemy, t: Player, dt: number, w: ConstructWorld) {
 	// Far from the fight, or far too close: full speed. The measured pace is for fighting.
 	if (d > range * 1.4 + 80 || d < range * 0.6) pace = 1;
 
-	const speed = def.speed * ROLES[b.role].speed * b.speedMul * (1 + 0.35 * b.rage) * pace;
+	const speed = def.speed * roleSpeed(e) * b.speedMul * (1 + 0.35 * b.rage) * pace;
 	const gdx = gx - e.x;
 	const gdy = gy - e.y;
 	const gd = Math.hypot(gdx, gdy);

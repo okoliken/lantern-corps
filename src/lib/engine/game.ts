@@ -27,12 +27,12 @@ import {
 	drawTrap
 } from './draw/constructs';
 import { drawBattery, drawBeam, drawChargeLink, drawCrosshair, drawDownedNotice, drawHud } from './draw/effects';
-import { drawRedLantern } from './draw/enemies';
+import { drawEnemy, enemyMuzzle } from './draw/enemies';
 import { drawFallingMeteors, drawRedBeam, drawRedCage, drawRedChain, drawRedEffect, drawRedGround, drawRedShot } from './draw/redConstructs';
 import { AllyInput } from './ally';
 import { RED_HAND_LIFT } from './enemies/redConstructs';
 import { updatePlayerCombat, revivePlayer } from './combat';
-import { ENEMIES, ROLES, createEnemy, isEnemy, updateEnemies, type Enemy, type EnemyKind, type Role } from './enemies/enemies';
+import { ENEMIES, createEnemy, enemyLabel, isEnemy, updateEnemies, type Enemy, type EnemyKind, type Role } from './enemies/enemies';
 import {
 	FIGURE_HALF_WIDTH,
 	FIGURE_HEIGHT,
@@ -506,7 +506,7 @@ export class Game {
 			ground.push({
 				baseY: y,
 				draw: isEnemy(d)
-					? () => drawRedLantern(ctx, d, x, y, env.hasGround, this.time)
+					? () => drawEnemy(ctx, d, x, y, env.hasGround, this.time)
 					: () => drawDummy(ctx, d, x, y, env.hasGround, this.time, this.settings.reduceFlashing)
 			});
 		}
@@ -698,9 +698,9 @@ export class Game {
 		if (this.usesMouse && this.pointer.active && !this.paused) drawCrosshair(ctx, this.pointer.x, this.pointer.y, this.time);
 	}
 
-	/** A Red Lantern's hand, where its chains start. */
+	/** An enemy's hand (or eye, or gun), where its chains and beams start. */
 	private redHand(e: Enemy, alpha: number): [number, number] {
-		return [lerp(e.prevX, e.x, alpha) + e.dir * 12, lerp(e.prevY, e.y, alpha) - RED_HAND_LIFT];
+		return enemyMuzzle(e, lerp(e.prevX, e.x, alpha), lerp(e.prevY, e.y, alpha));
 	}
 
 	/** Where to draw a target marker, smoothed like everything else. */
@@ -750,7 +750,7 @@ export class Game {
 			ctx.fillStyle = '#ffd0d0';
 			const doing = b.ability ? `${b.state} ${b.ability}` : b.state === 'move' ? b.goal : b.state;
 			const eye = b.target ? (b.sees ? ' 👁' : ' ?') : '';
-			ctx.fillText(`${ROLES[b.role].name}: ${doing}${b.engaged ? ' ⚔' : ''}${eye}`, d.x, d.y + 16);
+			ctx.fillText(`${enemyLabel(d)}: ${doing}${b.engaged ? ' ⚔' : ''}${eye}`, d.x, d.y + 16);
 			const P = b.persona;
 			const traits = `agg ${Math.round(P.aggression * 9)} · cau ${Math.round(P.caution * 9)} · pat ${Math.round(P.patience * 9)}`;
 			ctx.fillStyle = 'rgba(255, 208, 208, 0.6)';

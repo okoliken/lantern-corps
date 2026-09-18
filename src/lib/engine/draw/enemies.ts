@@ -12,6 +12,7 @@ import { ENEMIES, type Enemy, type Role } from '../enemies/enemies';
 import { ABILITIES, RED_HAND_LIFT, SLAM_HEIGHT } from '../enemies/redConstructs';
 import { isStanding } from '../dummy';
 import { segment, poly } from './lantern';
+import { drawManhunterDrone, drawRedFighter, machineMuzzle } from './machines';
 
 const RED = '#ff2a2a';
 const RED_DEEP = '#7a0b0b';
@@ -38,9 +39,28 @@ const ROLE_LOOKS: Record<Role, Look> = {
 };
 
 function lookFor(e: Enemy): Look {
-	if (e.kind === 'plasmaSpitter') return { skin: '#7c8a4a', hump: 2, crest: 'spikes' };
-	if (e.kind === 'rageBrute') return { skin: '#7a3a2e', hump: 3, crest: 'horns' };
 	return ROLE_LOOKS[e.brain.role];
+}
+
+/** Draw any enemy: Red Lanterns, Manhunter Drones, Red Lantern fighters. */
+export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number) {
+	if (e.kind === 'manhunterDrone') {
+		drawManhunterDrone(ctx, e, x, y, hasGround, time);
+		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, y - RED_HAND_LIFT - 38, machineMuzzle(e, x, y), time);
+		return;
+	}
+	if (e.kind === 'redFighter') {
+		drawRedFighter(ctx, e, x, y, hasGround, time);
+		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, y - RED_HAND_LIFT - 30, machineMuzzle(e, x, y), time);
+		return;
+	}
+	drawRedLantern(ctx, e, x, y, hasGround, time);
+}
+
+/** Where an enemy's projectiles, beams and chains come from, in world coordinates. */
+export function enemyMuzzle(e: Enemy, x: number, y: number): [number, number] {
+	if (e.kind === 'manhunterDrone' || e.kind === 'redFighter') return machineMuzzle(e, x, y);
+	return [x + e.dir * 12, y - RED_HAND_LIFT];
 }
 
 /** 0..1 through the current windup. */
@@ -162,20 +182,38 @@ export function drawRedLantern(ctx: CanvasRenderingContext2D, e: Enemy, x: numbe
 
 	const air = b.air * SLAM_HEIGHT;
 	const top = y - (HOVER + 52) * s - air;
+	drawEnemyOverlay(ctx, e, x, y, top, [x + e.dir * 8 * s, y - RED_HAND_LIFT], time);
+}
 
-	// Ranged tells: a red aim line in the last part of the windup (that's when the aim locks)
+/**
+ * Everything drawn over an enemy that isn't its body: the aim line before a
+ * ranged attack, the roar's closing rings, the health bar, and "!" / "!!"
+ * before close and heavy attacks. `top` is just above its head.
+ */
+function drawEnemyOverlay(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, top: number, muzzle: [number, number], time: number) {
+	const def = ENEMIES[e.kind];
+	const s = FIGURE_SCALE * def.scale;
+	const b = e.brain;
+	const winding = b.state === 'windup' ? b.ability : null;
+	const windTell = winding ? ABILITIES[winding].tell : null;
+	const bodyTell = windTell === 'strike' || windTell === 'heavy' || windTell === 'sky';
+	const tell = bodyTell && Math.sin(time * 30) > 0;
+	const progress = windupProgress(e);
+	const color = def.faction === 'manhunter' ? '#ffb040' : RED;
+
+	// Ranged tells: an aim line in the last part of the windup (that's when the aim locks)
 	if ((windTell === 'aim' || winding === 'charge') && progress > 0.4) {
-		const ox = x + e.dir * 8 * s;
-		const oy = y - RED_HAND_LIFT;
+		const [ox, oy] = muzzle;
 		ctx.save();
 		ctx.globalAlpha = (progress - 0.4) / 0.6;
-		ctx.strokeStyle = RED;
+		ctx.strokeStyle = color;
 		ctx.lineWidth = 1.5;
 		ctx.setLineDash([6, 5]);
 		ctx.lineDashOffset = -time * 40;
 		ctx.beginPath();
 		ctx.moveTo(ox, oy);
-		const reach = winding === 'beam' || winding === 'spikes' || winding === 'charge' ? 260 : 120;
+		const long: (typeof winding)[] = ['beam', 'spikes', 'charge', 'sweep', 'strafe', 'eyeLaser'];
+		const reach = long.includes(winding) ? 260 : 120;
 		ctx.lineTo(ox + b.aimX * reach, oy + b.aimY * reach);
 		ctx.stroke();
 		ctx.restore();
@@ -201,7 +239,7 @@ export function drawRedLantern(ctx: CanvasRenderingContext2D, e: Enemy, x: numbe
 		const w = 36 * Math.sqrt(def.scale);
 		ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
 		ctx.fillRect(x - w / 2 - 1, top - 1, w + 2, 6);
-		ctx.fillStyle = RED;
+		ctx.fillStyle = color;
 		ctx.fillRect(x - w / 2, top, w * (e.hp / e.maxHp), 4);
 	}
 	// Close-attack warning above the head
@@ -211,7 +249,7 @@ export function drawRedLantern(ctx: CanvasRenderingContext2D, e: Enemy, x: numbe
 		ctx.textAlign = 'center';
 		ctx.lineWidth = 4;
 		ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-		ctx.fillStyle = tell ? '#ffffff' : RED;
+		ctx.fillStyle = tell ? '#ffffff' : color;
 		const mark = windTell === 'strike' ? '!' : '!!';
 		ctx.strokeText(mark, x, top - 6);
 		ctx.fillText(mark, x, top - 6);

@@ -1,18 +1,28 @@
 // Waves of enemies for the demo: a countdown, a pack arrives around the
 // Lanterns, and when it's beaten the next, bigger one comes.
 
-import type { Role } from './enemies/enemies';
+import { ENEMIES, ROLES, type EnemyKind, type Role } from './enemies/enemies';
 import { randomKit } from './enemies/redConstructs';
 import type { Game } from './game';
 import { boxOverlap } from './physics';
 
-/** Each wave's pack, by role. After the last, it keeps sending the last one. */
-export const DEMO_WAVES: Role[][] = [
+/** One member of a wave: a Rage Grunt role, or another kind of enemy. */
+export type WaveMember = Role | Exclude<EnemyKind, 'rageGrunt'>;
+
+/** Each wave's pack. After the last, it keeps sending the last one. */
+export const DEMO_WAVES: WaveMember[][] = [
 	['berserker', 'gunner'],
-	['hunter', 'berserker', 'gunner'],
-	['berserker', 'hunter', 'gunner', 'gunner'],
-	['berserker', 'berserker', 'hunter', 'gunner']
+	['hunter', 'berserker', 'manhunterDrone'],
+	['berserker', 'gunner', 'redFighter', 'manhunterDrone'],
+	['berserker', 'hunter', 'gunner', 'manhunterDrone', 'redFighter']
 ];
+
+export const isRole = (m: WaveMember): m is Role => m in ROLES;
+
+/** What to call a wave member in the demo's overlay. */
+export function memberName(m: WaveMember): string {
+	return isRole(m) ? ROLES[m].name : ENEMIES[m].name;
+}
 
 /** Seconds between waves. */
 export const WAVE_BREAK = 4;
@@ -35,7 +45,7 @@ export class Waves {
 	/** Seconds between waves. */
 	breakTime = WAVE_BREAK;
 
-	constructor(private waves: Role[][] = DEMO_WAVES) {}
+	constructor(private waves: WaveMember[][] = DEMO_WAVES) {}
 
 	update(game: Game, dt: number) {
 		if (this.state === 'countdown') {
@@ -56,7 +66,7 @@ export class Waves {
 		}
 	}
 
-	get pack(): Role[] {
+	get pack(): WaveMember[] {
 		return this.waves[Math.min(this.wave, this.waves.length) - 1];
 	}
 
@@ -77,10 +87,10 @@ export class Waves {
 				y = Math.min(Math.max(cy + Math.sin(angle) * ARRIVE_DISTANCE, margin), game.map.height - margin);
 				if (!game.map.obstacles.some((o) => o.blocksFlying && boxOverlap(x, y, 20, 12, o))) break;
 			}
-			const e = game.spawnEnemy('rageGrunt', x, y, role);
+			const e = isRole(role) ? game.spawnEnemy('rageGrunt', x, y, role) : game.spawnEnemy(role, x, y);
 			e.hp = e.maxHp = e.brain.lastHp = Math.round(e.maxHp * this.toughness);
 			e.brain.grit = this.toughness;
-			e.brain.kit = randomKit(role);
+			if (isRole(role)) e.brain.kit = randomKit(role);
 		});
 	}
 }

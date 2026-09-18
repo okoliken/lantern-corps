@@ -1,11 +1,15 @@
 // Drawing Red Lantern constructs: blasts, saws, barbed chains, slams and roars.
 // Same energy language as the green constructs, in angry red and ragged shapes.
+// Machines (Manhunters, fighters) fire clean, thin lasers instead.
 
 import type { Effect } from '../constructs/system';
+import { ENEMIES } from '../enemies/enemies';
 import type { RedBeam, RedCage, RedPuddle, RedShot, RedStrike } from '../enemies/redConstructs';
 import { drawSawShape } from './enemies';
 
 const RED = '#ff2a2a';
+/** Manhunter lasers and force. */
+const AMBER = '#ffb040';
 const HOT = '#ffd0d0';
 const TAU = Math.PI * 2;
 const easeOut = (k: number) => 1 - (1 - k) ** 3;
@@ -78,6 +82,27 @@ export function drawRedShot(ctx: CanvasRenderingContext2D, s: RedShot, x: number
 			ctx.ellipse(0, 0, Math.abs(k) * 9, 9, 0, 0, TAU);
 			ctx.stroke();
 		}
+	} else if (s.kind === 'laser') {
+		// A thin, bright laser bolt: amber from Manhunters, red from Red Lantern fighters
+		const color = ENEMIES[s.owner.kind].faction === 'manhunter' ? AMBER : RED;
+		ctx.translate(x, dy);
+		ctx.rotate(Math.atan2(uy, ux));
+		ctx.shadowColor = color;
+		ctx.shadowBlur = 10;
+		ctx.strokeStyle = color;
+		ctx.lineCap = 'round';
+		ctx.lineWidth = 3.5;
+		ctx.beginPath();
+		ctx.moveTo(-26, 0);
+		ctx.lineTo(4, 0);
+		ctx.stroke();
+		ctx.shadowBlur = 0;
+		ctx.strokeStyle = '#fff4e8';
+		ctx.lineWidth = 1.3;
+		ctx.beginPath();
+		ctx.moveTo(-20, 0);
+		ctx.lineTo(3, 0);
+		ctx.stroke();
 	} else if (s.kind === 'hook') {
 		ctx.translate(x, dy);
 		ctx.rotate(Math.atan2(uy, ux));
@@ -190,6 +215,10 @@ export function drawRedGround(ctx: CanvasRenderingContext2D, puddles: readonly R
 		ctx.restore();
 	}
 	for (const s of strikes) {
+		if (s.kind === 'bomb') {
+			drawBomb(ctx, s, time);
+			continue;
+		}
 		if (s.kind !== 'meteor') continue;
 		const k = 1 - s.delay / s.warning;
 		ctx.save();
@@ -208,6 +237,37 @@ export function drawRedGround(ctx: CanvasRenderingContext2D, puddles: readonly R
 		ctx.fill();
 		ctx.restore();
 	}
+}
+
+/** A rage bomb dropped by a fighter: falls, lands, blinks faster and faster, then goes off. */
+function drawBomb(ctx: CanvasRenderingContext2D, s: RedStrike, time: number) {
+	const k = 1 - s.delay / s.warning;
+	const fall = Math.max(0, 1 - k / 0.3); // first 30%: dropping from the ship
+	ctx.save();
+	// Danger ring on the ground
+	ctx.strokeStyle = RED;
+	ctx.globalAlpha = 0.35 + 0.5 * k;
+	ctx.lineWidth = 1.5;
+	ctx.setLineDash([5, 4]);
+	ctx.beginPath();
+	ctx.ellipse(s.x, s.y, s.radius, s.radius * 0.55, 0, 0, TAU);
+	ctx.stroke();
+	ctx.setLineDash([]);
+	// The bomb itself, blinking faster as it's about to blow
+	const blink = Math.sin(time * (10 + 40 * k)) > 0;
+	const by = s.y - 4 - fall * 50;
+	ctx.globalAlpha = 1;
+	ctx.fillStyle = '#2a0606';
+	ctx.beginPath();
+	ctx.ellipse(s.x, by, 5, 4, 0, 0, TAU);
+	ctx.fill();
+	ctx.shadowColor = RED;
+	ctx.shadowBlur = blink ? 12 : 0;
+	ctx.fillStyle = blink ? HOT : RED;
+	ctx.beginPath();
+	ctx.arc(s.x, by - 1, 1.8, 0, TAU);
+	ctx.fill();
+	ctx.restore();
 }
 
 /** Falling meteors: a burning rock streaking down in the last moments before it lands. */
@@ -253,6 +313,10 @@ export function drawFallingMeteors(ctx: CanvasRenderingContext2D, strikes: reado
 export function drawRedBeam(ctx: CanvasRenderingContext2D, bm: RedBeam, hx: number, hy: number, time: number) {
 	const len = bm.length;
 	if (len < 4) return;
+	if (bm.style === 'laser') {
+		drawLaserBeam(ctx, len, bm.angle, hx, hy, time);
+		return;
+	}
 	ctx.save();
 	ctx.translate(hx, hy);
 	ctx.rotate(bm.angle);
@@ -285,6 +349,36 @@ export function drawRedBeam(ctx: CanvasRenderingContext2D, bm: RedBeam, hx: numb
 	ctx.shadowBlur = 16;
 	ctx.beginPath();
 	ctx.arc(len, 0, 6 + Math.sin(time * 35) * 2, 0, TAU);
+	ctx.fill();
+	ctx.restore();
+}
+
+/** A Manhunter Laser Sweep: a thin, steady amber line, nothing like the ragged Rage Beam. */
+function drawLaserBeam(ctx: CanvasRenderingContext2D, len: number, angle: number, hx: number, hy: number, time: number) {
+	ctx.save();
+	ctx.translate(hx, hy);
+	ctx.rotate(angle);
+	ctx.lineCap = 'round';
+	ctx.shadowColor = AMBER;
+	ctx.shadowBlur = 12;
+	ctx.strokeStyle = 'rgba(255, 176, 64, 0.35)';
+	ctx.lineWidth = 7 + Math.sin(time * 60) * 1;
+	ctx.beginPath();
+	ctx.moveTo(0, 0);
+	ctx.lineTo(len, 0);
+	ctx.stroke();
+	ctx.strokeStyle = AMBER;
+	ctx.lineWidth = 2.6;
+	ctx.stroke();
+	ctx.shadowBlur = 0;
+	ctx.strokeStyle = '#fff4e0';
+	ctx.lineWidth = 1;
+	ctx.stroke();
+	ctx.fillStyle = '#fff4e0';
+	ctx.shadowColor = AMBER;
+	ctx.shadowBlur = 12;
+	ctx.beginPath();
+	ctx.arc(len, 0, 3.5 + Math.sin(time * 45) * 1, 0, TAU);
 	ctx.fill();
 	ctx.restore();
 }
@@ -390,6 +484,23 @@ export function drawRedEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: nu
 				ctx.beginPath();
 				ctx.moveTo(e.x + Math.cos(a) * r * 0.2, e.y + Math.sin(a) * r * 0.11);
 				ctx.lineTo(e.x + Math.cos(a) * r * k, e.y + Math.sin(a) * r * 0.55 * k);
+				ctx.stroke();
+			}
+			break;
+		}
+		case 'pulse': {
+			// Manhunter repulse: clean, even rings of amber force (machines, not rage)
+			const k = easeOut(t);
+			const cy = e.y - lift;
+			ctx.shadowColor = AMBER;
+			ctx.shadowBlur = 14;
+			for (let ring = 0; ring < 3; ring++) {
+				const rk = Math.max(0, k - ring * 0.12);
+				ctx.globalAlpha = (1 - t) * (1 - ring * 0.3);
+				ctx.strokeStyle = ring === 0 && t < 0.25 ? '#fff4d6' : AMBER;
+				ctx.lineWidth = 3 * (1 - t) + 0.8;
+				ctx.beginPath();
+				ctx.ellipse(e.x, cy, r * rk, r * 0.55 * rk, 0, 0, TAU);
 				ctx.stroke();
 			}
 			break;

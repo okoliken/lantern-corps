@@ -3,15 +3,14 @@
 	// brains, turn on god mode, and see what state each one is in.
 	import { onMount, untrack } from 'svelte';
 	import GameCanvas from '$lib/components/GameCanvas.svelte';
-	import { ENEMIES, ROLES, ROLE_LIST, isEnemy, type EnemyKind, type Role } from '$lib/engine/enemies/enemies';
+	import { ENEMIES, ROLES, ROLE_LIST, enemyLabel, isEnemy, type EnemyKind, type Role } from '$lib/engine/enemies/enemies';
 	import type { EnvironmentKind } from '$lib/engine/environment';
 	import { Game } from '$lib/engine/game';
 	import { LANTERNS, type LanternId } from '$lib/engine/lanterns';
 	import { settings } from '$lib/settings.svelte';
 
-	/** Enemies built so far. The rest arrive in the next stages. */
-	const READY: EnemyKind[] = ['rageGrunt'];
-	const COMING: EnemyKind[] = ['plasmaSpitter', 'rageBrute'];
+	/** Enemies with a fixed kit (no roles): one button each. */
+	const OTHERS: EnemyKind[] = ['manhunterDrone', 'redFighter'];
 
 	let lantern = $state<LanternId>('hal');
 	let environment = $state<EnvironmentKind>('planet');
@@ -54,7 +53,7 @@
 		const id = setInterval(() => {
 			const p = game.players[0];
 			const enemies = game.dummies.filter(isEnemy);
-			const states = enemies.map((e) => `${ROLES[e.brain.role].name} ${e.brain.ability ?? e.brain.state}`).join(', ');
+			const states = enemies.map((e) => `${enemyLabel(e)} ${e.brain.ability ?? (e.brain.state === 'move' ? e.brain.goal : e.brain.state)}`).join(', ');
 			readout = `${p.def.name}: health ${Math.ceil(p.health)}/${p.maxHealth}${p.downed ? ' (DOWN)' : ''} · willpower ${Math.floor(p.willpower)} · enemies ${enemies.length}${states ? ` [${states}]` : ''}`;
 		}, 150);
 		return () => clearInterval(id);
@@ -79,20 +78,18 @@
 		<label><input type="checkbox" bind:checked={debug} /> Show AI states</label>
 	</div>
 	<div class="controls">
-		{#each READY as kind (kind)}
-			{#each ROLE_LIST as role (role)}
-				<span class="spawn" title={ROLES[role].description}>
-					<button onclick={() => spawn(kind, [role])}>+ {ROLES[role].name}</button>
-				</span>
-			{/each}
-			<button onclick={() => spawn(kind, ['berserker', 'hunter', 'gunner', 'gunner'])}>+ Pack of 4</button>
-		{/each}
-		{#each COMING as kind (kind)}
-			<span class="spawn" title={ENEMIES[kind].description}>
-				<button disabled>+ {ENEMIES[kind].name}</button>
-				<small>coming next</small>
+		{#each ROLE_LIST as role (role)}
+			<span class="spawn" title={ROLES[role].description}>
+				<button onclick={() => spawn('rageGrunt', [role])}>+ {ROLES[role].name}</button>
 			</span>
 		{/each}
+		<button onclick={() => spawn('rageGrunt', ['berserker', 'hunter', 'gunner', 'gunner'])}>+ Pack of 4</button>
+		{#each OTHERS as kind (kind)}
+			<span class="spawn" title={ENEMIES[kind].description}>
+				<button onclick={() => spawn(kind, ['gunner'])}>+ {ENEMIES[kind].name}</button>
+			</span>
+		{/each}
+		<button onclick={() => spawn('manhunterDrone', ['gunner', 'gunner', 'gunner'])}>+ Drone squad</button>
 		<button onclick={clearEnemies}>Clear enemies</button>
 	</div>
 	<div class="controls readout">{readout}</div>
@@ -127,9 +124,6 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.25rem;
-	}
-	.spawn small {
-		opacity: 0.5;
 	}
 	label {
 		display: inline-flex;

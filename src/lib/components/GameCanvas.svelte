@@ -28,6 +28,17 @@
 			render: (alpha) => game.render(ctx, alpha),
 			onStats: (s) => (stats = s)
 		});
+		// Dev only: poke the game from the browser console, and fast-forward it
+		// (background and automated tabs barely run animation frames)
+		if (import.meta.env.DEV) {
+			(window as unknown as { lc: unknown }).lc = {
+				game,
+				step(seconds: number) {
+					for (let i = 0; i < Math.round(seconds * 60); i++) game.update(1 / 60);
+					game.render(ctx, 1);
+				}
+			};
+		}
 
 		// Returning a function from onMount = cleanup on unmount.
 		return () => {

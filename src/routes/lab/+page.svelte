@@ -5,7 +5,7 @@
 		{ href: '/lab/movement', name: 'Movement & world', about: 'Both Lanterns, test maps, flying/landing, camera zoom, collision boxes.' },
 		{ href: '/lab/animation', name: 'Animation', about: 'Every Lantern animation up close, slow motion, skeleton view.' },
 		{ href: '/lab/demo', name: 'Co-op demo', about: 'Hal and John (you + AI partner, or two players) against waves of up to four Red Lanterns.' },
-		{ href: '/lab/enemies', name: 'Enemies', about: 'Fight Red Lanterns: spawn them, god mode, freeze AI, see their states.' },
+		{ href: '/lab/enemies', name: 'Enemies', about: 'Fight Red Lanterns, Manhunter Drones and Red Lantern fighters: spawn them, god mode, freeze AI, see what each one is thinking.' },
 		{ href: '/lab/constructs', name: 'Constructs', about: 'Every construct on training dummies. Switch Lantern, infinite willpower.' }
 	];
 </script>
