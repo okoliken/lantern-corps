@@ -30,7 +30,7 @@ scroll wheel. Settings are saved in the browser.
 | Ring shot (free) | Left click or J | Left click or F | . |
 | Use construct | Right click or K | Right click or G | / |
 | Previous / next construct | Scroll, or Q / E | Scroll, or Q / E | ; / ' |
-| Pick construct | 1–5 | 1–5 | 6–0 |
+| Pick construct (10 slots) | 1–9, 0 | 1–5, then Z X C V B | 6–0, then - = [ ] \ |
 | Bubble shield | Left Shift or L | Left Shift | Right Shift |
 | Take off / land | Space | Space | Enter |
 | Signature ability | R or middle click | R | P |
@@ -131,12 +131,15 @@ Every construct, whether preset or custom, uses one of 8 **behavior types**:
 | Trap | cage, net, bear trap |
 | Area | bomb, shockwave, wrecking ball |
 
-- **Presets** go on hotkeys for fast combat. Hal and John have different sets:
-  - **Hal:** Beam, Minigun (rapid), Sword (slash), Giant Fist (smash), Chain (grab)
-  - **John (Marine + architect):** Beam, **Sniper Rifle** (hold to charge, release: piercing shot through a
-    whole line), Energy Wall, **Auto-Turret** (builds a turret that fights on its own, max 2), **Pillar Drop**
-    (warning circle, then pillars slam down: damage + stun)
-  - Cannon, Cage and Shockwave stay defined for the Ring Forge (M8) but aren't in a loadout.
+- **Presets** go on hotkeys for fast combat. **Ten each** (user request 2026-09-18), different sets:
+  - **Hal (test pilot: fast, aggressive, up close):** Beam, Minigun, Sword, Giant Fist, Chain,
+    **Warhammer** (overhead smash that dazes), **Rocket Pod** (4 homing missiles), **Buzzsaw** (thrown,
+    cuts out and back), **Afterburner** (dash through enemies, can't be hurt during it), **Shotgun** (7-pellet spread)
+  - **John (Marine + architect: control, defense, engineering):** Beam, **Sniper Rifle** (hold to charge,
+    release: piercing shot through a whole line), Energy Wall, **Auto-Turret** (max 2), **Pillar Drop**
+    (warning circle, then damage + stun), **Cannon** (splash shell), **Cage** (trap; Snare Field in space),
+    **Shockwave**, **Mines** (up to 4, blow up when an enemy comes close), **Aid Station** (heals Lanterns
+    standing in it; Med Beacon in space)
 - **Constructs work in every environment.** Anything that depends on standing on the ground has a
   **space form**: same key, same job, same numbers, only the look and name change
   (`space` on the construct definition):
@@ -145,6 +148,8 @@ Every construct, whether preset or custom, uses one of 8 **behavior types**:
   | Energy Wall | Force Field (floating energy sheet between emitters) |
   | Auto-Turret (tripod) | Sentry Drone (hovering) |
   | Pillar Drop (pillars fall) | Vice Crush (two slabs slam together) |
+  | Cage | Snare Field |
+  | Aid Station | Med Beacon |
   | Fortress (dome on the ground) | Fortress (sphere, turrets become drones) |
   A test checks that every ground-bound construct in a loadout has a space form.
 - The **beam** is the ring's basic hold-to-fire construct, on top of the 8 types. Beam and rapid are
@@ -173,6 +178,18 @@ Every enemy thinks for itself (`src/lib/engine/enemies/`):
   area attack counts as 2), a short random beat between them, and a smaller budget right after the
   Lantern has taken a lot of damage.
 - **Ships** (`ships.ts`) fly like aircraft: always moving forward, limited turning, attacking in passes.
+- **Squads** (`squad.ts`): a big pack doesn't all attack. An **assault squad** of 3 (5 against two
+  Lanterns) fights; the rest wait in **reserve**, circling ~400px out. When an attacker falls, the best
+  reserve moves up (a small roar shows it coming); every 8s a badly hurt attacker may be swapped for a
+  fresh one (machines always, careful Red Lanterns only). Lieutenants, ships and turrets always fight and
+  don't take a squad place. **All in:** when a Lantern drops below 30% health or runs out of willpower,
+  everyone attacks for 4s.
+- **Red Lantern constructs:** they're Lanterns too, so they build like Green Lanterns, in rage-red:
+  weapons (Rage Axe, Blood Mace, Rage Cannon, plus claws, scythe, saws, spears, meteors, beams...) and
+  **support** constructs: **Rage Wall** (blocks green shots and beams, lets red shots through),
+  **Rage Shield** (bubble on a hurt ally), **Rage Turret** (a static enemy that shoots, burns out after 14s).
+  Every grunt's random kit has 4 fighting constructs + 1 support. Support isn't an attack, so it needs
+  no turn from the director, and **reserves use it from the back**.
 
 Lab: `/lab/enemies` with "Show AI states" shows each enemy's goal, what it sees, and its personality.
 
@@ -205,7 +222,7 @@ Next: Act 1 boss → Manhunter Sentry/Adapter/Prime → Dex-Starr → Atrocitus.
 - [x] **M1** Character select (Hal/John), top-down movement, input sources
 - [x] **M2** Test maps (planet city + asteroid field), collisions, take-off/landing, following camera with zoom
 - [x] **M3** Willpower + Lantern battery, first construct (beam), breakable crates, HUD
-- [x] **M4** Construct system: beam + 8 behavior types, Hal/John loadouts on keys 1–5, traits, training dummies, constructs lab
+- [x] **M4** Construct system: beam + 8 behavior types, Hal/John loadouts on keys 1–5 (now 1–0, ten each), traits, training dummies, constructs lab
 - [x] **M4.5** Feedback pass: tuning (cheaper, longer-lasting), targeting + lock-on, bubble shield, construct art pass
 - [ ] **M5** First enemies (Red Lanterns, per STORY.md): Lantern health + damage, Rage Grunt → Plasma Spitter → Rage Brute
   - [x] Stage 1: Lantern health, downed/revive. Rage Grunts in three roles, each with red constructs:
@@ -223,6 +240,10 @@ Next: Act 1 boss → Manhunter Sentry/Adapter/Prime → Dex-Starr → Atrocitus.
   - [x] Machines: Manhunter Drone (flying robot, lasers), Red Lantern Fighter (ship, strafing/bombing runs)
   - [x] Red Lanterns as creatures: Rage Beast / Rage Stalker / Rage Maw
   - [x] Lieutenants from the show: Zilius Zox, Skallox (transforms), Bleez (Blood Dive); demo waves 5-7
+  - [x] Squad tactics (assault + reserve, rotation, all-in); demo wave 8 is a pack of 7
+  - [x] Ten constructs per Lantern (Hal: Warhammer, Rocket Pod, Buzzsaw, Afterburner, Shotgun; John: Cannon,
+        Cage, Shockwave, Mines, Aid Station); 10-slot HUD and bindings
+  - [x] Red Lantern constructs: Rage Wall, Rage Shield, Rage Turret, Rage Axe, Blood Mace, Rage Cannon
 - [ ] **M6** First mission: objective, win/lose, HUD, restart
 
 **Phase 1.5: Characters** (before enemies, by request)

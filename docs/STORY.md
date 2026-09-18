@@ -168,6 +168,13 @@ Built during **C5** and the mission milestones. Everything is **data**, like the
 
 ---
 
+## Guest heroes (later)
+Idea from the user (2026-09-18): once missions exist, **other DC characters** can appear, especially in
+**Earth scenes** (Coast City, and other Earth missions): allies who fight alongside the Lanterns for a
+mission, or cameo in story scenes. Not designed yet. Candidates to discuss: Justice League members
+connected to Hal and John (Flash / Barry Allen is Hal's best friend; John served with the JL in the
+animated series), and the animated series' own allies (Kilowog, Razer, Aya).
+
 ## Build order for enemies
 1. ~~Rage Grunt~~ done: Rage Beast, Rage Stalker, Rage Maw (creatures, 2026-09-18)
 2. ~~Manhunter Drone~~ done: flying robot with lasers
