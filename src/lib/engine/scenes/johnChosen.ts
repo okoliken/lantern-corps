@@ -1,13 +1,14 @@
 // End of Mission 2: Tolen Vex's ring crosses Sector 2814 and finds its new
 // bearer on Earth. Detroit, night, the roof of a building going up: John
-// Stewart, Marine and architect, looks up as a green star falls out of the
-// sky and stops right in front of him. When the ring says "Welcome to the
+// Stewart, Marine and architect, still in his work clothes and hard hat,
+// looks up as a green star falls out of the sky and stops right in front of
+// him. When the ring says "Welcome to the
 // Green Lantern Corps" it slides onto his finger, there's a flash, and he's
 // in the uniform.
 
 import type { LanternPose } from '../animation';
 import { EARTH_H, EARTH_W, ROOF, drawDetroit } from '../draw/earth';
-import { GREEN, HOVER_PLANET, drawLantern, ringPosition } from '../draw/lantern';
+import { GREEN, HOVER_PLANET, drawLantern, ringPosition, type Figure } from '../draw/lantern';
 import { LANTERNS } from '../lanterns';
 import { DialogueScene, type Line } from './scene';
 
@@ -21,6 +22,11 @@ const ONTO_HAND = 0.6;
 const FLASH = 0.5;
 
 const FIGURE_SCALE = 1.6;
+/** John before the ring: an architect on his building site, after hours. */
+const JOHN_AT_WORK: Figure = {
+	...LANTERNS.john,
+	outfit: { top: '#5e4e3b', topLit: '#86704f', trousers: '#2b3954', boots: '#4a3222', hardHat: '#ece6d4' }
+};
 const JOHN = { x: 820, y: ROOF };
 /** Where the ring hovers in front of him while it talks. */
 const HOVER = { x: 690, y: ROOF - 110 };
@@ -69,8 +75,8 @@ export class JohnChosen extends DialogueScene {
 			lean: 0,
 			glow: suited > 0,
 			shadow: true,
-			// Reaching toward the ring when it comes to him
-			firing: this.chosenAt !== null || lookUp > 0.8,
+			// Arms at his sides; he only holds out his hand when the ring comes to him
+			firing: this.chosenAt !== null,
 			aimX: -0.9,
 			aimY: -0.45 * lookUp
 		};
@@ -79,9 +85,9 @@ export class JohnChosen extends DialogueScene {
 	private drawJohn(ctx: CanvasRenderingContext2D, t: number) {
 		const pose = this.pose(t);
 		ctx.save();
-		// Before the ring: a figure in the dark (the uniform only shows once it's his)
-		if (!this.suited) ctx.filter = `brightness(${0.22 + 0.13 * clamp01((t - RING_APPEARS) / 3)}) saturate(0.2)`;
-		drawLantern(ctx, LANTERNS.john, JOHN.x, JOHN.y, pose, t, FIGURE_SCALE);
+		// In his work clothes until the flash, a little dim in the night air
+		if (!this.suited) ctx.filter = 'brightness(0.8)';
+		drawLantern(ctx, this.suited ? LANTERNS.john : JOHN_AT_WORK, JOHN.x, JOHN.y, pose, t, FIGURE_SCALE);
 		ctx.restore();
 	}
 

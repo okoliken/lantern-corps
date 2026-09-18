@@ -22,6 +22,18 @@ export interface Figure {
 	look: Look;
 	/** How broad and heavy they are: 1 = Hal or John; Kilowog is far bigger around. */
 	bulk?: number;
+	/** Everyday clothes instead of the uniform (before the ring chooses them): no emblem, no ring. */
+	outfit?: Outfit;
+}
+
+export interface Outfit {
+	/** Shirt or jacket, dark and lit sides. */
+	top: string;
+	topLit: string;
+	trousers: string;
+	boots: string;
+	/** A hard hat (John on the building site). */
+	hardHat?: string;
 }
 
 export const GREEN = '#3dff6e';
@@ -105,15 +117,16 @@ export function drawLantern(
 	// Limbs thicken less than the body, so a big Lantern is mostly chest and gut
 	const arms = 1 + (bulk - 1) * 0.55;
 	const legs = 1 + (bulk - 1) * 0.7;
-	drawArm(ctx, sk.back, true, arms);
-	drawLeg(ctx, sk.back, true, legs);
+	drawArm(ctx, sk.back, true, arms, def);
+	drawLeg(ctx, sk.back, true, legs, def.outfit);
 
 	// ---- Body, near side on top ----
 	drawTorso(ctx, sk, def, bulk);
-	drawLeg(ctx, sk.front, false, legs);
-	drawHead(ctx, sk, def, ringActive, pulse);
-	drawArm(ctx, sk.front, false, arms);
-	drawRing(ctx, sk.front.hand, ringActive, pulse, cast);
+	drawLeg(ctx, sk.front, false, legs, def.outfit);
+	drawHead(ctx, sk, def, ringActive && !def.outfit, pulse);
+	drawArm(ctx, sk.front, false, arms, def);
+	// No ring yet in everyday clothes
+	if (!def.outfit) drawRing(ctx, sk.front.hand, ringActive, pulse, cast);
 
 	ctx.restore();
 }
@@ -145,9 +158,10 @@ export function segment(ctx: CanvasRenderingContext2D, a: Point, b: Point, ra: n
 	ctx.stroke();
 }
 
-function drawLeg(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean, k: number) {
-	const black = far ? BLACK : BLACK_LIT;
-	const green = far ? SUIT_GREEN_DARK : SUIT_GREEN;
+function drawLeg(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean, k: number, outfit?: Outfit) {
+	// Suit: black legs, green boots. Everyday clothes: trousers and work boots.
+	const black = outfit ? (far ? shadeColor(outfit.trousers, -0.25) : outfit.trousers) : far ? BLACK : BLACK_LIT;
+	const green = outfit ? outfit.boots : far ? SUIT_GREEN_DARK : SUIT_GREEN;
 	// Thigh, then the shin split into black suit and green boot
 	segment(ctx, l.hipJoint, l.knee, 3.9 * k, 3.0 * k, black);
 	const bootTop = lerpP(l.knee, l.foot, 0.4);
@@ -161,7 +175,22 @@ function drawLeg(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boole
 	segment(ctx, l.foot, toe, 2.3 * k, 1.6 * k, green);
 }
 
-function drawArm(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean, k: number) {
+function drawArm(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean, k: number, def: Figure) {
+	const o = def.outfit;
+	if (o) {
+		// Sleeves, and a bare hand
+		const sleeve = far ? o.top : o.topLit;
+		segment(ctx, l.shoulder, l.elbow, 3.1 * k, 2.6 * k, sleeve);
+		segment(ctx, l.elbow, lerpP(l.elbow, l.hand, 0.8), 2.5 * k, 2.2 * k, sleeve);
+		ctx.fillStyle = far ? shadeColor(def.look.skin, -0.2) : def.look.skin;
+		ctx.beginPath();
+		ctx.arc(l.hand[0], l.hand[1], 2.2 * k, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.strokeStyle = OUTLINE;
+		ctx.lineWidth = 0.8;
+		ctx.stroke();
+		return;
+	}
 	const black = far ? BLACK : BLACK_LIT;
 	segment(ctx, l.shoulder, l.elbow, 3.1 * k, 2.5 * k, black);
 	segment(ctx, l.elbow, l.hand, 2.4 * k, 2.1 * k, black);
@@ -211,10 +240,37 @@ function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, k: 
 	const [bx, by] = at(8, -6);
 	const [fx, fy] = at(8, 7);
 	const shade = ctx.createLinearGradient(bx, by, fx, fy);
-	shade.addColorStop(0, BLACK);
-	shade.addColorStop(1, BLACK_LIT);
+	const o = def.outfit;
+	shade.addColorStop(0, o ? o.top : BLACK);
+	shade.addColorStop(1, o ? o.topLit : BLACK_LIT);
 	ctx.fillStyle = shade;
 	ctx.fill(body);
+
+	if (o) {
+		// A work shirt: trousers below the belt, a button line, no emblem
+		ctx.save();
+		ctx.clip(body);
+		ctx.fillStyle = o.trousers;
+		ctx.fill(poly([at(-3, -8), at(1.2, -8), at(1.2, 9), at(-3, 9)]));
+		ctx.restore();
+		ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+		ctx.lineWidth = 0.6;
+		ctx.beginPath();
+		ctx.moveTo(...at(2, 4.6));
+		ctx.lineTo(...at(17, 5.6));
+		ctx.stroke();
+		ctx.strokeStyle = '#1a120c';
+		ctx.lineWidth = 1.4;
+		ctx.beginPath();
+		ctx.moveTo(...at(1.2, -4.6));
+		ctx.lineTo(...at(1.2, 5.1));
+		ctx.stroke();
+		ctx.strokeStyle = OUTLINE;
+		ctx.lineWidth = 0.9;
+		ctx.stroke(body);
+		segment(ctx, neck, lerpP(neck, sk.headCenter, 0.45), 1.9 * k, 1.8 * k, def.look.skin);
+		return;
+	}
 
 	// Green panel. Hal and Kilowog: classic green upper body, black below the chest.
 	// John: a green panel down the front of the chest, black shoulders,
@@ -324,6 +380,7 @@ function drawHead(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, ring
 	ctx.fill();
 
 	drawHair(ctx, def);
+	if (def.outfit?.hardHat) drawHardHat(ctx, def.outfit.hardHat);
 
 	if (def.look.mask) {
 		// Hal's domino mask with the white eye
@@ -533,6 +590,25 @@ function drawBolovaxianHead(ctx: CanvasRenderingContext2D, skin: string) {
 	ctx.moveTo(R - 1.8, 4.8);
 	ctx.lineTo(R + 1.2, 4.3);
 	ctx.stroke();
+}
+
+/** A construction hard hat: a dome with a brim out front. */
+function drawHardHat(ctx: CanvasRenderingContext2D, color: string) {
+	const R = HEAD_R;
+	ctx.fillStyle = color;
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.7;
+	ctx.beginPath();
+	ctx.arc(0, -1.2, R + 0.6, Math.PI, Math.PI * 2);
+	ctx.closePath();
+	ctx.fill();
+	ctx.stroke();
+	ctx.beginPath();
+	ctx.roundRect(-R - 1, -1.8, R * 2 + 4.5, 1.6, 0.6);
+	ctx.fill();
+	ctx.stroke();
+	ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+	ctx.fillRect(-1, -R - 1.2, 1.4, R - 0.5);
 }
 
 function drawHair(ctx: CanvasRenderingContext2D, def: Figure) {
