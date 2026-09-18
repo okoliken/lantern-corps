@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DOWNED_TIME, HIT_INVULN, damagePlayer, revivePlayer, updatePlayerCombat } from '../combat';
+import { DOWNED_TIME, HIT_INVULN, REGEN_DELAY, damagePlayer, revivePlayer, updatePlayerCombat } from '../combat';
 import { createConstructWorld, updateConstructWorld, updatePlayerConstructs, type ConstructWorld } from '../constructs/system';
 import { hitDummy, isStanding, updateDummy } from '../dummy';
 import { IDLE } from '../input';
@@ -52,7 +52,7 @@ describe('Lanterns taking damage', () => {
 		const w = createConstructWorld([], []);
 		const p = lantern();
 		expect(damagePlayer(w, p, 20, 50, 0)).toBe(20);
-		expect(p.health).toBe(80);
+		expect(p.health).toBe(p.maxHealth - 20);
 		expect(p.hurtTimer).toBeGreaterThan(0);
 		// A second hit right away does nothing
 		expect(damagePlayer(w, p, 20, 50, 0)).toBe(0);
@@ -60,12 +60,24 @@ describe('Lanterns taking damage', () => {
 		expect(damagePlayer(w, p, 20, 50, 0)).toBe(20);
 	});
 
+	it('out of the fight for a few seconds, health slowly comes back', () => {
+		const w = createConstructWorld([], []);
+		const p = lantern();
+		damagePlayer(w, p, 60, 50, 0);
+		const hurt = p.health;
+		run(w, [p], REGEN_DELAY - 0.5);
+		expect(p.health).toBe(hurt);
+		run(w, [p], 3);
+		expect(p.health).toBeGreaterThan(hurt);
+		expect(p.health).toBeLessThanOrEqual(p.maxHealth);
+	});
+
 	it('the bubble shield takes the hit first', () => {
 		const w = createConstructWorld([], []);
 		const p = lantern();
 		w.shields.push({ owner: p, target: p, hp: 50, maxHp: 50, life: 10, maxLife: 10, ripple: 0 });
 		expect(damagePlayer(w, p, 30, 50, 0)).toBe(0);
-		expect(p.health).toBe(100);
+		expect(p.health).toBe(p.maxHealth);
 	});
 
 	it('knockback pushes away from the attacker', () => {

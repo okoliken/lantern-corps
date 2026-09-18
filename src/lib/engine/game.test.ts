@@ -110,3 +110,23 @@ describe('progression in the game', () => {
 		expect(game.players[0].maxWillpower).toBe(100);
 	});
 });
+
+describe('a downed Lantern', () => {
+	it('lies still: moving the mouse does not turn the body or the aim', () => {
+		const game = new Game({ players: [{ lantern: 'hal', keys: 'solo' }] });
+		game.setView({ width: 1200, height: 800 });
+		game.update(1 / 60);
+		const p = game.players[0];
+		p.downed = true;
+		p.downTimer = 3;
+		const dir = p.dir;
+		const aim = [p.aimX, p.aimY];
+		// Crosshair far off to the other side
+		game.pointer.active = true;
+		game.pointer.x = p.dir === 1 ? 0 : 1200;
+		game.pointer.y = 400;
+		for (let i = 0; i < 30; i++) game.update(1 / 60);
+		expect(p.dir).toBe(dir);
+		expect([p.aimX, p.aimY]).toEqual(aim);
+	});
+});

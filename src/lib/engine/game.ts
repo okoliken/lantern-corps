@@ -306,14 +306,17 @@ export class Game {
 			clampToBounds(p, FIGURE_HALF_WIDTH, top, map.width - FIGURE_HALF_WIDTH, map.height - 6);
 			// The crosshair sits where you SEE the shot land, at ring height. Shots
 			// travel along the ground plane, so drop the aim point by that height.
-			const pointer = intent.pointer && { x: intent.pointer.x, y: intent.pointer.y + p.ringLift };
-			updateTargeting(p, intent.target, this.targetWorld, autoReach(p.loadout[p.selected]), {
-				pointer,
-				aimAssist: this.settings.aimAssist
-			});
-			updateFacing(p, dt);
-			// Now the aim is known, find the ring on the aimed skeleton
-			this.updateRing(p);
+			// Knocked down, the body lies still: no turning to the mouse, no aiming
+			if (!p.downed) {
+				const pointer = intent.pointer && { x: intent.pointer.x, y: intent.pointer.y + p.ringLift };
+				updateTargeting(p, intent.target, this.targetWorld, autoReach(p.loadout[p.selected]), {
+					pointer,
+					aimAssist: this.settings.aimAssist
+				});
+				updateFacing(p, dt);
+				// Now the aim is known, find the ring on the aimed skeleton
+				this.updateRing(p);
+			}
 			updateWillpower(p, dt, this.batteries);
 			updatePlayerConstructs(p, intent, dt, this.constructs);
 			updateSignature(p, intent, dt, this.constructs);

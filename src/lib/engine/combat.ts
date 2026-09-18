@@ -10,9 +10,13 @@
 import { absorbWithShield, type ConstructWorld } from './constructs/system';
 import type { Player } from './player';
 
-export const PLAYER_MAX_HEALTH = 100;
+export const PLAYER_MAX_HEALTH = 150;
 /** Seconds of invulnerability after taking a hit. */
-export const HIT_INVULN = 0.35;
+export const HIT_INVULN = 0.5;
+/** Out of the fight this long (no damage taken), health starts coming back... */
+export const REGEN_DELAY = 4;
+/** ...at this many points a second. */
+export const REGEN_RATE = 6;
 /** Seconds of invulnerability after getting back up. */
 export const REVIVE_INVULN = 2;
 /** Seconds spent downed before getting back up. */
@@ -39,6 +43,7 @@ export function damagePlayer(
 
 	p.health = Math.max(p.minHealth, p.health - through);
 	p.hurtTimer = HURT_TIME;
+	p.sinceHurt = 0;
 	p.invuln = HIT_INVULN;
 	w.effects.push({ kind: 'number', x: p.x, y: p.y, age: 0, life: 0.9, value: Math.round(through), hurt: true });
 
@@ -71,6 +76,9 @@ function knockDown(w: ConstructWorld, p: Player) {
 export function updatePlayerCombat(p: Player, dt: number): boolean {
 	p.invuln = Math.max(0, p.invuln - dt);
 	p.hurtTimer = Math.max(0, p.hurtTimer - dt);
+	p.sinceHurt += dt;
+	// A breather out of the fight: health slowly comes back
+	if (!p.downed && p.sinceHurt >= REGEN_DELAY) p.health = Math.min(p.maxHealth, p.health + REGEN_RATE * dt);
 	if (!p.downed) return false;
 	p.downTimer = Math.max(0, p.downTimer - dt);
 	return p.downTimer === 0;

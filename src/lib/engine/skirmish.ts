@@ -28,7 +28,7 @@ const ARRIVAL_GAP = 0.45;
 const ARRIVE_DISTANCE = 520;
 /** Health (and stagger resistance) and damage multipliers: a real fight, not a warm-up. */
 const TOUGHNESS = 3;
-const MIGHT = 1.25;
+const MIGHT = 1;
 
 export class Skirmish {
 	state: SkirmishState = 'intro';

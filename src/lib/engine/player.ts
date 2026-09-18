@@ -6,6 +6,7 @@ import type { LanternDef } from './lanterns';
 import type { Target } from './targeting';
 import { approach, boxOverlap, moveBody, type Solid } from './physics';
 import { MAX_WILLPOWER } from './willpower';
+import { PLAYER_MAX_HEALTH } from './combat';
 import { STANDING_HEIGHT } from './animation';
 
 export type { Solid } from './physics';
@@ -74,6 +75,8 @@ export interface Player {
 	minHealth: number;
 	/** Seconds of invulnerability left (just hit, or just got back up). */
 	invuln: number;
+	/** Seconds since they last took damage (health regenerates after a while). */
+	sinceHurt: number;
 	/** Seconds until a downed Lantern gets back up. */
 	downTimer: number;
 
@@ -212,8 +215,9 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		hurtTimer: 0,
 		downed: false,
 		victoryTimer: 0,
-		health: 100,
-		maxHealth: 100,
+		health: PLAYER_MAX_HEALTH,
+		maxHealth: PLAYER_MAX_HEALTH,
+		sinceHurt: 99,
 		minHealth: 0,
 		invuln: 0,
 		downTimer: 0,
