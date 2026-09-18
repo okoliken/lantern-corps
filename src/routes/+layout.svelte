@@ -1,5 +1,5 @@
 <script lang="ts">
-	import favicon from '$lib/assets/favicon.svg';
+	import favicon from '$lib/assets/favicon.png';
 	// Self-hosted fonts (work offline): Orbitron for display, Exo 2 for everything else
 	import '@fontsource-variable/orbitron/wght.css';
 	import '@fontsource-variable/exo-2/wght.css';
