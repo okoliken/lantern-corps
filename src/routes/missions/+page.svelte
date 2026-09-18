@@ -18,6 +18,16 @@
 				</span>
 			</a>
 		</li>
+		<li>
+			<a class="mission" href="/spar">
+				<span class="number">⚔</span>
+				<span class="text">
+					<strong>Spar with Kilowog</strong>
+					<small>Oa · one on one</small>
+					<span>Think you learned something? Prove it against the Corps' drill sergeant.</span>
+				</span>
+			</a>
+		</li>
 		{#each MISSIONS as m (m.id)}
 			<li>
 				<a class="mission" href="/mission/{m.id}">

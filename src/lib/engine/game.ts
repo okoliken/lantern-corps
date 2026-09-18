@@ -49,6 +49,7 @@ import {
 	ringPosition,
 	type LanternPose
 } from './draw/lantern';
+import { inCorpsGreen } from './draw/corps';
 import { drawObstacle, drawPlanetGround, drawStarfield, makeStars, type WorldRect } from './draw/world';
 import { DUMMY_HALF_H, DUMMY_HALF_W, createDummy, isStanding, updateDummy, type Dummy } from './dummy';
 import { SIGNATURES, updateSignature, updateSignatureWorld } from './constructs/signature';
@@ -118,6 +119,12 @@ export interface Director {
 	drawables?(ctx: CanvasRenderingContext2D, alpha: number, time: number): Drawable[];
 	/** Things the camera should keep in view along with the players (it centres between them all). */
 	cameraPoints?(): [number, number][];
+}
+
+/** Draw something red in Corps green instead (a sparring Green Lantern's constructs). */
+function tinted(ctx: CanvasRenderingContext2D, green: boolean | undefined, draw: () => void) {
+	if (green) inCorpsGreen(ctx, draw);
+	else draw();
 }
 
 /** XP for knocking an asteroid apart, much less than for beating an enemy. */
@@ -371,10 +378,10 @@ export class Game {
 	spawnEnemy(kind: EnemyKind, x: number, y: number, role: Role = 'berserker'): Enemy {
 		const e = createEnemy(kind, x, y, role);
 		this.dummies.push(e);
-		this.constructs.effects.push({ kind: 'roar', x, y, age: 0, life: 0.5, radius: 50, lift: 30 });
+		this.constructs.effects.push({ kind: 'roar', x, y, age: 0, life: 0.5, radius: 50, lift: 30, green: ENEMIES[kind].faction === 'corps' });
 		// Named characters get announced
 		if (ENEMIES[kind].lieutenant) {
-			this.constructs.effects.push({ kind: 'callout', x, y: y - 110, age: 0, life: 2, text: ENEMIES[kind].name.toUpperCase(), hurt: true });
+			this.constructs.effects.push({ kind: 'callout', x, y: y - 110, age: 0, life: 2, text: ENEMIES[kind].name.toUpperCase(), hurt: ENEMIES[kind].faction !== 'corps' });
 		}
 		return e;
 	}
@@ -500,7 +507,7 @@ export class Game {
 		if (map.environment === 'planet') drawPlanetGround(ctx, visible, map.width, map.height, map.ground);
 		// Traps and Fortress rings are markings on the ground: under everything
 		for (const t of cw.traps) drawTrap(ctx, t, this.time);
-		for (const e of cw.effects) if (e.kind === 'slamMark') drawRedEffect(ctx, e, 0, this.time);
+		for (const e of cw.effects) if (e.kind === 'slamMark') tinted(ctx, e.green, () => drawRedEffect(ctx, e, 0, this.time));
 		drawRedGround(ctx, cw.red.puddles, cw.red.strikes, this.time);
 		const inSpace = map.environment === 'space';
 		for (const f of cw.fortresses) drawFortressBack(ctx, f, this.time, inSpace);
@@ -634,8 +641,10 @@ export class Game {
 		for (const s of cw.red.shots) {
 			const x = lerp(s.prevX, s.x, alpha);
 			const y = lerp(s.prevY, s.y, alpha);
-			if (s.kind === 'hook') drawRedChain(ctx, ...this.redHand(s.owner, alpha), x, y - RED_HAND_LIFT, this.time);
-			drawRedShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
+			tinted(ctx, ENEMIES[s.owner.kind].faction === 'corps', () => {
+				if (s.kind === 'hook') drawRedChain(ctx, ...this.redHand(s.owner, alpha), x, y - RED_HAND_LIFT, this.time);
+				drawRedShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
+			});
 		}
 		for (const bm of cw.red.beams) drawRedBeam(ctx, bm, ...this.redHand(bm.owner, alpha), this.time);
 		for (const c of cw.red.cages) {
@@ -670,7 +679,7 @@ export class Game {
 				drawEffect(ctx, { ...e, radius: FIGURE_HEIGHT * 0.66 }, bodyMid, this.time);
 				continue;
 			}
-			drawEffect(ctx, e, e.lift ?? 0, this.time, inSpace);
+			tinted(ctx, e.green, () => drawEffect(ctx, e, e.lift ?? 0, this.time, inSpace));
 		}
 		if (this.nameTags) for (const t of tags) t();
 

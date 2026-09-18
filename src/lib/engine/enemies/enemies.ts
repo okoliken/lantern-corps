@@ -37,7 +37,8 @@ export type Mind = 'rage' | 'machine';
 export interface EnemyDef {
 	kind: EnemyKind;
 	name: string;
-	faction: 'red' | 'manhunter';
+	/** 'corps': a Green Lantern sparring with you (Kilowog); his constructs are drawn green. */
+	faction: 'red' | 'manhunter' | 'corps';
 	/** One line for the codex and lab. */
 	description: string;
 	mind: Mind;
@@ -129,6 +130,28 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		range: 320,
 		turnRate: 2.1,
 		leans: { aggression: 0.3 }
+	},
+
+	// ---- Friendly sparring: the Corps' drill sergeant ----
+	kilowog: {
+		kind: 'kilowog',
+		name: 'Kilowog',
+		faction: 'corps',
+		description:
+			"The Corps' drill sergeant, and the biggest Lantern you'll ever meet. He spars for real: a hammer brought down on you, axe swings, leaping slams, shoulder charges, ring blasts, and a bellow that bursts bubble shields. He goes easy on nobody, poozer.",
+		mind: 'rage',
+		hp: 3000,
+		speed: 145,
+		accel: 3,
+		sight: 900,
+		poise: 280,
+		scale: 1.45,
+		agility: 0.25,
+		movement: 'hover',
+		kit: ['mace', 'axe', 'slam', 'charge', 'blast', 'roar'],
+		range: 140,
+		leans: { aggression: 0.3, caution: -0.2 },
+		lieutenant: true
 	},
 
 	// ---- Lieutenants: Atrocitus's inner circle, from the animated series ----
@@ -532,7 +555,12 @@ export function updateEnemies(w: ConstructWorld, players: readonly Player[], dt:
 	updatePressure(w.pressure, players, dt);
 	updateSquads(pack, players, w, dt);
 	const attackers: (Attacker & { e: Enemy })[] = pack.map((e) => ({ e, target: e.brain.target, attack: attackOf(e) }));
-	for (const e of pack) think(e, pack, attackers, w, players, dt);
+	for (const e of pack) {
+		const before = w.effects.length;
+		think(e, pack, attackers, w, players, dt);
+		// A Green Lantern sparring with you makes green constructs, not red ones
+		if (ENEMIES[e.kind].faction === 'corps') for (let i = before; i < w.effects.length; i++) w.effects[i].green = true;
+	}
 	spreadAround(pack);
 	separate(pack, dt);
 	updateRedConstructs(w, players, dt);

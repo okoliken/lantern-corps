@@ -15,6 +15,7 @@ import { drawLieutenant, isLieutenantKind, lieutenantHand, lieutenantTop } from 
 import { drawManhunterDrone, drawRedFighter, machineMuzzle } from './machines';
 import { axePath, drawRageTurret, drawWard, macePath, rage, rageCannonPath } from './redConstructs';
 import { displayFont, uiFont } from './fonts';
+import { inCorpsGreen, drawKilowog, kilowogRing, kilowogTop } from './corps';
 
 const RED = '#ff2a2a';
 const BLACK = '#140808';
@@ -40,6 +41,15 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, y - 78, [x + e.brain.aimX * 26, y - RED_HAND_LIFT], time);
 		return;
 	}
+	if (e.kind === 'kilowog') {
+		// A Green Lantern: drawn like Hal and John, glowing while he flies; his tells and bar in Corps green
+		const pose = { ...enemyPose(e, hasGround, time), glow: true };
+		drawKilowog(ctx, x, y, pose, time);
+		if (isStanding(e)) {
+			inCorpsGreen(ctx, () => drawEnemyOverlay(ctx, e, x, y, kilowogTop(y, pose), kilowogRing(x, y, pose, time), time));
+		}
+		return;
+	}
 	if (isLieutenantKind(e.kind)) {
 		drawLieutenant(ctx, e, x, y, hasGround, time);
 		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, lieutenantTop(e, y), lieutenantHand(e, x, y), time);
@@ -55,6 +65,7 @@ export function enemyMuzzle(e: Enemy, x: number, y: number): [number, number] {
 	if (e.kind === 'manhunterDrone' || e.kind === 'redFighter') return machineMuzzle(e, x, y);
 	if (e.kind === 'rageTurret') return [x + e.brain.aimX * 26, y - RED_HAND_LIFT];
 	if (isLieutenantKind(e.kind)) return lieutenantHand(e, x, y);
+	if (e.kind === 'kilowog') return kilowogRing(x, y, enemyPose(e, true, 0), 0);
 	return redLanternHand(e, x, y);
 }
 

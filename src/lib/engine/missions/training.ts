@@ -9,7 +9,8 @@
 
 import { absorbWithShield, type Protectable } from '../constructs/system';
 import { createDummy, isStanding, type Dummy } from '../dummy';
-import { drawLantern, HOVER_PLANET, type Figure, type LanternPose } from '../draw/lantern';
+import { HOVER_PLANET, type LanternPose } from '../draw/lantern';
+import { drawKilowog } from '../draw/corps';
 import { drawMarker, drawPracticeBolt, drawPracticeDrone, drawSupplyPod } from '../draw/training';
 import { drawShipShield } from '../draw/escort';
 import type { Drawable, Game } from '../game';
@@ -31,11 +32,6 @@ export const TRAINING_STEPS = [
 	'done'
 ] as const;
 export type TrainingStep = (typeof TRAINING_STEPS)[number];
-
-export const KILOWOG: Figure = {
-	id: 'kilowog',
-	look: { skin: '#b89a9c', hair: '#b89a9c', hairStyle: 'cropped', mask: false, bolovaxian: true }
-};
 
 /** Seconds Kilowog talks before the first step. */
 const WELCOME_TIME = 5;
@@ -310,11 +306,9 @@ export class Training {
 			firing: false,
 			aimX: dir,
 			aimY: 0,
-			victory: this.cheer > 0 ? 1 : 0,
-			build: { leg: 1.05, torso: 1.15, arm: 1.15, neck: 0.4 },
-			hunch: 0.12
+			victory: this.cheer > 0 ? 1 : 0
 		};
-		list.push({ baseY: k.y, draw: () => drawLantern(ctx, KILOWOG, k.x, k.y, pose, time, 1.3) });
+		list.push({ baseY: k.y, draw: () => drawKilowog(ctx, k.x, k.y, pose, time) });
 
 		const nextMarker = this.step === 'move' ? this.markers.slice(this.count, this.count + 1) : this.step === 'land' ? this.markers : [];
 		for (const m of nextMarker) list.push({ baseY: m.y - 1000, draw: () => drawMarker(ctx, m.x, m.y, MARKER_RADIUS, time) });

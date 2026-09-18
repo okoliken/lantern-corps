@@ -10,7 +10,7 @@
 // The origin (x, y) is the Lantern's ANCHOR: their feet when walking, the
 // spot below them when flying.
 
-import { HEAD_R, STANDING_HEIGHT, computeSkeleton, turnScale, type LanternPose, type Point, type Skeleton } from '../animation';
+import { HEAD_R, STANDING_HEIGHT, TORSO, computeSkeleton, turnScale, type LanternPose, type Point, type Skeleton } from '../animation';
 import type { Look } from '../lanterns';
 import { uiFont } from './fonts';
 
@@ -20,6 +20,8 @@ export type { LanternPose } from '../animation';
 export interface Figure {
 	id: string;
 	look: Look;
+	/** How broad and heavy they are: 1 = Hal or John; Kilowog is far bigger around. */
+	bulk?: number;
 }
 
 export const GREEN = '#3dff6e';
@@ -66,6 +68,7 @@ export function drawLantern(
 	const pulse = 0.75 + 0.25 * Math.sin(time * 4);
 	const cast = pose.cast ?? 0;
 	const ringActive = pose.firing || cast > 0 || (pose.glow && air > 0.5);
+	const bulk = def.bulk ?? 1;
 
 	ctx.save();
 	ctx.translate(x, y);
@@ -77,7 +80,7 @@ export function drawLantern(
 		const spread = pose.downed ? 1.9 : 1;
 		ctx.fillStyle = `rgba(0, 0, 0, ${0.45 * k})`;
 		ctx.beginPath();
-		ctx.ellipse(0, 0, 12 * k * spread, 3.8 * k, 0, 0, Math.PI * 2);
+		ctx.ellipse(0, 0, 12 * k * spread * bulk, 3.8 * k * Math.sqrt(bulk), 0, 0, Math.PI * 2);
 		ctx.fill();
 	}
 
@@ -99,14 +102,17 @@ export function drawLantern(
 	ctx.lineCap = 'round';
 
 	// ---- Far side (shaded darker) ----
-	drawArm(ctx, sk.back, true);
-	drawLeg(ctx, sk.back, true);
+	// Limbs thicken less than the body, so a big Lantern is mostly chest and gut
+	const arms = 1 + (bulk - 1) * 0.55;
+	const legs = 1 + (bulk - 1) * 0.7;
+	drawArm(ctx, sk.back, true, arms);
+	drawLeg(ctx, sk.back, true, legs);
 
 	// ---- Body, near side on top ----
-	drawTorso(ctx, sk, def);
-	drawLeg(ctx, sk.front, false);
+	drawTorso(ctx, sk, def, bulk);
+	drawLeg(ctx, sk.front, false, legs);
 	drawHead(ctx, sk, def, ringActive, pulse);
-	drawArm(ctx, sk.front, false);
+	drawArm(ctx, sk.front, false, arms);
 	drawRing(ctx, sk.front.hand, ringActive, pulse, cast);
 
 	ctx.restore();
@@ -139,59 +145,66 @@ export function segment(ctx: CanvasRenderingContext2D, a: Point, b: Point, ra: n
 	ctx.stroke();
 }
 
-function drawLeg(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean) {
+function drawLeg(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean, k: number) {
 	const black = far ? BLACK : BLACK_LIT;
 	const green = far ? SUIT_GREEN_DARK : SUIT_GREEN;
 	// Thigh, then the shin split into black suit and green boot
-	segment(ctx, l.hipJoint, l.knee, 3.9, 3.0, black);
+	segment(ctx, l.hipJoint, l.knee, 3.9 * k, 3.0 * k, black);
 	const bootTop = lerpP(l.knee, l.foot, 0.4);
-	segment(ctx, l.knee, bootTop, 3.0, 2.7, black);
-	segment(ctx, bootTop, l.foot, 3.0, 2.5, green);
+	segment(ctx, l.knee, bootTop, 3.0 * k, 2.7 * k, black);
+	segment(ctx, bootTop, l.foot, 3.0 * k, 2.5 * k, green);
 
 	// Foot points forward, square to the shin
 	const shinAngle = Math.atan2(l.foot[1] - l.knee[1], l.foot[0] - l.knee[0]);
 	const toeAngle = shinAngle - Math.PI / 2;
 	const toe: Point = [l.foot[0] + Math.cos(toeAngle) * 4.2, l.foot[1] + Math.sin(toeAngle) * 4.2];
-	segment(ctx, l.foot, toe, 2.3, 1.6, green);
+	segment(ctx, l.foot, toe, 2.3 * k, 1.6 * k, green);
 }
 
-function drawArm(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean) {
+function drawArm(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean, k: number) {
 	const black = far ? BLACK : BLACK_LIT;
-	segment(ctx, l.shoulder, l.elbow, 3.1, 2.5, black);
-	segment(ctx, l.elbow, l.hand, 2.4, 2.1, black);
+	segment(ctx, l.shoulder, l.elbow, 3.1 * k, 2.5 * k, black);
+	segment(ctx, l.elbow, l.hand, 2.4 * k, 2.1 * k, black);
 	// Glove: green cuff and fist
 	const cuff = lerpP(l.elbow, l.hand, 0.62);
-	segment(ctx, cuff, l.hand, 2.5, 2.2, far ? SUIT_GREEN_DARK : SUIT_GREEN);
+	segment(ctx, cuff, l.hand, 2.5 * k, 2.2 * k, far ? SUIT_GREEN_DARK : SUIT_GREEN);
 	ctx.fillStyle = far ? SUIT_GREEN_DARK : SUIT_GREEN_LIT;
 	ctx.beginPath();
-	ctx.arc(l.hand[0], l.hand[1], 2.5, 0, Math.PI * 2);
+	ctx.arc(l.hand[0], l.hand[1], 2.5 * k, 0, Math.PI * 2);
 	ctx.fill();
 	ctx.strokeStyle = OUTLINE;
 	ctx.lineWidth = 0.8;
 	ctx.stroke();
 }
 
-function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure) {
+function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, k: number) {
 	const { hip, neck, torsoAngle } = sk;
 	const up: Point = [Math.sin(torsoAngle), -Math.cos(torsoAngle)];
 	const across: Point = [Math.cos(torsoAngle), Math.sin(torsoAngle)];
 	/** A point `along` the spine from the hip, `side` toward the front (+) or back (-). */
+	// Everything across the body is scaled by bulk: a big Lantern is broader, not just taller.
+	// Along the spine it stretches to fit a longer torso (a build with torso > 1).
+	const stretch = Math.hypot(neck[0] - hip[0], neck[1] - hip[1]) / TORSO;
 	const at = (along: number, side: number): Point => [
-		hip[0] + up[0] * along + across[0] * side,
-		hip[1] + up[1] * along + across[1] * side
+		hip[0] + up[0] * along * stretch + across[0] * side * k,
+		hip[1] + up[1] * along * stretch + across[1] * side * k
 	];
+	// A heavy build carries a gut out front and a hump of muscle over the shoulders
+	const gut = Math.max(0, k - 1.2);
 
-	// Silhouette: narrow waist, broad chest and shoulders; the chest pushes forward
-	const body = poly([
+	// Silhouette: narrow waist, broad chest and shoulders; the chest pushes forward.
+	// A heavy build is all curves: a barrel chest over a round gut.
+	const shape = gut > 0 ? rounded : poly;
+	const body = shape([
 		at(-1.5, -4.6), // back of hips
 		at(6, -4.4), // small of back
-		at(14, -6.2), // upper back
-		at(18.2, -4.4), // back of shoulders
-		at(18.8, 3.2), // front of shoulders
+		at(14, -6.2 - gut * 1.5), // upper back
+		at(18.2 + gut * 1.5, -4.4), // back of shoulders
+		at(18.8 + gut * 1.5, 3.2), // front of shoulders
 		at(14.5, 7.8), // chest
-		at(8.5, 6.2), // ribs
-		at(3, 5.2), // belly
-		at(-1.5, 5) // front of hips
+		at(8.5, 6.2 + gut * 4), // ribs
+		at(4, 5.2 + gut * 6), // belly
+		at(-1.5, 5 + gut * 2) // front of hips
 	]);
 
 	// Lit from the front: a gradient across the body
@@ -203,18 +216,21 @@ function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure) {
 	ctx.fillStyle = shade;
 	ctx.fill(body);
 
-	// Green panel. Hal: classic green upper body, black below the chest.
+	// Green panel. Hal and Kilowog: classic green upper body, black below the chest.
 	// John: a green panel down the front of the chest, black shoulders,
 	// animated-series style.
 	const panel =
-		def.id === 'hal'
-			? poly([at(9, -5.6), at(14, -6.2), at(18.2, -4.4), at(18.8, 3.2), at(14.5, 7.8), at(9.5, 6.4)])
-			: poly([at(3.2, 2.6), at(15.5, 2.4), at(18.6, 3.2), at(14.5, 7.8), at(8.5, 6.2), at(3, 5.2)]);
+		def.id === 'hal' || def.id === 'kilowog'
+			? shape([at(9, -5.6), at(14, -6.2 - gut * 1.5), at(18.2 + gut * 1.5, -4.4), at(18.8 + gut * 1.5, 3.2), at(14.5, 7.8), at(9.5, 6.4 + gut * 4)])
+			: shape([at(3.2, 2.6), at(15.5, 2.4), at(18.6, 3.2), at(14.5, 7.8), at(8.5, 6.2 + gut * 4), at(4, 5.2 + gut * 6)]);
 	const greenShade = ctx.createLinearGradient(bx, by, fx, fy);
 	greenShade.addColorStop(0, SUIT_GREEN_DARK);
 	greenShade.addColorStop(1, SUIT_GREEN_LIT);
 	ctx.fillStyle = greenShade;
+	ctx.save();
+	ctx.clip(body);
 	ctx.fill(panel);
+	ctx.restore();
 
 	// Belt
 	ctx.strokeStyle = '#050706';
@@ -233,6 +249,7 @@ function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure) {
 	ctx.save();
 	ctx.translate(ex, ey);
 	ctx.rotate(torsoAngle);
+	ctx.scale(Math.sqrt(k), Math.sqrt(k));
 	ctx.fillStyle = WHITE;
 	ctx.beginPath();
 	ctx.arc(0, 0, 2.7, 0, Math.PI * 2);
@@ -250,7 +267,7 @@ function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure) {
 	ctx.restore();
 
 	// Neck
-	segment(ctx, neck, lerpP(neck, sk.headCenter, 0.45), 1.9, 1.8, def.look.skin);
+	segment(ctx, neck, lerpP(neck, sk.headCenter, 0.45), 1.9 * k, 1.8 * k, def.look.skin);
 }
 
 function drawHead(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, ringActive: boolean, pulse: number) {
@@ -445,7 +462,8 @@ function drawAvianHead(ctx: CanvasRenderingContext2D, skin: string, avian: { bea
 
 /** Kilowog's head: big and bald, a heavy brow over small eyes, a flat snout, a jutting jaw. */
 function drawBolovaxianHead(ctx: CanvasRenderingContext2D, skin: string) {
-	const R = HEAD_R * 1.1;
+	ctx.scale(1.3, 1.3);
+	const R = HEAD_R;
 	ctx.lineJoin = 'round';
 
 	const head = new Path2D();
@@ -606,6 +624,17 @@ export function drawSkeletonDebug(ctx: CanvasRenderingContext2D, pose: LanternPo
 
 const mid = (a: Point, b: Point): Point => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
 const lerpP = (a: Point, b: Point, t: number): Point => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+
+/** A closed shape through the midpoints of `points`, rounded at every corner (a heavy, soft body). */
+function rounded(points: Point[]): Path2D {
+	const p = new Path2D();
+	const mid = (a: Point, b: Point): Point => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+	const n = points.length;
+	p.moveTo(...mid(points[n - 1], points[0]));
+	points.forEach((pt, i) => p.quadraticCurveTo(pt[0], pt[1], ...mid(pt, points[(i + 1) % n])));
+	p.closePath();
+	return p;
+}
 
 export function poly(points: Point[]): Path2D {
 	const p = new Path2D();

@@ -191,6 +191,8 @@ export interface Effect {
 	hurt?: boolean;
 	/** Height it's drawn above the ground plane, fixed when it was created. */
 	lift?: number;
+	/** An enemy effect made by a Green Lantern (Kilowog sparring): drawn in Corps green instead of red. */
+	green?: boolean;
 	/** Who made it: effects at hand height are drawn at that Lantern's ring height. */
 	owner?: Player;
 }

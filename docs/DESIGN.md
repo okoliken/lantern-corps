@@ -205,7 +205,17 @@ practice drones (the smart shield picks the pod), recharge at the Lantern (passi
 for that step), use the signature. A coach panel shows Kilowog's line, the instruction with the
 player's actual keys, and progress dots. God mode throughout. Finishing sets `settings.trained` (and
 `seenControls`). Offered from the main menu, the top of the mission list, and on the Mission 1
-briefing until done. Kilowog is drawn with `Look.bolovaxian` and a heavier build.
+briefing until done.
+
+**Kilowog** is drawn with the Lantern skeleton plus `Figure.bulk` (2.3: torso and gut scale fully,
+arms and legs partly, so he's mostly barrel chest) and `Look.bolovaxian` (`draw/corps.ts`).
+
+**Sparring** (`/spar`, `missions/sparring.ts`): one on one with Kilowog on the training grounds. He's
+an enemy of faction `'corps'` (3000 hp, might 1.5, kit hammer/axe/slam/charge/blast/roar, leads his
+shots). Red-construct art he makes is drawn in Corps green (`Effect.green`, `inCorpsGreen`: a hue
+filter plus green glow). First one down loses; he shouts as the fight goes. Bots: a perfect kiter
+wins in ~60s, a sloppy "human" bot in ~45s, standing still loses in ~20s. Offered after training
+and on the mission list.
 
 **Mission 1: Safe Passage** (Hal, space, the Durvan Belt; `missions/safePassage.ts`). Tomar-Re's
 damaged cruiser crosses the belt left to right (~2½ minutes) while **100 asteroids** drift in, in 9

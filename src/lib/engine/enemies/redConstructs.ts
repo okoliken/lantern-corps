@@ -710,6 +710,16 @@ function track(e: Enemy, amount: number) {
 
 function fire(e: Enemy, w: ConstructWorld, kind: RedShot['kind'], a: AbilityDef, dx: number, dy: number): RedShot {
 	const speed = a.speed ?? 500;
+	// A trained Green Lantern leads his shots: aim where the target will be
+	const t = e.brain.target;
+	if (isCorps(e) && t) {
+		const eta = Math.hypot(t.x - e.x, t.y - e.y) / speed;
+		const lx = t.x + t.vx * eta - e.x;
+		const ly = t.y + t.vy * eta - e.y;
+		const len = Math.hypot(lx, ly) || 1;
+		dx = lx / len;
+		dy = ly / len;
+	}
 	const x = e.x + dx * 14;
 	const y = e.y + dy * 14;
 	const shot: RedShot = {
@@ -1114,7 +1124,7 @@ function shellBurst(w: ConstructWorld, s: RedShot, players: readonly Player[]) {
 	}
 	for (const t of w.turrets) if (Math.hypot(t.x - s.x, t.y - s.y) <= r + 10) t.hp -= 45;
 	for (const o of wallsNear(w, s.x, s.y, r)) damageWall(w, o, 70);
-	w.effects.push({ kind: 'redBlast', x: s.x, y: s.y, age: 0, life: 0.55, radius: r });
+	w.effects.push({ kind: 'redBlast', x: s.x, y: s.y, age: 0, life: 0.55, radius: r, green: isCorps(s.owner) });
 }
 
 function startReturn(s: RedShot) {
@@ -1123,8 +1133,10 @@ function startReturn(s: RedShot) {
 }
 
 function impact(w: ConstructWorld, s: RedShot) {
-	w.effects.push({ kind: 'redImpact', x: s.x, y: s.y, age: 0, life: 0.2, lift: RED_HAND_LIFT });
+	w.effects.push({ kind: 'redImpact', x: s.x, y: s.y, age: 0, life: 0.2, lift: RED_HAND_LIFT, green: isCorps(s.owner) });
 }
+
+const isCorps = (e: Enemy) => ENEMIES[e.kind].faction === 'corps';
 
 const inFortress = (w: ConstructWorld, x: number, y: number) => w.fortresses.some((f) => Math.hypot(x - f.x, y - f.y) <= f.radius);
 
