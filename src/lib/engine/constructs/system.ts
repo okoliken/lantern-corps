@@ -1585,6 +1585,12 @@ export function hitDummyWithFx(
 ) {
 	if (!isStanding(d)) return;
 	if (by && surge) gainSurge(by, damage * SURGE_PER_DAMAGE);
+	// An enemy remembers who hurt it
+	const brain = (d as { brain?: { grudge: Player | null; grudgeAgo: number } }).brain;
+	if (by && brain) {
+		brain.grudge = by;
+		brain.grudgeAgo = 0;
+	}
 	const broke = hitDummy(d, damage, knockback, fromX, fromY);
 	if (broke && by) w.events.push({ type: 'defeat', by, what: d });
 	if (shown >= 1) w.effects.push({ kind: 'number', x: d.x, y: d.y, age: 0, life: 1, value: Math.round(shown) });

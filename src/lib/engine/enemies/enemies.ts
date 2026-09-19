@@ -429,6 +429,13 @@ export interface EnemyBrain {
 	dodgeIn: number;
 	/** Seconds since it last took damage. */
 	sinceHit: number;
+	/** The Lantern who last hurt it, and how many seconds ago: it holds a grudge. */
+	grudge: Player | null;
+	grudgeAgo: number;
+	/** Seconds on its current target: it gets restless and looks for someone else. */
+	focusTime: number;
+	/** Its target is chosen for it (a boss fight decides when it turns on whom): it keeps it until they go down. */
+	directed: boolean;
 	/** Its own clock, for idle drift and bobbing. */
 	clock: number;
 
@@ -556,6 +563,10 @@ export function createEnemy(
 			alert: 0,
 			dodgeIn: rand(),
 			sinceHit: 99,
+			grudge: null,
+			grudgeAgo: 99,
+			focusTime: 0,
+			directed: false,
 			clock: rand() * 100,
 			squad: 'assault',
 			squadTime: 0,
@@ -632,6 +643,8 @@ function think(
 	b.goalTimer -= dt;
 	b.clock += dt;
 	b.sinceHit += dt;
+	b.grudgeAgo += dt;
+	b.focusTime += dt;
 	b.hurt = 1 - e.hp / e.maxHp;
 	b.rage = def.mind === 'rage' ? b.hurt : 0;
 
@@ -791,8 +804,8 @@ function decide(
 	if (!b.sees) return;
 	// Shields, walls and turrets aren't attacks: no turn needed, and reserves use them too
 	if (trySupport(e, t, pack, dist)) return;
-	// Held in reserve: wait to be sent in
-	if (b.squad === 'reserve') return;
+	// Held in reserve: no closing in, but it harasses from range while it waits to be sent in
+	const reserve = b.squad === 'reserve';
 
 	const me = attackers.find((a) => a.e === e) ?? { target: t, attack: null };
 	const range = rangeOf(e);
@@ -802,6 +815,7 @@ function decide(
 	for (const id of order) {
 		const a = ABILITIES[id];
 		if (a.band === 'support' || b.cooldowns[id] > 0) continue;
+		if (reserve && (a.melee || a.band === 'close')) continue;
 		if (dist < a.minRange || dist > a.maxRange + DUMMY_HALF_W) continue;
 		if (a.melee && !b.engaged) continue;
 		// Ranged fighters with nothing for close up back off to their range before shooting
@@ -814,7 +828,7 @@ function decide(
 		}
 		// Wait for a turn to attack this Lantern
 		if (!mayAttack(w.pressure, me, t, a, attackers, w.redTempo)) continue;
-		if (Math.random() > Math.min(1, a.chance * w.redTempo)) continue;
+		if (Math.random() > Math.min(1, a.chance * w.redTempo * (reserve ? RESERVE_EAGERNESS : 1))) continue;
 		b.uses[id]++;
 		beginWindup(e, id, t);
 		attackStarted(w.pressure, t, w.redTempo);
@@ -867,6 +881,9 @@ function trySupport(e: Enemy, t: Player, pack: readonly Enemy[], dist: number): 
 	}
 	return false;
 }
+
+/** Reserves take their ranged shots less often than the assault does. */
+const RESERVE_EAGERNESS = 0.55;
 
 /** Lanterns, red or green: they can all raise a shield. Machines, ships and turrets can't. */
 const SHIELDERS: ReadonlySet<EnemyKind> = new Set(['rageGrunt', 'zox', 'skallox', 'bleez', 'kilowog', 'sinestro']);

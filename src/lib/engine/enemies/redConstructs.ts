@@ -67,7 +67,9 @@ export type AbilityId =
 	| 'shatter'
 	| 'brand'
 	| 'crimsonNova'
-	| 'razerStorm';
+	| 'razerStorm'
+	| 'rageGrab'
+	| 'rendVolley';
 
 /** How far away a construct is used from. Kits take some of each. */
 export type Band = 'close' | 'mid' | 'long' | 'support';
@@ -324,6 +326,16 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 		minRange: 0, maxRange: 320, damage: 62, knockback: 950, melee: false, heavy: true, chance: 0.95, radius: 250
 	}),
 	// A spinning vortex of blades that drags Lanterns in, then bursts
+	// Lunges, seizes a Lantern (a bubble shield doesn't stop it: rage tears it open) and hurls them
+	rageGrab: def({
+		id: 'rageGrab', name: 'Rage Grab', band: 'close', tell: 'strike', windup: 0.38, active: 1.05, recover: 0.4, cooldown: 3.5,
+		minRange: 0, maxRange: 300, damage: 24, knockback: 1500, melee: false, heavy: false, chance: 1, speed: 900
+	}),
+	// A burst of rage bolts, fired as fast as he can: made to shred a bubble shield
+	rendVolley: def({
+		id: 'rendVolley', name: 'Rending Volley', band: 'mid', tell: 'aim', windup: 0.35, active: 0.75, recover: 0.3, cooldown: 4,
+		minRange: 60, maxRange: 520, damage: 11, knockback: 140, melee: false, heavy: false, chance: 1, speed: 820
+	}),
 	razerStorm: def({
 		id: 'razerStorm', name: 'Blade Storm', band: 'mid', tell: 'heavy', windup: 0.6, active: 1.6, recover: 0.7, cooldown: 10,
 		minRange: 0, maxRange: 340, damage: 13, knockback: 520, melee: false, heavy: true, chance: 0.95, radius: 330, speed: 620

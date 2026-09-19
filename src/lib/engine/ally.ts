@@ -41,6 +41,9 @@ interface Plan {
 const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
 /** Seconds before a partner will put up another shield after raising one. */
 const SHIELD_REST = 5;
+/** Health (0..1) where a partner backs out of the fight, and where they go back in. */
+const RETREAT_BELOW = 0.3;
+const RETURN_ABOVE = 0.65;
 
 export class AllyInput implements InputSource {
 	/** The Lantern this brain controls (set once the player exists). */
@@ -59,6 +62,8 @@ export class AllyInput implements InputSource {
 	private shieldRest = 0;
 	/** Seconds before it reconsiders shielding against a big attack it has already seen coming. */
 	private shieldRoll = 0;
+	/** Badly hurt: backing out of the fight to recover, then coming back. */
+	private retreating = false;
 
 	constructor(private world: AllyWorld) {}
 
@@ -79,6 +84,7 @@ export class AllyInput implements InputSource {
 		const partner = this.world.players.find((p) => p !== me && !p.downed) ?? null;
 		const enemies = this.world.dummies.filter((d): d is Enemy => isEnemy(d) && isStanding(d));
 		const target = this.pickTarget(me, partner, enemies);
+		this.updateRetreat(me);
 		const intent: Intent = { ...IDLE };
 
 		if (enemies.length > 0 && !me.flying) intent.toggleFly = true;
@@ -99,15 +105,34 @@ export class AllyInput implements InputSource {
 		return intent;
 	}
 
-	/** Whoever is winding up on my partner first, else the nearest enemy to me. */
+	/**
+	 * Who to fight, like a teammate would:
+	 *  1. whoever is about to hit my partner (stop them),
+	 *  2. whoever is on me,
+	 *  3. whoever is swarming my partner, other than the one they're already
+	 *     fighting (peel them off),
+	 *  4. anyone my partner isn't already fighting,
+	 *  5. and only then my partner's target (a boss we both have to fight).
+	 */
 	private pickTarget(me: Player, partner: Player | null, enemies: Enemy[]): Enemy | null {
-		const threats = enemies.filter(
-			(e) => partner && e.brain.target === partner && (e.brain.state === 'windup' || e.brain.state === 'act') && dist(e, me) < 520
+		const near = (e: Enemy, r: number) => dist(e, me) < r;
+		const theirs = partner?.attackTarget?.kind === 'enemy' ? partner.attackTarget.dummy : null;
+		const winding = enemies.filter(
+			(e) => partner && e.brain.target === partner && (e.brain.state === 'windup' || e.brain.state === 'act') && near(e, 520)
 		);
-		const pool = threats.length > 0 ? threats : enemies.filter((e) => dist(e, me) < 620);
+		const onMe = enemies.filter((e) => e.brain.target === me && near(e, 520));
+		const onPartner = enemies.filter((e) => partner && e.brain.target === partner && e !== theirs && near(e, 620));
+		const free = enemies.filter((e) => e !== theirs && near(e, 620));
+		const pool = [winding, onMe, onPartner, free, enemies.filter((e) => near(e, 620))].find((list) => list.length > 0) ?? [];
 		let best: Enemy | null = null;
 		for (const e of pool) if (!best || dist(e, me) < dist(best, me)) best = e;
 		return best;
+	}
+
+	/** Back out when badly hurt, and come back once recovered. */
+	private updateRetreat(me: Player) {
+		if (!this.retreating && me.health < me.maxHealth * RETREAT_BELOW) this.retreating = true;
+		else if (this.retreating && me.health > me.maxHealth * RETURN_ABOVE) this.retreating = false;
 	}
 
 	private move(me: Player, partner: Player | null, enemies: Enemy[], target: Enemy | null, intent: Intent) {
@@ -146,6 +171,26 @@ export class AllyInput implements InputSource {
 			}
 		}
 
+		// Hurt: fall back behind my partner, away from the fight, until I've recovered
+		if (this.retreating && enemies.length > 0) {
+			const cx = enemies.reduce((sum, e) => sum + e.x, 0) / enemies.length;
+			const cy = enemies.reduce((sum, e) => sum + e.y, 0) / enemies.length;
+			const away = Math.hypot(me.x - cx, me.y - cy) || 1;
+			gx = me.x + ((me.x - cx) / away) * 260;
+			gy = me.y + ((me.y - cy) / away) * 260;
+			if (partner) {
+				gx = (gx + partner.x) / 2;
+				gy = (gy + partner.y) / 2;
+			}
+		} else if (partner && this.partnerSwarmed(partner, enemies)) {
+			// My partner's taking a beating: get between them and their attackers
+			const on = enemies.filter((e) => e.brain.target === partner);
+			const cx = on.reduce((sum, e) => sum + e.x, 0) / on.length;
+			const cy = on.reduce((sum, e) => sum + e.y, 0) / on.length;
+			gx = partner.x + (cx - partner.x) * 0.45;
+			gy = partner.y + (cy - partner.y) * 0.45;
+		}
+
 		// Dodging beats everything: out of slam circles, away from claws about to land
 		const away = (x: number, y: number, far: number) => {
 			const d = dist(me, { x, y }) || 1;
@@ -167,6 +212,12 @@ export class AllyInput implements InputSource {
 			intent.moveX = dx * k;
 			intent.moveY = dy * k;
 		}
+	}
+
+	/** Two or more on my partner, or my partner badly hurt with someone on them. */
+	private partnerSwarmed(partner: Player, enemies: Enemy[]): boolean {
+		const on = enemies.filter((e) => e.brain.target === partner && dist(e, partner) < 420).length;
+		return on >= 2 || (on >= 1 && partner.health < partner.maxHealth * 0.4);
 	}
 
 	/** Save the signature for a big moment: surrounded, or when someone's in trouble. */

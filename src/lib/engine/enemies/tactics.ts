@@ -99,7 +99,8 @@ export function perceive(e: Enemy, pack: readonly Enemy[], players: readonly Pla
 			dist(p, e) <= (p === before ? def.sight * 1.3 : def.sight) &&
 			hasLineOfSight(e.x, e.y, p.x, p.y, w.obstacles)
 	);
-	let t = pickTarget(e, pack, visible);
+	// A boss fight picks this one's target: keep it while they're up
+	let t = b.directed && before && !before.downed ? before : pickTarget(e, pack, visible);
 	// Lost sight: keep hunting for a while, going to where it last saw them
 	if (!t && before && !before.downed && b.seenAgo < MEMORY) t = before;
 	// Shot at, or an ally called out: go after the nearest Lantern even unseen
@@ -145,26 +146,46 @@ function callAllies(e: Enemy, pack: readonly Enemy[], t: Player) {
 }
 
 /**
- * Nearest Lantern it can see, but spread out: a Lantern who already has
- * enemies on them counts as further away (machines care less: they focus
- * fire). Sticks with its current target unless another is clearly better.
+ * Who to go after, with intent. Every Lantern it can see is weighed up
+ * (lower is better):
+ *  - how far away they are,
+ *  - how many of the pack are already on them (spread the pressure; machines
+ *    care less, they focus fire),
+ *  - a grudge: whoever just hurt it,
+ *  - the lead Lantern (the one you play) is who they most want to break,
+ *  - a hurt Lantern is an opening,
+ *  - it sticks with its target for a while, then gets restless and looks
+ *    for someone else, so a pack keeps shifting between the Lanterns.
  */
 function pickTarget(e: Enemy, pack: readonly Enemy[], candidates: readonly Player[]): Player | null {
-	const current = e.brain.target;
-	const crowdCost = ENEMIES[e.kind].mind === 'machine' ? 60 : 160;
+	const b = e.brain;
+	const current = b.target;
+	const machine = ENEMIES[e.kind].mind === 'machine';
+	const crowdCost = machine ? 60 : 230;
+	// Restless after a while on one target (a little sooner for the aggressive ones)
+	const restless = b.focusTime > FOCUS_TIME * (1 - 0.3 * b.persona.aggression);
 	let best: Player | null = null;
 	let bestScore = Infinity;
 	for (const p of candidates) {
 		const crowd = pack.filter((o) => o !== e && o.brain.target === p).length;
 		let score = dist(p, e) + crowd * crowdCost;
-		if (p === current) score *= 0.7;
+		if (p === b.grudge && b.grudgeAgo < GRUDGE_TIME) score -= 240;
+		if (p.slot === 0) score -= LEAD_PULL;
+		score -= (1 - p.health / p.maxHealth) * 160;
+		if (p === current) score = restless ? score + 200 : score * 0.75;
 		if (score < bestScore) {
 			best = p;
 			bestScore = score;
 		}
 	}
+	if (best !== current) b.focusTime = 0;
 	return best;
 }
+
+/** Seconds a grudge lasts, how long before an enemy gets restless on one target, and how much the lead Lantern draws them. */
+const GRUDGE_TIME = 3.5;
+const FOCUS_TIME = 8;
+const LEAD_PULL = 130;
 
 // ------------------------------------------------------------------ goals
 

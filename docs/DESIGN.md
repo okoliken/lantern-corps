@@ -357,6 +357,25 @@ chakram, tether, mace, shield / 2 + shatter, brand, plasma, meteors / 3 + storm,
 Bots: Mission 2 won, Kilowog down 2-4x; Prison Moon costs 1-2 lives; Razer beats the bot ~4/5 (it
 gets him to 8-17% first).
 
+**Enemies fight with intent (user playtest, 2026-09-19: "dull and just waiting", "all attacking just
+Kilowog", "the boss should be fierce... we're bullying him").**
+- **Target choice** (`pickTarget` in `tactics.ts`): scored by distance, crowding (230 per ally already
+  on them), a **grudge** (whoever hurt it in the last 3.5s, set in `hitDummyWithFx`), the **lead
+  Lantern** (slot 0 draws them), and openings (hurt Lanterns); after ~8s on one target it gets
+  **restless** and looks elsewhere. Mission 2 measured ~60% of enemies on Hal, ~40% on Kilowog (it was
+  nearly all Kilowog: "nearest" always meant the brawler up front).
+- **Reserves harass**: they no longer idle; they use their mid/long constructs (never melee) at 55%
+  eagerness while waiting. Assault 4 + 3 per extra Lantern.
+- **Partner AI** (`ally.ts`): picks its own fight (whoever's winding up on you > whoever's on it > whoever
+  is swarming you other than your target > anyone you're not fighting > your target); gets between you
+  and your attackers when you're swarmed; **backs out below 30% health** and returns above 65%.
+- **Razer** (`intent` in `razerBoss.ts`, `brain.directed` keeps his target his own): turns on the other
+  Lantern every 4-7s and opens with a **Rage Grab** (lunge, seize, bubble torn open, held, thrown at
+  1100 px/s), a tether or a chakram, with taunts; shreds a Lantern hiding in a bubble with the **Rending
+  Volley** (6 rage bolts); won't be ganged up on: both Lanterns within 210px for 1s and he leaps clear
+  (Rage Slam away) or shatters. Health x3.2, might 2.25. Bots: win ~2/6; losses get him to 7-24%;
+  2-3 minute duels; ~15 target switches.
+
 **Theme green** (`src/lib/theme.ts`, 2026-09-19): one green for the whole game. `THEME_GREEN`
 (#3dff6e) with shades mixed from it: `GREEN_LIGHT` (glows, highlights), `GREEN_DIM` (unlit/off
 states, borders), `GREEN_CORE` (the white-hot centre of ring energy), `greenShade(t)`; with alpha:

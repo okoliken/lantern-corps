@@ -18,7 +18,7 @@
 // Lose: Hal goes down 3 times.
 
 import { isStanding } from '../dummy';
-import { createEnemy, type Enemy, type Role } from '../enemies/enemies';
+import { beginWindup, createEnemy, type Enemy, type Role } from '../enemies/enemies';
 import type { AbilityId } from '../enemies/redConstructs';
 import { drawLieutenant } from '../draw/lieutenants';
 import { drawCage, drawDais, drawSpire } from '../draw/prison';
@@ -36,20 +36,28 @@ const PAR_TIME = 300;
 const TOUGHNESS = 4;
 const MIGHT = 3;
 /** Razer himself: health and hitting power on top of his base. */
-export const RAZER_HEALTH = 3.4;
-const RAZER_MIGHT = 2.4;
+export const RAZER_HEALTH = 3.2;
+const RAZER_MIGHT = 2.25;
 /** Health left (0..1) where each phase begins, and where he's caught. */
 export const PHASE_2 = 0.6;
 export const PHASE_3 = 0.3;
 export const CAPTURE_AT = 0.04;
 /** Seconds between the guards falling and Razer coming down. */
 const DESCENT_TIME = 2.5;
+/** He turns on the other Lantern every so often (seconds, plus up to SWITCH_SPREAD more). */
+const SWITCH_EVERY = 4;
+const SWITCH_SPREAD = 3;
+/** Both Lanterns this close for this long, and he breaks out: he won't be ganged up on. */
+const GANG_RANGE = 210;
+const GANG_TIME = 1;
+/** How far he leaps to get clear. */
+const ESCAPE_LEAP = 340;
 
 /** His kit in each phase: it only grows. */
 const KITS: Record<1 | 2 | 3, AbilityId[]> = {
-	1: ['twinBlades', 'chakram', 'chain', 'mace', 'redShield'],
-	2: ['twinBlades', 'chakram', 'chain', 'mace', 'redShield', 'shatter', 'brand', 'vomit', 'meteors'],
-	3: ['twinBlades', 'chakram', 'chain', 'mace', 'redShield', 'shatter', 'brand', 'vomit', 'meteors', 'razerStorm', 'crimsonNova', 'beam']
+	1: ['twinBlades', 'rageGrab', 'chakram', 'chain', 'mace', 'rendVolley', 'redShield'],
+	2: ['twinBlades', 'rageGrab', 'chakram', 'chain', 'mace', 'rendVolley', 'redShield', 'shatter', 'brand', 'vomit', 'meteors'],
+	3: ['twinBlades', 'rageGrab', 'chakram', 'chain', 'mace', 'rendVolley', 'redShield', 'shatter', 'brand', 'vomit', 'meteors', 'razerStorm', 'crimsonNova', 'beam']
 };
 
 const W = 3200;
@@ -120,6 +128,9 @@ export class RazerBoss implements MissionDirector {
 	/** How Razer is drawn while he's only watching, and once he's caught. */
 	private figure: Enemy;
 	private caughtAt = { x: DAIS.x, y: DAIS.y };
+	private switchIn = SWITCH_EVERY;
+	private ganged = 0;
+	private taunts = 0;
 	private spires: [number, number, number, number][] = [];
 
 	constructor(seed = 9) {
@@ -239,7 +250,7 @@ export class RazerBoss implements MissionDirector {
 				if (this.descent >= DESCENT_TIME) this.razerFights(game);
 				break;
 			case 'duel':
-				this.duel(game);
+				this.duel(game, dt);
 				break;
 			case 'captured':
 				if (!this.comms.current) this.win(game);
@@ -265,12 +276,15 @@ export class RazerBoss implements MissionDirector {
 		e.hp = e.maxHp = e.brain.lastHp = Math.round(e.maxHp * RAZER_HEALTH);
 		e.brain.might = RAZER_MIGHT;
 		e.brain.kit = [...KITS[1]];
+		// He decides who he's after (see intent), not the pack's usual rules
+		e.brain.directed = true;
 		this.razer = e;
 	}
 
-	private duel(game: Game) {
+	private duel(game: Game, dt: number) {
 		const e = this.razer!;
 		const hp = e.hp / e.maxHp;
+		this.intent(game, e, dt);
 		// Beaten, not killed: a Green Lantern cage closes round him
 		if (hp <= CAPTURE_AT || !isStanding(e)) {
 			this.capture(game, e);
@@ -295,6 +309,65 @@ export class RazerBoss implements MissionDirector {
 				['Razer', 'For HER! For everything they took!'],
 				['Kilowog', "He's gone berserk! Watch for the big one, poozer: when he glows, get clear or shield!"]
 			]);
+		}
+	}
+
+	/**
+	 * Razer fights with intent, on top of his brain:
+	 *  - he won't be ganged up on: with both Lanterns on top of him, he breaks
+	 *    out (leaps clear, or shatters everything around him),
+	 *  - a Lantern hiding in a bubble gets the Rending Volley,
+	 *  - every few seconds he turns on the other Lantern, and opens with a
+	 *    grab, a tether or a chakram.
+	 */
+	private intent(game: Game, e: Enemy, dt: number) {
+		const b = e.brain;
+		const up = game.players.filter((p) => !p.downed);
+		if (up.length === 0 || !isStanding(e)) return;
+		const free = b.state === 'move' || b.state === 'idle';
+		const ready = (id: AbilityId) => b.kit.includes(id) && b.cooldowns[id] <= 0;
+		const dist = (p: { x: number; y: number }) => Math.hypot(p.x - e.x, p.y - e.y);
+
+		// Ganged up on: break out
+		const close = up.filter((p) => dist(p) < GANG_RANGE).length;
+		this.ganged = close >= 2 ? this.ganged + dt : 0;
+		if (free && this.ganged > GANG_TIME) {
+			this.ganged = 0;
+			const t = b.target ?? up[0];
+			if (ready('shatter') && Math.random() < 0.5) {
+				beginWindup(e, 'shatter', t);
+			} else if (b.cooldowns.slam <= 0) {
+				beginWindup(e, 'slam', t);
+				// ...but away from them, not at them
+				const cx = up.reduce((sum, p) => sum + p.x, 0) / up.length;
+				const cy = up.reduce((sum, p) => sum + p.y, 0) / up.length;
+				const d = Math.hypot(e.x - cx, e.y - cy) || 1;
+				b.markX = Math.max(120, Math.min(W - 120, e.x + ((e.x - cx) / d) * ESCAPE_LEAP));
+				b.markY = Math.max(220, Math.min(H - 220, e.y + ((e.y - cy) / d) * ESCAPE_LEAP));
+				if (this.taunts++ % 3 === 0) this.comms.say('Razer', 'Two of you? It will not be enough.', true);
+			}
+			return;
+		}
+
+		// Someone hiding in a bubble: shred it
+		const t = b.target;
+		if (free && t && ready('rendVolley') && game.constructs.shields.some((sh) => sh.target === t) && dist(t) < 520) {
+			beginWindup(e, 'rendVolley', t);
+			return;
+		}
+
+		// Turn on the other Lantern
+		this.switchIn -= dt;
+		if (this.switchIn <= 0 && free && up.length > 1) {
+			this.switchIn = SWITCH_EVERY + Math.random() * SWITCH_SPREAD;
+			const next = up.find((p) => p !== b.target) ?? up[0];
+			b.target = next;
+			b.engaged = false;
+			b.focusTime = 0;
+			const d = dist(next);
+			const opener: AbilityId | null = ready('rageGrab') && d < 300 ? 'rageGrab' : ready('chain') && d < 360 ? 'chain' : ready('chakram') && d > 140 ? 'chakram' : null;
+			if (opener) beginWindup(e, opener, next);
+			if (this.taunts++ % 2 === 0) this.comms.say('Razer', next.def.id === 'kilowog' ? "You're next, big one." : 'Jordan! Face me!', true);
 		}
 	}
 

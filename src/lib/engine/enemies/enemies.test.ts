@@ -624,7 +624,7 @@ describe('lieutenants from the animated series', () => {
 describe('squads: a big pack takes turns', () => {
 	const ring7 = () => [0, 1, 2, 3, 4, 5, 6].map((i) => grunt(Math.cos(i * 0.9) * 330, Math.sin(i * 0.9) * 330, (['berserker', 'hunter', 'gunner'] as const)[i % 3]));
 
-	it(`with 7 enemies, only ${ASSAULT_SIZE} attack; the rest hold back in reserve`, () => {
+	it(`with 7 enemies, only ${ASSAULT_SIZE} close in; the rest hold back and harass from range`, () => {
 		const pack = ring7();
 		const w = createConstructWorld([], pack);
 		const p = lantern();
@@ -633,7 +633,11 @@ describe('squads: a big pack takes turns', () => {
 			p.invuln = 1;
 			p.health = p.maxHealth;
 			most = Math.max(most, pack.filter((e) => e.brain.target && e.brain.squad === 'assault').length);
-			for (const e of pack) if (e.brain.squad === 'reserve') expect(e.brain.state === 'windup' || e.brain.state === 'act').toBe(false);
+			// Reserves may shoot from range, but never close in with melee
+			for (const e of pack) {
+				const using = e.brain.state === 'windup' || e.brain.state === 'act' ? e.brain.ability : null;
+				if (e.brain.squad === 'reserve' && using) expect(ABILITIES[using].melee || ABILITIES[using].band === 'close').toBe(false);
+			}
 		});
 		expect(most).toBe(ASSAULT_SIZE);
 		const reserves = pack.filter((e) => e.brain.squad === 'reserve');
@@ -916,5 +920,32 @@ describe('rage breaks willpower', () => {
 		});
 		expect(w.shields.some((sh) => sh.target === p)).toBe(false);
 		expect(hits).toBeLessThanOrEqual(2);
+	});
+});
+
+describe('enemies fight with intent', () => {
+	it("don't all pile onto the nearest Lantern: they spread out, and want the lead Lantern too", () => {
+		const pack = [0, 1, 2, 3].map((i) => grunt(300 + i * 40, (i - 1.5) * 80, 'hunter'));
+		const w = createConstructWorld([], pack);
+		const hal = lantern(-120, 0);
+		const kilowog = createPlayer(1, LANTERNS.kilowog, { read: () => IDLE }, 180, 0);
+		run(w, [hal, kilowog], 2, () => (hal.invuln = kilowog.invuln = 1));
+		expect(pack.filter((e) => e.brain.target === hal).length).toBeGreaterThan(0);
+		expect(pack.filter((e) => e.brain.target === kilowog).length).toBeGreaterThan(0);
+	});
+
+	it('an enemy goes after whoever just hurt it', () => {
+		const e = grunt(300, 0, 'hunter');
+		const w = createConstructWorld([], [e]);
+		const hal = lantern(-200, 0);
+		const kilowog = createPlayer(1, LANTERNS.kilowog, { read: () => IDLE }, 240, 0);
+		run(w, [hal, kilowog], 0.5, () => (hal.invuln = kilowog.invuln = 1));
+		// Kilowog is right there, but Hal's the one shooting it
+		run(w, [hal, kilowog], 1.5, () => {
+			hal.invuln = kilowog.invuln = 1;
+			e.brain.grudge = hal;
+			e.brain.grudgeAgo = 0;
+		});
+		expect(e.brain.target).toBe(hal);
 	});
 });

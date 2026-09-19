@@ -15,9 +15,8 @@
 //    (ran out of willpower), everyone piles in for a few seconds (then not again for a
 //    while, so a hurt Lantern isn't swarmed for the rest of the fight).
 //
-// Reserves don't attack (the brain skips their attack decisions), but
-// they're still dangerous to walk into, and they fill in the moment
-// there's a gap.
+// Reserves don't close in, but they harass from range (their mid and long
+// constructs, less often), and they fill in the moment there's a gap.
 
 import type { ConstructWorld } from '../constructs/system';
 import type { Player } from '../player';
@@ -39,8 +38,8 @@ export function createSquadState(): SquadState {
 }
 
 /** Attackers against one Lantern; each extra Lantern adds this many more. */
-export const ASSAULT_SIZE = 3;
-export const ASSAULT_PER_EXTRA_LANTERN = 2;
+export const ASSAULT_SIZE = 4;
+export const ASSAULT_PER_EXTRA_LANTERN = 3;
 /** How long an all-in rush lasts once a Lantern looks beaten. */
 const ALL_IN_TIME = 4;
 /** ...and how long before it can happen again. */

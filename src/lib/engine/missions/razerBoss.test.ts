@@ -54,7 +54,7 @@ describe('Act 1, Mission 5: Razer', () => {
 		expect(mission.phase).toBe('duel');
 		const razer = game.enemies.find((e) => e.kind === 'razer')!;
 		expect(razer).toBeTruthy();
-		expect(razer.brain.kit).toEqual(['twinBlades', 'chakram', 'chain', 'mace', 'redShield']);
+		expect(razer.brain.kit).toEqual(['twinBlades', 'rageGrab', 'chakram', 'chain', 'mace', 'rendVolley', 'redShield']);
 	});
 
 	it('he gets more dangerous as he gets hurt: new constructs, then berserk', () => {
@@ -87,5 +87,19 @@ describe('Act 1, Mission 5: Razer', () => {
 		run(60, safe);
 		expect(mission.state).toBe('won');
 		expect(mission.resultText).toContain('Atrocitus');
+	});
+});
+
+describe('Razer fights with intent', () => {
+	it('turns on the other Lantern every few seconds instead of sticking with one', () => {
+		const { game, mission, run, safe, toDuel } = setup();
+		toDuel();
+		const seen = new Set<unknown>();
+		run(20, () => {
+			safe();
+			for (const p of game.players) p.health = p.maxHealth;
+			if (mission.razer?.brain.target) seen.add(mission.razer.brain.target);
+		});
+		expect(seen.size).toBe(2);
 	});
 });

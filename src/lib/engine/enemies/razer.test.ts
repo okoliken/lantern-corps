@@ -115,3 +115,16 @@ describe("Razer's constructs", () => {
 		shots.forEach((s, i) => expect(Math.abs(Math.atan2(s.vy, s.vx) - before[i])).toBeGreaterThan(0.2));
 	});
 });
+
+describe("Razer's grab", () => {
+	it('tears through a bubble shield, holds the Lantern up, then hurls them', () => {
+		const { p, razer, w } = arena(120);
+		w.shields.push({ owner: p, target: p, hp: 999, maxHp: 999, life: 10, maxLife: 10, ripple: 0 });
+		force(razer, 'rageGrab', p);
+		let fastest = 0;
+		run(w, [p], 1.3, () => (fastest = Math.max(fastest, Math.hypot(p.vx, p.vy))));
+		expect(w.shields).toHaveLength(0);
+		expect(fastest).toBeGreaterThan(800);
+		expect(p.health).toBeLessThan(p.maxHealth);
+	});
+});

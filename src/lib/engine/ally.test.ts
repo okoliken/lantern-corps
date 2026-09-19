@@ -163,3 +163,27 @@ describe('Kilowog as a partner', () => {
 		expect(e.stun).toBeGreaterThan(0);
 	});
 });
+
+describe('a partner fights like a teammate', () => {
+	it("takes on an enemy you aren't already fighting", () => {
+		const { w, partner, me, ally } = setup(0, 400);
+		const yours = createEnemy('rageGrunt', 420, 60);
+		const other = createEnemy('rageGrunt', 120, -80);
+		w.dummies.push(yours, other);
+		partner.attackTarget = { kind: 'enemy', dummy: yours };
+		const intent = ally.read();
+		const [ox, oy] = [other.x, other.y];
+		expect(intent.pointer).toBeTruthy();
+		expect(Math.hypot(intent.pointer!.x - ox, intent.pointer!.y + me.ringLift - oy)).toBeLessThan(Math.hypot(intent.pointer!.x - yours.x, intent.pointer!.y + me.ringLift - yours.y));
+	});
+
+	it('backs out of the fight when badly hurt, and comes back once recovered', () => {
+		const { w, me, ally } = setup(0, -300);
+		const e = createEnemy('rageGrunt', 150, 0);
+		w.dummies.push(e);
+		me.health = me.maxHealth * 0.2;
+		const intent = ally.read();
+		// Moving away from the enemy (it's to the right)
+		expect(intent.moveX).toBeLessThan(0);
+	});
+});

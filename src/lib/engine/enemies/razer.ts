@@ -12,6 +12,10 @@
 //                      out, or shield in time
 //   Blade Storm        a spinning vortex of blades that drags Lanterns in, then
 //                      bursts outward
+//   Rage Grab          a lunge: he seizes a Lantern (their bubble torn open),
+//                      holds them up, and hurls them across the field
+//   Rending Volley     a burst of rage bolts fired as fast as he can, made to
+//                      shred a bubble shield
 // He also uses the Barbed Chain (his Rage Tether), Napalm Vomit (Rage Plasma)
 // and the Rage Shield, from the Red Lanterns' kit.
 
@@ -21,7 +25,26 @@ import type { Player } from '../player';
 import { steer, type Enemy } from './enemies';
 import { fire, power, type AbilityDef, type AbilityId } from './redConstructs';
 
-export const RAZER_ABILITIES: ReadonlySet<AbilityId> = new Set<AbilityId>(['twinBlades', 'chakram', 'shatter', 'brand', 'crimsonNova', 'razerStorm']);
+export const RAZER_ABILITIES: ReadonlySet<AbilityId> = new Set<AbilityId>([
+	'twinBlades',
+	'chakram',
+	'shatter',
+	'brand',
+	'crimsonNova',
+	'razerStorm',
+	'rageGrab',
+	'rendVolley'
+]);
+
+/** Rage Grab: how close counts as caught, how long he holds them, and how far in front of him. */
+const GRAB_REACH = 56;
+const GRAB_LUNGE = 0.35;
+const GRAB_HOLD = 0.45;
+/** How hard he throws them (px/s). */
+const THROW_SPEED = 1100;
+/** Rending Volley: bolts, and the seconds between them. */
+const VOLLEY_SHOTS = 6;
+const VOLLEY_GAP = 0.11;
 
 /** Seconds a Rage Brand keeps a Lantern's ring from building anything. */
 export const BRAND_TIME = 3;
@@ -78,6 +101,12 @@ export function startRazerAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, pl
 		case 'razerStorm':
 			w.effects.push({ kind: 'callout', x: e.x, y: e.y - 150, age: 0, life: 1.4, text: 'BLADE STORM', hurt: true });
 			break;
+		case 'rageGrab':
+			// Lunge at them; the grab happens in updateRazerAbility
+			e.vx = b.aimX * (a.speed ?? 900);
+			e.vy = b.aimY * (a.speed ?? 900);
+			b.struck = [];
+			break;
 	}
 }
 
@@ -130,8 +159,69 @@ export function updateRazerAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, p
 			}
 			break;
 		}
+		case 'rageGrab':
+			grab(e, a, w, players, dt);
+			break;
+		case 'rendVolley': {
+			steer(e, 0, 0, 4, dt);
+			const t = b.target;
+			if (t && b.fired < VOLLEY_SHOTS && b.elapsed >= b.fired * VOLLEY_GAP) {
+				b.fired++;
+				const aim = Math.atan2(t.y - e.y, t.x - e.x) + (Math.random() - 0.5) * 0.12;
+				fire(e, w, 'bolt', a, Math.cos(aim), Math.sin(aim), false);
+			}
+			break;
+		}
 		default:
 			steer(e, 0, 0, 3, dt);
+	}
+}
+
+/**
+ * Rage Grab: a lunge; whoever he reaches is seized (their bubble shield
+ * torn open), held in front of him for a moment, then hurled across the field.
+ */
+function grab(e: Enemy, a: AbilityDef, w: ConstructWorld, players: readonly Player[], dt: number) {
+	const b = e.brain;
+	const held = b.struck[0];
+	if (!held) {
+		// Still lunging: catch the first Lantern in reach
+		if (b.elapsed > GRAB_LUNGE) {
+			steer(e, 0, 0, 6, dt);
+			return;
+		}
+		const caught = players.find((p) => !p.downed && !p.dash && dist(p, e) < GRAB_REACH);
+		if (!caught) return;
+		b.struck = [caught];
+		b.hitDone = false;
+		b.timer = GRAB_HOLD + 0.2;
+		e.vx *= 0.1;
+		e.vy *= 0.1;
+		// Rage tears the bubble open
+		const shield = w.shields.find((s) => s.target === caught);
+		if (shield) {
+			w.shields.splice(w.shields.indexOf(shield), 1);
+			w.effects.push({ kind: 'pop', x: caught.x, y: caught.y, age: 0, life: 0.45, owner: caught });
+		}
+		w.effects.push({ kind: 'callout', x: caught.x, y: caught.y, age: 0, life: 1, text: 'GRABBED!', hurt: true, owner: caught });
+		return;
+	}
+	// Holding them up in front of him
+	if (b.timer > 0.2) {
+		held.x = e.x + b.aimX * 34;
+		held.y = e.y + b.aimY * 34;
+		held.vx = held.vy = 0;
+		steer(e, 0, 0, 6, dt);
+		return;
+	}
+	// ...and throw
+	if (!b.hitDone) {
+		b.hitDone = true;
+		damagePlayer(w, held, power(e, a), e.x, e.y, 0);
+		// Thrown, whatever else is happening (even just after another hit)
+		held.vx = b.aimX * THROW_SPEED;
+		held.vy = b.aimY * THROW_SPEED;
+		w.effects.push({ kind: 'redBlast', x: held.x, y: held.y, age: 0, life: 0.4, radius: 50 });
 	}
 }
 
