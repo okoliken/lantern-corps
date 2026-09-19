@@ -65,6 +65,8 @@ export function startLoop({ update, render, onStats }: LoopOptions): () => void 
 	let accumulator = 0;
 	let last = performance.now();
 	let rafId = 0;
+	/** Only log the first failed frame, not one per frame. */
+	let reported = false;
 
 	let frames = 0;
 	let ticks = 0;
@@ -75,8 +77,14 @@ export function startLoop({ update, render, onStats }: LoopOptions): () => void 
 		last = now;
 		accumulator = result.accumulator;
 
-		for (let i = 0; i < result.steps; i++) update(STEP_MS / 1000);
-		render(result.alpha);
+		// One bad frame must never stop the game: report it and carry on with the next
+		try {
+			for (let i = 0; i < result.steps; i++) update(STEP_MS / 1000);
+			render(result.alpha);
+		} catch (err) {
+			if (!reported) console.error('Game frame failed:', err);
+			reported = true;
+		}
 
 		frames++;
 		ticks += result.steps;

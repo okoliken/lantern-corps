@@ -3,6 +3,36 @@ import { isStanding } from '../dummy';
 import { Game } from '../game';
 import { CORE_HP, CallToArms, GRODD_ESCAPE, GRODD_STAGE_2, REBUILD_TIMES, buildCentralCityMap } from './callToArms';
 
+/**
+ * A stand-in canvas: every call is a no-op, except it throws on a negative
+ * radius, like a real browser canvas does (which froze the game once).
+ */
+function fakeCanvas(): CanvasRenderingContext2D {
+	// Paths too (Node has no Path2D): every call a no-op
+	(globalThis as { Path2D?: unknown }).Path2D ??= class {
+		constructor() {
+			return new Proxy(this, { get: (t, k) => (k in t ? (t as Record<string | symbol, unknown>)[k] : () => {}) });
+		}
+	};
+	const gradient = { addColorStop() {} };
+	const check = (name: string, ...radii: number[]) => {
+		if (radii.some((r) => r < 0 || Number.isNaN(r))) throw new Error(`${name}: negative radius`);
+	};
+	return new Proxy({} as CanvasRenderingContext2D, {
+		get(target, key) {
+			if (key === 'ellipse') return (_x: number, _y: number, rx: number, ry: number) => check('ellipse', rx, ry);
+			if (key === 'arc') return (_x: number, _y: number, r: number) => check('arc', r);
+			if (key === 'createLinearGradient' || key === 'createRadialGradient') return () => gradient;
+			if (key in target) return (target as unknown as Record<string, unknown>)[key as string];
+			return () => {};
+		},
+		set(target, key, value) {
+			(target as unknown as Record<string, unknown>)[key as string] = value;
+			return true;
+		}
+	});
+}
+
 function setup() {
 	const game = new Game({
 		players: [
@@ -151,6 +181,21 @@ describe('Act 2, Mission 1: Call to Arms', () => {
 		run(4);
 		expect(john.boarded).toBe(true);
 		expect(CORE_HP).toBeGreaterThan(0);
+	});
+
+	it("draws Grodd's escape and everything after it without a canvas error (a frozen game, once)", () => {
+		const { mission, run, safe, toGrodd } = setup();
+		toGrodd();
+		const ctx = fakeCanvas();
+		const draw = () => {
+			for (const d of mission.drawables(ctx, 1, 0)) d.draw();
+		};
+		mission.grodd!.hp = mission.grodd!.maxHp * (GRODD_ESCAPE - 0.01);
+		run(8, () => {
+			safe();
+			draw();
+		});
+		expect(mission.phase).toBe('manhunter');
 	});
 
 	it('John going down three times loses it', () => {

@@ -732,7 +732,8 @@ export class CallToArms implements MissionDirector {
 			// One great leap up and off the top of the screen
 			const k = Math.min(1, this.clock / 1.2);
 			const f = this.escapeFigure;
-			f.brain.air = Math.sin(Math.min(1, k) * Math.PI * 0.5) * 3;
+			// Mid-leap (air is 0..1); the climb up the screen is in y below
+			f.brain.air = Math.sin(Math.min(1, k) * Math.PI * 0.5);
 			f.dir = 1;
 			const x = this.escapeFrom.x + k * 500;
 			const y = this.escapeFrom.y - k * 420;

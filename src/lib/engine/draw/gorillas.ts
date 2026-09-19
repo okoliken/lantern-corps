@@ -99,7 +99,7 @@ export function drawGorilla(ctx: CanvasRenderingContext2D, e: Enemy, x: number, 
 	ctx.globalAlpha = defeated ? Math.min(1, e.down / 0.5) : 1;
 	ctx.translate(x, y);
 	if (hasGround) {
-		const k = 1 - b.air * 0.5;
+		const k = Math.max(0.1, 1 - b.air * 0.5);
 		ctx.fillStyle = `rgba(0, 0, 0, ${0.42 * k})`;
 		ctx.beginPath();
 		ctx.ellipse(0, 0, 17 * s * k, 4.5 * s * k, 0, 0, TAU);
