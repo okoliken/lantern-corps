@@ -4,6 +4,10 @@ import { defineConfig } from 'vite';
 import { padRelay } from './pad-relay';
 
 export default defineConfig({
+	server: {
+		// The phone pad through a Cloudflare tunnel (npm run dev:pad-tunnel)
+		allowedHosts: ['.trycloudflare.com']
+	},
 	plugins: [
 		sveltekit({
 			compilerOptions: {

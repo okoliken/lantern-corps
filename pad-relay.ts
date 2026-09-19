@@ -79,7 +79,9 @@ export function padRelay(): Plugin {
 				res.setHeader('Content-Type', 'application/json');
 				// Without --host the dev server only listens on this computer: a phone can't reach it
 				const exposed = Boolean(server.config.server.host);
-				res.end(JSON.stringify({ addresses: lanAddresses(), port, exposed }));
+				// Through a tunnel (when the phone can't reach the laptop on the local network): its public address
+				const publicUrl = process.env.PAD_PUBLIC_URL || null;
+				res.end(JSON.stringify({ addresses: lanAddresses(), port, exposed, publicUrl }));
 			});
 		}
 	};

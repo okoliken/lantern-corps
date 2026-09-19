@@ -19,10 +19,15 @@
 			try {
 				const res = await fetch('/pad-info');
 				if (!res.ok) throw new Error();
-				const info: { addresses: string[]; port: number; exposed: boolean } = await res.json();
-				if (!info.exposed || info.addresses.length === 0) problem = 'notExposed';
-				const host = info.addresses[0] ?? location.hostname;
-				url = `http://${host}:${info.port}/pad?room=${link.room}`;
+				const info: { addresses: string[]; port: number; exposed: boolean; publicUrl: string | null } = await res.json();
+				if (info.publicUrl) {
+					// Through a tunnel: works from any network
+					url = `${info.publicUrl.replace(/\/$/, '')}/pad?room=${link.room}`;
+				} else {
+					if (!info.exposed || info.addresses.length === 0) problem = 'notExposed';
+					const host = info.addresses[0] ?? location.hostname;
+					url = `http://${host}:${info.port}/pad?room=${link.room}`;
+				}
 				qr = await QRCode.toString(url, { type: 'svg', margin: 1, color: { dark: '#d8f5e0', light: '#00000000' } });
 			} catch {
 				problem = 'noRelay';

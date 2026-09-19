@@ -47,6 +47,11 @@ room code per tab in sessionStorage) and `PadInput` (`engine/pad.ts`) merges the
 keyboard for the first Lantern (either works at any moment; Start is turned into Esc). Pair from the
 pause menu's **Phone pad** tab (QR code). Run `npm run dev:pad` (dev server with `--host`) so the
 phone can reach it on the same Wi-Fi; the relay only exists in the dev server for now.
+**When the phone can't reach the laptop on the Wi-Fi** (the user's router keeps devices apart):
+tunnel it. `cloudflared tunnel --url http://localhost:5199` gives an `https://….trycloudflare.com`
+address; start the dev server with `PAD_PUBLIC_URL=<that address>` and the pairing QR points there
+(`/pad-info` returns `publicUrl`; `server.allowedHosts` accepts `.trycloudflare.com`). Needs internet,
+adds some delay, and the game is reachable by anyone with the link while the tunnel runs.
 
 **Ring shot:** a free basic attack. Green bolts in a **double tap** ("pum-pum … pum-pum": two bolts
 0.11s apart, then a short rest; a little under 4 a second, 10 damage each). A single tap always fires
