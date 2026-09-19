@@ -8,6 +8,9 @@
 	import { startLoop, type LoopStats } from '$lib/engine/loop';
 	import type { Game } from '$lib/engine/game';
 	import { Autopilot } from '$lib/engine/autopilot';
+	import { BindingInput } from '$lib/engine/input';
+	import { PadInput } from '$lib/engine/pad';
+	import { padLink } from '$lib/pad/link';
 
 	interface Props {
 		game: Game;
@@ -26,6 +29,9 @@
 		game.setView(view);
 		const detachButtons = game.buttons.attach(window, canvas);
 		const detachPointer = game.pointer.attach(canvas);
+		// The phone pad drives the first Lantern, alongside the keyboard
+		const first = game.players[0];
+		if (first && first.input instanceof BindingInput) first.input = new PadInput(first.input, padLink().state, () => game.players[0]);
 		const stop = startLoop({
 			update: (dt) => game.update(dt),
 			render: (alpha) => game.render(ctx, alpha),

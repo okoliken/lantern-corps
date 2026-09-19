@@ -37,6 +37,17 @@ scroll wheel. Settings are saved in the browser.
 | Lock target | Tab | Tab | , |
 | Pause, controls, options | Esc | Esc | Esc |
 
+**Phone pad** (2026-09-19, user: "a virtual pad on my phone like PPSSPP; the keyboard is the
+alternative"): `/pad` is a PS-style controller page for a phone (landscape; floating left stick =
+move, right stick = aim and auto-fire, □ shot, ✕ construct (smart ring), ○ shield, △ fly, L1/R1
+switch construct, L2 target, R2 signature, Select backup, Start pause; buzz on press; wake lock).
+It joins a room on the dev server's relay (`pad-relay.ts`, a Vite plugin: WebSocket `/pad-ws`,
+`/pad-info` gives the laptop's LAN address); the game tab joins the same room (`$lib/pad/link.ts`,
+room code per tab in sessionStorage) and `PadInput` (`engine/pad.ts`) merges the pad with the
+keyboard for the first Lantern (either works at any moment; Start is turned into Esc). Pair from the
+pause menu's **Phone pad** tab (QR code). Run `npm run dev:pad` (dev server with `--host`) so the
+phone can reach it on the same Wi-Fi; the relay only exists in the dev server for now.
+
 **Ring shot:** a free basic attack. Green bolts in a **double tap** ("pum-pum … pum-pum": two bolts
 0.11s apart, then a short rest; a little under 4 a second, 10 damage each). A single tap always fires
 both. They cost no willpower and work even when exhausted. Constructs are the special moves that cost

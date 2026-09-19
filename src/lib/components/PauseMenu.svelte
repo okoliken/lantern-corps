@@ -5,6 +5,7 @@
 	import { ACTION_LABELS, SLOT_ACTIONS, buttonLabel, type Action, type LayoutName } from '$lib/engine/input';
 	import type { Game } from '$lib/engine/game';
 	import { settings } from '$lib/settings.svelte';
+	import PadPairing from './PadPairing.svelte';
 
 	interface Props {
 		game: Game;
@@ -17,7 +18,7 @@
 
 	let { game, layout = 'solo', onResume, links = [] }: Props = $props();
 
-	let tab = $state<'controls' | 'options'>('controls');
+	let tab = $state<'controls' | 'options' | 'pad'>('controls');
 	/** The action waiting for a new button, while rebinding. */
 	let listening = $state<Action | null>(null);
 
@@ -96,6 +97,7 @@
 		<nav class="tabs" aria-label="Pause menu sections">
 			<button class:on={tab === 'controls'} onclick={() => (tab = 'controls')}>Controls</button>
 			<button class:on={tab === 'options'} onclick={() => (tab = 'options')}>Options</button>
+			<button class:on={tab === 'pad'} onclick={() => (tab = 'pad')}>Phone pad</button>
 		</nav>
 
 		{#if tab === 'controls'}
@@ -130,6 +132,8 @@
 					apply();
 				}}>Reset controls to default</button
 			>
+		{:else if tab === 'pad'}
+			<PadPairing />
 		{:else}
 			<div class="options">
 				{#each options as opt (opt.key)}
