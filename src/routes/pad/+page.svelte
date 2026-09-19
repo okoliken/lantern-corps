@@ -9,8 +9,13 @@
 	import { onMount } from 'svelte';
 	import { PAD_LABELS, type PadButton } from '$lib/engine/pad';
 
-	const room = (new URLSearchParams(location.search).get('room') ?? '').toUpperCase();
-	let status = $state<'connecting' | 'connected' | 'noRoom'>(room ? 'connecting' : 'noRoom');
+	// A 4-letter room code; anything else (a missing or placeholder code) and it finds the game itself
+	const given = (new URLSearchParams(location.search).get('room') ?? '').toUpperCase();
+	const valid = /^[A-Z0-9]{4}$/.test(given);
+	let room = $state(valid ? given : '');
+	let status = $state<'connecting' | 'connected' | 'noRoom' | 'finding' | 'pick'>(valid ? 'connecting' : 'finding');
+	/** Open games to choose from, when there's more than one. */
+	let choices = $state<string[]>([]);
 	let games = $state(0);
 
 	// Sticks: -1..1 each way, and where they're drawn
@@ -24,6 +29,31 @@
 
 	function send(msg: object) {
 		if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(msg));
+	}
+
+	/** No code: join the game that's open on the computer (or let the player choose). */
+	async function findGame() {
+		try {
+			const open: string[] = await (await fetch('/pad-rooms')).json();
+			if (open.length === 1) join(open[0]);
+			else if (open.length > 1) {
+				choices = open;
+				status = 'pick';
+			} else {
+				status = 'noRoom';
+				setTimeout(findGame, 2000);
+			}
+		} catch {
+			status = 'noRoom';
+			setTimeout(findGame, 2000);
+		}
+	}
+
+	function join(code: string) {
+		room = code;
+		history.replaceState(null, '', `/pad?room=${code}`);
+		status = 'connecting';
+		connect();
 	}
 
 	function connect() {
@@ -135,7 +165,8 @@
 	}
 
 	onMount(() => {
-		connect();
+		if (room) connect();
+		else void findGame();
 		// Stick positions go out once a frame, and only when they changed
 		let raf = 0;
 		const tick = () => {
@@ -185,7 +216,17 @@
 >
 	<div class="status" class:ok={status === 'connected'}>
 		{#if status === 'noRoom'}
-			Open this from the QR code in the game's pause menu (Phone pad)
+			Waiting for a game: open the game on your computer
+		{:else if status === 'finding'}
+			Looking for your game…
+		{:else if status === 'pick'}
+			Which game?
+			{#each choices as code (code)}
+				<button class="choice" onpointerdown={(e) => {
+					e.stopPropagation();
+					join(code);
+				}}>{code}</button>
+			{/each}
 		{:else if status === 'connected'}
 			● Connected · {room}
 		{:else}
@@ -271,6 +312,15 @@
 		font-size: 2.2vh;
 		opacity: 0.7;
 		white-space: nowrap;
+	}
+	.choice {
+		position: static;
+		display: inline-block;
+		margin-left: 1vh;
+		padding: 0.6vh 1.6vh;
+		border-radius: 1vh;
+		font-size: 2.4vh;
+		pointer-events: auto;
 	}
 	.status.ok {
 		color: var(--green);

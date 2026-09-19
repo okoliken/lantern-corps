@@ -73,6 +73,12 @@ export function padRelay(): Plugin {
 				});
 			});
 
+			// Rooms with a game open in them: a pad opened without a code joins the only one
+			server.middlewares.use('/pad-rooms', (_req, res) => {
+				res.setHeader('Content-Type', 'application/json');
+				res.end(JSON.stringify([...rooms].filter(([, r]) => r.games.size > 0).map(([code]) => code)));
+			});
+
 			server.middlewares.use('/pad-info', (_req, res) => {
 				const address = server.httpServer?.address();
 				const port = typeof address === 'object' && address ? address.port : 5173;
