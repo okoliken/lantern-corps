@@ -48,8 +48,8 @@ describe('Sparring with Kilowog', () => {
 		expect(his.length).toBeGreaterThan(0);
 		// Red art gets recolored; their own constructs are drawn green already
 		const native = new Set(['bigHammer', 'hammerSpin', 'hammerDrop', 'swordArc']);
-		expect(his.filter((e) => !e.green && !native.has(e.kind)).map((e) => e.kind)).toEqual([]);
-		expect(his.filter((e) => e.green && native.has(e.kind))).toEqual([]);
+		expect(his.filter((e) => e.tint !== 'corps' && !native.has(e.kind)).map((e) => e.kind)).toEqual([]);
+		expect(his.filter((e) => e.tint && native.has(e.kind))).toEqual([]);
 	});
 
 	it('beating both wins; beating one is not enough', () => {

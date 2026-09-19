@@ -7,6 +7,7 @@
 //  3. At 0 health they're DOWNED: they can't move or use the ring, and after a
 //     few seconds they get back up (at the battery, on test maps).
 
+import { GUARD } from './heroes';
 import { absorbWithShield, type ConstructWorld } from './constructs/system';
 import type { Player } from './player';
 
@@ -38,15 +39,22 @@ export function damagePlayer(
 	amount: number,
 	fromX: number,
 	fromY: number,
-	knockback = 0
+	knockback = 0,
+	/** Goes straight through a bubble shield (Grodd's Psychic Blast). */
+	pierce = false
 ): number {
 	if (p.downed || p.invuln > 0 || amount <= 0) return 0;
 	// Red Lantern hits throw you further
 	if (w.rage > 1) knockback *= RAGE_KNOCKBACK;
 	// Power Armor takes most of the blow
 	if (p.armor) amount *= ARMOR_TAKES;
+	// Hawkgirl's wings wrapped round her
+	if (p.hero && p.hero.guard > 0) {
+		amount *= GUARD.takes;
+		knockback *= GUARD.takes;
+	}
 
-	const through = absorbWithShield(w, p, amount);
+	const through = pierce ? amount : absorbWithShield(w, p, amount);
 	if (through <= 0) return 0;
 
 	p.health = Math.max(0, p.health - through);

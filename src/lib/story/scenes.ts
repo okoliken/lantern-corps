@@ -32,6 +32,20 @@ export const JOHN_CHOSEN: SceneLine[] = [
 	{ who: 'ring', text: 'Soon, John Stewart. Soon you will be needed.' }
 ];
 
+/**
+ * Start of Act 2: the ring comes back to John on his roof in Detroit, and
+ * this time it doesn't wait. The 'chosen' line plays the transformation.
+ */
+export const JOHN_CALLED: SceneLine[] = [
+	{ who: 'ring', text: 'John Stewart. You are needed.' },
+	{ who: 'john', text: "You again. I was starting to think I dreamed you." },
+	{ who: 'ring', text: 'Central City is under attack. Its defenders are falling. There is no one closer.' },
+	{ who: 'john', text: "I build buildings. I don't know the first thing about being a... whatever this is." },
+	{ who: 'ring', text: 'You were a Marine. You know how to stand between people and harm. I will do the rest.' },
+	{ who: 'john', text: "...Alright. Let's go.", mood: 'chosen' },
+	{ who: 'ring', text: 'Welcome to the Green Lantern Corps, John Stewart.' }
+];
+
 /** End of Mission 1: Tomar-Re's ship sets down on Oa. */
 export const OA_LANDING: SceneLine[] = [
 	{ who: 'tomar', text: 'Oa. For a while out there, I did not think I would see her towers again.' },

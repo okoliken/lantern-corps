@@ -181,9 +181,16 @@ appears at the end of Mission 2, when the ring finds him (the scene ends there, 
 ### Act 2: The Old Machines (John's arc, mostly on Earth)
 *A new Lantern on Earth, and something ancient waking up.* The Guardians built the Manhunters;
 Atrocitus wants them.
-1. **Call to Arms** (Earth, Central City): The Flash and Hawkgirl are losing to Gorilla Grodd. The
-   ring transforms John and throws him in; he learns his powers mid-fight (in-fight hints). What
-   Grodd dug up switches on: an old Manhunter machine.
+1. **Call to Arms** (built 2026-09-19; Earth, Central City). Opening scene: the ring comes back to John
+   on his Detroit roof ("You are needed") and transforms him. In Central City, Gorilla Grodd's army has
+   torn open a junction to dig for something; the **Flash** and **Hawkgirl** are holding the line and
+   fight beside John (AI heroes with their own powers, not rings). The ring coaches John through his
+   first fight. Grodd comes up out of the dig and fights in three stages (Psychic Blast through
+   shields, Mind Control that flips your moves, cars thrown by telekinesis, a Debris Storm; he calls in
+   more soldiers and takes the Flash's mind). Beaten, he gets away and wakes what he dug up: a
+   **Manhunter**, which falls apart round its core when broken and rebuilds itself, stronger, unless
+   the core is smashed first (Hawkgirl's Nth metal mace hits the core three times as hard). Ending:
+   the Flash mentions the Justice League; the ring summons John to Oa and carries him up into the sky.
 2. **Summoned** (Oa): the ring carries John to Oa, like the 2011 film. The Guardians, Hal, Kilowog,
    Tomar-Re; Kilowog's training, for John.
 3. **First Patrol** (built; was Colony Under Fire): John's first off-world call, Hal on backup.
@@ -216,10 +223,10 @@ Built during **C5** and the mission milestones. Everything is **data**, like the
 
 ---
 
-## Guest heroes (later)
-Idea from the user (2026-09-18): once missions exist, **other DC characters** can appear, especially in
-**Earth scenes** (Coast City, and other Earth missions): allies who fight alongside the Lanterns for a
-mission, or cameo in story scenes. Not designed yet. Candidates to discuss: Justice League members
+## Guest heroes
+Idea from the user (2026-09-18): **other DC characters** appear, especially in **Earth scenes**:
+allies who fight alongside the Lanterns for a mission, or cameo in story scenes. First built: the
+**Flash** and **Hawkgirl** in Call to Arms (Act 2, 2026-09-19). Candidates to discuss: Justice League members
 connected to Hal and John (Flash / Barry Allen is Hal's best friend; John served with the JL in the
 animated series), and the animated series' own allies (Kilowog, Razer, Aya).
 

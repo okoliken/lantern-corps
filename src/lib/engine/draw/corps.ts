@@ -2,6 +2,7 @@
 // Kilowog (the drill sergeant) and the Corps-green tint for a Lantern's
 // constructs when one is sparring against you.
 
+import type { Tint } from '../enemies/enemies';
 import type { LanternPose } from '../animation';
 import { LANTERNS } from '../lanterns';
 import { drawLantern, ringPosition, FIGURE_HEIGHT, GREEN, type Figure } from './lantern';
@@ -61,8 +62,16 @@ export function corpsTop(kind: CorpsKind, y: number, pose: LanternPose): number 
 export const drawKilowog = (ctx: CanvasRenderingContext2D, x: number, y: number, pose: LanternPose, time: number) =>
 	drawCorpsLantern(ctx, 'kilowog', x, y, pose, time);
 
-/** Canvas filter that turns rage red into Corps green, for a sparring Lantern's constructs. */
-const CORPS_TINT = 'hue-rotate(128deg) saturate(1.1)';
+/**
+ * Canvas filters that turn rage red into another colour, and the glow to go
+ * with it: Corps green (a sparring Lantern), Gorilla City amber (Grodd's
+ * soldiers' tech), and psychic purple (Grodd himself).
+ */
+const TINTS: Record<Tint, { filter: string; glow: string }> = {
+	corps: { filter: 'hue-rotate(128deg) saturate(1.1)', glow: GREEN },
+	tech: { filter: 'hue-rotate(38deg) saturate(1.25) brightness(1.15)', glow: '#ffb020' },
+	psychic: { filter: 'hue-rotate(-85deg) saturate(1.1) brightness(1.1)', glow: '#b36bff' }
+};
 
 
 /**
@@ -71,13 +80,23 @@ const CORPS_TINT = 'hue-rotate(128deg) saturate(1.1)';
  * glow (shadow) isn't filtered, so any glow set while drawing is made green.
  */
 export function inCorpsGreen(ctx: CanvasRenderingContext2D, draw: () => void) {
+	inTint(ctx, 'corps', draw);
+}
+
+/** Draw red art in another colour (see TINTS); no tint just draws it. */
+export function inTint(ctx: CanvasRenderingContext2D, tint: Tint | undefined, draw: () => void) {
+	if (!tint) {
+		draw();
+		return;
+	}
+	const { filter, glow } = TINTS[tint];
 	const shadowColor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ctx), 'shadowColor')!;
 	ctx.save();
-	ctx.filter = CORPS_TINT;
+	ctx.filter = filter;
 	Object.defineProperty(ctx, 'shadowColor', {
 		configurable: true,
 		get: () => shadowColor.get!.call(ctx),
-		set: () => shadowColor.set!.call(ctx, GREEN)
+		set: () => shadowColor.set!.call(ctx, glow)
 	});
 	try {
 		draw();

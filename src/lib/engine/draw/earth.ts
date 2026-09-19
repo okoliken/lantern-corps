@@ -109,3 +109,136 @@ export function drawDetroit(ctx: CanvasRenderingContext2D, time: number, glow: n
 		ctx.fillRect(0, 0, EARTH_W, EARTH_H + 400);
 	}
 }
+
+// ------------------------------------------------------ Central City (Act 2)
+
+/** A street lamp on the kerb, its light pooled on the ground. */
+export function drawLampPost(ctx: CanvasRenderingContext2D, x: number, y: number) {
+	ctx.save();
+	ctx.fillStyle = 'rgba(255, 226, 160, 0.07)';
+	ctx.beginPath();
+	ctx.ellipse(x + 14, y + 4, 46, 16, 0, 0, TAU);
+	ctx.fill();
+	ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+	ctx.beginPath();
+	ctx.ellipse(x, y, 5, 2, 0, 0, TAU);
+	ctx.fill();
+	ctx.strokeStyle = '#2b2e34';
+	ctx.lineWidth = 3;
+	ctx.beginPath();
+	ctx.moveTo(x, y);
+	ctx.lineTo(x, y - 92);
+	ctx.quadraticCurveTo(x, y - 100, x + 12, y - 100);
+	ctx.stroke();
+	ctx.fillStyle = '#ffe4a0';
+	ctx.shadowColor = '#ffd27a';
+	ctx.shadowBlur = 12;
+	ctx.fillRect(x + 9, y - 99, 9, 3);
+	ctx.restore();
+}
+
+/** A street tree in a square planter. */
+export function drawStreetTree(ctx: CanvasRenderingContext2D, x: number, y: number, seed: number) {
+	ctx.save();
+	ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+	ctx.beginPath();
+	ctx.ellipse(x, y, 26, 8, 0, 0, TAU);
+	ctx.fill();
+	ctx.fillStyle = '#3a3027';
+	ctx.fillRect(x - 12, y - 4, 24, 8);
+	ctx.strokeStyle = '#4a3622';
+	ctx.lineWidth = 4;
+	ctx.beginPath();
+	ctx.moveTo(x, y);
+	ctx.lineTo(x, y - 34);
+	ctx.stroke();
+	const r = seeded(Math.floor(seed * 1e6) + 7);
+	for (let i = 0; i < 6; i++) {
+		const cx = x + (r() - 0.5) * 34;
+		const cy = y - 46 - r() * 26;
+		ctx.fillStyle = i % 2 ? '#2f5a2c' : '#3d6e36';
+		ctx.beginPath();
+		ctx.arc(cx, cy, 13 + r() * 8, 0, TAU);
+		ctx.fill();
+	}
+	ctx.restore();
+}
+
+/**
+ * Grodd's dig: the street torn open, slabs of asphalt heaved up round a
+ * shaft, work lights, and at the bottom the thing he came for. `wake` (0..1)
+ * is the Manhunter relic coming alive: orange light pulsing up out of the hole.
+ */
+export function drawDigSite(ctx: CanvasRenderingContext2D, x: number, y: number, time: number, wake: number) {
+	ctx.save();
+	// The hole
+	const g = ctx.createRadialGradient(x, y, 10, x, y, 150);
+	g.addColorStop(0, '#050505');
+	g.addColorStop(0.6, '#15130f');
+	g.addColorStop(1, 'rgba(21, 19, 15, 0)');
+	ctx.fillStyle = g;
+	ctx.beginPath();
+	ctx.ellipse(x, y, 150, 70, 0, 0, TAU);
+	ctx.fill();
+	if (wake > 0) {
+		const pulse = 0.6 + 0.4 * Math.sin(time * (4 + wake * 10));
+		const glow = ctx.createRadialGradient(x, y, 4, x, y, 130);
+		glow.addColorStop(0, `rgba(255, 180, 90, ${0.8 * wake * pulse})`);
+		glow.addColorStop(0.5, `rgba(255, 110, 30, ${0.4 * wake * pulse})`);
+		glow.addColorStop(1, 'rgba(255, 90, 20, 0)');
+		ctx.fillStyle = glow;
+		ctx.beginPath();
+		ctx.ellipse(x, y, 130, 62, 0, 0, TAU);
+		ctx.fill();
+		// A shaft of light up out of the hole
+		ctx.fillStyle = `rgba(255, 150, 60, ${0.18 * wake * pulse})`;
+		ctx.beginPath();
+		ctx.moveTo(x - 40, y);
+		ctx.lineTo(x - 70, y - 500);
+		ctx.lineTo(x + 70, y - 500);
+		ctx.lineTo(x + 40, y);
+		ctx.closePath();
+		ctx.fill();
+	}
+	// Heaved-up slabs of road round the rim
+	const r = seeded(4471);
+	for (let i = 0; i < 14; i++) {
+		const a = (i / 14) * TAU + r() * 0.3;
+		const sx = x + Math.cos(a) * (140 + r() * 20);
+		const sy = y + Math.sin(a) * (64 + r() * 10);
+		const w = 30 + r() * 26;
+		ctx.save();
+		ctx.translate(sx, sy);
+		ctx.rotate(a + Math.PI / 2 + (r() - 0.5) * 0.6);
+		ctx.fillStyle = '#2b2c30';
+		ctx.strokeStyle = '#0a0a0b';
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.moveTo(-w / 2, 4);
+		ctx.lineTo(-w / 2 + 4, -10 - r() * 8);
+		ctx.lineTo(w / 2 - 3, -8 - r() * 8);
+		ctx.lineTo(w / 2, 4);
+		ctx.closePath();
+		ctx.fill();
+		ctx.stroke();
+		ctx.restore();
+	}
+	// Gorilla City work lights on stands
+	for (const [lx, ly] of [
+		[x - 170, y - 40],
+		[x + 175, y - 30]
+	]) {
+		ctx.strokeStyle = '#3b3f46';
+		ctx.lineWidth = 3;
+		ctx.beginPath();
+		ctx.moveTo(lx, ly);
+		ctx.lineTo(lx, ly - 70);
+		ctx.stroke();
+		ctx.fillStyle = '#ffb020';
+		ctx.shadowColor = '#ffb020';
+		ctx.shadowBlur = 14;
+		ctx.fillRect(lx - 7, ly - 76, 14, 7);
+		ctx.shadowBlur = 0;
+	}
+	ctx.restore();
+}

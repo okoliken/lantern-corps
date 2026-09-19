@@ -6,7 +6,7 @@ import type { GroundStyle } from './draw/world';
 import type { Solid } from './physics';
 
 /** 'wall' is an Energy Wall construct, 'redWall' a Red Lantern's Rage Wall; the rest are part of the map. */
-export type ObstacleKind = 'building' | 'rock' | 'crate' | 'asteroid' | 'wall' | 'redWall' | 'cell';
+export type ObstacleKind = 'building' | 'rock' | 'crate' | 'asteroid' | 'wall' | 'redWall' | 'cell' | 'car';
 
 export interface Obstacle extends Solid {
 	kind: ObstacleKind;
@@ -39,6 +39,8 @@ export interface GameMap {
 	spawn: { x: number; y: number };
 	/** Where the Lantern battery stands. */
 	battery: { x: number; y: number };
+	/** No battery here (Earth, before John has one): willpower only comes back on its own. */
+	noBattery?: boolean;
 	/** How the surface looks on a planet (default dust). */
 	ground?: GroundStyle;
 	/** Training dummies to practise constructs on (test maps only). */

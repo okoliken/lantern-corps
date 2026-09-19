@@ -17,9 +17,10 @@ import { DUMMY_HALF_W, isStanding } from '../dummy';
 import type { Obstacle } from '../map';
 import { boxOverlap, type Solid } from '../physics';
 import { bodyAim, hitsBody, type Player } from '../player';
-import { ENEMIES, createEnemy, face, steer, type Enemy, type Role } from './enemies';
+import { ENEMIES, createEnemy, face, steer, tintOf, type Enemy, type Role, type Tint } from './enemies';
 import { CORPS_ABILITIES, startCorpsAbility, updateCorpsAbility } from './corpsConstructs';
 import { RAZER_ABILITIES, startRazerAbility, updateRazerAbility } from './razer';
+import { GRODD_ABILITIES, startGroddAbility, updateGroddAbility, updatePsychicFx } from './grodd';
 
 export type AbilityId =
 	| 'claws'
@@ -69,7 +70,12 @@ export type AbilityId =
 	| 'crimsonNova'
 	| 'razerStorm'
 	| 'rageGrab'
-	| 'rendVolley';
+	| 'rendVolley'
+	// Gorilla Grodd (grodd.ts)
+	| 'mindBlast'
+	| 'mindLock'
+	| 'carThrow'
+	| 'debrisStorm';
 
 /** How far away a construct is used from. Kits take some of each. */
 export type Band = 'close' | 'mid' | 'long' | 'support';
@@ -339,13 +345,35 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	razerStorm: def({
 		id: 'razerStorm', name: 'Blade Storm', band: 'mid', tell: 'heavy', windup: 0.6, active: 1.6, recover: 0.7, cooldown: 10,
 		minRange: 0, maxRange: 340, damage: 13, knockback: 520, melee: false, heavy: true, chance: 0.95, radius: 330, speed: 620
+	}),
+
+	// ---- Gorilla Grodd ----
+	// A wave of force from his mind, in a cone in front of him: straight through a bubble shield
+	mindBlast: def({
+		id: 'mindBlast', name: 'Psychic Blast', band: 'mid', tell: 'heavy', windup: 0.6, active: 0.35, recover: 0.5, cooldown: 5.5,
+		minRange: 0, maxRange: 440, damage: 22, knockback: 720, melee: false, heavy: true, chance: 0.9
+	}),
+	// Into a Lantern's head: every move goes the wrong way for a few seconds
+	mindLock: def({
+		id: 'mindLock', name: 'Mind Control', band: 'long', tell: 'aim', windup: 0.7, active: 0.1, recover: 0.4, cooldown: 9,
+		minRange: 0, maxRange: 600, damage: 10, knockback: 0, melee: false, heavy: false, chance: 0.85
+	}),
+	// A car lifted off the street and hurled; it bursts where it lands
+	carThrow: def({
+		id: 'carThrow', name: 'Telekinetic Throw', band: 'long', tell: 'sky', windup: 0.8, active: 0.2, recover: 0.6, cooldown: 5.5,
+		minRange: 140, maxRange: 640, damage: 38, knockback: 700, melee: false, heavy: true, chance: 0.9, radius: 85, speed: 540
+	}),
+	// Everything loose around him lifted and flung
+	debrisStorm: def({
+		id: 'debrisStorm', name: 'Debris Storm', band: 'long', tell: 'sky', windup: 0.6, active: 1.4, recover: 0.5, cooldown: 10,
+		minRange: 0, maxRange: 620, damage: 14, knockback: 260, melee: false, heavy: true, chance: 0.9, speed: 620
 	})
 };
 
 /** What the machines use. They're never part of a Red Lantern's random kit. */
 export const MACHINE_ABILITIES: readonly AbilityId[] = ['eyeLaser', 'sweep', 'pulse', 'strafe', 'bombs'];
 /** Signature moves of named Red Lanterns, never handed out in random kits. */
-const SIGNATURE_ABILITIES: readonly AbilityId[] = ['swoop', ...CORPS_ABILITIES, ...RAZER_ABILITIES];
+const SIGNATURE_ABILITIES: readonly AbilityId[] = ['swoop', ...CORPS_ABILITIES, ...RAZER_ABILITIES, ...GRODD_ABILITIES];
 
 /** Every red construct a Red Lantern's kit can be built from. */
 export const ABILITY_LIST = (Object.keys(ABILITIES) as AbilityId[]).filter(
@@ -407,6 +435,8 @@ export interface RedShot {
 	kind: 'bolt' | 'saw' | 'hook' | 'spear' | 'skull' | 'plasma' | 'orb' | 'laser' | 'shell' | 'hammer' | 'fist' | 'blade';
 	/** Big constructs (a thrown hammer, a giant fist) hit this much wider than a bolt. */
 	size?: number;
+	/** Not energy at all: something Grodd threw (a car, a chunk of street). */
+	look?: 'car' | 'rock';
 	owner: Enemy;
 	x: number;
 	y: number;
@@ -484,8 +514,8 @@ export interface RedCage {
 	y: number;
 	time: number;
 	maxTime: number;
-	/** Built by a Green Lantern sparring with you (Sinestro): drawn green. */
-	green?: boolean;
+	/** Drawn in another colour than red (Sinestro sparring: Corps green). */
+	tint?: Tint;
 }
 
 export interface RedWorld {
@@ -524,6 +554,7 @@ export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Play
 
 	if (CORPS_ABILITIES.has(a.id)) return startCorpsAbility(e, a, w, players);
 	if (RAZER_ABILITIES.has(a.id)) return startRazerAbility(e, a, w, players);
+	if (GRODD_ABILITIES.has(a.id)) return startGroddAbility(e, a, w);
 	switch (a.id) {
 		case 'claws':
 			e.vx += b.aimX * 340;
@@ -691,6 +722,10 @@ export function updateAbility(e: Enemy, w: ConstructWorld, players: readonly Pla
 
 	if (RAZER_ABILITIES.has(a.id)) {
 		updateRazerAbility(e, a, w, players, dt);
+		return b.timer <= 0;
+	}
+	if (GRODD_ABILITIES.has(a.id)) {
+		updateGroddAbility(e, a, w, players, dt);
 		return b.timer <= 0;
 	}
 	if (CORPS_ABILITIES.has(a.id)) {
@@ -988,6 +1023,7 @@ function meteorShower(e: Enemy, a: AbilityDef, w: ConstructWorld) {
 /** Move red projectiles, beams, chains, cages, falling strikes and fire. Called once per tick after the brains. */
 export function updateRedConstructs(w: ConstructWorld, players: readonly Player[], dt: number) {
 	const red = w.red;
+	updatePsychicFx(w, dt);
 	// Everything red is rage (Green Lanterns sparring with you aren't)
 	const rageOf = (e: Enemy) => (ENEMIES[e.kind].faction === 'red' ? RAGE_VS_SHIELD : 1);
 	red.shots = red.shots.filter((s) => {
@@ -1248,7 +1284,7 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 			case 'orb':
 				damagePlayer(w, p, s.damage, s.x - s.vx, s.y - s.vy, 0);
 				if (!shielded && !p.dash && !w.red.cages.some((c) => c.target === p)) {
-					w.red.cages.push({ target: p, x: p.x, y: p.y, time: CAGE_TIME, maxTime: CAGE_TIME, green: isCorps(owner) });
+					w.red.cages.push({ target: p, x: p.x, y: p.y, time: CAGE_TIME, maxTime: CAGE_TIME, tint: tintOf(owner) });
 				}
 				break;
 			default:
@@ -1268,7 +1304,7 @@ function shellBurst(w: ConstructWorld, s: RedShot, players: readonly Player[]) {
 	}
 	for (const t of w.turrets) if (Math.hypot(t.x - s.x, t.y - s.y) <= r + 10) t.hp -= 45;
 	for (const o of wallsNear(w, s.x, s.y, r)) damageWall(w, o, 70);
-	w.effects.push({ kind: 'redBlast', x: s.x, y: s.y, age: 0, life: 0.55, radius: r, green: isCorps(s.owner) });
+	w.effects.push({ kind: 'redBlast', x: s.x, y: s.y, age: 0, life: 0.55, radius: r, tint: tintOf(s.owner) });
 }
 
 function startReturn(s: RedShot) {
@@ -1277,7 +1313,7 @@ function startReturn(s: RedShot) {
 }
 
 function impact(w: ConstructWorld, s: RedShot) {
-	w.effects.push({ kind: 'redImpact', x: s.x, y: s.y, age: 0, life: 0.2, lift: RED_HAND_LIFT, green: isCorps(s.owner) });
+	w.effects.push({ kind: 'redImpact', x: s.x, y: s.y, age: 0, life: 0.2, lift: RED_HAND_LIFT, tint: tintOf(s.owner) });
 }
 
 const isCorps = (e: Enemy) => ENEMIES[e.kind].faction === 'corps';

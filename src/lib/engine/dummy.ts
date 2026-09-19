@@ -19,7 +19,7 @@ export const DUMMY_RESPAWN = 3;
 export const DEFEAT_LINGER = 0.9;
 
 /** What kind of target: a training dummy, or which enemy. */
-export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'razer' | 'spaceRock' | 'rageTorpedo';
+export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterCore';
 
 export interface Dummy {
 	kind: TargetKind;
@@ -56,6 +56,8 @@ export interface Dummy {
 	 * middle, drawn `float` px above its ground point.
 	 */
 	drift?: { radius: number; float: number; spin: number; seed: number };
+	/** A broken Manhunter's core: how far (0..1) it has pulled itself back together. */
+	rebuild?: number;
 }
 
 export function createDummy(x: number, y: number): Dummy {
@@ -198,7 +200,12 @@ export const BODY: Record<TargetKind, { halfWidth: number; height: number }> = {
 	razer: { halfWidth: 18, height: 100 },
 	// Real size comes from its drift radius
 	spaceRock: { halfWidth: 20, height: 40 },
-	rageTorpedo: { halfWidth: 14, height: 40 }
+	rageTorpedo: { halfWidth: 14, height: 40 },
+	gorillaBrute: { halfWidth: 26, height: 96 },
+	gorillaGunner: { halfWidth: 24, height: 90 },
+	grodd: { halfWidth: 34, height: 128 },
+	manhunter: { halfWidth: 22, height: 120 },
+	manhunterCore: { halfWidth: 22, height: 40 }
 };
 /** A little slack below the feet, and the size of a bolt. */
 const HURT_SLACK = 8;

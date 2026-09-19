@@ -28,17 +28,21 @@ import { flyShip } from './ships';
 import { updateSquads, type SquadRole } from './squad';
 import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
 
-export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo'>;
+export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore'>;
 export type EnemyState = 'idle' | 'move' | 'windup' | 'act' | 'recover';
 export type Role = 'berserker' | 'hunter' | 'gunner';
 /** How a faction thinks: rage never backs down and gets faster when hurt; machines stay cold and regroup. */
 export type Mind = 'rage' | 'machine';
+/** Enemy art is drawn red; a tint recolors it: a sparring Lantern's green, Gorilla City tech amber, Grodd's psychic purple. */
+export type Tint = 'corps' | 'tech' | 'psychic';
 
 export interface EnemyDef {
 	kind: EnemyKind;
 	name: string;
-	/** 'corps': a Green Lantern sparring with you (Kilowog); his constructs are drawn green. */
-	faction: 'red' | 'manhunter' | 'corps';
+	/** 'corps': a Green Lantern sparring with you (Kilowog); his constructs are drawn green. 'gorilla': Grodd's army. */
+	faction: 'red' | 'manhunter' | 'corps' | 'gorilla';
+	/** Its constructs and effects are drawn in this colour instead of red. */
+	tint?: Tint;
 	/** One line for the codex and lab. */
 	description: string;
 	mind: Mind;
@@ -72,6 +76,9 @@ export interface EnemyDef {
 	/** Burns out after this many seconds (built constructs, like a Rage Turret). */
 	lifetime?: number;
 }
+
+/** The colour an enemy's constructs are drawn in, if not red. */
+export const tintOf = (e: { kind: EnemyKind }): Tint | undefined => ENEMIES[e.kind].tint;
 
 export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 	rageGrunt: {
@@ -137,6 +144,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		kind: 'kilowog',
 		name: 'Kilowog',
 		faction: 'corps',
+		tint: 'corps',
 		description:
 			"The Corps' drill sergeant, and the biggest Lantern you'll ever meet. He loves a hammer: a giant one brought down with a shockwave, a hammer cyclone, thrown hammers that come back, hammers raining from the sky, and a fist the size of a car.",
 		mind: 'rage',
@@ -157,6 +165,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		kind: 'sinestro',
 		name: 'Sinestro',
 		faction: 'corps',
+		tint: 'corps',
 		description:
 			"The greatest Lantern in the Corps, and he knows it. Fast, precise and merciless: sword lunges, fans of blades that land where you're going, a storm of blades in every direction, cages, a beam, and a giant fist.",
 		mind: 'rage',
@@ -256,6 +265,91 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		kit: ['twinBlades', 'chakram', 'chain', 'redShield'],
 		range: 150,
 		leans: { aggression: 0.85, caution: -0.4 },
+		lieutenant: true
+	},
+
+	// ---- Gorilla Grodd's army (Act 2): soldiers from Gorilla City, their tech glowing amber ----
+	gorillaBrute: {
+		kind: 'gorillaBrute',
+		name: 'Gorilla Soldier',
+		faction: 'gorilla',
+		tint: 'tech',
+		description:
+			"One of Grodd's soldiers from Gorilla City: four hundred pounds of armored gorilla with power gauntlets. It charges, leaps in to pound the ground, and punches hard enough to throw you across the street.",
+		mind: 'rage',
+		hp: 230,
+		speed: 165,
+		accel: 5,
+		sight: 700,
+		poise: 70,
+		scale: 1.15,
+		agility: 0.35,
+		movement: 'hover',
+		kit: ['claws', 'charge', 'slam', 'roar'],
+		range: 120,
+		leans: { aggression: 0.45, caution: -0.25 }
+	},
+	gorillaGunner: {
+		kind: 'gorillaGunner',
+		name: 'Gorilla Trooper',
+		faction: 'gorilla',
+		tint: 'tech',
+		description:
+			'A Gorilla City trooper with a heavy energy rifle. It keeps its distance, fires bursts and cannon shells, throws up energy barricades, and calls down mortar fire.',
+		mind: 'rage',
+		hp: 170,
+		speed: 140,
+		accel: 5,
+		sight: 760,
+		poise: 50,
+		scale: 1.05,
+		agility: 0.55,
+		movement: 'hover',
+		kit: ['blast', 'cannon', 'redWall', 'meteors'],
+		range: 320,
+		leans: { caution: 0.3, patience: 0.2 }
+	},
+	// Act 2's first villain: a telepathic gorilla with an army (his kit is set by the mission)
+	grodd: {
+		kind: 'grodd',
+		name: 'Gorilla Grodd',
+		faction: 'gorilla',
+		tint: 'psychic',
+		description:
+			'The smartest gorilla alive, and a telepath: psychic blasts that go straight through a bubble shield, mind control that turns your moves around, and cars thrown with a thought. Up close he is still a gorilla the size of a truck.',
+		mind: 'rage',
+		hp: 2400,
+		speed: 175,
+		accel: 5,
+		sight: 1000,
+		poise: 320,
+		scale: 1.45,
+		agility: 0.4,
+		movement: 'hover',
+		kit: ['mindBlast', 'mindLock', 'carThrow', 'claws', 'slam', 'charge'],
+		range: 220,
+		leans: { aggression: 0.5, caution: -0.2 },
+		lieutenant: true
+	},
+	// The Guardians' first peacekeepers, woken under Central City: it rebuilds itself when destroyed
+	manhunter: {
+		kind: 'manhunter',
+		name: 'Manhunter',
+		faction: 'manhunter',
+		description:
+			"A Manhunter android, one of the Guardians' first peacekeepers, asleep under the Earth for thousands of years. Eye lasers, a sweeping beam, a pulse that throws you back, and fists of steel. Break it and it rebuilds itself, unless you destroy its core.",
+		mind: 'machine',
+		hp: 1500,
+		speed: 150,
+		accel: 4,
+		sight: 1000,
+		poise: 260,
+		scale: 1.3,
+		agility: 0.3,
+		movement: 'hover',
+		kit: ['eyeLaser', 'sweep', 'pulse', 'claws', 'slam'],
+		range: 230,
+		leans: { aggression: 0.4, caution: -0.3 },
 		lieutenant: true
 	},
 
@@ -617,8 +711,9 @@ export function updateEnemies(w: ConstructWorld, players: readonly Player[], dt:
 		w.rage = ENEMIES[e.kind].faction === 'red' ? RAGE_VS_SHIELD : 1;
 		think(e, pack, attackers, w, players, dt);
 		w.rage = 1;
-		// A Green Lantern sparring with you makes green constructs, not red ones
-		if (ENEMIES[e.kind].faction === 'corps') for (let i = before; i < w.effects.length; i++) if (!CORPS_ART.has(w.effects[i].kind)) w.effects[i].green = true;
+		// A Green Lantern sparring with you makes green constructs, not red ones (and Grodd's army, amber and purple)
+		const tint = tintOf(e);
+		if (tint) for (let i = before; i < w.effects.length; i++) if (!CORPS_ART.has(w.effects[i].kind)) w.effects[i].tint = tint;
 	}
 	spreadAround(pack);
 	separate(pack, dt);

@@ -8,6 +8,7 @@ import { approach, boxOverlap, moveBody, type Solid } from './physics';
 import { MAX_WILLPOWER } from './willpower';
 import { PLAYER_MAX_HEALTH } from './combat';
 import { STANDING_HEIGHT } from './animation';
+import { createHeroState, type HeroState } from './heroes';
 
 export type { Solid } from './physics';
 
@@ -134,6 +135,10 @@ export interface Player {
 	armor: ArmorSuit | null;
 	/** Seconds left of a Rage Brand (Razer): the ring can't build constructs or shields. */
 	branded: number;
+	/** Seconds left with Grodd in their head: every move goes the wrong way. */
+	confused: number;
+	/** A hero's powers (the Flash, Hawkgirl: heroes.ts). Lanterns don't have this. */
+	hero?: HeroState;
 
 	// ---- Animation timers (drive poses; see animation.ts) ----
 	/** Seconds left on ring-shot recoil. */
@@ -200,6 +205,7 @@ export const FEET_HALF_H = 5;
 export function createPlayer(slot: number, def: LanternDef, input: InputSource, x: number, y: number): Player {
 	const loadout = LOADOUTS[def.id].map((id) => CONSTRUCTS[id]);
 	return {
+		hero: def.hero ? createHeroState(def.hero) : undefined,
 		slot,
 		def,
 		input,
@@ -234,6 +240,7 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		dash: null,
 		armor: null,
 		branded: 0,
+		confused: 0,
 		shotTimer: 0,
 		hurtTimer: 0,
 		downed: false,

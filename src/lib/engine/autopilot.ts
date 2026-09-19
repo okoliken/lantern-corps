@@ -11,6 +11,7 @@ import type { Game } from './game';
 import type { InputSource, Intent } from './input';
 import type { Player } from './player';
 import { BUBBLE_SHIELD } from './constructs/defs';
+import { isStanding } from './dummy';
 
 /** Enemies closer than this are worth fighting before moving on. */
 const ENGAGE_RANGE = 520;
@@ -57,6 +58,18 @@ export class Autopilot implements InputSource {
 				intent.pointer = { x: cell.x + cell.w / 2, y: cell.y + cell.h / 2 - me.ringLift };
 				intent.shot = true;
 				intent.moveX = intent.moveY = 0;
+			}
+		}
+
+		// A broken Manhunter's core: smash it before it rebuilds, whatever else is going on
+		const core = game.dummies.find((d) => d.kind === 'manhunterCore' && isStanding(d));
+		if (core) {
+			intent.pointer = { x: core.x, y: core.y - 20 - me.ringLift };
+			intent.shot = true;
+			const d = dist(core, me);
+			if (d > 150) {
+				intent.moveX = (core.x - me.x) / d;
+				intent.moveY = (core.y - me.y) / d;
 			}
 		}
 

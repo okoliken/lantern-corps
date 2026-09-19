@@ -5,6 +5,7 @@
 // footprint on the ground; we draw its ROOF lifted up by `height`, and a
 // FRONT FACE filling the gap. That gives a simple 3/4 look.
 
+import { drawParkedCar } from './gorillas';
 import { drawRageWall } from './redConstructs';
 import type { Obstacle } from '../map';
 import { green, greenLight, greenCore, GREEN_CORE, THEME_GREEN } from '../../theme';
@@ -77,7 +78,7 @@ export function drawStarfield(
 const GROUND_TILE = 64;
 
 /** How a planet's surface looks: 'dust' (Coast City's outskirts), 'oa' (the Corps' home), 'ash' (a burnt outpost). */
-export type GroundStyle = 'dust' | 'oa' | 'ash' | 'meadow' | 'bloodMoon';
+export type GroundStyle = 'dust' | 'oa' | 'ash' | 'meadow' | 'bloodMoon' | 'street';
 
 const GROUNDS: Record<GroundStyle, { void: string; base: string; dark: string; light: string; inlay?: string }> = {
 	dust: { void: '#15150f', base: '#3b3a2e', dark: 'rgba(20, 18, 12, 0.35)', light: 'rgba(120, 112, 88, 0.3)' },
@@ -87,8 +88,20 @@ const GROUNDS: Record<GroundStyle, { void: string; base: string; dark: string; l
 	ash: { void: '#0e0b0b', base: '#2f2a2a', dark: 'rgba(12, 6, 5, 0.4)', light: 'rgba(150, 120, 110, 0.22)' },
 	// The Red Lanterns' prison moon: dark rust rock under a red sky
 	bloodMoon: { void: '#0d0506', base: '#33191a', dark: 'rgba(20, 4, 4, 0.42)', light: 'rgba(170, 90, 80, 0.2)' },
-	oa: { void: '#060d0a', base: '#1d2a25', dark: 'rgba(5, 12, 9, 0.4)', light: greenLight(0.12), inlay: green(0.12) }
+	oa: { void: '#060d0a', base: '#1d2a25', dark: 'rgba(5, 12, 9, 0.4)', light: greenLight(0.12), inlay: green(0.12) },
+	// A city on Earth: concrete sidewalks between asphalt roads (see drawStreets)
+	street: { void: '#0b0c0e', base: '#4a4a4c', dark: 'rgba(20, 20, 22, 0.3)', light: 'rgba(150, 150, 155, 0.18)' }
 };
+
+/**
+ * City streets on a grid: a road every CITY_BLOCK px each way, ROAD_WIDTH
+ * wide, starting at the top-left of the map. Maps put their buildings on the
+ * blocks in between (see cityBlocks).
+ */
+export const CITY_BLOCK = 700;
+export const ROAD_WIDTH = 240;
+/** Where the roads are: the first road runs down/across from here. */
+export const ROAD_OFFSET = 230;
 /** Size of Oa's paving slabs. */
 const INLAY = 160;
 
@@ -144,10 +157,95 @@ export function drawPlanetGround(ctx: CanvasRenderingContext2D, visible: WorldRe
 		ctx.stroke();
 	}
 
+	if (ground === 'street') drawStreets(ctx, visible, mapW, mapH);
+
 	// Map edge
 	ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
 	ctx.lineWidth = 6;
 	ctx.strokeRect(0, 0, mapW, mapH);
+}
+
+/** Asphalt roads over the concrete, with lane lines, kerbs and crosswalks at every junction. */
+function drawStreets(ctx: CanvasRenderingContext2D, visible: WorldRect, mapW: number, mapH: number) {
+	const left = Math.max(0, visible.left);
+	const top = Math.max(0, visible.top);
+	const right = Math.min(mapW, visible.right);
+	const bottom = Math.min(mapH, visible.bottom);
+	// Sidewalk slabs
+	ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
+	ctx.lineWidth = 1;
+	ctx.beginPath();
+	for (let x = Math.ceil(left / 60) * 60; x < right; x += 60) {
+		ctx.moveTo(x, top);
+		ctx.lineTo(x, bottom);
+	}
+	for (let y = Math.ceil(top / 60) * 60; y < bottom; y += 60) {
+		ctx.moveTo(left, y);
+		ctx.lineTo(right, y);
+	}
+	ctx.stroke();
+
+	const roads = (from: number, to: number) => {
+		const list: number[] = [];
+		for (let r = Math.floor((from - ROAD_OFFSET - ROAD_WIDTH) / CITY_BLOCK); r * CITY_BLOCK + ROAD_OFFSET < to; r++) list.push(r * CITY_BLOCK + ROAD_OFFSET);
+		return list;
+	};
+	const across = roads(top, bottom).filter((y) => y + ROAD_WIDTH > 0 && y < mapH);
+	const down = roads(left, right).filter((x) => x + ROAD_WIDTH > 0 && x < mapW);
+
+	// Kerbs, then asphalt
+	ctx.fillStyle = '#6b6b6e';
+	for (const y of across) ctx.fillRect(left, y - 5, right - left, ROAD_WIDTH + 10);
+	for (const x of down) ctx.fillRect(x - 5, top, ROAD_WIDTH + 10, bottom - top);
+	ctx.fillStyle = '#28292d';
+	for (const y of across) ctx.fillRect(left, y, right - left, ROAD_WIDTH);
+	for (const x of down) ctx.fillRect(x, top, ROAD_WIDTH, bottom - top);
+
+	// Dashed yellow centre lines, stopping short of the junctions
+	ctx.strokeStyle = 'rgba(214, 170, 40, 0.75)';
+	ctx.lineWidth = 4;
+	ctx.setLineDash([36, 28]);
+	ctx.beginPath();
+	for (const y of across) {
+		for (const [a, b] of spans(left, right, down)) {
+			ctx.moveTo(a, y + ROAD_WIDTH / 2);
+			ctx.lineTo(b, y + ROAD_WIDTH / 2);
+		}
+	}
+	for (const x of down) {
+		for (const [a, b] of spans(top, bottom, across)) {
+			ctx.moveTo(x + ROAD_WIDTH / 2, a);
+			ctx.lineTo(x + ROAD_WIDTH / 2, b);
+		}
+	}
+	ctx.stroke();
+	ctx.setLineDash([]);
+
+	// Crosswalks on each side of every junction
+	ctx.fillStyle = 'rgba(225, 225, 220, 0.55)';
+	for (const x of down) {
+		for (const y of across) {
+			for (let i = 0; i < 8; i++) {
+				const o = 16 + i * 28;
+				ctx.fillRect(x + o, y - 34, 14, 26);
+				ctx.fillRect(x + o, y + ROAD_WIDTH + 8, 14, 26);
+				ctx.fillRect(x - 34, y + o, 26, 14);
+				ctx.fillRect(x + ROAD_WIDTH + 8, y + o, 26, 14);
+			}
+		}
+	}
+}
+
+/** The stretches between crossing roads, from `from` to `to`, with room left at each junction. */
+function spans(from: number, to: number, crossings: number[]): [number, number][] {
+	const out: [number, number][] = [];
+	let start = from;
+	for (const c of [...crossings].sort((a, b) => a - b)) {
+		if (c - 40 > start) out.push([start, Math.min(to, c - 40)]);
+		start = Math.max(start, c + ROAD_WIDTH + 40);
+	}
+	if (start < to) out.push([start, to]);
+	return out;
 }
 
 // ------------------------------------------------------------ obstacles
@@ -166,6 +264,8 @@ export function drawObstacle(ctx: CanvasRenderingContext2D, o: Obstacle, time = 
 			return space ? drawForceField(ctx, o, time) : drawEnergyWall(ctx, o, time);
 		case 'redWall':
 			return drawRageWall(ctx, o, time);
+		case 'car':
+			return drawParkedCar(ctx, o);
 	}
 }
 

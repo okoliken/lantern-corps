@@ -44,13 +44,22 @@
 		setup.game.buttons.clear();
 	}
 
+	/** A story scene before the fight (John's first transformation), if the mission has one. */
+	let intro = $state<DialogueScene | null>(null);
+
 	$effect(() => {
-		// The game waits behind the briefing and the controls card
-		setPaused(briefing || showControls);
+		// The game waits behind the briefing, the opening scene and the controls card
+		setPaused(briefing || !!intro || showControls);
 	});
 
 	function launch() {
 		briefing = false;
+		intro = setup.intro?.() ?? null;
+		if (!intro) showControls = !settings.current.seenControls;
+	}
+
+	function introDone() {
+		intro = null;
 		showControls = !settings.current.seenControls;
 	}
 
@@ -68,7 +77,7 @@
 	}
 
 	function onKeydown(e: KeyboardEvent) {
-		if (e.code !== 'Escape' || briefing || showControls || status.state === 'won' || status.state === 'lost') return;
+		if (e.code !== 'Escape' || briefing || intro || showControls || status.state === 'won' || status.state === 'lost') return;
 		e.preventDefault();
 		setPaused(!paused);
 	}
@@ -123,7 +132,7 @@
 		<GameCanvas game={setup.game} />
 	{/key}
 
-	{#if !briefing}
+	{#if !briefing && !intro}
 		<header class="bar">
 			<button class="pause" onclick={() => setPaused(true)} aria-label="Pause">❚❚ <kbd>Esc</kbd></button>
 			<div class="panel">
@@ -196,6 +205,8 @@
 				<a href="/missions">← Missions</a>
 			</div>
 		</div>
+	{:else if intro}
+		<StoryScene scene={intro} onDone={introDone} />
 	{:else if showControls}
 		<ControlsCard onClose={() => (showControls = false)} />
 	{:else if outro && !outroDone}

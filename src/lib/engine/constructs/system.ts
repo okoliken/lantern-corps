@@ -10,6 +10,7 @@
 // Everything a construct can touch lives in a ConstructWorld, so this file
 // doesn't depend on Game and is easy to test on its own.
 
+import type { Tint } from '../enemies/enemies';
 import { castBeam, castThrough } from '../beam';
 import { DUMMY_HALF_H, DUMMY_HALF_W, aimPoint, distanceToBody, footprintGap, footprintPoint, hitDummy, hurtbox, isStanding, type Dummy } from '../dummy';
 import type { Intent } from '../input';
@@ -198,8 +199,8 @@ export interface Effect {
 	hurt?: boolean;
 	/** Height it's drawn above the ground plane, fixed when it was created. */
 	lift?: number;
-	/** An enemy effect made by a Green Lantern (Kilowog sparring): drawn in Corps green instead of red. */
-	green?: boolean;
+	/** An enemy effect drawn in another colour than red (Kilowog sparring: Corps green; see Tint). */
+	tint?: Tint;
 	/** Which construct made it, when one kind of effect has several looks (a glove or a fist; pillars or an anvil). */
 	form?: string;
 	/** Who made it: effects at hand height are drawn at that Lantern's ring height. */

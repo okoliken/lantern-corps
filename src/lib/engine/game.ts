@@ -37,9 +37,13 @@ import { drawRageTorpedo } from './draw/interceptor';
 import { drawArmorSuit } from './draw/kits';
 import { drawFallingMeteors, drawRedBeam, drawRedCage, drawRedChain, drawRedEffect, drawRedGround, drawRedShot, drawBrand } from './draw/redConstructs';
 import { AllyInput } from './ally';
+import { HeroInput, heroFx, heroMoving, updateHero, updateHeroFx } from './heroes';
+import { drawHero, drawHeroFx, drawSpeedTrail } from './draw/heroes';
+import { drawManhunterCore, drawMindLock, drawPsychicFx, drawThrownDebris } from './draw/gorillas';
+import { psychicFx } from './enemies/grodd';
 import { RED_HAND_LIFT } from './enemies/redConstructs';
 import { updatePlayerCombat, revivePlayer } from './combat';
-import { ENEMIES, createEnemy, enemyLabel, isEnemy, updateEnemies, type Enemy, type EnemyKind, type Role } from './enemies/enemies';
+import { ENEMIES, createEnemy, enemyLabel, isEnemy, tintOf, updateEnemies, type Enemy, type EnemyKind, type Role } from './enemies/enemies';
 import {
 	FIGURE_HALF_WIDTH,
 	FIGURE_HEIGHT,
@@ -51,7 +55,7 @@ import {
 	ringPosition,
 	type LanternPose
 } from './draw/lantern';
-import { inCorpsGreen } from './draw/corps';
+import { inTint } from './draw/corps';
 import { drawCorpsShot } from './draw/corpsConstructs';
 import { drawObstacle, drawPlanetGround, drawStarfield, makeStars, type WorldRect } from './draw/world';
 import { DUMMY_HALF_H, DUMMY_HALF_W, createDummy, isStanding, updateDummy, type Dummy } from './dummy';
@@ -71,7 +75,7 @@ import {
 } from './input';
 import { defaultSettings, type Settings } from './settings';
 import { XP_PER_DEFEAT, addXp, applyProgression, type Profile, type Profiles } from './progression';
-import { LANTERNS, isLanternId, type CrewId, type LanternId } from './lanterns';
+import { LANTERNS, isLanternId, type CrewId, type LanternId, type RingBearerId } from './lanterns';
 import { buildTestMap, seededRandom, type GameMap, type Obstacle } from './map';
 import { FEET_HALF_H, FEET_HALF_W, clampToBounds, createPlayer, updateFacing, updatePlayer, type Player, type WorldRules } from './player';
 import { BUBBLE_SHIELD, constructLabel } from './constructs/defs';
@@ -137,13 +141,8 @@ const HELD_LOOKS: ReadonlySet<string> = new Set(['minigun', 'cannon', 'sniper', 
 /** How big a Lantern is drawn next to Hal and John (Kilowog is huge). */
 const sizeOf = (p: Player) => p.def.figureScale ?? 1;
 
-const isCorpsEnemy = (e: Enemy) => ENEMIES[e.kind].faction === 'corps';
-
-/** Draw something red in Corps green instead (a sparring Green Lantern's constructs). */
-function tinted(ctx: CanvasRenderingContext2D, green: boolean | undefined, draw: () => void) {
-	if (green) inCorpsGreen(ctx, draw);
-	else draw();
-}
+/** Draw something red in another colour (a sparring Green Lantern's constructs, Grodd's army). */
+const tinted = inTint;
 
 /** XP for knocking an asteroid apart, much less than for beating an enemy. */
 const XP_PER_ROCK = 5;
@@ -213,7 +212,7 @@ export class Game {
 		this.map = map ?? buildTestMap(environment);
 		const env = ENVIRONMENT_RULES[this.map.environment];
 		this.rules = { solids: this.map.obstacles, alwaysFlying: env.alwaysFlying };
-		this.batteries = [{ ...this.map.battery, charge: BATTERY_MAX_CHARGE }];
+		this.batteries = this.map.noBattery ? [] : [{ ...this.map.battery, charge: BATTERY_MAX_CHARGE }];
 		this.dummies = this.map.dummies.map((d) => createDummy(d.x, d.y));
 		// The construct world shares the map's obstacle array, so walls a
 		// Lantern builds block movement, and crates it breaks stop blocking.
@@ -225,7 +224,7 @@ export class Game {
 		this.inputs = players.map((cfg) => new BindingInput(this.buttons, settings.bindings[cfg.keys]));
 		this.layouts = players.map((cfg) => cfg.keys);
 		this.players = players.map((cfg, slot) => {
-			const ally = cfg.ai ? new AllyInput(this) : null;
+			const ally = cfg.ai ? (LANTERNS[cfg.lantern].hero ? new HeroInput(this) : new AllyInput(this)) : null;
 			const p = createPlayer(slot, LANTERNS[cfg.lantern], ally ?? this.inputs[slot], startX + slot * gap, this.map.spawn.y);
 			if (ally) {
 				ally.me = p;
@@ -259,11 +258,12 @@ export class Game {
 	 */
 	addPartner(lantern: CrewId, x: number, y: number): Player {
 		const slot = this.players.length;
-		const ally = new AllyInput(this);
+		const ally = LANTERNS[lantern].hero ? new HeroInput(this) : new AllyInput(this);
 		const p = createPlayer(slot, LANTERNS[lantern], ally, x, y);
 		ally.me = p;
-		p.flying = true;
-		p.altitude = 1;
+		// Lanterns (and Hawkgirl) arrive flying; the Flash comes running
+		p.flying = lantern !== 'flash';
+		p.altitude = p.flying ? 1 : 0;
 		if (this.profiles && isLanternId(lantern)) {
 			applyProgression(p, LANTERNS[lantern], this.profiles[lantern]);
 			p.willpower = p.maxWillpower;
@@ -367,7 +367,12 @@ export class Game {
 		for (const b of this.batteries) updateBattery(b, dt);
 
 		for (const p of this.players) {
-			const intent = p.input.read();
+			let intent = p.input.read();
+			// Grodd in their head: every move goes the wrong way
+			if (p.confused > 0) {
+				p.confused = Math.max(0, p.confused - dt);
+				intent = { ...intent, moveX: -intent.moveX, moveY: -intent.moveY };
+			}
 			if (intent.backup) this.director?.callBackup?.(this, p);
 			if (this.godMode) p.invuln = Math.max(p.invuln, 0.1);
 			if (updatePlayerCombat(p, dt)) {
@@ -375,7 +380,8 @@ export class Game {
 				const b = this.batteries[0] ?? map.spawn;
 				revivePlayer(p, b.x + 40 * (p.slot === 0 ? -1 : 1), b.y + 60);
 			}
-			updatePlayer(p, intent, dt, this.rules);
+			// A hero mid-move (a Blitz, a dive) is carried by the move instead
+			if (!heroMoving(p)) updatePlayer(p, intent, dt, this.rules);
 			// Keep feet inside the map, with room above for the body (and the flying height)
 			const top = FIGURE_HEIGHT + this.poseFor(p).hoverHeight * p.altitude * 1.35;
 			clampToBounds(p, FIGURE_HALF_WIDTH, top, map.width - FIGURE_HALF_WIDTH, map.height - 6);
@@ -392,6 +398,11 @@ export class Game {
 				// Now the aim is known, find the ring on the aimed skeleton
 				this.updateRing(p);
 			}
+			if (p.hero) {
+				// Heroes have powers of their own, not a ring
+				updateHero(p, dt, this.constructs, this.rules.solids);
+				continue;
+			}
 			updateWillpower(p, dt, this.batteries);
 			updatePlayerConstructs(p, intent, dt, this.constructs);
 			updateSignature(p, intent, dt, this.constructs);
@@ -402,6 +413,7 @@ export class Game {
 			if (this.infiniteSurge && !p.dash) p.surge = 100;
 		}
 
+		updateHeroFx(this.constructs, dt);
 		if (!this.freezeEnemies) updateEnemies(this.constructs, this.players, dt);
 		updateConstructWorld(this.constructs, dt);
 		updateAidStations(this.constructs, this.players, dt);
@@ -441,7 +453,7 @@ export class Game {
 	spawnEnemy(kind: EnemyKind, x: number, y: number, role: Role = 'berserker'): Enemy {
 		const e = createEnemy(kind, x, y, role);
 		this.dummies.push(e);
-		this.constructs.effects.push({ kind: 'roar', x, y, age: 0, life: 0.5, radius: 50, lift: 30, green: ENEMIES[kind].faction === 'corps' });
+		this.constructs.effects.push({ kind: 'roar', x, y, age: 0, life: 0.5, radius: 50, lift: 30, tint: ENEMIES[kind].tint });
 		// Named characters get announced
 		if (ENEMIES[kind].lieutenant) {
 			this.constructs.effects.push({ kind: 'callout', x, y: y - 110, age: 0, life: 2, text: ENEMIES[kind].name.toUpperCase(), hurt: ENEMIES[kind].faction !== 'corps' });
@@ -513,8 +525,9 @@ export class Game {
 			// Jet Strike is always full speed.
 			// Flying backwards (facing a target while backing off) stays upright.
 			lean: p.dash ? 1 : p.flying ? Math.min(Math.max(0, p.vx * p.dir) / p.def.maxSpeed, 1) : 0,
-			hoverHeight: this.map.environment === 'space' ? HOVER_SPACE : HOVER_PLANET,
-			glow: true,
+			// Hawkgirl climbs above her usual height to dive
+			hoverHeight: (this.map.environment === 'space' ? HOVER_SPACE : HOVER_PLANET) + (p.hero?.rise ?? 0) / 1.35,
+			glow: !p.hero,
 			shadow: env.hasGround,
 			// The ring arm aims while a construct is running or just used
 			firing: p.firing || p.actionTimer > 0 || p.shotTimer > 0,
@@ -574,7 +587,7 @@ export class Game {
 		if (map.environment === 'planet') drawPlanetGround(ctx, visible, map.width, map.height, map.ground);
 		// Traps and Fortress rings are markings on the ground: under everything
 		for (const t of cw.traps) drawTrap(ctx, t, this.time);
-		for (const e of cw.effects) if (e.kind === 'slamMark') tinted(ctx, e.green, () => drawRedEffect(ctx, e, 0, this.time));
+		for (const e of cw.effects) if (e.kind === 'slamMark') tinted(ctx, e.tint, () => drawRedEffect(ctx, e, 0, this.time));
 		drawRedGround(ctx, cw.red.puddles, cw.red.strikes, this.time);
 		const inSpace = map.environment === 'space';
 		for (const f of cw.fortresses) drawFortressBack(ctx, f, this.time, inSpace);
@@ -607,6 +620,8 @@ export class Game {
 					? () => drawEnemy(ctx, d, x, y, env.hasGround, this.time)
 					: d.kind === 'rageTorpedo'
 						? () => drawRageTorpedo(ctx, d, x, y, this.time)
+						: d.kind === 'manhunterCore'
+						? () => drawManhunterCore(ctx, d, x, y, this.time)
 						: d.drift
 							? () => drawSpaceRock(ctx, d, x, y, this.time)
 							: () => drawDummy(ctx, d, x, y, env.hasGround, this.time, this.settings.reduceFlashing)
@@ -624,13 +639,19 @@ export class Game {
 			const list = p.altitude > 0.5 ? air : ground;
 			// During Jet Strike (or the Fighter Jet) the Lantern is drawn as the jet's pilot instead (below)
 			const inJet = p.dash?.kind === 'jet' || p.dash?.look === 'jet';
-			if (!inJet) list.push({ baseY: y, draw: () => drawLantern(ctx, p.def, x, y, pose, this.time, sizeOf(p)) });
+			const hero = p.hero;
+			if (hero) {
+				if (hero.trail.length > 1) ground.push({ baseY: y - 0.01, draw: () => drawSpeedTrail(ctx, hero.trail, FIGURE_HEIGHT) });
+				list.push({ baseY: y, draw: () => drawHero(ctx, hero.id, p.def.look, x, y, pose, this.time, sizeOf(p), { guard: hero.guard }) });
+			} else if (!inJet) list.push({ baseY: y, draw: () => drawLantern(ctx, p.def, x, y, pose, this.time, sizeOf(p)) });
 			// Power Armor goes on over the figure
 			const suit = p.armor;
 			if (suit && !inJet) list.push({ baseY: y + 0.01, draw: () => drawArmorSuit(ctx, x, y, pose, this.time, sizeOf(p), suit.time / suit.maxTime) });
 
 			// Branded by Razer: the sigil hangs over their head until their ring works again
 			if (p.branded > 0) overlays.push(() => drawBrand(ctx, x, y - p.bodyTop - 22, p.branded, this.time));
+			// Grodd in their head: a psychic swirl round it
+			if (p.confused > 0) overlays.push(() => drawMindLock(ctx, x, y - p.bodyTop - 8, p.confused, this.time));
 
 			if (p.charging) {
 				const chestY = y - (pose.hoverHeight * p.altitude + 28) * 1.35;
@@ -720,28 +741,32 @@ export class Game {
 		for (const s of cw.red.shots) {
 			const x = lerp(s.prevX, s.x, alpha);
 			const y = lerp(s.prevY, s.y, alpha);
+			if (s.look) {
+				drawThrownDebris(ctx, s, x, y, RED_HAND_LIFT, this.time);
+				continue;
+			}
 			if (s.kind === 'hammer' || s.kind === 'fist' || s.kind === 'blade') {
 				drawCorpsShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
 				continue;
 			}
-			tinted(ctx, isCorpsEnemy(s.owner), () => {
+			tinted(ctx, tintOf(s.owner), () => {
 				if (s.kind === 'hook') drawRedChain(ctx, ...this.redHand(s.owner, alpha), x, y - RED_HAND_LIFT, this.time);
 				drawRedShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
 			});
 		}
-		for (const bm of cw.red.beams) tinted(ctx, isCorpsEnemy(bm.owner), () => drawRedBeam(ctx, bm, ...this.redHand(bm.owner, alpha), this.time));
+		for (const bm of cw.red.beams) tinted(ctx, tintOf(bm.owner), () => drawRedBeam(ctx, bm, ...this.redHand(bm.owner, alpha), this.time));
 		for (const c of cw.red.cages) {
 			const t = c.target;
 			const x = lerp(t.prevX, t.x, alpha);
 			const y = lerp(t.prevY, t.y, alpha);
 			const top = y - this.poseFor(t).hoverHeight * t.altitude * 1.35 - FIGURE_HEIGHT;
-			tinted(ctx, c.green, () => drawRedCage(ctx, c, x, y - this.poseFor(t).hoverHeight * t.altitude * 1.35, top, this.time));
+			tinted(ctx, c.tint, () => drawRedCage(ctx, c, x, y - this.poseFor(t).hoverHeight * t.altitude * 1.35, top, this.time));
 		}
 		drawFallingMeteors(ctx, cw.red.strikes, this.time);
 		for (const c of cw.red.chains) {
 			const t = c.target;
 			const bodyY = lerp(t.prevY, t.y, alpha) - this.poseFor(t).hoverHeight * t.altitude * 1.35 - FIGURE_HEIGHT * 0.55;
-			tinted(ctx, isCorpsEnemy(c.owner), () => drawRedChain(ctx, ...this.redHand(c.owner, alpha), lerp(t.prevX, t.x, alpha), bodyY, this.time));
+			tinted(ctx, tintOf(c.owner), () => drawRedChain(ctx, ...this.redHand(c.owner, alpha), lerp(t.prevX, t.x, alpha), bodyY, this.time));
 		}
 
 		for (const e of cw.effects) {
@@ -762,8 +787,10 @@ export class Game {
 				drawEffect(ctx, { ...e, radius: (o.bodyTop - o.bodyBottom) * 0.66 }, bodyMid, this.time);
 				continue;
 			}
-			tinted(ctx, e.green, () => drawEffect(ctx, e, e.lift ?? 0, this.time, inSpace));
+			tinted(ctx, e.tint, () => drawEffect(ctx, e, e.lift ?? 0, this.time, inSpace));
 		}
+		drawHeroFx(ctx, heroFx(cw), this.time);
+		drawPsychicFx(ctx, psychicFx(cw), this.time);
 		if (this.nameTags) for (const t of tags) t();
 
 		if (this.debug) this.drawDebug(ctx);
@@ -773,7 +800,10 @@ export class Game {
 		// Bars for the two main Lanterns (bottom left and right); allies who join later fight without them
 		if (this.hud) drawHud(
 			ctx,
-			this.players.slice(0, 2).map((p, i) => ({
+			// Heroes (the Flash, Hawkgirl) have no ring to show
+			this.players.slice(0, 2).filter((p) => !p.hero).map((p) => {
+				const i = p.slot;
+				return {
 				name: p.def.name,
 				slot: p.slot,
 				level: this.profiles && isLanternId(p.def.id) ? this.profiles[p.def.id].level : null,
@@ -803,11 +833,12 @@ export class Game {
 				targetLabel: this.targetLabel(p),
 				surge: {
 					fill: p.surge / 100,
-					name: SIGNATURES[p.def.id].name,
+					name: SIGNATURES[p.def.id as RingBearerId].name,
 					key: this.aiSlots.has(i) ? '' : shortLabel(this.inputs[i].bindings.signature),
 					active: p.dash !== null || cw.fortresses.some((f) => f.owner === p)
 				}
-			})),
+				};
+			}),
 			width,
 			height,
 			this.time
@@ -849,7 +880,9 @@ export class Game {
 						? 'Asteroid'
 						: t.dummy.kind === 'rageTorpedo'
 							? 'Rage torpedo'
-							: 'Dummy'
+							: t.dummy.kind === 'manhunterCore'
+								? 'Manhunter core'
+								: 'Dummy'
 				: t.kind === 'ally'
 					? t.player.def.name
 					: t.obstacle.kind === 'cell'

@@ -751,11 +751,11 @@ export function drawSkeletonDebug(ctx: CanvasRenderingContext2D, pose: LanternPo
 
 // ---------------------------------------------------------------- helpers
 
-const mid = (a: Point, b: Point): Point => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-const lerpP = (a: Point, b: Point, t: number): Point => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+export const mid = (a: Point, b: Point): Point => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+export const lerpP = (a: Point, b: Point, t: number): Point => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 
 /** A closed shape through the midpoints of `points`, rounded at every corner (a heavy, soft body). */
-function rounded(points: Point[]): Path2D {
+export function rounded(points: Point[]): Path2D {
 	const p = new Path2D();
 	const mid = (a: Point, b: Point): Point => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
 	const n = points.length;
@@ -773,7 +773,7 @@ export function poly(points: Point[]): Path2D {
 }
 
 /** Lighten (amount > 0) or darken (amount < 0) a #rrggbb color. */
-function shadeColor(hex: string, amount: number): string {
+export function shadeColor(hex: string, amount: number): string {
 	const n = parseInt(hex.slice(1), 16);
 	const channel = (shift: number) => {
 		const c = (n >> shift) & 255;

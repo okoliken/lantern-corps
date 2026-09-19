@@ -376,6 +376,29 @@ Kilowog", "the boss should be fierce... we're bullying him").**
   (Rage Slam away) or shatters. Health x3.2, might 2.25. Bots: win ~2/6; losses get him to 7-24%;
   2-3 minute duels; ~15 target switches.
 
+**Act 2 · Mission 1: Call to Arms** (John + the Flash and Hawkgirl as AI heroes, Earth, Central City;
+`missions/callToArms.ts`, map `buildCentralCityMap` (`ground: 'street'`, `noBattery`), Grodd's powers
+`enemies/grodd.ts`, art `draw/gorillas.ts`, dig site/lamps/trees in `draw/earth.ts`). Before the fight,
+the page plays an **intro scene** (`MissionRun.intro`): `JohnChosen` with `JOHN_CALLED` (the ring comes
+back to John's roof; the 'chosen' line transforms him). Phases: **arrival** (5 gorillas already
+fighting the heroes; the ring gives hints: shots, then constructs at 9s, then the shield once John is
+hurt) → **push** (7 more up out of the dig) → **grodd** (Grodd + 2 guards; health x4.5, might 3;
+stage 2 at 60%: + Mind Control and Debris Storm, 4 reinforcements; stage 3 at 25%: x1.2 might and
+speed) → at 12% he **escapes** (a leap off-screen; his soldiers go with him) → **awakening** (the dig
+glows) → **manhunter** (health x3, might 2.6). Broken, the Manhunter becomes a `manhunterCore` target
+(700 hp; heroes and the autopilot go for it) that rebuilds it in 4s the first time, then 6.5s, then 8s
+(`REBUILD_TIMES`), at 50% health and x1.15 might per rebuild (capped at 3), with up to 2 Manhunter
+Drones; smash the core and it's over → **farewell** (the Flash mentions the Justice League; the ring
+calls John to Oa and lifts him into the sky). Soldiers x3.6 health, might 3.1.
+Enemies: **Gorilla Soldier** (`gorillaBrute`: claws/power gauntlets, charge, slam, roar), **Gorilla
+Trooper** (`gorillaGunner`: blast, cannon, barricade, mortar `meteors`), **Gorilla Grodd** (`grodd`:
+Psychic Blast = a cone that goes through bubble shields (`damagePlayer(..., pierce)`), Mind Control =
+`Player.confused` 3.2s (a bubble takes it and breaks), Telekinetic Throw = a `shell` with `look:
+'car'`, Debris Storm = 10 thrown chunks; `intent` like Razer's: blasts anyone crowding him, switches
+targets every 4.5-7s (60% John) with an opener, takes the Flash's mind once in stage 2), **Manhunter**
+(`manhunter`: eye laser, sweep, pulse, baton, slam). ★ Manhunter destroyed ★ no lives lost ★ under 7 min.
+Bots: win ~6/8, usually losing 1-2 lives; 4-5 minutes; 1-2 rebuilds.
+
 **Theme green** (`src/lib/theme.ts`, 2026-09-19): one green for the whole game. `THEME_GREEN`
 (#3dff6e) with shades mixed from it: `GREEN_LIGHT` (glows, highlights), `GREEN_DIM` (unlit/off
 states, borders), `GREEN_CORE` (the white-hot centre of ring energy), `greenShade(t)`; with alpha:
@@ -408,6 +431,28 @@ scripted conversations). `Director.goal()` puts an arrow at the screen edge towa
 brings (Kilowog). Kilowog has a hammer-first loadout, `bulk`/`figureScale`/`build` for his shape,
 signature **Hammer Quake** (smash + knockback + stun around him), no progression. The AI partner lets
 the smart ring pick his constructs and brawls up close.
+
+**Heroes** (`engine/heroes.ts`, `draw/heroes.ts`; Act 2): the **Flash** and **Hawkgirl** are players
+(`CrewId` includes `HeroId`; `LanternDef.hero`) driven by `HeroInput`, but with powers of their own
+instead of a ring: the Game runs `updateHero` in place of constructs, willpower and signatures, and
+skips normal movement while a move carries them (`heroMoving`). No HUD. Enemies hunt them like anyone.
+- Flash (on foot, 520 px/s): **Blitz** (runs in, 3 punches, runs out; untouchable while running),
+  **Speed Barrage** (zips through up to 5 enemies), **Tornado** (runs circles round a crowd of 3+: drags
+  them in, stuns, flings them out; destroys shots flying into it), **Lightning** (Speed Force bolt at
+  range, stuns), **Phase dodge** (sidesteps a windup or an incoming shot).
+- Hawkgirl (flies): **Nth Mace** (swing; breaks enemy shields), **Dive** (climbs 150 px out of reach,
+  then a shockwave where she lands), **Wing Rush** (through a line), **Thunderclap** (2+ around her:
+  lightning ring, stun), **Wing Guard** (wings wrapped round her: a hit does 25%). Nth metal does 3× to
+  a Manhunter's core.
+- Grodd's Mind Control (`Player.confused`) reverses a player's movement; a hero stands dazed.
+
+**Enemy tints:** enemy art is drawn red; `EnemyDef.tint` recolors it with a canvas filter
+(`inTint` in `draw/corps.ts`): `corps` green (sparring Lanterns), `tech` amber (Gorilla City), `psychic`
+purple (Grodd). Effects and cages carry `tint`.
+
+**Earth** (`ground: 'street'`): asphalt roads on a grid (`CITY_BLOCK` 700, `ROAD_WIDTH` 240) with
+lane lines, kerbs and crosswalks; `car` obstacles (breakable cover, and what Grodd throws);
+`noBattery` maps have no Lantern battery (willpower only regenerates).
 
 **Lantern health:** 150, regenerates 6/s after 4s without taking damage; 0.5s invulnerable after a hit.
 A downed Lantern lies still (no turning or aiming).

@@ -53,7 +53,7 @@ export function hasLineOfSight(x0: number, y0: number, x1: number, y1: number, o
 	const dy = y1 - y0;
 	const d = Math.hypot(dx, dy);
 	if (d < 1) return true;
-	const blockers = obstacles.filter((o) => o.kind !== 'wall' && o.kind !== 'redWall' && o.kind !== 'crate' && !inside(o, x0, y0) && !inside(o, x1, y1));
+	const blockers = obstacles.filter((o) => o.kind !== 'wall' && o.kind !== 'redWall' && o.kind !== 'crate' && o.kind !== 'car' && !inside(o, x0, y0) && !inside(o, x1, y1));
 	return castBeam(x0, y0, dx / d, dy / d, blockers, d).length >= d - 1;
 }
 
@@ -251,7 +251,7 @@ export function findCover(e: Enemy, t: Player, w: ConstructWorld): [number, numb
 	let best: [number, number] | null = null;
 	let bestDist = Infinity;
 	for (const o of w.obstacles) {
-		if (o.kind === 'wall' || o.kind === 'crate' || o.kind === 'redWall') continue;
+		if (o.kind === 'wall' || o.kind === 'crate' || o.kind === 'car' || o.kind === 'redWall') continue;
 		const cx = o.x + o.w / 2;
 		const cy = o.y + o.h / 2;
 		if (Math.hypot(cx - e.x, cy - e.y) > 380) continue;

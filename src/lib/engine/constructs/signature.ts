@@ -14,7 +14,7 @@
 
 import { footprintGap, isStanding, type Dummy } from '../dummy';
 import type { Intent } from '../input';
-import type { CrewId } from '../lanterns';
+import type { RingBearerId } from '../lanterns';
 import type { Player } from '../player';
 import type { ConstructDef } from './defs';
 import {
@@ -34,7 +34,7 @@ export interface SignatureDef {
 	description: string;
 }
 
-export const SIGNATURES: Record<CrewId, SignatureDef> = {
+export const SIGNATURES: Record<RingBearerId, SignatureDef> = {
 	hal: {
 		id: 'jetStrike',
 		name: 'Jet Strike',
@@ -138,10 +138,11 @@ export function updateSignature(p: Player, intent: Intent, dt: number, w: Constr
 		else runJet(p, dt, w);
 		return;
 	}
-	if (!intent.signature || p.surge < SURGE_MAX || p.downed) return;
+	if (!intent.signature || p.surge < SURGE_MAX || p.downed || p.def.hero) return;
 
 	p.surge = 0;
-	const id = SIGNATURES[p.def.id].id;
+	const sig = SIGNATURES[p.def.id as RingBearerId];
+	const id = sig.id;
 	if (id === 'jetStrike') startJet(p, w);
 	else if (id === 'hammerQuake') hammerQuake(p, w);
 	else startFortress(p, w);
@@ -151,7 +152,7 @@ export function updateSignature(p: Player, intent: Intent, dt: number, w: Constr
 		y: p.y,
 		age: 0,
 		life: 1.4,
-		text: SIGNATURES[p.def.id].name.toUpperCase() + '!',
+		text: sig.name.toUpperCase() + '!',
 		owner: p
 	});
 }

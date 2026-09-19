@@ -3,7 +3,11 @@
 
 export type LanternId = 'hal' | 'john';
 /** Every Lantern who can fight on your side: the two you can play, plus partners the story brings along. */
-export type CrewId = LanternId | 'kilowog' | PrisonerId;
+export type CrewId = LanternId | 'kilowog' | PrisonerId | HeroId;
+/** Everyone who fights with a Green Lantern ring (heroes have their own powers). */
+export type RingBearerId = Exclude<CrewId, HeroId>;
+/** Earth's heroes who fight beside John in Act 2 (heroes.ts): their own powers, no ring. */
+export type HeroId = 'flash' | 'hawkgirl';
 /** Green Lanterns the Red Lanterns took prisoner (Act 1, Prison Moon): freed, they fight beside you. */
 export type PrisonerId = 'arisia' | 'katma' | 'boodikka';
 /** The Lanterns you can pick. */
@@ -53,6 +57,8 @@ export interface LanternDef {
 	figureScale?: number;
 	build?: { leg: number; torso: number; arm: number; neck: number };
 	hunch?: number;
+	/** Not a Lantern: a hero with powers of their own (heroes.ts), drawn in their costume. */
+	hero?: HeroId;
 }
 
 export const LANTERNS: Record<CrewId, LanternDef> = {
@@ -130,6 +136,32 @@ export const LANTERNS: Record<CrewId, LanternDef> = {
 		decel: 2400,
 		traits: { power: 1.15, durability: 1.1, cooldown: 1.05, structureCost: 1 },
 		look: { skin: '#d9a57e', hair: '#b8331f', hairStyle: 'cropped', mask: false }
+	},
+
+	// ---- Earth's heroes (Act 2) ----
+	flash: {
+		id: 'flash',
+		name: 'The Flash',
+		title: 'The Fastest Man Alive',
+		blurb: 'Too fast to see: a blur of punches, lightning thrown from the Speed Force, and tornadoes run into being.',
+		maxSpeed: 520,
+		accel: 5200,
+		decel: 5200,
+		traits: { power: 1, durability: 1, cooldown: 1, structureCost: 1 },
+		look: { skin: '#e8b996', hair: '#b8331f', hairStyle: 'cropped', mask: false },
+		hero: 'flash'
+	},
+	hawkgirl: {
+		id: 'hawkgirl',
+		name: 'Hawkgirl',
+		title: 'Warrior of Thanagar',
+		blurb: 'Wings, a war cry and an Nth metal mace: she dives out of the sky and hits like a thunderclap.',
+		maxSpeed: 330,
+		accel: 2600,
+		decel: 2200,
+		traits: { power: 1, durability: 1, cooldown: 1, structureCost: 1 },
+		look: { skin: '#e9c3a0', hair: '#b53a2a', hairStyle: 'swept', mask: false },
+		hero: 'hawkgirl'
 	}
 };
 

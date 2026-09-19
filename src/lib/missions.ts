@@ -12,20 +12,46 @@ import { PrisonMoon, buildPrisonMap } from '$lib/engine/missions/prisonMoon';
 import { RazerBoss, buildRazerMap } from '$lib/engine/missions/razerBoss';
 import { OaLanding } from '$lib/engine/scenes/oaLanding';
 import type { DialogueScene } from '$lib/engine/scenes/scene';
-import { JOHN_CHOSEN, OA_LANDING } from '$lib/story/scenes';
+import { JOHN_CALLED, JOHN_CHOSEN, OA_LANDING } from '$lib/story/scenes';
 import { JohnChosen } from '$lib/engine/scenes/johnChosen';
+import { CallToArms, buildCentralCityMap } from '$lib/engine/missions/callToArms';
 
 export interface MissionRun {
 	game: Game;
 	director: MissionDirector;
 	/** The story scene after a win, if there is one. */
 	outro: (() => DialogueScene) | null;
+	/** A story scene before the fight starts, if there is one. */
+	intro?: () => DialogueScene;
 }
 
 type Options = Pick<GameOptions, 'settings' | 'profiles' | 'onProgress' | 'zoom'>;
 
 export function buildMission(id: string, options: Options): MissionRun {
 	switch (id) {
+		case 'call-to-arms': {
+			const map = buildCentralCityMap();
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: 'john', keys: 'solo' },
+					{ lantern: 'flash', keys: 'p2', ai: true },
+					{ lantern: 'hawkgirl', keys: 'p2', ai: true }
+				],
+				map
+			});
+			// The Flash and Hawkgirl are already in the fight up the street
+			const [, flash, hawkgirl] = game.players;
+			flash.x = flash.prevX = 1350;
+			flash.y = flash.prevY = 1120;
+			hawkgirl.x = hawkgirl.prevX = 1420;
+			hawkgirl.y = hawkgirl.prevY = 960;
+			hawkgirl.flying = true;
+			hawkgirl.altitude = 1;
+			const director = new CallToArms();
+			game.director = director;
+			return { game, director, outro: null, intro: () => new JohnChosen(JOHN_CALLED) };
+		}
 		case 'razer': {
 			const map = buildRazerMap();
 			const game = new Game({

@@ -145,6 +145,27 @@ MISSIONS.push({
 	partner: 'kilowog'
 });
 
+MISSIONS.push({
+	id: 'call-to-arms',
+	title: 'Call to Arms',
+	tagline: 'The ring finds John Stewart and throws him into a fight beside the Flash and Hawkgirl, against Gorilla Grodd.',
+	lantern: 'john',
+	environment: 'planet',
+	place: 'Earth · Central City',
+	briefing: [
+		'Detroit, the night after. John Stewart has been telling himself he dreamed it: the green light, the ring, the voice saying he was chosen. Then it comes back.',
+		"Central City is under attack. Gorilla Grodd, the telepathic genius of Gorilla City, has brought an army into the streets and torn open a junction downtown to dig for something. The Flash and Hawkgirl are holding the line, barely.",
+		"John has never used the ring. The ring doesn't seem worried about that."
+	],
+	objectives: [
+		'Help the Flash and Hawkgirl stop Grodd\'s army',
+		'Defeat Grodd. His Psychic Blast goes straight through a bubble shield: get out of its way',
+		'Mind Control turns your moves around: steer the other way until it wears off',
+		'No battery on Earth yet: your willpower only comes back on its own'
+	],
+	partner: 'hawkgirl'
+});
+
 export function missionById(id: string): MissionInfo | undefined {
 	return MISSIONS.find((m) => m.id === id);
 }
@@ -182,7 +203,7 @@ export const ACTS: ActInfo[] = [
 		title: 'The Old Machines',
 		tagline: 'A new Lantern on Earth, and something ancient waking up.',
 		lineup: [
-			{ title: 'Call to Arms', tagline: 'The Flash and Hawkgirl are losing to Gorilla Grodd. A ring finds its new bearer in the middle of the fight.' },
+			'call-to-arms',
 			{ title: 'Summoned', tagline: 'The ring carries John Stewart across the galaxy to Oa, and to the Corps.' },
 			'colony-under-fire',
 			{ title: "The Guardians' Shame", tagline: 'The Guardians built the Manhunters. Now Atrocitus wants them.' },

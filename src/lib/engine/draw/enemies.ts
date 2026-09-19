@@ -17,6 +17,8 @@ import { axePath, drawRageTurret, drawWard, macePath, rage, rageCannonPath } fro
 import { displayFont, uiFont } from './fonts';
 import { corpsRing, corpsTop, drawCorpsLantern, inCorpsGreen, isCorpsKind } from './corps';
 import { drawCorpsWindup } from './corpsConstructs';
+import { drawGorilla, drawManhunter, gorillaHand, gorillaTop, isGorillaKind, manhunterHand, manhunterTop } from './gorillas';
+import { inTint } from './corps';
 
 const RED = '#ff2a2a';
 const BLACK = '#140808';
@@ -56,6 +58,16 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 		}
 		return;
 	}
+	if (isGorillaKind(e.kind)) {
+		drawGorilla(ctx, e, x, y, hasGround, time);
+		if (isStanding(e)) inTint(ctx, ENEMIES[e.kind].tint, () => drawEnemyOverlay(ctx, e, x, y, gorillaTop(e, y), gorillaHand(e, x, y), time));
+		return;
+	}
+	if (e.kind === 'manhunter') {
+		drawManhunter(ctx, e, x, y, hasGround, time);
+		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, manhunterTop(e, y), manhunterHand(e, x, y), time);
+		return;
+	}
 	if (isLieutenantKind(e.kind)) {
 		drawLieutenant(ctx, e, x, y, hasGround, time);
 		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, lieutenantTop(e, y), lieutenantHand(e, x, y), time);
@@ -71,6 +83,8 @@ export function enemyMuzzle(e: Enemy, x: number, y: number): [number, number] {
 	if (e.kind === 'manhunterDrone' || e.kind === 'redFighter') return machineMuzzle(e, x, y);
 	if (e.kind === 'rageTurret') return [x + e.brain.aimX * 26, y - RED_HAND_LIFT];
 	if (isLieutenantKind(e.kind)) return lieutenantHand(e, x, y);
+	if (isGorillaKind(e.kind)) return gorillaHand(e, x, y);
+	if (e.kind === 'manhunter') return manhunterHand(e, x, y);
 	if (isCorpsKind(e.kind)) return corpsRing(e.kind, x, y, enemyPose(e, true, 0), 0);
 	return redLanternHand(e, x, y);
 }
