@@ -84,6 +84,28 @@ MISSIONS.push({
 	]
 });
 
+MISSIONS.push({
+	id: 'the-interceptor',
+	number: 4,
+	title: 'The Interceptor',
+	tagline: 'Steal the Corps\' prototype ship with Kilowog, and get it past the frontier in one piece.',
+	lantern: 'hal',
+	environment: 'space',
+	place: 'Sector 2814 · The Frontier',
+	briefing: [
+		'The Guardians have heard enough: no Lantern goes past the frontier. Sinestro agrees with them. Tolen Vex is dead, Mirrow is burning, and the Red Lanterns are still out there.',
+		'In a hangar on Oa sits the Interceptor, the Corps\' prototype ship, fast enough to reach Sector 666 and never flown. Kilowog was supposed to be guarding it. "I didn\'t see nothin\', poozer. I\'m comin\' with you."',
+		'The ship flies itself. Your job is to keep it in one piece.'
+	],
+	objectives: [
+		'Shoot down rage torpedoes before they hit the ship, or shield it (Shift)',
+		'Take out the fighters firing them; Kilowog will help',
+		'If the ship loses power, hold on until it reboots',
+		'Stay close: the Lantern battery rides on the ship'
+	],
+	partner: 'kilowog'
+});
+
 export function missionById(id: string): MissionInfo | undefined {
 	return MISSIONS.find((m) => m.id === id);
 }

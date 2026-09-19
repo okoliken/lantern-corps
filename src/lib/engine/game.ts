@@ -33,6 +33,7 @@ import {
 import { drawBattery, drawBeam, drawChargeLink, drawCrosshair, drawDownedNotice, drawGoalArrow, drawHud } from './draw/effects';
 import { drawEnemy, enemyMuzzle } from './draw/enemies';
 import { drawSpaceRock } from './draw/escort';
+import { drawRageTorpedo } from './draw/interceptor';
 import { drawFallingMeteors, drawRedBeam, drawRedCage, drawRedChain, drawRedEffect, drawRedGround, drawRedShot } from './draw/redConstructs';
 import { AllyInput } from './ally';
 import { RED_HAND_LIFT } from './enemies/redConstructs';
@@ -455,7 +456,7 @@ export class Game {
 			// Partners like Kilowog don't level up; only the Lanterns you play
 			if (!isLanternId(id)) continue;
 			const profile = this.profiles[id];
-			const xp = event.what.kind === 'spaceRock' ? XP_PER_ROCK : XP_PER_DEFEAT;
+			const xp = event.what.drift ? XP_PER_ROCK : XP_PER_DEFEAT;
 			const gained = addXp(profile, xp);
 			const headY = p.y - p.bodyTop;
 			cw.effects.push({ kind: 'text', x: p.x, y: headY - 6, age: 0, life: 1.1, text: `+${xp} XP` });
@@ -596,9 +597,11 @@ export class Game {
 				baseY: y,
 				draw: isEnemy(d)
 					? () => drawEnemy(ctx, d, x, y, env.hasGround, this.time)
-					: d.drift
-						? () => drawSpaceRock(ctx, d, x, y, this.time)
-						: () => drawDummy(ctx, d, x, y, env.hasGround, this.time, this.settings.reduceFlashing)
+					: d.kind === 'rageTorpedo'
+						? () => drawRageTorpedo(ctx, d, x, y, this.time)
+						: d.drift
+							? () => drawSpaceRock(ctx, d, x, y, this.time)
+							: () => drawDummy(ctx, d, x, y, env.hasGround, this.time, this.settings.reduceFlashing)
 			});
 		}
 		if (this.director?.drawables) ground.push(...this.director.drawables(ctx, alpha, this.time));
@@ -826,7 +829,9 @@ export class Game {
 					? enemyLabel(t.dummy)
 					: t.dummy.kind === 'spaceRock'
 						? 'Asteroid'
-						: 'Dummy'
+						: t.dummy.kind === 'rageTorpedo'
+							? 'Rage torpedo'
+							: 'Dummy'
 				: t.kind === 'ally'
 					? t.player.def.name
 					: 'Crate';

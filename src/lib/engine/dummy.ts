@@ -19,7 +19,7 @@ export const DUMMY_RESPAWN = 3;
 export const DEFEAT_LINGER = 0.9;
 
 /** What kind of target: a training dummy, or which enemy. */
-export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'spaceRock';
+export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'spaceRock' | 'rageTorpedo';
 
 export interface Dummy {
 	kind: TargetKind;
@@ -196,7 +196,8 @@ export const BODY: Record<TargetKind, { halfWidth: number; height: number }> = {
 	kilowog: { halfWidth: 34, height: 118 },
 	sinestro: { halfWidth: 18, height: 96 },
 	// Real size comes from its drift radius
-	spaceRock: { halfWidth: 20, height: 40 }
+	spaceRock: { halfWidth: 20, height: 40 },
+	rageTorpedo: { halfWidth: 14, height: 40 }
 };
 /** A little slack below the feet, and the size of a bolt. */
 const HURT_SLACK = 8;

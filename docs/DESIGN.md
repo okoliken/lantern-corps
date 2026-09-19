@@ -260,6 +260,19 @@ Lose: John down 3 times, 2 groups lost, or the last shuttle destroyed. ★ done,
 ★ Zox beaten. Bots: using Shift wins in ~2 min (2-3 stars) with or without backup; never shielding
 loses the colonists.
 
+**Mission 4: The Interceptor** (Hal + Kilowog AI partner, space, the Frontier; `missions/interceptor.ts`,
+art in `draw/interceptor.ts`). Hal and Kilowog take the Corps' prototype ship against the Guardians'
+orders (Sinestro radios in). The Interceptor flies itself (600 hull, a protectable; the battery rides
+it). **Run:** it crosses to the ambush point while Red Lantern Fighters come in waves; fighters within
+1100px launch **rage torpedoes** at the ship every 3.2-4.6s (target kind `rageTorpedo`: a drifting
+dummy like an asteroid, 18 hp so one ring-shot burst breaks it, 30 hull damage; threat 1.2 each so
+Shift picks the ship when it's the one in danger). **Reboot:** Bleez ambushes it (power failure, -60
+hull); it sits dead for 45s while waves keep coming, and the ship's AI comes through in broken lines.
+**Online:** Aya introduces herself; the ship's cannons hit the nearest Red Lantern or torpedo in 900px
+(40 dmg every 0.55s); clearing them (or 40s) and the ship jumps. Lose: ship destroyed or Hal down 3
+times. ★ made the jump, ★ hull at least 50%, ★ no lives lost. Bots: fighting only ends at 40-55% hull;
+also shooting torpedoes and shielding keeps 75-90%.
+
 **Backup** (`missions/backup.ts`, action `backup`, default **B**): a mission can let a solo Lantern call
 a partner (`Backup(who, uses, seconds)`): they fly in (`Game.addPartner`, AI) and leave when their
 time's up (`Game.removePartner`). Mission 3: Hal, twice, 40s each. The panel tally shows the status.
