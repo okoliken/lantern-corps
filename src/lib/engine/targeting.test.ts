@@ -26,9 +26,33 @@ describe('auto target', () => {
 		expect(findAutoTarget(p, world([p], [far, near]))).toEqual({ kind: 'enemy', dummy: near });
 	});
 
-	it('ignores enemies behind you', () => {
+	it('finds an enemy behind you: backing away while shooting still hits them', () => {
 		const p = lantern();
-		expect(findAutoTarget(p, world([p], [createDummy(-150, 0)]))).toBeNull();
+		const behind = createDummy(-150, 0);
+		expect(findAutoTarget(p, world([p], [behind]))).toEqual({ kind: 'enemy', dummy: behind });
+	});
+
+	it('at the same distance, prefers the one in front', () => {
+		const p = lantern();
+		const ahead = createDummy(200, 0);
+		const behind = createDummy(-200, 0);
+		expect(findAutoTarget(p, world([p], [behind, ahead]))).toEqual({ kind: 'enemy', dummy: ahead });
+	});
+
+	it('prefers an enemy that is attacking you over one just as close that is not', () => {
+		const p = lantern();
+		const idle = createDummy(200, 0);
+		const attacker = Object.assign(createDummy(0, 200), { brain: { target: p } });
+		expect(findAutoTarget(p, world([p], [idle, attacker]))).toEqual({ kind: 'enemy', dummy: attacker });
+	});
+
+	it("keeps shooting the one it's on unless another is clearly nearer", () => {
+		const p = lantern();
+		const current = createDummy(220, 0);
+		const bitNearer = createDummy(200, 30);
+		expect(findAutoTarget(p, world([p], [current, bitNearer]), undefined, { current: { kind: 'enemy', dummy: current } })).toEqual({ kind: 'enemy', dummy: current });
+		const muchNearer = createDummy(90, 0);
+		expect(findAutoTarget(p, world([p], [current, muchNearer]), undefined, { current: { kind: 'enemy', dummy: current } })).toEqual({ kind: 'enemy', dummy: muchNearer });
 	});
 
 	it('prefers an enemy over a closer crate', () => {
@@ -209,9 +233,23 @@ describe('the John bug: keyboard aim pulled onto a hidden target', () => {
 		expect(findAutoTarget(p, world([p], [hidden], [building]))).toBeNull();
 	});
 
-	it('keyboard auto-target only looks in a narrow cone ahead', () => {
+	it('moving away from an enemy while shooting, the ring still points at it', () => {
 		const p = lantern();
-		const offToSide = createDummy(150, 150); // ~45 degrees off (its body ~38 degrees)
-		expect(findAutoTarget(p, world([p], [offToSide]))).toBeNull();
+		p.faceX = -1;
+		p.faceY = 0;
+		p.shotTimer = 0.2;
+		const enemy = createDummy(250, 0);
+		updateTargeting(p, false, world([p], [enemy]));
+		expect(p.attackTarget).toEqual({ kind: 'enemy', dummy: enemy });
+		expect(p.aimX).toBeGreaterThan(0.9);
+		// ...and turns to face it while shooting
+		expect(p.dir).toBe(1);
+	});
+
+	it('keyboard auto-target looks all around for enemies, but only ahead for breakable things', () => {
+		const p = lantern();
+		const offToSide = createDummy(150, 150);
+		expect(findAutoTarget(p, world([p], [offToSide]))).toEqual({ kind: 'enemy', dummy: offToSide });
+		expect(findAutoTarget(p, world([p], [], [crate(-100, 0)]))).toBeNull();
 	});
 });

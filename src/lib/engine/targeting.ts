@@ -2,9 +2,11 @@
 //
 //  - MOUSE AIM: shots go where the crosshair points. Aim assist nudges them
 //    onto an enemy only if it's right along that line.
-//  - KEYBOARD AIM: with nothing locked, the ring picks the nearest enemy in a
-//    narrow cone ahead that you can SEE and REACH with the construct in hand
-//    (or a breakable object), else it shoots straight where you face.
+//  - KEYBOARD / PAD AIM: with nothing locked, the ring finds the enemy to
+//    shoot ALL AROUND you (you don't have to face them: backing away while
+//    shooting works). It prefers whoever is in front, whoever is attacking
+//    you, and whoever it's already shooting, and only picks what you can SEE.
+//    With no enemy about, a breakable object ahead; else straight where you face.
 //  - LOCK ON: the Target key locks onto something and cycles through
 //    everything in range: enemies first, then allies, then objects, then
 //    back to no lock.
@@ -145,8 +147,14 @@ export function hasLineOfSight(p: Player, x: number, y: number, w: TargetWorld, 
 	return hit === null;
 }
 
-/** Keyboard aiming: auto-target only within this angle of where you face. */
+/** Keyboard aiming: breakable objects are only auto-targeted within this angle of where you face (enemies anywhere). */
 export const KEYBOARD_HALF_ANGLE = (30 * Math.PI) / 180;
+/** All-around auto-aim: an enemy right behind you counts as this much further away than one in front... */
+const BEHIND_COST = 0.6;
+/** ...one attacking you as this much nearer... */
+const THREAT_PULL = 0.75;
+/** ...and the one you're already shooting as this much nearer, so the aim doesn't flick between two. */
+const KEEP_PULL = 0.7;
 /** Mouse aim assist: snap only to something this close to the crosshair direction. */
 export const ASSIST_HALF_ANGLE = (12 * Math.PI) / 180;
 
@@ -164,36 +172,56 @@ export interface AutoTargetOptions {
 	/** Direction to look in (unit vector). Defaults to where the player faces. */
 	dirX?: number;
 	dirY?: number;
-	/** How wide to look either side of that direction. */
+	/** How wide to look either side of that direction. Omitted: enemies all around (keyboard and pad aim). */
 	halfAngle?: number;
+	/** The current target: kept unless something is clearly better. */
+	current?: Target | null;
 }
 
 /** Where on the ground plane a shot from this Lantern's ring has to go to hit the enemy's body. */
 const enemyAim = (p: Player, d: Dummy): [number, number] => aimPoint(d, p.ringLift);
 
-/** The nearest visible enemy in the cone; failing that, the nearest visible breakable object. */
+/**
+ * The enemy to shoot. With a cone (mouse aim assist): the nearest visible one
+ * in it. Without (keyboard and pad): the best visible one all around, nearest
+ * first but leaning toward whoever is in front, whoever is attacking you, and
+ * the current target. No enemy: the nearest visible breakable object ahead.
+ */
 export function findAutoTarget(p: Player, w: TargetWorld, reach = AUTO_RANGE, opts: AutoTargetOptions = {}): Target | null {
-	const { dirX = p.faceX, dirY = p.faceY, halfAngle = KEYBOARD_HALF_ANGLE } = opts;
+	const { dirX = p.faceX, dirY = p.faceY, halfAngle, current = null } = opts;
+	const allAround = halfAngle === undefined;
 	let best: Target | null = null;
-	let bestDist = Infinity;
+	let bestScore = Infinity;
 	for (const d of w.dummies) {
 		if (!isStanding(d) || !hasLineOfSight(p, d.x, d.y, w)) continue;
-		// The cone is checked against where the shot would go to hit its body, not its feet
-		const [ax, ay] = enemyAim(p, d);
-		if (!inCone(p, ax, ay, reach, dirX, dirY, halfAngle) && !inCone(p, d.x, d.y, reach, dirX, dirY, halfAngle)) continue;
 		const dist = Math.hypot(d.x - p.x, d.y - p.y);
-		if (dist < bestDist) {
+		let score = dist;
+		if (allAround) {
+			if (dist > reach) continue;
+			const ahead = dist > 1 ? ((d.x - p.x) * dirX + (d.y - p.y) * dirY) / dist : 1;
+			score *= 1 + BEHIND_COST * ((1 - ahead) / 2);
+			const brain = (d as { brain?: { target: Player | null } }).brain;
+			if (brain?.target === p) score *= THREAT_PULL;
+			if (current?.kind === 'enemy' && current.dummy === d) score *= KEEP_PULL;
+		} else {
+			// The cone is checked against where the shot would go to hit its body, not its feet
+			const [ax, ay] = enemyAim(p, d);
+			if (!inCone(p, ax, ay, reach, dirX, dirY, halfAngle) && !inCone(p, d.x, d.y, reach, dirX, dirY, halfAngle)) continue;
+		}
+		if (score < bestScore) {
 			best = { kind: 'enemy', dummy: d };
-			bestDist = dist;
+			bestScore = score;
 		}
 	}
 	if (best) return best;
 
+	// Breakable things only ahead of you: nothing blasts a car behind you just because it's there
+	let bestDist = Infinity;
 	for (const o of w.obstacles) {
 		if (o.hp === undefined || o.kind === 'wall') continue;
 		const [x, y] = [o.x + o.w / 2, o.y + o.h / 2];
 		const range = Math.min(reach, AUTO_OBJECT_RANGE);
-		if (!inCone(p, x, y, range, dirX, dirY, halfAngle) || !hasLineOfSight(p, x, y, w, o)) continue;
+		if (!inCone(p, x, y, range, dirX, dirY, halfAngle ?? KEYBOARD_HALF_ANGLE) || !hasLineOfSight(p, x, y, w, o)) continue;
 		const dist = Math.hypot(x - p.x, y - p.y);
 		if (dist < bestDist) {
 			best = { kind: 'object', obstacle: o };
@@ -219,8 +247,8 @@ export interface TargetingOptions {
  *  1. A locked target (Tab).
  *  2. MOUSE: straight at the crosshair, nudged onto an enemy only if one sits
  *     right along that line (aim assist).
- *  3. KEYBOARD: the nearest visible enemy in a narrow cone ahead, otherwise
- *     straight where you face.
+ *  3. KEYBOARD / PAD: the best visible enemy all around you (see
+ *     findAutoTarget), otherwise straight where you face.
  */
 export function updateTargeting(
 	p: Player,
@@ -265,7 +293,7 @@ export function updateTargeting(
 		// While a construct is running, stick with the current auto target so
 		// the beam doesn't jump between two dummies standing side by side.
 		const keep = busy && p.attackTarget && isTargetValid(p.attackTarget, w) && distanceTo(p, p.attackTarget) <= reach;
-		p.attackTarget = keep ? p.attackTarget : findAutoTarget(p, w, reach);
+		p.attackTarget = keep ? p.attackTarget : findAutoTarget(p, w, reach, { current: p.attackTarget });
 		if (!p.attackTarget) {
 			p.aimX = p.faceX;
 			p.aimY = p.faceY;

@@ -106,6 +106,14 @@ The ring works out what you mean to hit or protect (`src/lib/engine/targeting.ts
   when the target is destroyed or you move far away. A locked target gets a rotating reticle.
 - **Protect:** lock an ally and your **bubble shield** goes on them; attacks keep auto-targeting enemies.
 
+**All-around auto-aim** (2026-09-19, user playing with the phone pad: "it only aims where I'm facing...
+if I'm moving backward I shouldn't need to face the enemy"): with no mouse and no lock, the ring
+picks the best visible enemy ALL AROUND (`findAutoTarget` without a cone), scored by distance x
+(1 + 0.6 behind-you cost) x 0.75 if it's attacking you x 0.7 if it's the current target (no flicking).
+Breakable objects are still only auto-targeted in the 30-degree cone ahead. Ring shots look out to
+`AUTO_RANGE` whatever construct is in hand. Mouse aim (and its 12-degree assist) and the pad's right
+stick are unchanged: they aim exactly where you point.
+
 ## Signature abilities
 The **surge meter** (thin bar under willpower) fills from damage you deal (0.16 per point), constructs
 used (+2) and allies shielded (+6). Signature damage doesn't refill it. Full = press **R**.

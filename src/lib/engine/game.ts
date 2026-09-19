@@ -80,7 +80,7 @@ import { LANTERNS, isLanternId, type CrewId, type LanternId, type RingBearerId }
 import { buildTestMap, seededRandom, type GameMap, type Obstacle } from './map';
 import { FEET_HALF_H, FEET_HALF_W, clampToBounds, createPlayer, updateFacing, updatePlayer, type Player, type WorldRules } from './player';
 import { BUBBLE_SHIELD, constructLabel } from './constructs/defs';
-import { autoReach, sameTarget, targetPosition, updateTargeting, type Target, type TargetWorld } from './targeting';
+import { AUTO_RANGE, autoReach, sameTarget, targetPosition, updateTargeting, type Target, type TargetWorld } from './targeting';
 import { BATTERY_MAX_CHARGE, canSpend, updateBattery, updateWillpower, type Battery } from './willpower';
 
 export const LANTERN_GREEN = GREEN;
@@ -407,7 +407,8 @@ export class Game {
 			// Knocked down, the body lies still: no turning to the mouse, no aiming
 			if (!p.downed) {
 				const pointer = intent.pointer && { x: intent.pointer.x, y: intent.pointer.y + p.ringLift };
-				updateTargeting(p, intent.target, this.targetWorld, autoReach(p.loadout[p.selected]), {
+				// Ring shots reach AUTO_RANGE whatever construct is in hand (a sniper looks further)
+				updateTargeting(p, intent.target, this.targetWorld, Math.max(AUTO_RANGE, autoReach(p.loadout[p.selected])), {
 					pointer,
 					aimAssist: this.settings.aimAssist
 				});
