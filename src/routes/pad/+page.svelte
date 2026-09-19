@@ -133,6 +133,12 @@
 	function onDown(e: PointerEvent) {
 		e.preventDefault();
 		void goFullscreen();
+		// This finger's lift always comes back here, wherever it ends up
+		try {
+			(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+		} catch {
+			// not supported: bubbling still gets it
+		}
 		const el = (e.target as HTMLElement).closest('[data-btn]') as HTMLElement | null;
 		if (el) {
 			const b = el.dataset.btn as PadButton;
@@ -170,8 +176,30 @@
 			// Back to its resting place
 			if (who === 'left') Object.assign(stick, { cx: 0.18, cy: 0.66 });
 			else Object.assign(stick, { cx: 0.62, cy: 0.72 });
-			dirty = true;
+			// Straight away, not on the next frame
+			sendSticks();
 		} else up(who);
+	}
+
+	/** Every finger is off the screen (or the pad was hidden): nothing can still be held. */
+	function letGoOfEverything() {
+		owners.clear();
+		for (const stick of [left, right]) {
+			stick.x = stick.y = 0;
+			stick.active = false;
+		}
+		Object.assign(left, { cx: 0.18, cy: 0.66 });
+		Object.assign(right, { cx: 0.62, cy: 0.72 });
+		for (const b of Object.keys(pressed) as PadButton[]) up(b);
+		sendSticks();
+	}
+
+	/** Where the sticks are and which buttons are held: sent all the time, so the game is never out of date. */
+	function sendSticks() {
+		const r = (v: number) => Math.round(v * 100) / 100;
+		const held = (Object.keys(pressed) as PadButton[]).filter((b) => pressed[b]);
+		send({ t: 'sticks', lx: r(left.x), ly: r(left.y), rx: r(right.x), ry: r(right.y), held });
+		dirty = false;
 	}
 
 	async function goFullscreen() {
@@ -230,17 +258,28 @@
 		const allowZoom = stopZooming();
 		if (room) connect();
 		else void findGame();
-		// Stick positions go out once a frame, and only when they changed
+		// Stick positions go out as they change, and at least ten times a second
+		// regardless (the game lets go of anything it stops hearing about)
 		let raf = 0;
-		const tick = () => {
-			if (dirty) {
-				dirty = false;
-				const r = (v: number) => Math.round(v * 100) / 100;
-				send({ t: 'sticks', lx: r(left.x), ly: r(left.y), rx: r(right.x), ry: r(right.y) });
+		let last = 0;
+		const tick = (now: number) => {
+			if (dirty || now - last > 100) {
+				last = now;
+				sendSticks();
 			}
 			raf = requestAnimationFrame(tick);
 		};
 		raf = requestAnimationFrame(tick);
+		// Belt and braces: when the last finger leaves the glass, or the pad is hidden, let go of everything
+		const touchEnd = (e: TouchEvent) => {
+			if (e.touches.length === 0) letGoOfEverything();
+		};
+		const hidden = () => {
+			if (document.hidden) letGoOfEverything();
+		};
+		document.addEventListener('touchend', touchEnd);
+		document.addEventListener('touchcancel', touchEnd);
+		document.addEventListener('visibilitychange', hidden);
 		// Keep the screen on while playing
 		let lock: { release: () => Promise<void> } | null = null;
 		void (navigator as Navigator & { wakeLock?: { request: (t: string) => Promise<{ release: () => Promise<void> }> } }).wakeLock
@@ -248,6 +287,9 @@
 			.then((l) => (lock = l))
 			.catch(() => {});
 		return () => {
+			document.removeEventListener('touchend', touchEnd);
+			document.removeEventListener('touchcancel', touchEnd);
+			document.removeEventListener('visibilitychange', hidden);
 			allowZoom();
 			cancelAnimationFrame(raf);
 			socket?.close();

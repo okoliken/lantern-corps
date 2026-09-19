@@ -34,8 +34,8 @@ export interface TargetWorld {
 
 /** You can lock onto things this far away. Locks break a bit beyond it. */
 export const LOCK_RANGE = 600;
-/** Auto-target looks at most this far ahead for enemies (less for close-range constructs)... */
-export const AUTO_RANGE = 460;
+/** Auto-target looks at most this far for enemies (about a ring shot's reach)... */
+export const AUTO_RANGE = 600;
 /** ...and this far for breakable objects (so crates don't steal your aim across the map). */
 export const AUTO_OBJECT_RANGE = 220;
 
@@ -157,6 +157,8 @@ const THREAT_PULL = 0.75;
 const KEEP_PULL = 0.7;
 /** Mouse aim assist: snap only to something this close to the crosshair direction. */
 export const ASSIST_HALF_ANGLE = (12 * Math.PI) / 180;
+/** A thumb on a phone's stick is far less exact than a mouse: it snaps onto anything this close to where it points. */
+export const STICK_ASSIST_HALF_ANGLE = (30 * Math.PI) / 180;
 
 /** Is (x, y) within `range` and within `halfAngle` of the direction (dirX, dirY)? */
 function inCone(p: Player, x: number, y: number, range: number, dirX: number, dirY: number, halfAngle: number): boolean {
@@ -236,6 +238,8 @@ export interface TargetingOptions {
 	pointer?: { x: number; y: number } | null;
 	/** Let mouse aim snap to an enemy right next to the crosshair. */
 	aimAssist?: boolean;
+	/** The pointer comes from the phone pad's right stick: snap onto enemies roughly that way. */
+	stickAim?: boolean;
 }
 
 /**
@@ -255,7 +259,7 @@ export function updateTargeting(
 	cyclePressed: boolean,
 	w: TargetWorld,
 	reach = AUTO_RANGE,
-	{ pointer = null, aimAssist = true }: TargetingOptions = {}
+	{ pointer = null, aimAssist = true, stickAim = false }: TargetingOptions = {}
 ) {
 	// Locks break when the target is gone or you've moved well away from it
 	if (p.lock && (!isTargetValid(p.lock, w) || distanceTo(p, p.lock) > LOCK_RANGE * 1.25)) p.lock = null;
@@ -278,7 +282,7 @@ export function updateTargeting(
 		p.aimReach = len;
 		const dirX = len > 1 ? dx / len : p.faceX;
 		const dirY = len > 1 ? dy / len : p.faceY;
-		p.attackTarget = aimAssist ? findAutoTarget(p, w, reach, { dirX, dirY, halfAngle: ASSIST_HALF_ANGLE }) : null;
+		p.attackTarget = aimAssist || stickAim ? findAutoTarget(p, w, reach, { dirX, dirY, halfAngle: stickAim ? STICK_ASSIST_HALF_ANGLE : ASSIST_HALF_ANGLE }) : null;
 		if (!p.attackTarget) {
 			p.aimX = dirX;
 			p.aimY = dirY;

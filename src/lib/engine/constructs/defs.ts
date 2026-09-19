@@ -327,7 +327,8 @@ export const RING_SHOT: ConstructDef = {
 	cooldown: 0.42,
 	damage: 10,
 	knockback: 60,
-	range: 520,
+	// Far enough to reach anything you can see on a phone screen
+	range: 640,
 	// Fast enough to feel instant: across the screen in under half a second
 	speed: 1300
 };

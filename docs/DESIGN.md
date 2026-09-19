@@ -52,6 +52,12 @@ tunnel it. `cloudflared tunnel --url http://localhost:5199` gives an `https://â€
 address; start the dev server with `PAD_PUBLIC_URL=<that address>` and the pairing QR points there
 (`/pad-info` returns `publicUrl`; `server.allowedHosts` accepts `.trycloudflare.com`). Needs internet,
 adds some delay, and the game is reachable by anyone with the link while the tunnel runs.
+**Pad reliability** (user: "when I let go of the stick the character keeps moving"): the pad sends its
+sticks and the list of held buttons on every change and at least 10 times a second, sends a release
+straight away (pointer capture, plus a backstop when the last finger leaves the glass or the page is
+hidden), and the game lets go of everything if it hears nothing for `STICK_TIMEOUT` 500 ms. The right
+stick marks its aim `Intent.stickAim`, so aim assist snaps within 30 degrees (a mouse gets 12). Ring
+shots now reach 640 px and auto-aim looks 600 px, about what a phone screen shows.
 
 **Ring shot:** a free basic attack. Green bolts in a **double tap** ("pum-pum â€¦ pum-pum": two bolts
 0.11s apart, then a short rest; a little under 4 a second, 10 damage each). A single tap always fires

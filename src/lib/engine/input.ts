@@ -41,6 +41,8 @@ export interface Intent {
 	backup: boolean;
 	/** Where the mouse points, in WORLD coordinates. null = not aiming with a mouse. */
 	pointer: { x: number; y: number } | null;
+	/** The pointer is the phone pad's right stick (rougher than a mouse: aim assist is wider). */
+	stickAim?: boolean;
 }
 
 export const IDLE: Intent = {

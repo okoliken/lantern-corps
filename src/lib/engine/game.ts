@@ -410,7 +410,8 @@ export class Game {
 				// Ring shots reach AUTO_RANGE whatever construct is in hand (a sniper looks further)
 				updateTargeting(p, intent.target, this.targetWorld, Math.max(AUTO_RANGE, autoReach(p.loadout[p.selected])), {
 					pointer,
-					aimAssist: this.settings.aimAssist
+					aimAssist: this.settings.aimAssist,
+					stickAim: intent.stickAim
 				});
 				updateFacing(p, dt);
 				// Now the aim is known, find the ring on the aimed skeleton

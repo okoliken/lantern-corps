@@ -34,7 +34,7 @@ export const PAD_LABELS: Record<PadButton, string> = {
 
 /** A message from the phone. */
 export type PadMessage =
-	| { t: 'sticks'; lx: number; ly: number; rx: number; ry: number }
+	| { t: 'sticks'; lx: number; ly: number; rx: number; ry: number; held?: PadButton[] }
 	| { t: 'down'; b: PadButton }
 	| { t: 'up'; b: PadButton };
 
@@ -44,9 +44,14 @@ export const DEAD_ZONE = 0.15;
 export const AIM_FIRE = 0.35;
 /** How far out (world px) the right stick puts the crosshair. */
 const AIM_REACH = 260;
+/** No word from the pad's sticks for this long (ms): they're let go (a lost "released" never leaves you running). */
+export const STICK_TIMEOUT = 500;
 
 /** The pad's latest state, from its messages. */
 export class PadState {
+	constructor(private now: () => number = () => performance.now()) {}
+	/** When the pad was last heard from (anything it sends). */
+	private heardAt = -Infinity;
 	/** Pads connected to this game (from the relay). */
 	connected = 0;
 	lx = 0;
@@ -58,6 +63,7 @@ export class PadState {
 	private presses = new Set<PadButton>();
 
 	apply(msg: PadMessage | { t: 'pads'; n: number }) {
+		if (msg.t !== 'pads') this.heardAt = this.now();
 		switch (msg.t) {
 			case 'pads':
 				this.connected = msg.n;
@@ -68,6 +74,11 @@ export class PadState {
 				this.ly = clampUnit(msg.ly);
 				this.rx = clampUnit(msg.rx);
 				this.ry = clampUnit(msg.ry);
+				// The pad says what's held every time: a lost "released" is corrected at once
+				if (msg.held) {
+					for (const b of [...this.held]) if (!msg.held.includes(b)) this.held.delete(b);
+					for (const b of msg.held) if ((PAD_BUTTONS as readonly string[]).includes(b)) this.held.add(b);
+				}
 				break;
 			case 'down':
 				this.held.add(msg.b);
@@ -77,6 +88,13 @@ export class PadState {
 				this.held.delete(msg.b);
 				break;
 		}
+	}
+
+	/** The pad has gone quiet: centre the sticks and let go of the buttons. */
+	checkStale() {
+		if (this.now() - this.heardAt <= STICK_TIMEOUT) return;
+		this.lx = this.ly = this.rx = this.ry = 0;
+		this.held.clear();
 	}
 
 	/** Was this pressed since the last check? (Clears it.) */
@@ -109,6 +127,7 @@ export class PadInput implements InputSource {
 	read(): Intent {
 		const k = this.keys.read();
 		const pad = this.pad;
+		pad.checkStale();
 		const intent: Intent = { ...k };
 
 		const move = Math.hypot(pad.lx, pad.ly);
@@ -124,10 +143,12 @@ export class PadInput implements InputSource {
 		const aiming = aim > AIM_FIRE && p !== null;
 		if (aiming) {
 			intent.pointer = { x: p.x + (pad.rx / aim) * AIM_REACH, y: p.y - p.ringLift + (pad.ry / aim) * AIM_REACH };
+			intent.stickAim = true;
 		}
 
 		const pressedConstruct = pad.consume('cross');
-		intent.shot = k.shot || aiming || pad.held.has('square') || pad.consume('square');
+		const pressedShot = pad.consume('square');
+		intent.shot = k.shot || aiming || pad.held.has('square') || pressedShot;
 		intent.construct = k.construct || pad.held.has('cross') || pressedConstruct;
 		intent.constructPressed = k.constructPressed || pressedConstruct;
 		intent.shield = k.shield || pad.consume('circle');

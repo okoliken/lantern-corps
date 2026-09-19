@@ -194,6 +194,15 @@ describe('mouse aim', () => {
 		expect(p.attackTarget).toEqual({ kind: 'enemy', dummy: d });
 	});
 
+	it("the phone pad's stick snaps onto an enemy roughly where it points (wider than a mouse)", () => {
+		const p = lantern();
+		const enemy = createDummy(200, 90); // about 24 degrees off the stick's line
+		updateTargeting(p, false, world([p], [enemy]), undefined, { pointer: { x: 300, y: 0 }, stickAim: true });
+		expect(p.attackTarget).toEqual({ kind: 'enemy', dummy: enemy });
+		updateTargeting(p, false, world([p], [enemy]), undefined, { pointer: { x: 300, y: 0 } });
+		expect(p.attackTarget).toBeNull();
+	});
+
 	it('aim assist can be turned off', () => {
 		const p = lantern();
 		const d = createDummy(200, 15);
