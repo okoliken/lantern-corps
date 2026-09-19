@@ -340,7 +340,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 			"Eobard Thawne: everything the Flash can do, turned against him. He runs in at a blur, pins his target for a beatdown faster than they can fall, and throws red lightning. He's here for the Flash, and turns on anyone else only when the Flash is down.",
 		mind: 'rage',
 		hp: 1500,
-		speed: 330,
+		speed: 600,
 		accel: 12,
 		sight: 1200,
 		poise: 220,
@@ -348,7 +348,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		agility: 1,
 		movement: 'hover',
 		kit: ['rfBlitz', 'rfBeatdown', 'rfLightning'],
-		range: 140,
+		range: 190,
 		leans: { aggression: 0.8, caution: -0.3 },
 		lieutenant: true
 	},

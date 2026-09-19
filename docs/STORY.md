@@ -193,7 +193,8 @@ Atrocitus wants them.
    the Flash mentions the Justice League; the ring summons John to Oa and carries him up into the sky.
    Added with the user (2026-09-19): **Reverse-Flash** came with Grodd, but only to end the Flash:
    the Flash duels him while John and Hawkgirl hold off Grodd's army (John can shoot him and shield
-   the Flash); beaten, he runs ("This isn't over, Barry"). Grodd's telekinesis grabs anyone and hurls
+   the Flash). The two tear round each other at full speed; Reverse-Flash wins the exchanges, but with
+   his friends' help the Flash puts him down and runs him off to Iron Heights ("Not by me. By us."). Grodd's telekinesis grabs anyone and hurls
    them across the street.
 2. **Summoned** (Oa): the ring carries John to Oa, like the 2011 film. The Guardians, Hal, Kilowog,
    Tomar-Re; Kilowog's training, for John.

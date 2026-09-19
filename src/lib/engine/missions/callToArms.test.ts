@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { isStanding } from '../dummy';
 import { Game } from '../game';
-import { CORE_HP, CallToArms, GRODD_ESCAPE, GRODD_STAGE_2, REBUILD_TIMES, RF_FLEES, buildCentralCityMap } from './callToArms';
+import { CORE_HP, CallToArms, GRODD_ESCAPE, GRODD_STAGE_2, REBUILD_TIMES, RF_DEFEATED, buildCentralCityMap } from './callToArms';
 
 /**
  * A stand-in canvas: every call is a no-op, except it throws on a negative
@@ -213,16 +213,21 @@ describe('Act 2, Mission 1: Call to Arms', () => {
 		expect(rf.hp).toBeLessThan(rf.maxHp);
 	});
 
-	it('beaten down, Reverse-Flash runs; and if he is still here when Grodd escapes, he goes too', () => {
+	it('beaten down, Reverse-Flash is defeated and hauled off; if he is still up when Grodd escapes, he goes too', () => {
 		const a = setup();
 		a.run(3.1);
 		a.clear();
 		a.run(0.5, a.safe);
 		const rf = a.mission.reverseFlash!;
-		rf.hp = rf.maxHp * (RF_FLEES - 0.01);
+		const flash = a.game.players[1];
+		expect(flash.def.maxSpeed).toBeGreaterThan(600);
+		rf.hp = rf.maxHp * (RF_DEFEATED - 0.01);
 		a.run(0.1, a.safe);
 		expect(a.mission.reverseFlash).toBeNull();
 		expect(a.game.dummies).not.toContain(rf);
+		expect(a.mission.line?.who).toBe('Reverse-Flash');
+		// The Flash back to his usual pace
+		expect(flash.def.maxSpeed).toBeLessThan(600);
 
 		const b = setup();
 		b.toGrodd();

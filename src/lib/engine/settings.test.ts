@@ -33,11 +33,23 @@ describe('settings', () => {
 	});
 
 	it('keeps defaults for anything missing from an older save', () => {
-		const parsed = parseSettings({ aimAssist: false, bindings: { solo: { shot: ['KeyP'] } } });
+		const parsed = parseSettings({ aimAssist: false, keysVersion: 1, bindings: { solo: { shot: ['KeyP'] } } });
 		expect(parsed.aimAssist).toBe(false);
 		expect(parsed.bindings.solo.shot).toEqual(['KeyP']);
 		expect(parsed.bindings.solo.shield).toEqual(DEFAULT_BINDINGS.solo.shield);
 		expect(parsed.bindings.p2).toEqual(DEFAULT_BINDINGS.p2);
+	});
+
+	it('adds keys that became defaults after the save (Enter fires ring shots), once', () => {
+		const old = parseSettings({ bindings: { solo: { shot: ['Mouse0', 'KeyJ'] } } });
+		expect(old.bindings.solo.shot).toEqual(['Mouse0', 'KeyJ', 'Enter']);
+		// Saved since then without it: the player took it off, so it stays off
+		const since = parseSettings({ keysVersion: 1, bindings: { solo: { shot: ['Mouse0'] } } });
+		expect(since.bindings.solo.shot).toEqual(['Mouse0']);
+		// Not if Enter already does something else for them
+		const busy = parseSettings({ bindings: { solo: { shot: ['Mouse0'], fly: ['Enter'] } } });
+		expect(busy.bindings.solo.shot).toEqual(['Mouse0']);
+		expect(busy.bindings.solo.fly).toEqual(['Enter']);
 	});
 
 	it('ignores values of the wrong type', () => {

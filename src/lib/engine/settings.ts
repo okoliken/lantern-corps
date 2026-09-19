@@ -22,7 +22,20 @@ export interface Settings {
 	seenControls: boolean;
 	/** Finished Kilowog's training once (missions stop suggesting it). */
 	trained: boolean;
+	/** Which round of new default keys these settings have (see ADDED_KEYS). */
+	keysVersion: number;
 }
+
+/**
+ * Keys added to the defaults after players may already have saved their
+ * controls: each is added once to saved settings older than its version, if
+ * the key isn't already doing something else in that layout.
+ */
+const ADDED_KEYS: { version: number; layout: LayoutName; action: (typeof ACTIONS)[number]; code: string }[] = [
+	// Enter fires ring shots too (user, 2026-09-19)
+	{ version: 1, layout: 'solo', action: 'shot', code: 'Enter' }
+];
+const KEYS_VERSION = Math.max(0, ...ADDED_KEYS.map((k) => k.version));
 
 export const SETTINGS_KEY = 'lantern-corps:settings';
 
@@ -36,7 +49,8 @@ export function defaultSettings(): Settings {
 		damageNumbers: true,
 		reduceFlashing: false,
 		seenControls: false,
-		trained: false
+		trained: false,
+		keysVersion: KEYS_VERSION
 	};
 }
 
@@ -63,6 +77,13 @@ export function parseSettings(raw: unknown): Settings {
 					settings.bindings[layout][action] = codes;
 				}
 			}
+		}
+		// Keys added to the defaults since these were saved
+		const had = typeof saved.keysVersion === 'number' ? saved.keysVersion : 0;
+		for (const k of ADDED_KEYS) {
+			if (k.version <= had) continue;
+			const layout = settings.bindings[k.layout];
+			if (!ACTIONS.some((a) => layout[a].includes(k.code))) layout[k.action] = [...layout[k.action], k.code];
 		}
 	}
 	return settings;

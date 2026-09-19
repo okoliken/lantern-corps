@@ -131,7 +131,7 @@ export const DEFAULT_BINDINGS: Record<LayoutName, Bindings> = {
 		down: ['KeyS', 'ArrowDown'],
 		left: ['KeyA', 'ArrowLeft'],
 		right: ['KeyD', 'ArrowRight'],
-		shot: ['Mouse0', 'KeyJ'],
+		shot: ['Mouse0', 'KeyJ', 'Enter'],
 		construct: ['Mouse2', 'KeyK'],
 		prevConstruct: ['WheelUp', 'KeyQ'],
 		nextConstruct: ['WheelDown', 'KeyE'],

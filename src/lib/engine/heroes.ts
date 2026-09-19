@@ -621,10 +621,11 @@ export class HeroInput implements InputSource {
 				this.flipIn = 1.5 + Math.random() * 2.5;
 			}
 			if (h.id === 'flash') {
-				// Always running: round and round whoever he's after
-				this.orbit += this.orbitDir * 1.4 * dt;
-				gx = t.x + Math.cos(this.orbit) * 180;
-				gy = t.y + Math.sin(this.orbit) * 120;
+				// Always running: round and round whoever he's after (flat out against another speedster)
+				const duel = t.kind === 'reverseFlash';
+				this.orbit += this.orbitDir * (duel ? 3.2 : 1.4) * dt;
+				gx = t.x + Math.cos(this.orbit) * (duel ? 200 : 180);
+				gy = t.y + Math.sin(this.orbit) * (duel ? 150 : 120);
 			} else {
 				const ang = Math.atan2(me.y - t.y, me.x - t.x) + this.orbitDir * 0.3;
 				gx = t.x + Math.cos(ang) * 60;

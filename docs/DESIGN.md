@@ -428,11 +428,20 @@ win 10/10 but usually drop to 1-13% health, and go down about once in half the r
   `drawReverseFlash`: the Flash's suit in `REVERSE_FLASH_COLORS`): arrives with the flank wave, hunts
   the Flash (`rivalry`: target is the Flash whenever he's up, else the nearest), Blitz (dash, 4 punches,
   out), Beatdown (pins, 10 punches, each clears invulnerability), red lightning. The Flash targets him
-  above all else. Health x4.5, might 3. At 12% he runs; if he's still up when Grodd escapes, he goes
-  too. Bots: he lasts 80-110s, the Flash goes down 3-9 times.
+  above all else. Health x4.5. **The duel** (user: "the Flash dies too fast... running around at super
+  high speed beating each other; the Flash loses, but with his friends' help Reverse-Flash is
+  defeated"): both run flat out (Reverse-Flash speed 600, his orbit angle spun at `DUEL_SPIN` 2.6
+  rad/s; the Flash's def swapped for `DUEL_SPEED` 720 while it lasts, orbiting at 3.2 rad/s), lower
+  per-hit damage (might 1.8; Blitz 4, Beatdown 2.4, lightning 8). At 8% he's **defeated**: knocked
+  out, and the Flash runs him off to Iron Heights (`carryOff`). Only if he's still up when Grodd
+  escapes does he get away. Bots: duel 1.5-2.5 min, average speed ~450 px/s, the Flash worn down to
+  0-39% and down at most once, Reverse-Flash defeated every time (John ~65% of the damage, the Flash
+  ~30%).
 - **Ending:** the Flash and Hawkgirl stop (idle input) and turn to watch; John rises in a column of
   green light with a blaze round him and rings of light pulsing out (`drawAscent`).
 - Bots: win 8/8, John loses 0-2 lives (usually 1-2); Grodd grabs John 4-8 times a fight.
+- **Enter fires ring shots** too (solo layout: Mouse0, J, Enter). Saved controls get new default keys
+  once through `ADDED_KEYS` / `Settings.keysVersion` (only if the key isn't already used).
 
 **Main menu** (`routes/+page.svelte`, `components/MenuPoster.svelte`, 2026-09-19): a poster-like
 canvas: Kilowog, Hal and John small, **facing the viewer** (`draw/lanternFront.ts`, menu only: the game

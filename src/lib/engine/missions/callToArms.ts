@@ -9,8 +9,10 @@
 //   flank      a second squad down the side streets, from above and below;
 //              and Reverse-Flash, here for the Flash: the Flash takes him on
 //              while John and Hawkgirl hold off Grodd's army (you can shoot
-//              him, and shield the Flash). Beaten, he runs; if he's still up
-//              when Grodd escapes, he goes with him
+//              him, and shield the Flash). The two of them tear round each
+//              other at full speed; Reverse-Flash has the upper hand, but with
+//              his friends' help the Flash puts him down and hauls him off to
+//              Iron Heights. If he's still up when Grodd escapes, he goes too
 //   push       the main force up out of the dig, and troopers behind them
 //   grodd      Grodd himself, in three stages:
 //                1  Psychic Blast, Telekinetic Throw, and a gorilla's fists
@@ -26,6 +28,8 @@
 //
 // Lose: John goes down 3 times.
 
+import { LANTERNS } from '../lanterns';
+import { drawReverseFlash } from '../draw/heroes';
 import { heroFx } from '../heroes';
 import { IDLE } from '../input';
 import { green, greenCore } from '../../theme';
@@ -77,10 +81,15 @@ const REBUILT_MIGHT = 1.15;
 /** He turns on someone new every so often (seconds, plus up to SWITCH_SPREAD more). */
 const SWITCH_EVERY = 4.5;
 const SWITCH_SPREAD = 2.5;
-/** Reverse-Flash: health and might on top of his base, and where he gives up and runs. */
+/** Reverse-Flash: health and might on top of his base, and where he's beaten. */
 const RF_HEALTH = 4.5;
-const RF_MIGHT = 3;
-export const RF_FLEES = 0.12;
+const RF_MIGHT = 1.8;
+export const RF_DEFEATED = 0.08;
+/** How fast the two speedsters circle each other (radians per second), and the Flash's pace while they do. */
+const DUEL_SPIN = 2.6;
+const DUEL_SPEED = 720;
+/** Seconds Reverse-Flash lies knocked out before the Flash runs him off to Iron Heights. */
+const KO_TIME = 2.5;
 
 /** Seconds between Grodd getting away and the Manhunter standing up. */
 const AWAKEN_TIME = 4;
@@ -229,6 +238,8 @@ export class CallToArms implements MissionDirector {
 	grodd: Enemy | null = null;
 	/** Reverse-Flash, while he's here. */
 	reverseFlash: Enemy | null = null;
+	/** Knocked out: where he lies, and for how long before the Flash takes him away. */
+	private knockedOut: { e: Enemy; x: number; y: number; time: number } | null = null;
 	manhunter: Enemy | null = null;
 	/** The Manhunter's core, while it lies in pieces. */
 	core: Dummy | null = null;
@@ -367,7 +378,7 @@ export class CallToArms implements MissionDirector {
 		this.countDowns(game);
 		if (this.state !== 'playing') return;
 		this.hint(game);
-		this.rivalry(game);
+		this.rivalry(game, dt);
 
 		switch (this.phase) {
 			case 'arrival':
@@ -432,7 +443,11 @@ export class CallToArms implements MissionDirector {
 		rf.brain.grit = TOUGHNESS;
 		rf.brain.directed = true;
 		rf.brain.alert = 10;
-		if (flash) rf.brain.target = flash;
+		if (flash) {
+			rf.brain.target = flash;
+			// Two speedsters: the Flash runs at his real pace for this one
+			flash.def = { ...flash.def, maxSpeed: DUEL_SPEED, accel: 6000, decel: 6000 };
+		}
 		this.reverseFlash = rf;
 		this.comms.scene([
 			['Reverse-Flash', 'Hello, Flash. Did you miss me?'],
@@ -441,19 +456,60 @@ export class CallToArms implements MissionDirector {
 		]);
 	}
 
-	/** Reverse-Flash only wants the Flash; anyone else is just in the way. Beaten, he runs. */
-	private rivalry(game: Game) {
+	/**
+	 * Reverse-Flash only wants the Flash; anyone else is just in the way. The
+	 * two of them race round and round each other. Beaten, he's knocked out.
+	 */
+	private rivalry(game: Game, dt: number) {
+		this.carryOff(game, dt);
 		const rf = this.reverseFlash;
 		if (!rf) return;
-		if (!isStanding(rf) || rf.hp <= rf.maxHp * RF_FLEES) {
-			this.reverseFlashRuns(game, "This isn't over, Barry. It never is.");
+		if (!isStanding(rf) || rf.hp <= rf.maxHp * RF_DEFEATED) {
+			this.reverseFlashBeaten(game);
 			return;
 		}
 		const b = rf.brain;
+		// Round and round at full speed, never standing still
+		if (b.state === 'move' || b.state === 'idle') b.orbit += DUEL_SPIN * b.strafe * dt;
 		const up = game.players.filter((p) => !p.downed && !p.boarded);
 		const flash = up.find((p) => p.def.id === 'flash');
 		if (flash) b.target = flash;
 		else if (!b.target || b.target.downed) b.target = up.reduce<Player | null>((best, p) => (!best || Math.hypot(p.x - rf.x, p.y - rf.y) < Math.hypot(best.x - rf.x, best.y - rf.y) ? p : best), null);
+	}
+
+	/** Down and out: he lies there a moment, then the Flash runs him off to Iron Heights. */
+	private reverseFlashBeaten(game: Game) {
+		const rf = this.reverseFlash!;
+		this.reverseFlash = null;
+		const i = game.dummies.indexOf(rf);
+		if (i >= 0) game.dummies.splice(i, 1);
+		rf.hp = 0;
+		rf.down = 99;
+		this.knockedOut = { e: rf, x: rf.x, y: rf.y, time: KO_TIME };
+		this.restoreFlash(game);
+		game.constructs.effects.push({ kind: 'callout', x: rf.x, y: rf.y - 120, age: 0, life: 1.8, text: 'REVERSE-FLASH DEFEATED' });
+		this.comms.scene([
+			['Reverse-Flash', 'No... not like this. Not by you, Barry.'],
+			['The Flash', "Not by me. By us. Thanks for the assist, guys. I'll run him to Iron Heights: back in a flash."]
+		]);
+	}
+
+	/** The Flash runs the knocked-out Reverse-Flash off to prison (a blur, and he's gone). */
+	private carryOff(game: Game, dt: number) {
+		const ko = this.knockedOut;
+		if (!ko) return;
+		ko.time -= dt;
+		if (ko.time > 0) return;
+		const flash = game.players.find((p) => p.def.id === 'flash');
+		heroFx(game.constructs).push({ kind: 'zip', x: flash?.x ?? ko.x, y: flash?.y ?? ko.y, x2: ko.x, y2: ko.y, age: 0, life: 0.3 });
+		heroFx(game.constructs).push({ kind: 'zip', x: ko.x, y: ko.y, x2: ko.x - 1200, y2: ko.y + 200, age: 0, life: 0.4 });
+		this.knockedOut = null;
+	}
+
+	/** Back to his usual pace once the duel's over. */
+	private restoreFlash(game: Game) {
+		const flash = game.players.find((p) => p.def.id === 'flash');
+		if (flash) flash.def = LANTERNS.flash;
 	}
 
 	/** Gone in a streak of red lightning. */
@@ -461,6 +517,7 @@ export class CallToArms implements MissionDirector {
 		const rf = this.reverseFlash;
 		if (!rf) return;
 		this.reverseFlash = null;
+		this.restoreFlash(game);
 		const i = game.dummies.indexOf(rf);
 		if (i >= 0) game.dummies.splice(i, 1);
 		heroFx(game.constructs).push({ kind: 'zip', x: rf.x, y: rf.y, x2: rf.x + 900, y2: rf.y - 300, age: 0, life: 0.5, red: true });
@@ -820,6 +877,8 @@ export class CallToArms implements MissionDirector {
 
 	drawables(ctx: CanvasRenderingContext2D, _alpha: number, time: number): Drawable[] {
 		const list: Drawable[] = [...this.decorations(ctx)];
+		const ko = this.knockedOut;
+		if (ko) list.push({ baseY: ko.y, draw: () => drawReverseFlash(ctx, ko.e, ko.x, ko.y, true, time) });
 		const john = this.john;
 		if (this.state === 'won' && john && !john.boarded) list.push({ baseY: this.liftFrom.y + 1, draw: () => drawAscent(ctx, this.liftFrom, john, this.timer / LIFT_TIME, time) });
 		const wake = this.phase === 'awakening' ? Math.min(1, this.clock / AWAKEN_TIME) : this.phase === 'escape' ? 0.15 : this.phase === 'manhunter' ? 0.3 : 0;

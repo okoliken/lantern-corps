@@ -373,17 +373,17 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	// In at a blur, a burst of punches, out again
 	rfBlitz: def({
 		id: 'rfBlitz', name: 'Blitz', band: 'close', tell: 'strike', windup: 0.28, active: 0.9, recover: 0.25, cooldown: 1.6,
-		minRange: 0, maxRange: 520, damage: 6, knockback: 520, melee: false, heavy: false, chance: 1
+		minRange: 0, maxRange: 520, damage: 4, knockback: 520, melee: false, heavy: false, chance: 1
 	}),
 	// Pins them and hits them again and again
 	rfBeatdown: def({
 		id: 'rfBeatdown', name: 'Beatdown', band: 'close', tell: 'heavy', windup: 0.4, active: 1.5, recover: 0.5, cooldown: 6,
-		minRange: 0, maxRange: 480, damage: 4, knockback: 700, melee: false, heavy: true, chance: 0.9
+		minRange: 0, maxRange: 480, damage: 2.4, knockback: 700, melee: false, heavy: true, chance: 0.9
 	}),
 	// Red Speed Force lightning
 	rfLightning: def({
 		id: 'rfLightning', name: 'Red Lightning', band: 'long', tell: 'aim', windup: 0.45, active: 0.1, recover: 0.3, cooldown: 3.5,
-		minRange: 150, maxRange: 650, damage: 12, knockback: 320, melee: false, heavy: false, chance: 0.8
+		minRange: 150, maxRange: 650, damage: 8, knockback: 320, melee: false, heavy: false, chance: 0.8
 	}),
 	// Lifts someone with his mind, carries them to him and hurls them across the street
 	tkGrip: def({
