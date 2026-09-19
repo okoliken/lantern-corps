@@ -4,12 +4,12 @@
 import type { Effect, Shield } from '../constructs/system';
 import type { Dummy } from '../dummy';
 import { GREEN } from './lantern';
-import { green, greenLight, greenCore } from '../../theme';
+import { green, greenLight, greenCore, SUIT_GREEN } from '../../theme';
 
 const TAU = Math.PI * 2;
 const HULL = '#dfe8e2';
 const HULL_SHADE = '#9fb1a8';
-const BOTTLE = '#0F4F34';
+const BOTTLE = SUIT_GREEN;
 const OUTLINE = '#07100c';
 
 /** A tiny seeded random generator so each rock keeps its shape. */

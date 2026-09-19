@@ -2,7 +2,7 @@
 // protect, and Kilowog's practice drones and their harmless bolts.
 
 import { GREEN } from './lantern';
-import { green } from '../../theme';
+import { green, SUIT_GREEN } from '../../theme';
 
 const TAU = Math.PI * 2;
 const PRACTICE = '#ffb347';
@@ -46,7 +46,7 @@ export function drawSupplyPod(ctx: CanvasRenderingContext2D, x: number, y: numbe
 	ctx.roundRect(-36, -18, 72, 32, 12);
 	ctx.fill();
 	ctx.stroke();
-	ctx.fillStyle = '#0F4F34';
+	ctx.fillStyle = SUIT_GREEN;
 	ctx.fillRect(-36, -2, 72, 7);
 	ctx.shadowColor = GREEN;
 	ctx.shadowBlur = 8;

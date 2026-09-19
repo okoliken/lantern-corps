@@ -200,7 +200,7 @@
 		font-size: 0.85rem;
 		color: var(--green);
 		background: rgba(3, 6, 10, 0.6);
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		border-radius: 6px;
 		padding: 0.25rem 0.6rem;
 		cursor: pointer;
@@ -300,7 +300,7 @@
 	}
 	.end.won {
 		background: rgba(3, 14, 8, 0.9);
-		border-color: var(--green);
+		border-color: var(--suit-lit);
 		color: var(--text);
 	}
 	.end h2 {
@@ -333,8 +333,8 @@
 		padding: 0.5rem 1.25rem;
 		border-radius: 6px;
 		border: none;
-		background: var(--green);
-		color: var(--bg);
+		background: var(--suit);
+		color: var(--text);
 		cursor: pointer;
 	}
 
@@ -374,9 +374,9 @@
 		flex-direction: column;
 		align-items: center;
 		padding: 1.25rem;
-		border: 2px solid var(--green-dim);
+		border: 2px solid var(--suit-lit);
 		border-radius: 10px;
-		background: color-mix(in srgb, var(--green) 3%, transparent);
+		background: color-mix(in srgb, var(--suit) 20%, transparent);
 	}
 	.card h2 {
 		margin: 0.5rem 0 0;
@@ -399,15 +399,15 @@
 	}
 	.where a {
 		padding: 0.4rem 0.9rem;
-		border: 1px solid var(--green);
+		border: 1px solid var(--suit-lit);
 		border-radius: 6px;
 		text-decoration: none;
 		font-size: 0.85rem;
 	}
 	.where a:hover,
 	.where a:focus-visible {
-		background: var(--green);
-		color: var(--bg);
+		background: var(--suit-lit);
+		color: var(--text);
 	}
 	.back {
 		font-size: 0.9rem;

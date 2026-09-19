@@ -114,18 +114,18 @@
 		padding: 0.15rem 0.6rem;
 		color: var(--text);
 		background: transparent;
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		border-radius: 4px;
 		cursor: pointer;
 	}
 	button.on {
-		background: var(--green);
-		color: var(--bg);
+		background: var(--suit-lit);
+		color: var(--text);
 		border-color: var(--green);
 	}
 	kbd {
 		padding: 0.05rem 0.35rem;
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		border-radius: 4px;
 		font-size: 0.75rem;
 	}

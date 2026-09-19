@@ -178,7 +178,7 @@
 		overflow: auto;
 		box-sizing: border-box;
 		padding: 1.25rem 1.5rem;
-		border: 2px solid var(--green-dim);
+		border: 2px solid var(--suit-lit);
 		border-radius: 12px;
 		background: #06100b;
 		box-shadow: 0 0 40px color-mix(in srgb, var(--green) 12%, transparent);
@@ -206,7 +206,7 @@
 		font: inherit;
 		color: var(--text);
 		background: transparent;
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		border-radius: 6px;
 		padding: 0.35rem 0.8rem;
 		cursor: pointer;
@@ -216,9 +216,9 @@
 		border-color: var(--green);
 	}
 	button.primary {
-		background: var(--green);
-		color: var(--bg);
-		border-color: var(--green);
+		background: var(--suit);
+		color: var(--text);
+		border-color: var(--suit-lit);
 		font-weight: 700;
 	}
 	.tabs {
@@ -227,7 +227,7 @@
 		margin: 1rem 0 0.75rem;
 	}
 	.tabs button.on {
-		background: color-mix(in srgb, var(--green) 15%, transparent);
+		background: color-mix(in srgb, var(--suit) 75%, transparent);
 		border-color: var(--green);
 	}
 	.help {
@@ -255,7 +255,7 @@
 		font-weight: 700;
 	}
 	.bind.listening {
-		border-color: var(--green);
+		border-color: var(--suit-lit);
 		color: var(--green);
 		animation: pulse 0.8s ease-in-out infinite alternate;
 	}
@@ -283,7 +283,7 @@
 		flex-shrink: 0;
 		width: 1.2rem;
 		height: 1.2rem;
-		accent-color: var(--green);
+		accent-color: var(--suit-lit);
 		margin-top: 0.15rem;
 	}
 	.option span {
@@ -298,7 +298,7 @@
 		gap: 1rem;
 		margin-top: 1.25rem;
 		padding-top: 1rem;
-		border-top: 1px solid color-mix(in srgb, var(--green) 15%, transparent);
+		border-top: 1px solid var(--suit-lit);
 	}
 	footer a {
 		text-decoration: none;

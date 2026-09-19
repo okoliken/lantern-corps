@@ -4,9 +4,9 @@
 import { BATTERY_MAX_CHARGE, RESTART_THRESHOLD, type Battery } from '../willpower';
 import { GREEN } from './lantern';
 import { displayFont, uiFont } from './fonts';
-import { green, greenCore, GREEN_LIGHT, GREEN_CORE } from '../../theme';
+import { green, greenCore, GREEN_LIGHT, GREEN_CORE, SUIT_GREEN, suitGreen } from '../../theme';
 
-const BOTTLE_GREEN = '#0F4F34';
+const BOTTLE_GREEN = SUIT_GREEN;
 
 // ------------------------------------------------------------------ beam
 
@@ -387,7 +387,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 
 			// Cooldown shade drains downward as it recharges
 			if (s.cooldown > 0) {
-				ctx.fillStyle = 'rgba(15, 79, 52, 0.85)';
+				ctx.fillStyle = suitGreen(0.85);
 				ctx.fillRect(sx, slotsY + box * (1 - s.cooldown), box, box * s.cooldown);
 			}
 
@@ -419,7 +419,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
 		ctx.fillRect(shx, slotsY, box, box);
 		if (p.shield.cooldown > 0) {
-			ctx.fillStyle = 'rgba(15, 79, 52, 0.85)';
+			ctx.fillStyle = suitGreen(0.85);
 			ctx.fillRect(shx, slotsY + box * (1 - p.shield.cooldown), box, box * p.shield.cooldown);
 		}
 		// Bubble icon, bright while a shield is up on you

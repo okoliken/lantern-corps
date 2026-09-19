@@ -347,7 +347,11 @@ Bots: win ~7/8, usually losing 1-2 lives; duel ~2.5-3.5 min.
 states, borders), `GREEN_CORE` (the white-hot centre of ring energy), `greenShade(t)`; with alpha:
 `green(a)`, `greenLight(a)`, `greenCore(a)`. The canvas code uses these (no hand-typed greens), the
 layout sets `--green`/`--green-dim` from them, and component CSS derives its glows with
-`color-mix(in srgb, var(--green) N%, transparent)`. Not theme: suit bottle green, scenery colours.
+`color-mix(in srgb, var(--green) N%, transparent)`. The **menus use the suit green** (user, 2026-09-19):
+`SUIT_GREEN` #0F4F34 / `SUIT_GREEN_LIT` #1d7a50 / `SUIT_GREEN_DARK` (also in `theme.ts`, used by the
+uniforms) as `--suit`, `--suit-lit`, `--suit-dark`: filled buttons are `--suit` with light text and a
+`--suit-lit` edge, card/panel borders and tabs are `--suit-lit`, tints mix `--suit`. The bright `--green`
+is only for glows and highlights: title text and glows, numbers and links, hover/focus borders.
 
 **Acts** (`ACTS` in `story/missions.ts`, 2026-09-19): the mission list is grouped by act; each act
 lists its missions in order (built ones by id, planned ones as title + teaser, shown locked).

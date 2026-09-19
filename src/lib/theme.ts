@@ -3,11 +3,21 @@
 // glows, the HUD) take their green from this file, and the lighter and darker
 // shades are mixed from it, so changing THEME_GREEN changes them all.
 //
-// Not everything green is the theme: the suits' bottle green and scenery
-// (crops, alien skin) are their own colours.
+// Scenery (crops, alien skin) has its own colours.
 
-/** The Green Lantern green: ring energy, glows, highlights, the UI accent. */
+/** The Green Lantern green: ring energy, glows and highlights. */
 export const THEME_GREEN = '#3dff6e';
+
+/**
+ * The suit's bottle green: the Lanterns' uniforms, and the menus (buttons,
+ * panels, borders), so the UI matches the characters. The bright theme green
+ * is kept for glows and highlights on top of it.
+ */
+export const SUIT_GREEN = '#0F4F34';
+/** The suit green where the light catches it: button edges, borders, hover. */
+export const SUIT_GREEN_LIT = '#1d7a50';
+/** The suit green in shadow. */
+export const SUIT_GREEN_DARK = '#0b3a27';
 
 const rgbOf = (hex: string): [number, number, number] => [
 	parseInt(hex.slice(1, 3), 16),
@@ -40,5 +50,7 @@ export const greenCore = (alpha: number) => `rgba(${rgbOf(GREEN_CORE).join(', ')
 export const greenLight = (alpha: number) => `rgba(${LIGHT_RGB.map(Math.round).join(', ')}, ${alpha})`;
 /** The theme green darkened by `t` (0..1) toward black, for scenery lit by it. */
 export const greenShade = (t: number) => hexOf(mix([0, 0, 0], t));
+/** The suit green with transparency. */
+export const suitGreen = (alpha: number) => `rgba(${rgbOf(SUIT_GREEN).join(', ')}, ${alpha})`;
 /** The theme green's red, green and blue, for code that mixes its own colours. */
 export const THEME_GREEN_RGB = rgbOf(THEME_GREEN);

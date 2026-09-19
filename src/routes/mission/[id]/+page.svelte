@@ -260,7 +260,7 @@
 		font-size: 0.85rem;
 		color: var(--green);
 		background: rgba(3, 6, 10, 0.6);
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		border-radius: 6px;
 		padding: 0.25rem 0.6rem;
 		cursor: pointer;
@@ -277,7 +277,7 @@
 		padding: 0.6rem 0.8rem;
 		border-radius: 10px;
 		background: rgba(3, 10, 6, 0.75);
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		font-size: 0.8rem;
 	}
 	.row {
@@ -303,7 +303,7 @@
 		padding: 0.55rem 0.85rem;
 		border-radius: 10px;
 		background: rgba(3, 10, 6, 0.85);
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		font-size: 0.9rem;
 		line-height: 1.35;
 		pointer-events: none;
@@ -365,7 +365,7 @@
 		transition: width 0.15s;
 	}
 	.fill.hull {
-		background: var(--green);
+		background: var(--suit);
 		box-shadow: 0 0 8px var(--green);
 	}
 	.fill.hull.low {
@@ -373,7 +373,7 @@
 		box-shadow: 0 0 8px #ff5a3a;
 	}
 	.fill.progress {
-		background: color-mix(in srgb, var(--green) 35%, transparent);
+		background: color-mix(in srgb, var(--suit) 100%, transparent);
 	}
 	.ship {
 		position: absolute;
@@ -399,7 +399,7 @@
 		gap: 0.3rem;
 		padding: 1rem 2rem;
 		background: rgba(3, 10, 6, 0.8);
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 	}
 	.banner small {
 		text-transform: uppercase;
@@ -446,7 +446,7 @@
 		padding: 1.5rem 1.75rem;
 		border-radius: 12px;
 		background: rgba(3, 10, 6, 0.92);
-		border: 2px solid var(--green);
+		border: 2px solid var(--suit-lit);
 		box-shadow: 0 0 40px color-mix(in srgb, var(--green) 20%, transparent);
 	}
 	.briefing h1 {
@@ -484,7 +484,7 @@
 		margin-top: 1rem;
 		padding: 0.6rem 0.8rem;
 		border-radius: 8px;
-		border: 1px dashed var(--green-dim);
+		border: 1px dashed var(--suit-lit);
 		font-size: 0.9rem;
 	}
 	.train a {
@@ -508,8 +508,8 @@
 		padding: 0.55rem 1.5rem;
 		border-radius: 6px;
 		border: none;
-		background: var(--green);
-		color: var(--bg);
+		background: var(--suit);
+		color: var(--text);
 		cursor: pointer;
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
@@ -522,7 +522,7 @@
 		box-shadow: 0 0 40px rgba(255, 90, 58, 0.2);
 	}
 	.end.won {
-		border-color: var(--green);
+		border-color: var(--suit-lit);
 	}
 	.end h2 {
 		margin: 0 0 0.5rem;

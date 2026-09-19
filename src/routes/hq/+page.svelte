@@ -135,7 +135,7 @@
 		font: inherit;
 		color: var(--text);
 		background: transparent;
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		border-radius: 8px;
 		padding: 0.45rem 0.9rem;
 		cursor: pointer;
@@ -149,7 +149,7 @@
 		cursor: default;
 	}
 	.tabs button.on {
-		background: color-mix(in srgb, var(--green) 15%, transparent);
+		background: color-mix(in srgb, var(--suit) 75%, transparent);
 		border-color: var(--green);
 	}
 	.lv {
@@ -163,9 +163,9 @@
 		align-items: center;
 		gap: 1rem 1.5rem;
 		padding: 1rem 1.25rem;
-		border: 2px solid var(--green-dim);
+		border: 2px solid var(--suit-lit);
 		border-radius: 12px;
-		background: color-mix(in srgb, var(--green) 3%, transparent);
+		background: color-mix(in srgb, var(--suit) 20%, transparent);
 	}
 	.info {
 		flex: 1;
@@ -193,13 +193,13 @@
 	.xp {
 		height: 8px;
 		border-radius: 4px;
-		background: color-mix(in srgb, var(--green) 12%, transparent);
+		background: color-mix(in srgb, var(--suit) 60%, transparent);
 		overflow: hidden;
 	}
 	.xp span {
 		display: block;
 		height: 100%;
-		background: var(--green);
+		background: var(--suit);
 		box-shadow: 0 0 8px var(--green);
 	}
 	.hint {
@@ -224,7 +224,7 @@
 		opacity: 1;
 		color: var(--green);
 		box-shadow: 0 0 20px color-mix(in srgb, var(--green) 25%, transparent);
-		border: 1px solid var(--green);
+		border: 1px solid var(--suit-lit);
 	}
 	.big {
 		font-size: 2.2rem;
@@ -242,7 +242,7 @@
 		flex-direction: column;
 		gap: 0.4rem;
 		padding: 1rem;
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		border-radius: 10px;
 	}
 	h3 {
@@ -265,10 +265,10 @@
 		width: 1.2rem;
 		height: 0.45rem;
 		border-radius: 3px;
-		background: color-mix(in srgb, var(--green) 15%, transparent);
+		background: color-mix(in srgb, var(--suit) 75%, transparent);
 	}
 	.pips span.filled {
-		background: var(--green);
+		background: var(--suit);
 		box-shadow: 0 0 6px var(--green);
 	}
 	article button {

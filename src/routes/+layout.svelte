@@ -5,11 +5,12 @@
 	import '@fontsource-variable/exo-2/wght.css';
 	import '@fontsource-variable/exo-2/wght-italic.css';
 
-	import { GREEN_DIM, THEME_GREEN } from '$lib/theme';
+	import { SUIT_GREEN, SUIT_GREEN_DARK, SUIT_GREEN_LIT, THEME_GREEN } from '$lib/theme';
 
 	let { children } = $props();
-	// The theme green (and its dim shade) for the whole UI, from the same file the game draws with
-	const themeVars = `:root { --green: ${THEME_GREEN}; --green-dim: ${GREEN_DIM}; }`;
+	// The UI's greens, from the same file the game draws with: the suit greens for buttons, panels
+	// and borders; the bright green for glows and highlights
+	const themeVars = `:root { --green: ${THEME_GREEN}; --suit: ${SUIT_GREEN}; --suit-lit: ${SUIT_GREEN_LIT}; --suit-dark: ${SUIT_GREEN_DARK}; }`;
 </script>
 
 <svelte:head>

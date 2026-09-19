@@ -46,7 +46,7 @@
 	}
 	.btn {
 		padding: 0.8rem 2rem;
-		border: 2px solid var(--green);
+		border: 2px solid var(--suit-lit);
 		border-radius: 6px;
 		text-decoration: none;
 		font-weight: 600;
@@ -54,16 +54,16 @@
 		letter-spacing: 0.1em;
 	}
 	.btn:hover {
-		background: var(--green);
-		color: var(--bg);
+		background: var(--suit-lit);
+		color: var(--text);
 	}
 	.btn.primary {
-		background: var(--green);
-		color: var(--bg);
+		background: var(--suit);
+		color: var(--text);
 		box-shadow: 0 0 18px color-mix(in srgb, var(--green) 35%, transparent);
 	}
 	.btn.lab {
 		border-style: dashed;
-		border-color: var(--green-dim);
+		border-color: var(--suit-lit);
 	}
 </style>

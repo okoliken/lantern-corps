@@ -124,7 +124,7 @@
 		font-size: 0.85rem;
 		color: var(--green);
 		background: rgba(3, 6, 10, 0.6);
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		border-radius: 6px;
 		padding: 0.25rem 0.6rem;
 		cursor: pointer;
@@ -145,7 +145,7 @@
 		padding: 0.6rem 0.9rem;
 		border-radius: 10px;
 		background: rgba(3, 10, 6, 0.8);
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		pointer-events: none;
 	}
 	.row {
@@ -178,7 +178,7 @@
 	.fill {
 		display: block;
 		height: 100%;
-		background: var(--green);
+		background: var(--suit);
 		box-shadow: 0 0 10px var(--green);
 		transition: width 0.15s;
 	}
@@ -202,7 +202,7 @@
 		box-shadow: 0 0 40px rgba(224, 180, 184, 0.15);
 	}
 	.end.won {
-		border-color: var(--green);
+		border-color: var(--suit-lit);
 		box-shadow: 0 0 40px color-mix(in srgb, var(--green) 20%, transparent);
 	}
 	.end h2 {
@@ -238,8 +238,8 @@
 		padding: 0.55rem 1.5rem;
 		border-radius: 6px;
 		border: none;
-		background: var(--green);
-		color: var(--bg);
+		background: var(--suit);
+		color: var(--text);
 		cursor: pointer;
 		text-transform: uppercase;
 		letter-spacing: 0.08em;

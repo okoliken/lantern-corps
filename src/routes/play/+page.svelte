@@ -129,7 +129,7 @@
 		font-size: 0.85rem;
 		color: var(--green);
 		background: rgba(3, 6, 10, 0.6);
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		border-radius: 6px;
 		padding: 0.25rem 0.6rem;
 		cursor: pointer;
@@ -178,11 +178,11 @@
 		flex-direction: column;
 		align-items: center;
 		padding: 1.25rem;
-		border: 2px solid var(--green-dim);
+		border: 2px solid var(--suit-lit);
 		border-radius: 10px;
 		text-decoration: none;
 		color: var(--text);
-		background: color-mix(in srgb, var(--green) 3%, transparent);
+		background: color-mix(in srgb, var(--suit) 20%, transparent);
 		transition:
 			border-color 0.15s,
 			box-shadow 0.15s,
@@ -230,13 +230,13 @@
 		margin: 0;
 		height: 6px;
 		border-radius: 3px;
-		background: color-mix(in srgb, var(--green) 12%, transparent);
+		background: color-mix(in srgb, var(--suit) 60%, transparent);
 		overflow: hidden;
 	}
 	dd span {
 		display: block;
 		height: 100%;
-		background: var(--green);
+		background: var(--suit);
 	}
 	.card-lv {
 		font-size: 0.8rem;

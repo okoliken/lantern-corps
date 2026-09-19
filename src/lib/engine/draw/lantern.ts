@@ -13,7 +13,7 @@
 import { HEAD_R, STANDING_HEIGHT, TORSO, computeSkeleton, turnScale, type LanternPose, type Point, type Skeleton } from '../animation';
 import type { Look } from '../lanterns';
 import { uiFont } from './fonts';
-import { green, greenCore, GREEN_LIGHT, GREEN_CORE, THEME_GREEN } from '../../theme';
+import { green, greenCore, GREEN_LIGHT, GREEN_CORE, SUIT_GREEN, SUIT_GREEN_DARK, SUIT_GREEN_LIT, THEME_GREEN } from '../../theme';
 
 export type { LanternPose } from '../animation';
 
@@ -53,9 +53,6 @@ export const FIGURE_HALF_WIDTH = 10 * FIGURE_SCALE;
 const BLACK = '#0d1210';
 const BLACK_LIT = '#24302b';
 /** Classic bottle green (the traditional comic suit shade). */
-const SUIT_GREEN = '#0F4F34';
-const SUIT_GREEN_LIT = '#1d7a50';
-const SUIT_GREEN_DARK = '#0b3a27';
 const OUTLINE = '#030504';
 const WHITE = GREEN_CORE;
 

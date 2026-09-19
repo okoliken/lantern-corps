@@ -94,7 +94,7 @@
 		min-height: 96px;
 		padding: 14px 20px 16px;
 		background: rgba(3, 12, 8, 0.86);
-		border: 1px solid color-mix(in srgb, var(--green) 45%, transparent);
+		border: 1px solid var(--suit-lit);
 		border-radius: 10px;
 		box-shadow: 0 0 24px color-mix(in srgb, var(--green) 15%, transparent);
 	}
@@ -133,7 +133,7 @@
 		font-size: 13px;
 		color: var(--text);
 		background: rgba(0, 0, 0, 0.5);
-		border: 1px solid color-mix(in srgb, var(--green) 35%, transparent);
+		border: 1px solid var(--suit-lit);
 		border-radius: 6px;
 		cursor: pointer;
 	}

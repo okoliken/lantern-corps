@@ -155,7 +155,7 @@
 		font-size: 0.85rem;
 		color: var(--green);
 		background: rgba(3, 6, 10, 0.6);
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		border-radius: 6px;
 		padding: 0.25rem 0.6rem;
 		cursor: pointer;
@@ -175,13 +175,13 @@
 		padding: 0.8rem 1.1rem 0.9rem;
 		border-radius: 12px;
 		background: rgba(3, 10, 6, 0.88);
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		box-shadow: 0 0 24px color-mix(in srgb, var(--green) 12%, transparent);
 		pointer-events: none;
 		transition: border-color 0.2s;
 	}
 	.coach.cheer {
-		border-color: var(--green);
+		border-color: var(--suit-lit);
 	}
 	.who {
 		display: flex;
@@ -205,15 +205,15 @@
 		width: 9px;
 		height: 9px;
 		border-radius: 50%;
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 	}
 	.dot.now {
-		border-color: var(--green);
+		border-color: var(--suit-lit);
 		box-shadow: 0 0 6px var(--green);
 	}
 	.dot.done {
-		background: var(--green);
-		border-color: var(--green);
+		background: var(--suit);
+		border-color: var(--suit-lit);
 	}
 	.line {
 		margin: 0.35rem 0 0.5rem;
@@ -234,8 +234,8 @@
 		padding: 0 0.45rem;
 		font: inherit;
 		font-size: 0.95rem;
-		color: var(--bg);
-		background: var(--green);
+		color: var(--text);
+		background: var(--suit);
 		border-radius: 5px;
 		box-shadow: 0 0 10px color-mix(in srgb, var(--green) 40%, transparent);
 	}
@@ -272,7 +272,7 @@
 		border-radius: 12px;
 		text-align: center;
 		background: rgba(3, 10, 6, 0.92);
-		border: 2px solid var(--green);
+		border: 2px solid var(--suit-lit);
 		box-shadow: 0 0 40px color-mix(in srgb, var(--green) 20%, transparent);
 	}
 	.end h2 {
@@ -302,7 +302,7 @@
 	.actions button {
 		color: var(--green);
 		background: none;
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		border-radius: 6px;
 		padding: 0.45rem 1rem;
 		cursor: pointer;
@@ -311,8 +311,8 @@
 		font-weight: 800;
 		padding: 0.55rem 1.5rem;
 		border-radius: 6px;
-		background: var(--green);
-		color: var(--bg);
+		background: var(--suit);
+		color: var(--text);
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
 	}

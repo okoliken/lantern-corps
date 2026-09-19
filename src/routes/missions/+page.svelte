@@ -103,7 +103,7 @@
 	.act {
 		display: grid;
 		gap: 0.15rem;
-		border-left: 3px solid var(--green);
+		border-left: 3px solid var(--suit-lit);
 		padding-left: 0.8rem;
 	}
 	.act small {
@@ -143,9 +143,9 @@
 		gap: 1rem;
 		align-items: center;
 		padding: 1rem 1.25rem;
-		border: 2px solid var(--green-dim);
+		border: 2px solid var(--suit-lit);
 		border-radius: 10px;
-		background: color-mix(in srgb, var(--green) 3%, transparent);
+		background: color-mix(in srgb, var(--suit) 20%, transparent);
 		text-decoration: none;
 		color: var(--text);
 	}

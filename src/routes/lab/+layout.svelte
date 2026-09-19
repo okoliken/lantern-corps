@@ -25,7 +25,7 @@
 		align-items: center;
 		gap: 0.75rem;
 		padding: 0.5rem 1rem;
-		border-bottom: 1px dashed var(--green-dim);
+		border-bottom: 1px dashed var(--suit-lit);
 		font-size: 0.9rem;
 	}
 	header a {
@@ -35,7 +35,7 @@
 	.tag {
 		font-size: 0.7rem;
 		padding: 0.1rem 0.4rem;
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		border-radius: 4px;
 		opacity: 0.7;
 	}

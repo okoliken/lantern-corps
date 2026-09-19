@@ -7,7 +7,7 @@ import type { LanternDef } from '../lanterns';
 import { FORTRESS_DRONE_HOVER, TURRET_HEAD_HEIGHT, turretPosition } from '../constructs/signature';
 import { GREEN } from './lantern';
 import { displayFont } from './fonts';
-import { green, greenCore, GREEN_CORE } from '../../theme';
+import { green, greenCore, GREEN_CORE, SUIT_GREEN } from '../../theme';
 
 const CORE = GREEN_CORE;
 const TAU = Math.PI * 2;
@@ -116,7 +116,7 @@ export function drawJet(
 	ctx.arc(-0.8, -0.6, 5.3, Math.PI * 0.95, Math.PI * 1.85);
 	ctx.fill();
 	if (pilot.look.mask) {
-		ctx.fillStyle = '#0F4F34';
+		ctx.fillStyle = SUIT_GREEN;
 		ctx.fillRect(1, -1.8, 4.6, 2.2);
 	}
 	ctx.restore();

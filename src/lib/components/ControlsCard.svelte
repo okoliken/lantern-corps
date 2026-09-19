@@ -68,7 +68,7 @@
 		width: min(30rem, 100%);
 		box-sizing: border-box;
 		padding: 1.5rem;
-		border: 2px solid var(--green);
+		border: 2px solid var(--suit-lit);
 		border-radius: 12px;
 		background: #06100b;
 		box-shadow: 0 0 40px color-mix(in srgb, var(--green) 20%, transparent);
@@ -99,7 +99,7 @@
 	kbd {
 		justify-self: start;
 		padding: 0.2rem 0.5rem;
-		border: 1px solid var(--green-dim);
+		border: 1px solid var(--suit-lit);
 		border-bottom-width: 3px;
 		border-radius: 6px;
 		font-family: var(--font-ui);
@@ -120,8 +120,8 @@
 		font-weight: 700;
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
-		color: var(--bg);
-		background: var(--green);
+		color: var(--text);
+		background: var(--suit);
 		border: none;
 		border-radius: 8px;
 		cursor: pointer;
