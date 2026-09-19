@@ -407,6 +407,11 @@ did 65-100 per hit and was used whenever two people got close. Now damage 9 (was
 cooldown 7.5s. User then: "don't make it too easy" → Blast damage 13, soldiers might 3.1, Grodd 2.9,
 Manhunter 2.6. Bots: win 9/10, usually 1 life lost (sometimes 2), the waves can still down John; the
 danger is spread out instead of one unblockable hit taking half his health.
+Still "dies way too fast" (user): measured, single hits of 40-144 (thrown car 99 avg, shells 48, slam
+40, Psychic Blast 37, Mind Control 43) downed John from full in as little as 1.8s. Now
+`ConstructWorld.maxHit` caps any one hit on a Lantern (`damagePlayer`); Call to Arms sets `MAX_HIT` 34
+(about a quarter of John's health), Telekinetic Throw damage 22. Full to down now takes 18-97s. Bots:
+win 10/10 but usually drop to 1-13% health, and go down about once in half the runs.
 
 **Main menu** (`routes/+page.svelte`, `components/MenuPoster.svelte`, 2026-09-19): a poster-like
 canvas: Kilowog, Hal and John small, **facing the viewer** (`draw/lanternFront.ts`, menu only: the game

@@ -46,6 +46,8 @@ export function damagePlayer(
 	if (p.downed || p.invuln > 0 || amount <= 0) return 0;
 	// Red Lantern hits throw you further
 	if (w.rage > 1) knockback *= RAGE_KNOCKBACK;
+	// No single hit takes more than the mission allows
+	if (w.maxHit !== undefined) amount = Math.min(amount, w.maxHit);
 	// Power Armor takes most of the blow
 	if (p.armor) amount *= ARMOR_TAKES;
 	// Hawkgirl's wings wrapped round her

@@ -43,6 +43,8 @@ const PAR_TIME = 540;
 /** Grodd's soldiers: health and hitting power on top of their base. */
 const TOUGHNESS = 3.6;
 const MIGHT = 3.1;
+/** The most one hit can take off anyone (about a quarter of John's health): hard, but never a one-shot. */
+export const MAX_HIT = 34;
 /** Grodd himself. */
 export const GRODD_HEALTH = 4.5;
 const GRODD_MIGHT = 2.9;
@@ -326,6 +328,7 @@ export class CallToArms implements MissionDirector {
 				this.timer -= dt;
 				if (this.timer <= 0) {
 					this.state = 'playing';
+					game.constructs.maxHit = MAX_HIT;
 					this.spawn(game, ARRIVAL);
 					this.comms.scene([
 						['The Flash', 'Whoa! A Green Lantern? I thought you guys only came in the one flavor!'],

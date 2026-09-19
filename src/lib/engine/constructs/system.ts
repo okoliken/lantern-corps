@@ -282,6 +282,8 @@ export interface ConstructWorld {
 	 * willpower, so bubble shields take this many times the damage (1 = not rage).
 	 */
 	rage: number;
+	/** The most one hit can take off a Lantern (a mission can set it so nothing one-shots you). */
+	maxHit?: number;
 	/** Whose turn it is to attack each Lantern (enemies/director.ts). */
 	pressure: PressureMap;
 	/** Which enemies attack now and which wait in reserve (enemies/squad.ts). */

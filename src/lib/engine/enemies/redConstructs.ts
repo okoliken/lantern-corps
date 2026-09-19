@@ -361,7 +361,7 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	// A car lifted off the street and hurled; it bursts where it lands
 	carThrow: def({
 		id: 'carThrow', name: 'Telekinetic Throw', band: 'long', tell: 'sky', windup: 0.8, active: 0.2, recover: 0.6, cooldown: 5.5,
-		minRange: 140, maxRange: 640, damage: 38, knockback: 700, melee: false, heavy: true, chance: 0.9, radius: 85, speed: 540
+		minRange: 140, maxRange: 640, damage: 22, knockback: 700, melee: false, heavy: true, chance: 0.9, radius: 85, speed: 540
 	}),
 	// Everything loose around him lifted and flung
 	debrisStorm: def({
