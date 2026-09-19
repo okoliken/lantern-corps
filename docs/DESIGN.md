@@ -315,6 +315,19 @@ a partner (`Backup(who, uses, seconds)`): they fly in (`Game.addPartner`, AI) an
 time's up (`Game.removePartner`). Mission 3: Hal, twice, 40s each. The panel tally shows the status.
 Footprint-only obstacles (`Obstacle.hidden`) make mission-drawn props solid without drawing a block.
 
+**Act 1 · Mission 4: Prison Moon** (Hal + Kilowog AI, planet, `ground: 'bloodMoon'`;
+`missions/prisonMoon.ts`, art in `draw/prison.ts`). The Interceptor is parked on the landing field
+(battery beside it). Three guarded **cells** (`ObstacleKind 'cell'`: hidden breakable obstacles,
+420 hp, drawn by the mission as jagged red bars round the prisoner; auto-aim targets them, label
+"Cell"). The first hit on a cell sets off the ALARM (2 Reds drop in); breaking one frees its Lantern
+(`Game.addPartner`, at half health and 40% willpower) and brings a response wave. Prisoners are new
+crew: **Arisia** (Graxos IV), **Boodikka** (Bellatrix), **Katma Tui** (Korugar), each with a kit
+(`LOADOUTS`) and a signature reusing an existing move under their own name (Comet Dive, Bellatrix
+Quake, Korugar Bastion). All free: Warden **Skallox** + 8 Reds; cleared, Katma Tui names Razer.
+Reds TOUGHNESS 4, MIGHT 2.5. The HUD shows bars for the first two players only. ★ done, ★ no lives
+lost, ★ under 6 min. Bot (autopilot, which now also breaks cells when idle): wins in 2-3.5 min,
+Hal's health dips to about half in most runs.
+
 **Acts** (`ACTS` in `story/missions.ts`, 2026-09-19): the mission list is grouped by act; each act
 lists its missions in order (built ones by id, planned ones as title + teaser, shown locked).
 `placeOf(id)` gives a mission's act and number within it (briefing: "Act 1 · ... / Mission 3:",

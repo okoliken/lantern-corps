@@ -3,7 +3,9 @@
 
 export type LanternId = 'hal' | 'john';
 /** Every Lantern who can fight on your side: the two you can play, plus partners the story brings along. */
-export type CrewId = LanternId | 'kilowog';
+export type CrewId = LanternId | 'kilowog' | PrisonerId;
+/** Green Lanterns the Red Lanterns took prisoner (Act 1, Prison Moon): freed, they fight beside you. */
+export type PrisonerId = 'arisia' | 'katma' | 'boodikka';
 /** The Lanterns you can pick. */
 export const PLAYABLE: readonly LanternId[] = ['hal', 'john'];
 
@@ -93,6 +95,41 @@ export const LANTERNS: Record<CrewId, LanternDef> = {
 		figureScale: 1.45,
 		build: { leg: 0.85, torso: 1.35, arm: 1.2, neck: 0.25 },
 		hunch: 0.05
+	},
+
+	// ---- Held on the Prison Moon ----
+	arisia: {
+		id: 'arisia',
+		name: 'Arisia',
+		title: 'Lantern of Graxos IV',
+		blurb: 'Young, quick and fearless: blades and bright, fast constructs.',
+		maxSpeed: 310,
+		accel: 2500,
+		decel: 2200,
+		traits: { power: 1.05, durability: 0.9, cooldown: 0.9, structureCost: 1 },
+		look: { skin: '#f1d9c4', hair: '#f0cf6a', hairStyle: 'swept', mask: false }
+	},
+	katma: {
+		id: 'katma',
+		name: 'Katma Tui',
+		title: 'Lantern of Korugar',
+		blurb: 'A veteran of Korugar: precise, disciplined, and hard to break.',
+		maxSpeed: 290,
+		accel: 2300,
+		decel: 2400,
+		traits: { power: 1.1, durability: 1.15, cooldown: 1, structureCost: 0.85 },
+		look: { skin: '#c86a9c', hair: '#141016', hairStyle: 'peak', mask: false }
+	},
+	boodikka: {
+		id: 'boodikka',
+		name: 'Boodikka',
+		title: 'Lantern of Bellatrix',
+		blurb: 'A soldier first: hammers, fists and cannons, straight at the enemy.',
+		maxSpeed: 290,
+		accel: 2200,
+		decel: 2400,
+		traits: { power: 1.15, durability: 1.1, cooldown: 1.05, structureCost: 1 },
+		look: { skin: '#d9a57e', hair: '#b8331f', hairStyle: 'cropped', mask: false }
 	}
 };
 

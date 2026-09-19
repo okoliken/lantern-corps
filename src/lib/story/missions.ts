@@ -103,6 +103,27 @@ MISSIONS.push({
 	partner: 'kilowog'
 });
 
+MISSIONS.push({
+	id: 'prison-moon',
+	title: 'Prison Moon',
+	tagline: 'Break captured Green Lanterns out of a Red Lantern prison. Every Lantern you free fights beside you.',
+	lantern: 'hal',
+	environment: 'planet',
+	place: 'Beyond the frontier · The Prison Moon',
+	briefing: [
+		'The Interceptor drops out of its jump over a moon the color of dried blood. Aya picks up Green Lantern ring signatures on the surface: weak, but alive.',
+		'"Lanterns in cages," Kilowog growls. "The Reds have been taking prisoners."',
+		'Three cells, three Lanterns, and a whole garrison of Red Lanterns between you and them.'
+	],
+	objectives: [
+		'Break open the cells (any construct or ring shot works on them)',
+		'Every Lantern you free fights beside you',
+		'Hold off the warden and the garrison',
+		'The Lantern battery by the Interceptor recharges your willpower'
+	],
+	partner: 'kilowog'
+});
+
 export function missionById(id: string): MissionInfo | undefined {
 	return MISSIONS.find((m) => m.id === id);
 }
@@ -131,7 +152,7 @@ export const ACTS: ActInfo[] = [
 			'safe-passage',
 			'silent-outpost',
 			'the-interceptor',
-			{ title: 'Prison Moon', tagline: 'Break captured Green Lanterns out of a Red Lantern prison. Every Lantern you free fights beside you.' },
+			'prison-moon',
 			{ title: 'Razer', tagline: "Atrocitus's lieutenant. His Red Lanterns fight you first. Then he does." }
 		]
 	},

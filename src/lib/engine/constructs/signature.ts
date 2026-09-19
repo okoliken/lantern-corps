@@ -49,6 +49,22 @@ export const SIGNATURES: Record<CrewId, SignatureDef> = {
 		id: 'hammerQuake',
 		name: 'Hammer Quake',
 		description: 'Bring a giant hammer down where you stand: everything around is smashed, thrown back and stunned.'
+	},
+	// The prisoners use the same three moves, each in their own style
+	arisia: {
+		id: 'jetStrike',
+		name: 'Comet Dive',
+		description: 'Streak through the enemy line like a comet, then let loose a burst of homing bolts.'
+	},
+	katma: {
+		id: 'fortress',
+		name: 'Korugar Bastion',
+		description: 'A fortified dome that shelters everyone inside, with turrets on the rim.'
+	},
+	boodikka: {
+		id: 'hammerQuake',
+		name: 'Bellatrix Quake',
+		description: 'A war hammer brought down with everything she has: smashes, scatters and stuns.'
 	}
 };
 

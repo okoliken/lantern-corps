@@ -368,7 +368,11 @@ export const LOADOUTS: Record<CrewId, ConstructId[]> = {
 	// Marine and architect: he builds a rifle that works, down to the bolt
 	john: ['precisionRifle', 'rifle', 'fireteam', 'heavyCannon', 'powerArmor', 'ironFist', 'wreckingBall', 'missilePods', 'ibeams', 'cutter'],
 	// Hammers and fists first, always
-	kilowog: ['hammer', 'fist', 'shockwave', 'cannon', 'minigun', 'wall', 'cage', 'rockets', 'beam', 'pillars']
+	kilowog: ['hammer', 'fist', 'shockwave', 'cannon', 'minigun', 'wall', 'cage', 'rockets', 'beam', 'pillars'],
+	// The prisoners (Prison Moon): each with their own way of fighting
+	arisia: ['energySword', 'beam', 'halSaw', 'glove', 'gatling', 'grenades', 'chain', 'shockwave', 'fist', 'anvil'],
+	katma: ['precisionRifle', 'rifle', 'ibeams', 'heavyCannon', 'wall', 'cage', 'shockwave', 'beam', 'ironFist', 'missilePods'],
+	boodikka: ['hammer', 'fist', 'minigun', 'cannon', 'shotgun', 'rockets', 'shockwave', 'sword', 'beam', 'wreckingBall']
 };
 
 /** How many traps a single Lantern can have out at once. */

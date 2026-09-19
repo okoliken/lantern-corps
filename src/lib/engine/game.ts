@@ -767,9 +767,10 @@ export class Game {
 		ctx.restore();
 
 		// ---- Screen space ----
+		// Bars for the two main Lanterns (bottom left and right); allies who join later fight without them
 		if (this.hud) drawHud(
 			ctx,
-			this.players.map((p, i) => ({
+			this.players.slice(0, 2).map((p, i) => ({
 				name: p.def.name,
 				slot: p.slot,
 				level: this.profiles && isLanternId(p.def.id) ? this.profiles[p.def.id].level : null,
@@ -848,7 +849,9 @@ export class Game {
 							: 'Dummy'
 				: t.kind === 'ally'
 					? t.player.def.name
-					: 'Crate';
+					: t.obstacle.kind === 'cell'
+						? 'Cell'
+						: 'Crate';
 		const parts: string[] = [];
 		if (p.attackTarget) parts.push(`${sameTarget(p.attackTarget, p.lock) ? '🔒 ' : ''}${name(p.attackTarget)}`);
 		if (p.protectTarget) parts.push(`🛡 ${name(p.protectTarget)}`);

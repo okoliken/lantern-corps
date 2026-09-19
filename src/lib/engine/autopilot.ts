@@ -16,6 +16,8 @@ import { BUBBLE_SHIELD } from './constructs/defs';
 const ENGAGE_RANGE = 520;
 /** Close enough to the goal. */
 const ARRIVED = 30;
+/** How close a cell has to be to start breaking it open. */
+const BREAK_RANGE = 260;
 
 const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -45,6 +47,16 @@ export class Autopilot implements InputSource {
 				const k = Math.min(1, d / 80) / d;
 				intent.moveX = (goal.x - me.x) * k;
 				intent.moveY = (goal.y - me.y) * k;
+			}
+		}
+
+		// Nothing to fight: break open whatever the mission needs broken (a prison cell)
+		if (!fighting) {
+			const cell = game.map.obstacles.find((o) => o.kind === 'cell' && o.hp !== undefined && dist({ x: o.x + o.w / 2, y: o.y + o.h / 2 }, me) < BREAK_RANGE);
+			if (cell) {
+				intent.pointer = { x: cell.x + cell.w / 2, y: cell.y + cell.h / 2 - me.ringLift };
+				intent.shot = true;
+				intent.moveX = intent.moveY = 0;
 			}
 		}
 
