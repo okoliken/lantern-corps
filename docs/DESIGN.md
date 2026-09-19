@@ -328,6 +328,20 @@ Reds TOUGHNESS 4, MIGHT 2.5. The HUD shows bars for the first two players only. 
 lost, ★ under 6 min. Bot (autopilot, which now also breaks cells when idle): wins in 2-3.5 min,
 Hal's health dips to about half in most runs.
 
+**Act 1 · Mission 5: Razer** (the act's boss; Hal + Kilowog AI, planet, Razer's Fortress on the Prison
+Moon; `missions/razerBoss.ts`, abilities `enemies/razer.ts`, art `drawRazer` in `draw/lieutenants.ts`).
+Enemy kind `razer` (lieutenant, hp 2600 x 2.1, might 1.6). Guards (5 Reds) fight while he watches from
+his dais (a drawn figure, not yet an enemy); cleared, he comes down (spawned). Kit grows by phase
+(`KITS`): 1 Twin Rage Blades (lunge + 3 cuts), Crimson Chakram (two `saw` shots with `curve`, arcing
+out and back), Rage Tether (`chain`), Rage Shield; 2 (below 60%) + Construct Shatter (radius 280: pops
+bubbles, removes walls, turrets/Marines, domes, traps, aid stations, Power Armor), Rage Brand
+(`Player.branded` 3s: no constructs or shield, ring shots still work; a bubble takes it instead;
+sigil `drawBrand` over the head), Rage Plasma (`vomit`); 3 (below 30%) berserk (might and speed x1.25)
++ Blade Storm (`razerStorm`: pulls Lanterns in, cuts close, bursts spears) and Crimson Nova (`RedStrike
+'nova'`, radius 250, 1.1s warning; shields absorb it). At 4% he's captured (removed from the fight,
+drawn in a green `drawCage`), names Atrocitus, win. ★ captured ★ no lives lost ★ under 5 min.
+Bots: win ~7/8, usually losing 1-2 lives; duel ~2.5-3.5 min.
+
 **Acts** (`ACTS` in `story/missions.ts`, 2026-09-19): the mission list is grouped by act; each act
 lists its missions in order (built ones by id, planned ones as title + teaser, shown locked).
 `placeOf(id)` gives a mission's act and number within it (briefing: "Act 1 · ... / Mission 3:",

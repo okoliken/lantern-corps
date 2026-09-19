@@ -237,6 +237,28 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		lieutenant: true
 	},
 
+	// Act 1's boss: Atrocitus's lieutenant. His kit grows as the fight goes on (the mission sets it)
+	razer: {
+		kind: 'razer',
+		name: 'Razer',
+		faction: 'red',
+		description:
+			"Atrocitus's lieutenant, and the angriest Red Lantern of them all: grief turned to rage. He fights up close with twin blades, throws curving chakrams, shatters Green Lantern constructs, and brands Lanterns so their rings go dark.",
+		mind: 'rage',
+		hp: 2600,
+		speed: 210,
+		accel: 6,
+		sight: 900,
+		poise: 160,
+		scale: 1.08,
+		agility: 1,
+		movement: 'hover',
+		kit: ['twinBlades', 'chakram', 'chain', 'redShield'],
+		range: 150,
+		leans: { aggression: 0.5, caution: -0.2 },
+		lieutenant: true
+	},
+
 	// Built by a Red Lantern (the Rage Turret construct): stays put, shoots, burns out
 	rageTurret: {
 		kind: 'rageTurret',

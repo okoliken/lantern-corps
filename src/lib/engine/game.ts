@@ -35,7 +35,7 @@ import { drawEnemy, enemyMuzzle } from './draw/enemies';
 import { drawSpaceRock } from './draw/escort';
 import { drawRageTorpedo } from './draw/interceptor';
 import { drawArmorSuit } from './draw/kits';
-import { drawFallingMeteors, drawRedBeam, drawRedCage, drawRedChain, drawRedEffect, drawRedGround, drawRedShot } from './draw/redConstructs';
+import { drawFallingMeteors, drawRedBeam, drawRedCage, drawRedChain, drawRedEffect, drawRedGround, drawRedShot, drawBrand } from './draw/redConstructs';
 import { AllyInput } from './ally';
 import { RED_HAND_LIFT } from './enemies/redConstructs';
 import { updatePlayerCombat, revivePlayer } from './combat';
@@ -628,6 +628,9 @@ export class Game {
 			// Power Armor goes on over the figure
 			const suit = p.armor;
 			if (suit && !inJet) list.push({ baseY: y + 0.01, draw: () => drawArmorSuit(ctx, x, y, pose, this.time, sizeOf(p), suit.time / suit.maxTime) });
+
+			// Branded by Razer: the sigil hangs over their head until their ring works again
+			if (p.branded > 0) overlays.push(() => drawBrand(ctx, x, y - p.bodyTop - 22, p.branded, this.time));
 
 			if (p.charging) {
 				const chestY = y - (pose.hoverHeight * p.altitude + 28) * 1.35;

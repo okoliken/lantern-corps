@@ -124,6 +124,27 @@ MISSIONS.push({
 	partner: 'kilowog'
 });
 
+MISSIONS.push({
+	id: 'razer',
+	title: 'Razer',
+	tagline: "Atrocitus's lieutenant. His Red Lanterns fight you first. Then he does.",
+	lantern: 'hal',
+	environment: 'planet',
+	place: "Beyond the frontier · Razer's Fortress",
+	briefing: [
+		"The fortress on the far side of the Prison Moon belongs to Razer: Atrocitus's lieutenant, and the angriest Red Lantern of them all. Whatever he lost, he's made the whole Corps pay for it.",
+		'Katma Tui and the Lanterns you freed will get the last prisoners out of his cells. Your job is to keep Razer busy.',
+		"He fights with blades, and with rage that breaks what a ring builds. Don't kill him. The Corps needs to know who he answers to."
+	],
+	objectives: [
+		"Beat Razer's guard; then he comes for you himself",
+		'Watch for Construct Shatter: it breaks your walls, turrets, armor and shields',
+		'A Rage Brand stops your ring building anything for a few seconds',
+		'When he goes berserk and glows, get clear of the Crimson Nova or shield in time'
+	],
+	partner: 'kilowog'
+});
+
 export function missionById(id: string): MissionInfo | undefined {
 	return MISSIONS.find((m) => m.id === id);
 }
@@ -153,7 +174,7 @@ export const ACTS: ActInfo[] = [
 			'silent-outpost',
 			'the-interceptor',
 			'prison-moon',
-			{ title: 'Razer', tagline: "Atrocitus's lieutenant. His Red Lanterns fight you first. Then he does." }
+			'razer'
 		]
 	},
 	{

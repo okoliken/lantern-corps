@@ -335,6 +335,7 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
 	p.shotTimer = Math.max(0, p.shotTimer - dt);
 	p.actionTimer = Math.max(0, p.actionTimer - dt);
 	if (p.actionTimer === 0) p.actionShape = null;
+	p.branded = Math.max(0, p.branded - dt);
 	if (p.armor) {
 		p.armor.time -= dt;
 		if (p.armor.time <= 0) {
@@ -350,6 +351,14 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
 		return;
 	}
 
+	// A Rage Brand: the ring still shoots, but builds nothing (no constructs, no shield)
+	if (p.branded > 0) {
+		if (intent.shot || p.burstShots > 0) ringShot(p, w);
+		p.firing = false;
+		p.beamLength = 0;
+		p.charge = 0;
+		return;
+	}
 	if (intent.shield) castShield(p, w);
 	// A double tap finishes even if the button was let go after the first bolt
 	if (intent.shot || p.burstShots > 0) ringShot(p, w);

@@ -172,7 +172,7 @@ appears at the end of Mission 2, when the ring finds him (the scene ends there, 
 4. **Prison Moon** (built): the Interceptor comes out of its jump over a blood-red moon where the Red
    Lanterns hold captured Green Lanterns. Break the cells open; each freed Lantern fights beside you.
    Hold out against the waves; the last prisoner names who runs the place: Razer.
-5. **Boss: Razer**: Atrocitus's lieutenant, driven by grief for his wife. 4-5 Red Lanterns fight first
+5. **Boss: Razer** (built): Atrocitus's lieutenant, driven by grief for his wife. 4-5 Red Lanterns fight first
    while he watches; then he fights. Kit: Twin Rage Blades, Crimson Chakram (curves round a shield),
    Rage Tether (hooks you in), Construct Shatter (breaks green constructs and shields near him), Rage
    Brand (3s: no constructs), Rage Plasma pools, Rage Shield. Phases at 60% and 30% (berserk: Blade

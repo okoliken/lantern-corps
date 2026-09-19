@@ -19,6 +19,7 @@ import { boxOverlap, type Solid } from '../physics';
 import { bodyAim, hitsBody, type Player } from '../player';
 import { ENEMIES, createEnemy, face, steer, type Enemy, type Role } from './enemies';
 import { CORPS_ABILITIES, startCorpsAbility, updateCorpsAbility } from './corpsConstructs';
+import { RAZER_ABILITIES, startRazerAbility, updateRazerAbility } from './razer';
 
 export type AbilityId =
 	| 'claws'
@@ -59,7 +60,14 @@ export type AbilityId =
 	| 'bigFist'
 	| 'sword'
 	| 'bladeFan'
-	| 'bladeStorm';
+	| 'bladeStorm'
+	// Razer (razer.ts)
+	| 'twinBlades'
+	| 'chakram'
+	| 'shatter'
+	| 'brand'
+	| 'crimsonNova'
+	| 'razerStorm';
 
 /** How far away a construct is used from. Kits take some of each. */
 export type Band = 'close' | 'mid' | 'long' | 'support';
@@ -287,13 +295,45 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	bladeStorm: def({
 		id: 'bladeStorm', name: 'Blade Storm', band: 'mid', tell: 'heavy', windup: 0.65, active: 0.2, recover: 0.45, cooldown: 7.5,
 		minRange: 0, maxRange: 280, damage: 15, knockback: 320, melee: false, heavy: true, chance: 0.8, speed: 560
+	}),
+
+	// ---- Razer ----
+	// Blades on both arms: a lunge and three quick cuts
+	twinBlades: def({
+		id: 'twinBlades', name: 'Twin Rage Blades', band: 'close', tell: 'strike', windup: 0.42, active: 0.62, recover: 0.4, cooldown: 2.2,
+		minRange: 0, maxRange: 240, damage: 13, knockback: 260, melee: true, heavy: false, chance: 1, radius: 100, speed: 680
+	}),
+	// Two crescent blades thrown wide: they swing round in arcs and come back
+	chakram: def({
+		id: 'chakram', name: 'Crimson Chakram', band: 'mid', tell: 'aim', windup: 0.5, active: 0.15, recover: 0.35, cooldown: 3.4,
+		minRange: 120, maxRange: 420, damage: 16, knockback: 240, melee: false, heavy: false, chance: 0.9, speed: 520
+	}),
+	// A pulse of hate that breaks every Green Lantern construct near him: walls, turrets, Marines, armor, bubble shields
+	shatter: def({
+		id: 'shatter', name: 'Construct Shatter', band: 'close', tell: 'heavy', windup: 0.7, active: 0.15, recover: 0.6, cooldown: 9,
+		minRange: 0, maxRange: 240, damage: 10, knockback: 420, melee: false, heavy: true, chance: 0.85, radius: 280
+	}),
+	// A red sigil burned onto a Lantern: for a few seconds their ring can't build anything
+	brand: def({
+		id: 'brand', name: 'Rage Brand', band: 'long', tell: 'aim', windup: 0.6, active: 0.1, recover: 0.4, cooldown: 11,
+		minRange: 0, maxRange: 560, damage: 6, knockback: 0, melee: false, heavy: false, chance: 0.8
+	}),
+	// Everything he has, released at once: a huge ring of rage around him. Get out, or shield in time
+	crimsonNova: def({
+		id: 'crimsonNova', name: 'Crimson Nova', band: 'mid', tell: 'sky', windup: 0.5, active: 0.1, recover: 1.2, cooldown: 12,
+		minRange: 0, maxRange: 320, damage: 46, knockback: 760, melee: false, heavy: true, chance: 0.9, radius: 250
+	}),
+	// A spinning vortex of blades that drags Lanterns in, then bursts
+	razerStorm: def({
+		id: 'razerStorm', name: 'Blade Storm', band: 'mid', tell: 'heavy', windup: 0.6, active: 1.6, recover: 0.7, cooldown: 10,
+		minRange: 0, maxRange: 340, damage: 9, knockback: 380, melee: false, heavy: true, chance: 0.9, radius: 330, speed: 620
 	})
 };
 
 /** What the machines use. They're never part of a Red Lantern's random kit. */
 export const MACHINE_ABILITIES: readonly AbilityId[] = ['eyeLaser', 'sweep', 'pulse', 'strafe', 'bombs'];
 /** Signature moves of named Red Lanterns, never handed out in random kits. */
-const SIGNATURE_ABILITIES: readonly AbilityId[] = ['swoop', ...CORPS_ABILITIES];
+const SIGNATURE_ABILITIES: readonly AbilityId[] = ['swoop', ...CORPS_ABILITIES, ...RAZER_ABILITIES];
 
 /** Every red construct a Red Lantern's kit can be built from. */
 export const ABILITY_LIST = (Object.keys(ABILITIES) as AbilityId[]).filter(
@@ -371,6 +411,8 @@ export interface RedShot {
 	ignore: Solid[];
 	/** Lanterns a saw already cut on this pass. */
 	hit: Player[];
+	/** Crimson Chakrams: how fast it swings round on the way out (radians per second; sign = which way). */
+	curve?: number;
 	/** Saws: px travelled, and how far before heading back. */
 	travelled: number;
 	out: number;
@@ -386,7 +428,7 @@ export interface RedChain {
 
 /** Something about to hit the ground: a meteor, or one spike in a line. */
 export interface RedStrike {
-	kind: 'meteor' | 'spike' | 'bomb' | 'hammer';
+	kind: 'meteor' | 'spike' | 'bomb' | 'hammer' | 'nova';
 	x: number;
 	y: number;
 	radius: number;
@@ -466,6 +508,7 @@ export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Play
 	b.struck = [];
 
 	if (CORPS_ABILITIES.has(a.id)) return startCorpsAbility(e, a, w, players);
+	if (RAZER_ABILITIES.has(a.id)) return startRazerAbility(e, a, w, players);
 	switch (a.id) {
 		case 'claws':
 			e.vx += b.aimX * 340;
@@ -631,6 +674,10 @@ export function updateAbility(e: Enemy, w: ConstructWorld, players: readonly Pla
 	b.elapsed += dt;
 	b.timer -= dt;
 
+	if (RAZER_ABILITIES.has(a.id)) {
+		updateRazerAbility(e, a, w, players, dt);
+		return b.timer <= 0;
+	}
 	if (CORPS_ABILITIES.has(a.id)) {
 		updateCorpsAbility(e, a, w, players, dt);
 		return b.timer <= 0;
@@ -1044,6 +1091,9 @@ function updateStrike(s: RedStrike, w: ConstructWorld, players: readonly Player[
 		if (Math.random() < 0.5) addPuddle(w, s.x, s.y, 34, s.damage * 0.25);
 	} else if (s.kind === 'bomb') {
 		w.effects.push({ kind: 'redBlast', x: s.x, y: s.y, age: 0, life: 0.5, radius: s.radius * 1.1 });
+	} else if (s.kind === 'nova') {
+		w.effects.push({ kind: 'redBlast', x: s.x, y: s.y, age: 0, life: 0.8, radius: s.radius * 1.15 });
+		w.effects.push({ kind: 'roar', x: s.x, y: s.y, age: 0, life: 0.6, radius: s.radius, lift: 30 });
 	} else {
 		w.effects.push({ kind: 'spikeBurst', x: s.x, y: s.y, age: 0, life: 0.55, radius: s.radius });
 	}
@@ -1065,6 +1115,12 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 
 	if (s.kind === 'saw' || s.kind === 'hammer') {
 		if (!s.returning && s.travelled >= s.out) startReturn(s);
+		// A chakram swings round in an arc on its way out
+		if (!s.returning && s.curve) {
+			const a = Math.atan2(s.vy, s.vx) + s.curve * dt;
+			s.vx = Math.cos(a) * s.speed;
+			s.vy = Math.sin(a) * s.speed;
+		}
 		if (s.returning && ownerUp) {
 			// Home back in on the thrower
 			const dx = owner.x - s.x;

@@ -132,6 +132,8 @@ export interface Player {
 	dash: Dash | null;
 	/** Wearing a construct suit of armor (Power Armor), or null. */
 	armor: ArmorSuit | null;
+	/** Seconds left of a Rage Brand (Razer): the ring can't build constructs or shields. */
+	branded: number;
 
 	// ---- Animation timers (drive poses; see animation.ts) ----
 	/** Seconds left on ring-shot recoil. */
@@ -231,6 +233,7 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		surge: 0,
 		dash: null,
 		armor: null,
+		branded: 0,
 		shotTimer: 0,
 		hurtTimer: 0,
 		downed: false,

@@ -9,6 +9,7 @@ import { SilentOutpost, buildOutpostMap } from '$lib/engine/missions/silentOutpo
 import { ColonyUnderFire, buildColonyMap } from '$lib/engine/missions/colonyUnderFire';
 import { InterceptorMission, buildFrontierMap } from '$lib/engine/missions/interceptor';
 import { PrisonMoon, buildPrisonMap } from '$lib/engine/missions/prisonMoon';
+import { RazerBoss, buildRazerMap } from '$lib/engine/missions/razerBoss';
 import { OaLanding } from '$lib/engine/scenes/oaLanding';
 import type { DialogueScene } from '$lib/engine/scenes/scene';
 import { JOHN_CHOSEN, OA_LANDING } from '$lib/story/scenes';
@@ -25,6 +26,20 @@ type Options = Pick<GameOptions, 'settings' | 'profiles' | 'onProgress' | 'zoom'
 
 export function buildMission(id: string, options: Options): MissionRun {
 	switch (id) {
+		case 'razer': {
+			const map = buildRazerMap();
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: 'hal', keys: 'solo' },
+					{ lantern: 'kilowog', keys: 'p2', ai: true }
+				],
+				map
+			});
+			const director = new RazerBoss();
+			game.director = director;
+			return { game, director, outro: null };
+		}
 		case 'prison-moon': {
 			const map = buildPrisonMap();
 			const game = new Game({

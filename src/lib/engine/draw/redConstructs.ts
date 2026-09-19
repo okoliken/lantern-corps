@@ -238,7 +238,7 @@ export function drawRedGround(ctx: CanvasRenderingContext2D, puddles: readonly R
 			drawHammerWarning(ctx, s, time);
 			continue;
 		}
-		if (s.kind !== 'meteor') continue;
+		if (s.kind !== 'meteor' && s.kind !== 'nova') continue;
 		const k = 1 - s.delay / s.warning;
 		ctx.save();
 		ctx.strokeStyle = RED;
@@ -909,5 +909,34 @@ export function drawRageTurret(ctx: CanvasRenderingContext2D, e: Enemy, x: numbe
 		ctx.fill();
 	}
 	ctx.restore();
+	ctx.restore();
+}
+
+/**
+ * A Rage Brand over a Lantern's head (Razer): a burning red sigil, turning
+ * slowly, fading in its last second. While it shows, their ring builds nothing.
+ */
+export function drawBrand(ctx: CanvasRenderingContext2D, x: number, y: number, left: number, time: number) {
+	const fade = Math.min(1, left);
+	ctx.save();
+	ctx.globalAlpha = fade * (0.75 + 0.25 * Math.sin(time * 12));
+	ctx.translate(x, y);
+	ctx.rotate(time * 1.5);
+	ctx.shadowColor = RED;
+	ctx.shadowBlur = 10;
+	ctx.strokeStyle = RED;
+	ctx.lineWidth = 2;
+	ctx.beginPath();
+	ctx.arc(0, 0, 11, 0, TAU);
+	ctx.stroke();
+	// Three jagged spokes, like the Red Lantern symbol
+	for (let i = 0; i < 3; i++) {
+		const a = (i / 3) * TAU;
+		ctx.beginPath();
+		ctx.moveTo(Math.cos(a) * 4, Math.sin(a) * 4);
+		ctx.lineTo(Math.cos(a + 0.3) * 8, Math.sin(a + 0.3) * 8);
+		ctx.lineTo(Math.cos(a) * 14, Math.sin(a) * 14);
+		ctx.stroke();
+	}
 	ctx.restore();
 }

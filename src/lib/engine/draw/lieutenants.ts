@@ -3,6 +3,8 @@
 //   Zilius Zox  a round, grinning ball of a Red Lantern: mostly mouth, stubby limbs
 //   Skallox     a hulking horned brute; when he transforms he swells up, spikes glowing
 //   Bleez       a slim Red Lantern on huge torn black wings, long dark hair
+//   Razer       Act 1's boss: lean, ashen-skinned, hair tied back, a black and red
+//               suit, rage blades flaring from both forearms
 //
 // Like everyone else they face right and get mirrored; their HAND is where
 // their red constructs come from.
@@ -31,9 +33,9 @@ const HANDS: Record<'zox' | 'skallox', Point> = {
 	skallox: [26, -34]
 };
 
-type Lieutenant = 'zox' | 'skallox' | 'bleez';
+type Lieutenant = 'zox' | 'skallox' | 'bleez' | 'razer';
 
-export const isLieutenantKind = (k: string): k is Lieutenant => k === 'zox' || k === 'skallox' || k === 'bleez';
+export const isLieutenantKind = (k: string): k is Lieutenant => k === 'zox' || k === 'skallox' || k === 'bleez' || k === 'razer';
 
 /** Skallox gets bigger as he transforms. */
 const sizeOf = (e: Enemy) => SCALE * ENEMIES[e.kind].scale * (1 + 0.28 * e.brain.form);
@@ -41,7 +43,7 @@ const sizeOf = (e: Enemy) => SCALE * ENEMIES[e.kind].scale * (1 + 0.28 * e.brain
 export function lieutenantHand(e: Enemy, x: number, y: number): Point {
 	const s = sizeOf(e);
 	const air = e.brain.air * SLAM_HEIGHT;
-	if (e.kind === 'bleez') {
+	if (e.kind === 'bleez' || e.kind === 'razer') {
 		const pose = enemyPose(e, true, 0);
 		const [hx, hy] = computeSkeleton({ ...pose, firing: true }, 0).front.hand;
 		return [x + hx * e.dir * s, y + hy * s];
@@ -52,13 +54,17 @@ export function lieutenantHand(e: Enemy, x: number, y: number): Point {
 
 /** Top of the figure (for its health bar and name). */
 export function lieutenantTop(e: Enemy, y: number): number {
-	const tall = e.kind === 'zox' ? 58 : e.kind === 'skallox' ? 76 : 70;
+	const tall = e.kind === 'zox' ? 58 : e.kind === 'skallox' ? 76 : e.kind === 'razer' ? 74 : 70;
 	return y - e.brain.air * SLAM_HEIGHT - (HOVER + tall) * sizeOf(e);
 }
 
 export function drawLieutenant(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number) {
 	if (e.kind === 'bleez') {
 		drawBleez(ctx, e, x, y, hasGround, time);
+		return;
+	}
+	if (e.kind === 'razer') {
+		drawRazer(ctx, e, x, y, hasGround, time);
 		return;
 	}
 	const b = e.brain;
@@ -583,6 +589,194 @@ function drawBleez(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number
 		}
 		ctx.restore();
 	}
+	ctx.restore();
+}
+
+// ---------------------------------------------------------------- Razer
+
+const RAZER_SKIN = '#8e97ab';
+const RAZER_SKIN_DARK = '#6a7285';
+const RAZER_HAIR = '#0d0a10';
+
+/**
+ * Razer: built on the same skeleton as a Lantern, lean and upright. Ashen
+ * blue-grey skin with red rage markings under the eyes, black hair tied
+ * back, a black suit with red panels and a high collar. Rage blades flare from
+ * both forearms, brighter when he's about to cut.
+ */
+function drawRazer(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number) {
+	const b = e.brain;
+	const s = sizeOf(e);
+	const pose = enemyPose(e, hasGround, time);
+	const sk = computeSkeleton(pose, time);
+	const defeated = !isStanding(e);
+	const winding = b.state === 'windup' ? b.ability : null;
+	const acting = b.state === 'act' ? b.ability : null;
+	const tell = winding ? ABILITIES[winding].tell : null;
+	const flash = e.flash > 0 || ((tell === 'strike' || tell === 'heavy' || tell === 'sky') && Math.sin(time * 30) > 0);
+	const k = winding ? 1 - b.timer / ABILITIES[winding].windup : 0;
+	const blades = winding === 'twinBlades' || acting === 'twinBlades' || acting === 'razerStorm' ? 1 : 0.35 + 0.25 * b.rage;
+	const skin = flash ? '#ffffff' : RAZER_SKIN;
+	const suit = (c: string) => (flash ? '#ffdddd' : c);
+
+	ctx.save();
+	ctx.globalAlpha = defeated ? Math.min(1, e.down / 0.5) : 1;
+	ctx.translate(x, y);
+	ctx.scale(s, s);
+	if (pose.shadow) {
+		const shrink = 1 - b.air * 0.6;
+		ctx.fillStyle = `rgba(0, 0, 0, ${0.38 * shrink})`;
+		ctx.beginPath();
+		ctx.ellipse(0, 0, 15 * shrink, 4 * shrink, 0, 0, TAU);
+		ctx.fill();
+	}
+	ctx.scale(pose.dir, 1);
+	ctx.lineJoin = 'round';
+	ctx.lineCap = 'round';
+	if (!defeated) aura(ctx, (sk.hip[1] + sk.neck[1]) / 2, 28, b.rage + 0.4 + (winding ? 0.5 : 0), time, x);
+
+	// Far limbs, with a blade along the far forearm
+	segment(ctx, sk.back.shoulder, sk.back.elbow, 2.4, 2, suit(BLACK));
+	segment(ctx, sk.back.elbow, sk.back.hand, 2, 1.7, suit(RED_DEEP));
+	if (!defeated) forearmBlade(ctx, sk.back.elbow, sk.back.hand, blades * 0.7, time);
+	segment(ctx, sk.back.hipJoint, sk.back.knee, 3, 2.4, suit(BLACK));
+	segment(ctx, sk.back.knee, sk.back.foot, 2.4, 1.8, suit(RED_DEEP));
+
+	// Torso: black suit, red panels down the chest, a high collar
+	const up: Point = [Math.sin(sk.torsoAngle), -Math.cos(sk.torsoAngle)];
+	const across: Point = [Math.cos(sk.torsoAngle), Math.sin(sk.torsoAngle)];
+	const at = (along: number, side: number): Point => [
+		sk.hip[0] + up[0] * along + across[0] * side,
+		sk.hip[1] + up[1] * along + across[1] * side
+	];
+	const torso = new Path2D();
+	for (const [i, p] of [at(-1, -4), at(9, -3.6), at(17.5, -4.8), at(19.5, 4), at(12, 5), at(5, 3.6), at(-1, 4.2)].entries()) {
+		if (i === 0) torso.moveTo(...p);
+		else torso.lineTo(...p);
+	}
+	torso.closePath();
+	ctx.fillStyle = suit(BLACK_LIT);
+	ctx.fill(torso);
+	ctx.save();
+	ctx.clip(torso);
+	ctx.fillStyle = suit(RED_SUIT);
+	for (const side of [-2.4, 2.4]) {
+		ctx.beginPath();
+		ctx.moveTo(...at(2, side - 0.9));
+		ctx.lineTo(...at(18, side * 1.3 - 0.9));
+		ctx.lineTo(...at(18, side * 1.3 + 0.9));
+		ctx.lineTo(...at(2, side + 0.9));
+		ctx.closePath();
+		ctx.fill();
+	}
+	ctx.restore();
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.stroke(torso);
+	emblem(ctx, ...at(12.5, 0.5), 2.3, sk.torsoAngle);
+	// High collar
+	ctx.fillStyle = suit(RED_DEEP);
+	ctx.beginPath();
+	ctx.moveTo(...at(17.5, -4.2));
+	ctx.lineTo(...at(21, -3));
+	ctx.lineTo(...at(20, 3.6));
+	ctx.lineTo(...at(18.5, 3.8));
+	ctx.closePath();
+	ctx.fill();
+
+	// Near leg
+	segment(ctx, sk.front.hipJoint, sk.front.knee, 3.2, 2.5, suit(BLACK_LIT));
+	segment(ctx, sk.front.knee, sk.front.foot, 2.5, 1.9, suit(RED_SUIT));
+
+	// Head: ashen skin, black hair tied back, red markings under burning eyes
+	const [hx, hy] = sk.headCenter;
+	ctx.save();
+	ctx.translate(hx, hy);
+	ctx.rotate(sk.headAngle);
+	ctx.fillStyle = RAZER_HAIR;
+	ctx.beginPath();
+	ctx.moveTo(2, -5.4);
+	ctx.quadraticCurveTo(-6, -7, -7, -1);
+	ctx.quadraticCurveTo(-7, 2, -4, 3);
+	ctx.closePath();
+	ctx.fill();
+	// The tail, swinging a little
+	const swing = Math.sin(time * 4) * 1.2 + Math.min(1, Math.hypot(e.vx, e.vy) / 150) * 2.5;
+	ctx.beginPath();
+	ctx.moveTo(-6, -2);
+	ctx.quadraticCurveTo(-11 - swing, 1, -10 - swing, 8);
+	ctx.lineTo(-8 - swing * 0.5, 7.5);
+	ctx.quadraticCurveTo(-8, 1, -4.5, -0.5);
+	ctx.closePath();
+	ctx.fill();
+	ctx.fillStyle = skin;
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.beginPath();
+	ctx.ellipse(0.8, 0.3, 4.4, 5.4, 0, 0, TAU);
+	ctx.fill();
+	ctx.stroke();
+	// Jaw shadow and hairline
+	ctx.fillStyle = flash ? '#ffffff' : RAZER_SKIN_DARK;
+	ctx.beginPath();
+	ctx.ellipse(1.6, 3.6, 3, 1.4, 0, 0, TAU);
+	ctx.fill();
+	ctx.fillStyle = RAZER_HAIR;
+	ctx.beginPath();
+	ctx.moveTo(-4, -2);
+	ctx.quadraticCurveTo(-1, -6.8, 5, -4.2);
+	ctx.quadraticCurveTo(1, -3.8, -2, -1.4);
+	ctx.closePath();
+	ctx.fill();
+	// Red rage markings running down from the eyes
+	ctx.strokeStyle = flash ? '#ffffff' : '#c41a1a';
+	ctx.lineWidth = 0.9;
+	ctx.beginPath();
+	ctx.moveTo(3.4, 0.6);
+	ctx.lineTo(3, 3.4);
+	ctx.moveTo(4.8, 0.4);
+	ctx.lineTo(4.9, 2.8);
+	ctx.stroke();
+	eye(ctx, 3.8, -0.8, 1.15, b.rage + 0.5 + (winding ? 0.8 : 0));
+	ctx.strokeStyle = '#2a0000';
+	ctx.lineWidth = 0.7;
+	ctx.beginPath();
+	ctx.moveTo(2.4, 3);
+	ctx.lineTo(5, 2.7 + (winding || acting ? 0.9 : 0));
+	ctx.stroke();
+	ctx.restore();
+
+	// The ring arm, with its blade
+	segment(ctx, sk.front.shoulder, sk.front.elbow, 2.5, 2.1, suit(BLACK_LIT));
+	segment(ctx, sk.front.elbow, sk.front.hand, 2.1, 1.8, suit(RED_SUIT));
+	if (!defeated) forearmBlade(ctx, sk.front.elbow, sk.front.hand, blades, time);
+	ring(ctx, sk.front.hand[0], sk.front.hand[1]);
+	if (!defeated && (tell === 'aim' || tell === 'build')) orb(ctx, sk.front.hand[0], sk.front.hand[1], 1.5 + k * 3.5, time);
+	else if (!defeated && tell === 'sky') orb(ctx, sk.headCenter[0], sk.headCenter[1] - 16 - k * 4, 2 + k * 6, time);
+	ctx.restore();
+}
+
+/** A rage blade along the forearm, sweeping past the hand: faint at rest, blazing in a fight. */
+function forearmBlade(ctx: CanvasRenderingContext2D, elbow: Point, hand: Point, heat: number, time: number) {
+	const [ex, ey] = elbow;
+	const [hx, hy] = hand;
+	const a = Math.atan2(hy - ey, hx - ex);
+	const len = Math.hypot(hx - ex, hy - ey);
+	ctx.save();
+	ctx.translate(ex, ey);
+	ctx.rotate(a);
+	ctx.globalAlpha *= 0.45 + 0.55 * Math.min(1, heat);
+	ctx.shadowColor = RED;
+	ctx.shadowBlur = 6 + 10 * heat;
+	ctx.fillStyle = heat > 0.8 && Math.sin(time * 40) > 0 ? HOT : RED;
+	ctx.beginPath();
+	ctx.moveTo(2, -1.2);
+	ctx.lineTo(len + 9 + heat * 5, -3.2);
+	ctx.lineTo(len + 13 + heat * 7, -0.5);
+	ctx.lineTo(len + 4, 1.1);
+	ctx.lineTo(2, 1.2);
+	ctx.closePath();
+	ctx.fill();
 	ctx.restore();
 }
 
