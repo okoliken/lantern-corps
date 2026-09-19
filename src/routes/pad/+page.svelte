@@ -183,7 +183,51 @@
 		}
 	}
 
+	/**
+	 * Phone browsers zoom on a quick double tap or two thumbs at once, and
+	 * ignore "no zoom" for accessibility. On a controller that's never wanted:
+	 * the pad takes the touches for itself, and snaps back if it zoomed anyway.
+	 */
+	function stopZooming() {
+		const NO_ZOOM = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+		// The site's own viewport tag comes first and would win: change it rather than add another
+		let meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+		if (!meta) {
+			meta = document.createElement('meta');
+			meta.name = 'viewport';
+			document.head.appendChild(meta);
+		}
+		const before = meta.content;
+		meta.content = NO_ZOOM;
+		const block = (e: Event) => e.preventDefault();
+		const options = { passive: false } as const;
+		document.addEventListener('touchstart', block, options);
+		document.addEventListener('touchmove', block, options);
+		document.addEventListener('dblclick', block, options);
+		// Safari's own pinch events
+		document.addEventListener('gesturestart', block, options);
+		document.addEventListener('gesturechange', block, options);
+		// Zoomed in anyway: nudge the viewport tag to make the browser snap back to 1
+		const unzoom = () => {
+			const vv = window.visualViewport;
+			if (!vv || vv.scale <= 1.01) return;
+			meta!.content = NO_ZOOM.replace('initial-scale=1', 'initial-scale=0.99');
+			requestAnimationFrame(() => (meta!.content = NO_ZOOM));
+		};
+		window.visualViewport?.addEventListener('resize', unzoom);
+		return () => {
+			document.removeEventListener('touchstart', block);
+			document.removeEventListener('touchmove', block);
+			document.removeEventListener('dblclick', block);
+			document.removeEventListener('gesturestart', block);
+			document.removeEventListener('gesturechange', block);
+			window.visualViewport?.removeEventListener('resize', unzoom);
+			meta!.content = before;
+		};
+	}
+
 	onMount(() => {
+		const allowZoom = stopZooming();
 		if (room) connect();
 		else void findGame();
 		// Stick positions go out once a frame, and only when they changed
@@ -204,6 +248,7 @@
 			.then((l) => (lock = l))
 			.catch(() => {});
 		return () => {
+			allowZoom();
 			cancelAnimationFrame(raf);
 			socket?.close();
 			void lock?.release();
@@ -219,7 +264,6 @@
 </script>
 
 <svelte:head>
-	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 	<title>Lantern Corps · Pad</title>
 </svelte:head>
 
