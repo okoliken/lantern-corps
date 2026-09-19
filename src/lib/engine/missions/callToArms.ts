@@ -42,17 +42,17 @@ const INTRO_TIME = 3;
 const PAR_TIME = 540;
 /** Grodd's soldiers: health and hitting power on top of their base. */
 const TOUGHNESS = 3.6;
-const MIGHT = 3.1;
+const MIGHT = 2.4;
 /** Grodd himself. */
 export const GRODD_HEALTH = 4.5;
-const GRODD_MIGHT = 3;
+const GRODD_MIGHT = 2.4;
 /** Health left (0..1) where Grodd's stages begin, and where he gets away. */
 export const GRODD_STAGE_2 = 0.6;
 export const GRODD_STAGE_3 = 0.25;
 export const GRODD_ESCAPE = 0.12;
 /** The Manhunter: health and might, and how its rebuilding works. */
 const MANHUNTER_HEALTH = 3;
-const MANHUNTER_MIGHT = 2.6;
+const MANHUNTER_MIGHT = 2.2;
 /**
  * Seconds the core takes to rebuild the Manhunter, the first time and after
  * (the first is quick: you see it happen before you know to stop it), and the

@@ -350,8 +350,8 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	// ---- Gorilla Grodd ----
 	// A wave of force from his mind, in a cone in front of him: straight through a bubble shield
 	mindBlast: def({
-		id: 'mindBlast', name: 'Psychic Blast', band: 'mid', tell: 'heavy', windup: 0.6, active: 0.35, recover: 0.5, cooldown: 5.5,
-		minRange: 0, maxRange: 440, damage: 22, knockback: 720, melee: false, heavy: true, chance: 0.9
+		id: 'mindBlast', name: 'Psychic Blast', band: 'mid', tell: 'heavy', windup: 0.75, active: 0.35, recover: 0.6, cooldown: 7.5,
+		minRange: 0, maxRange: 440, damage: 9, knockback: 720, melee: false, heavy: true, chance: 0.9
 	}),
 	// Into a Lantern's head: every move goes the wrong way for a few seconds
 	mindLock: def({

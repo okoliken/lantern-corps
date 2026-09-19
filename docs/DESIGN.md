@@ -402,6 +402,10 @@ Psychic Blast = a cone that goes through bubble shields (`damagePlayer(..., pier
 targets every 4.5-7s (60% John) with an opener, takes the Flash's mind once in stage 2), **Manhunter**
 (`manhunter`: eye laser, sweep, pulse, baton, slam). ★ Manhunter destroyed ★ no lives lost ★ under 7 min.
 Bots: win ~6/8, usually losing 1-2 lives; 4-5 minutes; 1-2 rebuilds.
+**John died too fast** (user playtest, 2026-09-19): measured, Grodd's Psychic Blast (through shields)
+did 65-100 per hit and was used whenever two people got close. Now damage 9 (was 22), windup 0.75s,
+cooldown 7.5s; soldiers and Grodd might 2.4 (was 3.1/3), Manhunter 2.2. Bots: no downs during the
+gorilla waves, 0-2 over the whole mission, win 8/8 in 5.5-6.5 min.
 
 **Main menu** (`routes/+page.svelte`, `components/MenuPoster.svelte`, 2026-09-19): a poster-like
 canvas: Kilowog, Hal and John small, **facing the viewer** (`draw/lanternFront.ts`, menu only: the game
