@@ -72,6 +72,8 @@ export interface Player {
 	health: number;
 	maxHealth: number;
 	/** Seconds of invulnerability left (just hit, or just got back up). */
+	/** Inside a ship (a mission's ending): not drawn. */
+	boarded?: boolean;
 	invuln: number;
 	/** Seconds since they last took damage (health regenerates after a while). */
 	sinceHurt: number;

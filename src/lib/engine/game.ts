@@ -609,6 +609,7 @@ export class Game {
 		const overlays: (() => void)[] = [];
 		const tags: (() => void)[] = [];
 		for (const p of this.players) {
+			if (p.boarded) continue;
 			const x = lerp(p.prevX, p.x, alpha);
 			const y = lerp(p.prevY, p.y, alpha);
 			const pose = this.poseFor(p);
@@ -693,6 +694,7 @@ export class Game {
 
 		// Target markers: what each Lantern will hit, and who they're protecting
 		for (const p of this.players) {
+			if (p.boarded) continue;
 			for (const t of [p.attackTarget, p.protectTarget]) {
 				if (!t) continue;
 				const [tx, ty] = this.targetDrawPosition(t, alpha);

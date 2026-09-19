@@ -93,6 +93,23 @@ describe('smart shield', () => {
 		expect(chooseShieldTarget(p, w)).toBe(partner);
 	});
 
+	it('picks a ship under fire over a partner in a brawl next to it', () => {
+		const { p, w } = setup('hal', [[400, 0], [420, 30]]);
+		const partner = createPlayer(1, LANTERNS.kilowog, { read: () => IDLE }, 250, 0);
+		w.players.push(partner);
+		for (const d of w.dummies) {
+			const e = d as ReturnType<typeof createEnemy>;
+			e.brain.target = partner;
+			e.brain.state = 'windup';
+		}
+		const ship: Protectable = { x: 220, y: 0, name: 'Ship', radius: 130, lift: 44, threat: 0.8 };
+		w.protectables.push(ship);
+		expect(chooseShieldTarget(p, w)).toBe(ship);
+		// Nothing coming for the ship: the partner gets it
+		ship.threat = 0;
+		expect(chooseShieldTarget(p, w)).toBe(partner);
+	});
+
 	it('leaves things too far away', () => {
 		const { p, w } = setup('hal', []);
 		w.protectables.push({ x: 3000, y: 0, name: 'Ship', radius: 90, lift: 40, threat: 2 });

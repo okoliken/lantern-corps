@@ -21,6 +21,8 @@ export interface InterceptorLook {
 	power: number;
 	/** 0..1 Aya waking up: her light pulses in the cockpit, brighter as she boots. */
 	boot: number;
+	/** 0..1 engines spooling up for the jump: longer flames, a shudder. */
+	spool?: number;
 	destroyed: boolean;
 	time: number;
 }
@@ -32,9 +34,11 @@ export interface InterceptorLook {
  */
 export function drawInterceptor(ctx: CanvasRenderingContext2D, x: number, y: number, look: InterceptorLook) {
 	const { hull, flash, power, boot, destroyed, time } = look;
+	const spool = look.spool ?? 0;
 	const bob = Math.sin(time * 1.4) * 3 * (0.4 + power * 0.6);
+	const shudder = spool > 0 ? Math.sin(time * 60) * spool * 1.5 : 0;
 	ctx.save();
-	ctx.translate(x, y - 44 + bob);
+	ctx.translate(x, y - 44 + bob + shudder);
 	if (destroyed) {
 		ctx.rotate(-0.2);
 		ctx.globalAlpha = 0.55;
@@ -47,7 +51,7 @@ export function drawInterceptor(ctx: CanvasRenderingContext2D, x: number, y: num
 	const sputter = hull < 0.3 ? (Math.sin(time * 21) > 0 ? 0.45 : 1) : 1;
 	if (!destroyed && power > 0.05) {
 		for (const ey of [-10, 8]) {
-			const len = (34 + Math.sin(time * 38 + ey) * 5) * sputter * power;
+			const len = (34 + Math.sin(time * 38 + ey) * 5) * sputter * power * (1 + spool * 2.5);
 			const g = ctx.createLinearGradient(-110, ey, -110 - len, ey);
 			g.addColorStop(0, 'rgba(234, 255, 240, 0.95)');
 			g.addColorStop(0.35, 'rgba(61, 255, 110, 0.75)');
@@ -282,5 +286,31 @@ export function drawCannonShot(ctx: CanvasRenderingContext2D, x1: number, y1: nu
 	ctx.strokeStyle = 'rgba(234, 255, 240, 0.9)';
 	ctx.lineWidth = 2;
 	ctx.stroke();
+	ctx.restore();
+}
+
+/**
+ * The jump: a streak of green light stretching back from the ship as it
+ * accelerates away. `t` is 0..1 through the streak. (x, y) is the ship's
+ * drawn centre.
+ */
+export function drawWarpStreak(ctx: CanvasRenderingContext2D, x: number, y: number, t: number) {
+	const length = 200 + t * 1600;
+	ctx.save();
+	ctx.globalAlpha = Math.max(0, 1 - t * 0.6);
+	const g = ctx.createLinearGradient(x, y, x - length, y);
+	g.addColorStop(0, 'rgba(234, 255, 240, 0.95)');
+	g.addColorStop(0.2, 'rgba(61, 255, 110, 0.7)');
+	g.addColorStop(1, 'rgba(61, 255, 110, 0)');
+	ctx.fillStyle = g;
+	ctx.shadowColor = GREEN;
+	ctx.shadowBlur = 20;
+	ctx.beginPath();
+	ctx.moveTo(x + 20, y - 4);
+	ctx.lineTo(x - length, y - 22);
+	ctx.lineTo(x - length, y + 22);
+	ctx.lineTo(x + 20, y + 8);
+	ctx.closePath();
+	ctx.fill();
 	ctx.restore();
 }

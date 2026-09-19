@@ -196,19 +196,21 @@ export function chooseShieldTarget(p: Player, w: ConstructWorld): Player | Prote
 
 	let best: Player | Protectable = p;
 	let bestDanger = dangerTo(p, w) + 0.01;
+	for (const thing of w.protectables) {
+		if (dist(thing, p) > BUBBLE_SHIELD.range + thing.radius) continue;
+		if (thing.threat > bestDanger) {
+			best = thing;
+			bestDanger = thing.threat;
+		}
+	}
+	// The thing we're here to protect comes before a partner, who can shield themselves
+	if (best !== p) return best;
 	for (const o of w.players) {
 		if (o === p || o.downed || dist(o, p) > BUBBLE_SHIELD.range) continue;
 		const danger = dangerTo(o, w);
 		if (danger > bestDanger) {
 			best = o;
 			bestDanger = danger;
-		}
-	}
-	for (const thing of w.protectables) {
-		if (dist(thing, p) > BUBBLE_SHIELD.range + thing.radius) continue;
-		if (thing.threat > bestDanger) {
-			best = thing;
-			bestDanger = thing.threat;
 		}
 	}
 	return best;

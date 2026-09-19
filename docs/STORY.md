@@ -147,7 +147,8 @@ back and let them fight, lure one faction into the other, or get caught in the m
   Sinestro backs them; Hal and Kilowog take the **Interceptor** anyway (Kilowog was meant to be guarding
   it). Red Lantern fighters fire rage torpedoes at the ship; halfway across, **Bleez** ambushes it and
   knocks out its power. While it reboots, its AI wakes in broken lines ("You have stolen me"), then
-  introduces herself as **Aya**, brings the guns online, and the ship jumps for the Sector 666 border.
+  introduces herself as **Aya**, brings the guns online and flies them the rest of the way. At the jump
+  point she calls them back; Hal and Kilowog fly aboard and the ship jumps for the Sector 666 border.
 
 **Act 1 plan (agreed 2026-09-18, following the animated series):** 3. Colony Under Fire (built: John's
 first mission) → 4. The Interceptor (built: the Guardians refuse to send help past the

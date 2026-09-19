@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Game } from '../game';
 import { IDLE } from '../input';
-import { AMBUSH_X, InterceptorMission, REBOOT_TIME, SHIP_HULL, TORPEDO, buildFrontierMap } from './interceptor';
+import { AMBUSH_X, JUMP_X, InterceptorMission, REBOOT_TIME, SHIP_HULL, TORPEDO, buildFrontierMap } from './interceptor';
 
 function setup() {
 	const map = buildFrontierMap();
@@ -143,7 +143,7 @@ describe('Mission 4: The Interceptor', () => {
 		expect(mission.phase).toBe('online');
 	});
 
-	it("once Aya's awake her cannons shoot the Red Lanterns; clearing them lets the ship jump for the win", () => {
+	it("once Aya's awake the ship flies on and her cannons shoot the Red Lanterns", () => {
 		const { game, mission, run, safe, clear } = setup();
 		run(3.1);
 		mission.ship.x = AMBUSH_X - 5;
@@ -154,13 +154,38 @@ describe('Mission 4: The Interceptor', () => {
 			mission.ship.hull = SHIP_HULL;
 		});
 		expect(mission.phase).toBe('online');
-		// A fighter shows up near the ship: the cannons take it down
+		const x = mission.ship.x;
 		const e = game.spawnEnemy('redFighter', mission.ship.x + 300, mission.ship.y);
 		run(4, safe);
 		expect(e.hp).toBeLessThan(e.maxHp);
+		expect(mission.ship.x).toBeGreaterThan(x + 50);
+	});
+
+	it('at the jump point Hal and Kilowog fly back aboard, the ship jumps, and that wins', () => {
+		const { game, mission, run, safe, clear } = setup();
+		run(3.1);
+		mission.ship.x = AMBUSH_X - 5;
+		run(1, safe);
 		clear();
-		run(20, safe);
+		run(REBOOT_TIME + 0.5, () => {
+			safe();
+			mission.ship.hull = SHIP_HULL;
+		});
+		// A straggler is still around when the ship gets there: Aya clears it
+		const e = game.spawnEnemy('rageGrunt', mission.ship.x + 400, mission.ship.y + 200);
+		for (const p of game.players) p.x = mission.ship.x - 400;
+		mission.ship.x = JUMP_X - 2;
+		run(0.2, safe);
+		expect(mission.phase).toBe('board');
+		expect(e.hp).toBe(0);
+		// They fly themselves back to the ship and disappear inside
+		run(8.5, safe);
+		expect(game.players.every((p) => p.boarded)).toBe(true);
+		expect(mission.phase === 'jump' || mission.state === 'won').toBe(true);
+		const x = mission.ship.x;
+		run(5, safe);
 		expect(mission.state).toBe('won');
+		expect(mission.ship.x).toBeGreaterThan(x + 1000);
 		expect(mission.stars).toBe(3);
 	});
 

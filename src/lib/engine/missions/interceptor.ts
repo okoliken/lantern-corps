@@ -10,24 +10,27 @@
 //   reboot   halfway, Bleez ambushes it and knocks out its power. It sits dead
 //            in space while its systems reboot, and the fighters keep coming.
 //            The ship's AI wakes up as it boots, a few broken words at a time.
-//   online   Aya is awake. The ship's cannons fire on the Red Lanterns; clear
-//            them so it can jump.
-//   jump     the Interceptor leaves for Sector 666's border.
+//   online   Aya is awake and the ship flies on, its cannons firing at the Red
+//            Lanterns, through the last waves to the jump point.
+//   board    Aya calls the Lanterns back; Hal and Kilowog fly aboard.
+//   jump     the engines spool up and the Interceptor streaks off toward
+//            Sector 666's border.
 //
 // Lose: the ship is destroyed, or Hal goes down 3 times. The Lantern battery
 // rides the ship, so staying near it keeps willpower up.
 
-import { damagePlayer } from '../combat';
+import { damagePlayer, revivePlayer } from '../combat';
 import { absorbWithShield, hitDummyWithFx, type ConstructWorld, type Protectable } from '../constructs/system';
 import { isStanding, type Dummy } from '../dummy';
 import type { Enemy, Role } from '../enemies/enemies';
 import { drawShipShield } from '../draw/escort';
-import { drawCannonShot, drawInterceptor } from '../draw/interceptor';
+import { drawCannonShot, drawInterceptor, drawWarpStreak } from '../draw/interceptor';
 import type { Drawable, Game } from '../game';
+import { IDLE } from '../input';
 import { seededRandom, type GameMap, type Obstacle } from '../map';
 import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type MissionState, type MissionStat } from './mission';
 
-export type InterceptorPhase = 'run' | 'reboot' | 'online' | 'jump';
+export type InterceptorPhase = 'run' | 'reboot' | 'online' | 'board' | 'jump';
 
 export const INTERCEPTOR_LIVES = 3;
 const INTRO_TIME = 3;
@@ -41,16 +44,21 @@ const SHIP_HALF_DEPTH = 30;
 /** Further than this and Hal is told to get back to the ship. */
 const LEASH = 700;
 /** Seconds for the ship's systems to reboot after Bleez's ambush. */
-export const REBOOT_TIME = 45;
+export const REBOOT_TIME = 50;
+/** Once Aya's flying it: a little quicker. */
+const ONLINE_SPEED = 34;
 /** What the ambush does to the hull. */
 const AMBUSH_DAMAGE = 60;
 /** Once Aya's awake: seconds between cannon shots, their reach and damage. */
-const CANNON_EVERY = 0.55;
+const CANNON_EVERY = 0.9;
 const CANNON_RANGE = 900;
 const CANNON_DAMAGE = 40;
-/** If the last Red Lanterns hide out this long, the ship jumps anyway. */
-const ONLINE_MAX = 40;
-const JUMP_TIME = 2.5;
+/** Boarding: how close to the hatch counts as aboard, and how long before everyone's pulled in anyway. */
+const BOARD_RADIUS = 36;
+const BOARD_MAX = 8;
+/** Seconds of engines spooling up after everyone's aboard, then of streaking off. */
+const SPOOL_TIME = 2.5;
+const STREAK_TIME = 1.8;
 /** Fighters fire torpedoes at the ship from within this range, every so often. */
 const TORPEDO_RANGE = 1100;
 const TORPEDO_EVERY: [number, number] = [3.2, 4.6];
@@ -61,13 +69,15 @@ const MIGHT = 1.3;
 /** A rage torpedo: small, quick, one ring-shot burst breaks it. */
 export const TORPEDO = { radius: 14, hp: 18, speed: 210, shipDamage: 30, lanternDamage: 14 };
 /** How far ahead (seconds) the ship watches for torpedoes on a collision course. */
-const THREAT_LOOKAHEAD = 2;
+const THREAT_LOOKAHEAD = 3;
 
-const W = 5200;
+const W = 5800;
 const H = 1600;
 const START_X = 460;
 /** Where Bleez springs her ambush. */
-export const AMBUSH_X = 2300;
+export const AMBUSH_X = 2980;
+/** Where the ship can jump from. */
+export const JUMP_X = 5000;
 const LANE_Y = H / 2;
 
 /** Who comes in, when, and from where (relative to the ship): [second, who, dx, dy]. */
@@ -78,11 +88,18 @@ const RUN_WAVES: Arrival[] = [
 	[18, 'fighter', 800, -420],
 	[19, 'fighter', 1000, 0],
 	[20, 'fighter', 850, 420],
-	[36, 'fighter', -500, -420],
-	[37, 'gunner', 700, -250],
-	[37, 'hunter', 750, 250],
-	[38, 'fighter', 900, 380],
-	[39, 'fighter', -700, 400]
+	[34, 'fighter', -500, -420],
+	[35, 'gunner', 700, -250],
+	[35, 'hunter', 750, 250],
+	[36, 'fighter', 900, 380],
+	[52, 'berserker', 600, -300],
+	[52, 'berserker', 650, 300],
+	[53, 'fighter', 1000, 0],
+	[54, 'fighter', -800, 400],
+	[68, 'fighter', 850, -420],
+	[69, 'fighter', 900, 420],
+	[70, 'fighter', -700, -300],
+	[71, 'gunner', 800, 0]
 ];
 /** Seconds into the reboot. Bleez leads it. */
 const REBOOT_WAVES: Arrival[] = [
@@ -90,15 +107,30 @@ const REBOOT_WAVES: Arrival[] = [
 	[1, 'fighter', 900, 300],
 	[2, 'fighter', -800, -300],
 	[3, 'fighter', 0, 600],
-	[14, 'fighter', 850, -400],
-	[15, 'fighter', -850, 400],
-	[16, 'berserker', 500, 250],
-	[17, 'fighter', -900, 0],
-	[28, 'fighter', 900, 0],
-	[29, 'fighter', 700, -420],
-	[30, 'fighter', -700, 420],
-	[31, 'gunner', -600, 300],
-	[32, 'hunter', 600, -300]
+	[15, 'fighter', 850, -400],
+	[16, 'fighter', -850, 400],
+	[17, 'berserker', 500, 250],
+	[18, 'fighter', -900, 0],
+	[31, 'fighter', 900, 0],
+	[32, 'fighter', 700, -420],
+	[33, 'fighter', -700, 420],
+	[34, 'gunner', -600, 300],
+	[35, 'hunter', 600, -300]
+];
+/** Seconds into the last leg, with Aya flying. The Red Lanterns throw everything at it. */
+const ONLINE_WAVES: Arrival[] = [
+	[5, 'fighter', 1000, -400],
+	[6, 'fighter', 1050, 400],
+	[7, 'fighter', 900, 0],
+	[20, 'berserker', 700, -280],
+	[20, 'gunner', 750, 280],
+	[21, 'fighter', -800, -400],
+	[22, 'fighter', -850, 400],
+	[36, 'fighter', 1000, -420],
+	[37, 'fighter', 1000, 420],
+	[38, 'hunter', 700, 0],
+	[38, 'gunner', 800, -300],
+	[39, 'fighter', -900, 0]
 ];
 
 /** The Interceptor is something a Lantern can shield (Shift puts the bubble on it when it's in danger). */
@@ -212,7 +244,9 @@ export class InterceptorMission implements MissionDirector {
 			case 'reboot':
 				return 'Protect the ship while it reboots';
 			case 'online':
-				return 'Clear the Red Lanterns so the ship can jump';
+				return 'Get the Interceptor to the jump point';
+			case 'board':
+				return 'Back to the ship!';
 			case 'jump':
 				return 'Jump!';
 		}
@@ -222,24 +256,24 @@ export class InterceptorMission implements MissionDirector {
 		return this.comms.current;
 	}
 
-	/** 0 at the start, 1 at the ambush point. */
+	/** 0 at the start, 1 at the jump point. */
 	get progress(): number {
-		return Math.min(1, Math.max(0, (this.ship.x - START_X) / (AMBUSH_X - START_X)));
+		return Math.min(1, Math.max(0, (this.ship.x - START_X) / (JUMP_X - START_X)));
 	}
 
 	meters(): MissionMeter[] {
 		const s = this.ship;
 		const hull = s.hull / s.maxHull;
 		const list: MissionMeter[] = [{ label: 'Hull', value: hull, text: `${Math.round(hull * 100)}%`, low: hull < 0.3 }];
-		if (this.phase === 'run') list.push({ label: 'Frontier', value: this.progress, text: `${Math.round(this.progress * 100)}%`, marker: '▶' });
 		if (this.phase === 'reboot') list.push({ label: 'Reboot', value: s.boot, text: `${Math.floor(s.boot * 100)}%` });
+		else list.push({ label: 'Frontier', value: this.progress, text: `${Math.round(this.progress * 100)}%`, marker: '▶' });
 		const left = this.wave.filter(isStanding).length;
-		if (left > 0 && this.phase !== 'run') list.push({ label: 'Reds', value: left / Math.max(1, this.wave.length), text: `${left} left` });
+		if (left > 0 && this.phase === 'reboot') list.push({ label: 'Reds', value: left / Math.max(1, this.wave.length), text: `${left} left` });
 		return list;
 	}
 
 	warning(game: Game): string | null {
-		if (this.state !== 'playing') return null;
+		if (this.state !== 'playing' || this.phase === 'board' || this.phase === 'jump') return null;
 		if (this.farFrom(game)) return 'Get back to the Interceptor!';
 		if (this.ship.threat > 1.5 && this.ship.hull < this.ship.maxHull * 0.5) return 'Torpedoes incoming! Shift to shield the ship!';
 		return null;
@@ -300,13 +334,16 @@ export class InterceptorMission implements MissionDirector {
 				}
 				break;
 			case 'playing':
-				this.elapsed += this.phase === 'jump' ? 0 : dt;
+				if (this.phase !== 'board' && this.phase !== 'jump') this.elapsed += dt;
 				this.phaseTime += dt;
 				this.play(game, dt);
+				this.lastDt = dt;
 				break;
 			case 'won':
+				// Gone: the Lanterns ride along inside
 				this.timer += dt;
-				s.x += SHIP_SPEED * 20 * dt;
+				s.x += 3000 * dt;
+				this.pinAboard(game);
 				break;
 			case 'lost':
 				for (const p of game.players) if (p.downed && p.slot === 0) p.downTimer = Math.max(p.downTimer, 1);
@@ -337,7 +374,8 @@ export class InterceptorMission implements MissionDirector {
 			case 'run':
 				s.x = Math.min(AMBUSH_X, s.x + SHIP_SPEED * dt);
 				s.y = LANE_Y + Math.sin(this.phaseTime * 0.2) * 60;
-				if (this.phaseTime > 30 && this.phaseTime < 30 + dt) this.comms.say('Kilowog', "Keep those torpedoes off the hull! This thing's a prototype!");
+				if (this.passed(30)) this.comms.say('Kilowog', "Keep those torpedoes off the hull! This thing's a prototype!");
+				if (this.passed(52)) this.comms.say('Hal', "They're sending everything they've got.");
 				if (s.x >= AMBUSH_X) this.ambush(game);
 				break;
 			case 'reboot': {
@@ -349,21 +387,99 @@ export class InterceptorMission implements MissionDirector {
 			}
 			case 'online':
 				s.power = Math.min(1, s.power + dt);
+				s.x = Math.min(JUMP_X, s.x + ONLINE_SPEED * dt * s.power);
+				s.y = LANE_Y + Math.sin(this.phaseTime * 0.25) * 70;
 				this.fireCannons(game, dt);
-				if (this.phaseTime > 6 && (this.cleared() || this.phaseTime > ONLINE_MAX)) {
-					this.phase = 'jump';
-					this.phaseTime = 0;
-					this.comms.scene([
-						['Aya', 'Hostiles cleared. Plotting a course for the Sector 666 border.'],
-						['Kilowog', "Everybody inside! She's gonna jump!"]
-					]);
+				if (this.passed(24)) {
+					this.comms.say('Hal', 'Aya, how far to the jump point?');
+					this.comms.say('Aya', 'Forty seconds. Please keep them off my hull.');
 				}
+				if (s.x >= JUMP_X) this.startBoarding(game);
+				break;
+			case 'board':
+				this.board(game);
 				break;
 			case 'jump':
-				// Everyone climbs aboard; engines spool up, then off it goes
-				s.x += SHIP_SPEED * 2 * dt * this.phaseTime;
-				if (this.phaseTime >= JUMP_TIME && !this.comms.current) this.win(game);
+				this.pinAboard(game);
+				// The engines spool up, then it streaks away
+				if (this.phaseTime > SPOOL_TIME) s.x += (300 + (this.phaseTime - SPOOL_TIME) * 5000) * dt;
+				if (this.phaseTime >= SPOOL_TIME + STREAK_TIME) this.win(game);
 				break;
+		}
+	}
+
+	/** True on the tick the phase clock passes `second`. */
+	private passed(second: number): boolean {
+		return this.phaseTime >= second && this.phaseTime - this.lastDt < second;
+	}
+	private lastDt = 0;
+
+	/**
+	 * The jump point: Aya's cannons clear whatever's left, and she calls the
+	 * Lanterns in. From here they fly themselves back to the ship.
+	 */
+	private startBoarding(game: Game) {
+		const s = this.ship;
+		this.phase = 'board';
+		this.phaseTime = 0;
+		this.schedule = [];
+		for (const d of game.dummies) {
+			if (!isStanding(d)) continue;
+			this.shots.push({ x: d.x, y: d.y, age: 0 });
+			if (this.torpedoes.has(d)) this.pop(d);
+			else hitDummyWithFx(game.constructs, d, d.hp + (d.ward?.hp ?? 0), 200, s.x, s.y, null);
+		}
+		game.constructs.effects.push({ kind: 'callout', x: s.x, y: s.y - 100, age: 0, life: 2.2, text: 'JUMP POINT' });
+		this.comms.scene([
+			['Aya', 'Jump point reached. Course plotted for the Sector 666 border. Lanterns, return to the ship.'],
+			['Kilowog', 'You heard the lady. Inside, poozer!']
+		]);
+		for (const p of game.players) {
+			// Anyone knocked down gets back up to fly home
+			if (p.downed) revivePlayer(p, p.x, p.y);
+			p.invuln = 99;
+			p.input = {
+				read: () => {
+					if (p.boarded) return IDLE;
+					const dx = s.x - 10 - p.x;
+					const dy = s.y + 6 - p.y;
+					const d = Math.hypot(dx, dy) || 1;
+					const k = Math.min(1, d / 90) / d;
+					return { ...IDLE, moveX: dx * k, moveY: dy * k };
+				}
+			};
+		}
+	}
+
+	private board(game: Game) {
+		const s = this.ship;
+		for (const p of game.players) {
+			if (p.boarded) continue;
+			if (Math.hypot(p.x - s.x + 10, p.y - s.y - 6) < BOARD_RADIUS || this.phaseTime > BOARD_MAX) {
+				p.boarded = true;
+				game.constructs.effects.push({ kind: 'snap', x: s.x - 10, y: s.y, age: 0, life: 0.45, radius: 34, lift: FLOAT });
+			}
+		}
+		this.pinAboard(game);
+		if (game.players.every((p) => p.boarded)) {
+			// The battery goes aboard with them
+			game.batteries.length = 0;
+			this.phase = 'jump';
+			this.phaseTime = 0;
+			this.comms.scene([
+				['Hal', 'Nice shooting out there, Aya.'],
+				['Aya', 'Thank you. Please hold on.']
+			]);
+		}
+	}
+
+	/** Lanterns inside the ship go where it goes (and the camera with them). */
+	private pinAboard(game: Game) {
+		for (const p of game.players) {
+			if (!p.boarded) continue;
+			p.x = p.prevX = this.ship.x;
+			p.y = p.prevY = this.ship.y;
+			p.vx = p.vy = 0;
 		}
 	}
 
@@ -405,13 +521,14 @@ export class InterceptorMission implements MissionDirector {
 		const s = this.ship;
 		this.phase = 'online';
 		this.phaseTime = 0;
+		this.schedule = [...ONLINE_WAVES];
 		s.boot = 1;
 		this.cannonIn = 1.5;
 		this.world?.effects.push({ kind: 'callout', x: s.x, y: s.y - 100, age: 0, life: 2.2, text: 'SYSTEMS ONLINE' });
 		this.comms.scene([
 			['Interceptor', 'Systems online. I am the Interceptor\'s artificial intelligence.'],
 			['Hal', 'The ship talks. Does the ship have a name?'],
-			['Aya', 'Aya. Weapons are online. Engaging Red Lantern targets.'],
+			['Aya', 'Aya. Weapons online. Resuming course for the jump point.'],
 			['Kilowog', 'I like her already.']
 		]);
 	}
@@ -467,7 +584,7 @@ export class InterceptorMission implements MissionDirector {
 
 	/** Fighters in range launch torpedoes at the ship, leading it a little. */
 	private fireTorpedoes(game: Game, dt: number) {
-		if (this.phase === 'online' || this.phase === 'jump') return;
+		if (this.phase === 'board' || this.phase === 'jump') return;
 		const s = this.ship;
 		for (const e of this.wave) {
 			if (!isStanding(e) || e.kind !== 'redFighter') continue;
@@ -643,7 +760,10 @@ export class InterceptorMission implements MissionDirector {
 				baseY: y,
 				draw: () => {
 					const boot = this.phase === 'reboot' ? s.boot : 0;
-					drawInterceptor(ctx, x, y, { hull: s.hull / s.maxHull, flash: s.flash, power: s.power, boot, destroyed: this.failReason === 'ship', time });
+					const jumping = this.phase === 'jump' || this.state === 'won';
+					const spool = jumping ? Math.min(1, this.phaseTime / SPOOL_TIME) : 0;
+					if (jumping && this.phaseTime > SPOOL_TIME) drawWarpStreak(ctx, x, y - FLOAT, (this.phaseTime - SPOOL_TIME) / STREAK_TIME);
+					drawInterceptor(ctx, x, y, { hull: s.hull / s.maxHull, flash: s.flash, power: s.power, boot, spool, destroyed: this.failReason === 'ship', time });
 					if (shield) drawShipShield(ctx, shield, x, y - FLOAT, s.radius, time);
 				}
 			}
