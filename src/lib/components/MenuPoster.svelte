@@ -66,9 +66,9 @@
 		sky.addColorStop(1, '#020508');
 		ctx.fillStyle = sky;
 		ctx.fillRect(0, 0, W, H);
-		const meet = { x: W / 2, y: H * 0.04 };
+		const meet = { x: W / 2, y: H * 0.3 };
 		const pulse = 0.85 + 0.15 * Math.sin(t * 1.3);
-		const burst = ctx.createRadialGradient(meet.x, meet.y, 0, meet.x, meet.y, H * 0.7);
+		const burst = ctx.createRadialGradient(meet.x, meet.y, 0, meet.x, meet.y, H * 0.45);
 		burst.addColorStop(0, green(0.35 * pulse));
 		burst.addColorStop(0.35, green(0.1));
 		burst.addColorStop(1, green(0));
@@ -107,9 +107,9 @@
 		}
 
 		// ---- The platform they stand on ----
-		const size = Math.min(H / 190, W / 130);
-		const gap = Math.min(W * 0.16, H * 0.22);
-		const floor = H * 0.7;
+		const size = Math.min(H / 420, W / 300);
+		const gap = size * 44;
+		const floor = H * 0.68;
 		const deck = ctx.createRadialGradient(W / 2, floor, 0, W / 2, floor, gap * 2.2);
 		deck.addColorStop(0, green(0.22 * pulse));
 		deck.addColorStop(0.5, green(0.06));
@@ -164,13 +164,13 @@
 			}
 			// The ring itself, blazing
 			ctx.globalAlpha = 1;
-			const glow = ctx.createRadialGradient(rx, ry, 0, rx, ry, size * 9);
+			const glow = ctx.createRadialGradient(rx, ry, 0, rx, ry, size * 7);
 			glow.addColorStop(0, greenCore(0.9 * pulse));
 			glow.addColorStop(0.25, green(0.45));
 			glow.addColorStop(1, green(0));
 			ctx.fillStyle = glow;
 			ctx.beginPath();
-			ctx.arc(rx, ry, size * 9, 0, TAU);
+			ctx.arc(rx, ry, size * 7, 0, TAU);
 			ctx.fill();
 		}
 		ctx.restore();
