@@ -75,7 +75,7 @@ export const LANTERNS: Record<CrewId, LanternDef> = {
 		accel: 2200,
 		decel: 2600,
 		// Solid, lasting structures that cost less to raise
-		traits: { power: 1, durability: 1.4, cooldown: 1, structureCost: 0.7 },
+		traits: { power: 1.1, durability: 1.4, cooldown: 1, structureCost: 0.7 },
 		look: { skin: '#6e4529', hair: '#171310', hairStyle: 'cropped', mask: false }
 	},
 	kilowog: {

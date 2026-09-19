@@ -122,12 +122,16 @@ export interface Player {
 	smartPick: number;
 	/** Seconds before the smart ring picks again while the button is held. */
 	smartTimer: number;
+	/** A press waiting (briefly) for the smart ring's pick to come off cooldown. */
+	smartQueued: number;
 
 	// ---- Signature ability (see constructs/signature.ts) ----
 	/** 0..SURGE_MAX. Fills as you fight; full = signature ability ready. */
 	surge: number;
 	/** Hal's Jet Strike in progress: flying on rails along (dx, dy). */
 	dash: Dash | null;
+	/** Wearing a construct suit of armor (Power Armor), or null. */
+	armor: ArmorSuit | null;
 
 	// ---- Animation timers (drive poses; see animation.ts) ----
 	/** Seconds left on ring-shot recoil. */
@@ -155,6 +159,15 @@ export interface Dash {
 	/** Afterburner: what it does to anything in the way. */
 	damage?: number;
 	knockback?: number;
+	/** Drawn as a fighter jet around the Lantern (the Fighter Jet construct). */
+	look?: 'jet';
+}
+
+/** John's Power Armor while it's on: less damage taken, and the ring shot becomes an arm cannon. */
+export interface ArmorSuit {
+	def: ConstructDef;
+	time: number;
+	maxTime: number;
 }
 
 /** What the player needs to know about the world to move through it. */
@@ -217,6 +230,7 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		burstShots: 0,
 		surge: 0,
 		dash: null,
+		armor: null,
 		shotTimer: 0,
 		hurtTimer: 0,
 		downed: false,
@@ -242,7 +256,8 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		actionShape: null,
 		smartRing: false,
 		smartPick: -1,
-		smartTimer: 0
+		smartTimer: 0,
+		smartQueued: 0
 	};
 }
 

@@ -14,6 +14,7 @@ import { isStanding, type Dummy } from '../dummy';
 import type { Target } from '../targeting';
 import { GREEN } from './lantern';
 import { uiFont } from './fonts';
+import { drawAnvilDrop, drawCutter, drawGirder, drawGrenade, drawMarine, drawSpring, drawTrain, drawWreckingBall, glovePath, ironFistDetail, ironFistPath, riflePath } from './kits';
 
 const CORE = '#eafff0';
 const TAU = Math.PI * 2;
@@ -269,6 +270,11 @@ export function drawHeldConstruct(
 	} else if (shape === 'shotgun') {
 		energy(ctx, shotgunPath(), { time, edge: 1.5 });
 		if (Math.sin(time * 40) > 0.3) muzzleFlash(ctx, 38, 1, 9);
+	} else if (shape === 'rifle') {
+		energy(ctx, riflePath(), { time, edge: 1.4 });
+		if (Math.sin(time * 55) > 0.2) muzzleFlash(ctx, 44, 0, 6);
+	} else if (shape === 'cutter') {
+		drawCutter(ctx, 58, 34, time);
 	} else if (shape === 'rockets') {
 		energy(ctx, rocketPodPath(), { time, edge: 1.6 });
 		sparks(ctx, 30, 0, 8, 4, time);
@@ -344,6 +350,7 @@ export function drawLaserSight(
 
 /** An Auto-Turret construct: tripod legs, a body, and twin barrels that track targets. In space, a Sentry Drone. */
 export function drawAutoTurret(ctx: CanvasRenderingContext2D, t: Turret, time: number, space = false) {
+	if (t.follow) return drawMarine(ctx, t, time, space);
 	if (space) return drawSentryDrone(ctx, t, time);
 	const fading = t.life < 1.5;
 	const alpha = fading ? 0.5 + 0.5 * Math.sin(time * 20) : 1;
@@ -425,6 +432,9 @@ export function drawProjectile(ctx: CanvasRenderingContext2D, pr: Projectile, x:
 	const speed = Math.hypot(pr.vx, pr.vy) || 1;
 	const ux = pr.vx / speed;
 	const uy = pr.vy / speed;
+	if (pr.kind === 'train') return drawTrain(ctx, pr, x, y, lift, time);
+	if (pr.kind === 'girder') return drawGirder(ctx, pr, x, y, lift, time);
+	if (pr.kind === 'shell' && pr.def.shape === 'grenade') return drawGrenade(ctx, pr, x, y, lift, time);
 	ctx.save();
 	ctx.lineCap = 'round';
 
@@ -1043,6 +1053,10 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			break;
 		}
 		case 'fist': {
+			if (e.form === 'wreckingBall') {
+				drawWreckingBall(ctx, e, lift, time, FIST_OUT_TIME);
+				break;
+			}
 			// Wind up close, punch out with speed lines, flash on impact, fade
 			const windup = e.life - FIST_OUT_TIME;
 			const size = e.radius ?? 42;
@@ -1067,11 +1081,14 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 					ctx.stroke();
 				}
 			}
+			// The Boxing Glove is on a spring
+			if (e.form === 'glove') drawSpring(ctx, reach - size * 0.5, time);
 			ctx.save();
 			ctx.translate(reach, shake);
 			const scale = 0.55 + out * 0.45;
 			ctx.scale(scale, scale);
-			energy(ctx, fistPath(size), { time, edge: 2.4 });
+			energy(ctx, e.form === 'glove' ? glovePath(size) : e.form === 'ironFist' ? ironFistPath(size) : fistPath(size), { time, edge: 2.4 });
+			if (e.form === 'ironFist') ironFistDetail(ctx, size);
 			ctx.restore();
 
 			// Impact ring right as it lands
@@ -1400,7 +1417,8 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			break;
 		}
 		case 'pillars': {
-			if (space) drawViceCrush(ctx, e, time);
+			if (e.form === 'anvil') drawAnvilDrop(ctx, e, time);
+			else if (space) drawViceCrush(ctx, e, time);
 			else drawPillarDrop(ctx, e, time);
 			break;
 		}

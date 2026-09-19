@@ -3,13 +3,13 @@
 // A ring answers its bearer's will, so instead of the player picking one of
 // ten constructs, the ring reads the fight and builds the right one:
 //
-//   enemy right next to you            sword, hammer, fist
-//   several close by                   shockwave, shotgun, hammer
-//   a bunch together further off       rockets, pillars, cannon
-//   one far away                       sniper, rockets, beam
-//   something rushing you              wall, cage, mines
-//   you or a friend badly hurt         aid station
-//   a lone ranged enemy mid-distance   chain (drag it in)
+//   enemy right next to you            sword, glove, fist, cutter
+//   several close by                   hammer, wrecking ball, shockwave
+//   a line or bunch further off        locomotive, I-beams, missiles, grenades, anvil
+//   one far away                       sniper, beam, missiles
+//   several enemies about              Marines (if none are out)
+//   surrounded or badly hurt           Power Armor
+//   something rushing you              wall, cage, mines (Kilowog)
 //
 // It scores every construct in the loadout by what it DOES (its behavior),
 // not its name, so it works for any Lantern and for Forge constructs later.
@@ -126,6 +126,23 @@ function score(def: ConstructDef, s: Situation, p: Player, w: ConstructWorld): n
 		}
 		case 'heal':
 			return s.hurt && !w.aids.some((a) => a.owner === p) ? 0.95 : 0;
+		case 'grind':
+			return hasTarget && d < reach + (def.radius ?? 36) + 10 ? 0.78 : 0;
+		case 'lances': {
+			if (!hasTarget || d < 110 || d > reach) return 0;
+			return 0.5 + 0.12 * Math.min(cluster - 1, 2);
+		}
+		case 'ram': {
+			if (!hasTarget || d < 110 || d > reach) return 0;
+			const inLine = s.all.filter((o) => dist(o, p) < reach).length;
+			return inLine >= 2 ? 0.72 : 0.42;
+		}
+		case 'squad': {
+			const out = w.turrets.some((t) => t.owner === p && t.follow);
+			return !out && s.all.length >= 2 ? 0.66 : 0;
+		}
+		case 'armor':
+			return !p.armor && (near >= 2 || p.health < p.maxHealth * 0.45) ? 0.8 : 0;
 		default:
 			return 0;
 	}
@@ -153,6 +170,51 @@ export function pickConstruct(p: Player, w: ConstructWorld): SmartPick | null {
 		}
 	});
 	return best;
+}
+
+export interface SmartChoice extends SmartPick {
+	/** It's the right construct but it's still cooling down: wait for it rather than use a worse one. */
+	wait: boolean;
+}
+
+/** Keep the last pick while it's still at least this good compared with the best. */
+const STICK = 0.75;
+/** Wait this long (seconds of cooldown left) for the best construct before settling for another. */
+const WAIT_FOR_BEST = 0.45;
+
+/**
+ * The smart ring for a player: like pickConstruct, but steady. It sticks with
+ * what it last picked while that still fits, and waits a moment for the best
+ * construct to come off cooldown instead of reaching for the next one down, so
+ * holding the button doesn't cycle through the whole loadout.
+ */
+export function smartChoice(p: Player, w: ConstructWorld): SmartChoice | null {
+	const s = read(p, w);
+	const scores = p.loadout.map((def, slot) => (affordable(p, slot) ? score(def, s, p, w) : 0));
+	let top = -1;
+	scores.forEach((sc, slot) => {
+		if (sc > 0 && (top < 0 || sc > scores[top])) top = slot;
+	});
+	if (top < 0) return null;
+	const prev = p.smartPick;
+	const choice = prev >= 0 && scores[prev] >= scores[top] * STICK ? prev : top;
+	const def = p.loadout[choice];
+	if (ready(p, choice)) return { slot: choice, hold: holdFor(def), wait: false };
+	if (p.cooldowns[choice] <= WAIT_FOR_BEST) return { slot: choice, hold: holdFor(def), wait: true };
+	// A long wait: the best of what's ready, if it's nearly as good
+	let alt = -1;
+	scores.forEach((sc, slot) => {
+		if (sc >= scores[top] * STICK && ready(p, slot) && (alt < 0 || sc > scores[alt])) alt = slot;
+	});
+	return alt >= 0 ? { slot: alt, hold: holdFor(p.loadout[alt]), wait: false } : { slot: choice, hold: holdFor(def), wait: true };
+}
+
+/** Enough willpower for it (cooldowns aside). */
+function affordable(p: Player, slot: number): boolean {
+	const def = p.loadout[slot];
+	if (p.exhausted) return false;
+	if (def.behavior === 'beam') return p.willpower >= RESTART_THRESHOLD;
+	return canSpend(p, costOf(p, def));
 }
 
 function holdFor(def: ConstructDef): number {

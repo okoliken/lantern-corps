@@ -155,8 +155,13 @@ describe('Mission 4: The Interceptor', () => {
 		});
 		expect(mission.phase).toBe('online');
 		const x = mission.ship.x;
+		// Nothing else about (torpedoes would come first), then a fighter near the ship
+		for (const d of game.dummies) {
+			d.hp = 0;
+			d.down = 1;
+		}
 		const e = game.spawnEnemy('redFighter', mission.ship.x + 300, mission.ship.y);
-		run(4, safe);
+		run(3, safe);
 		expect(e.hp).toBeLessThan(e.maxHp);
 		expect(mission.ship.x).toBeGreaterThan(x + 50);
 	});

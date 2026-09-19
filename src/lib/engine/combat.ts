@@ -23,6 +23,8 @@ export const REVIVE_INVULN = 2;
 export const DOWNED_TIME = 4;
 /** How long the flinch pose lasts. */
 export const HURT_TIME = 0.35;
+/** How much damage still gets through John's Power Armor. */
+export const ARMOR_TAKES = 0.4;
 
 /**
  * Deal damage to a Lantern. Returns how much actually got through
@@ -37,6 +39,8 @@ export function damagePlayer(
 	knockback = 0
 ): number {
 	if (p.downed || p.invuln > 0 || amount <= 0) return 0;
+	// Power Armor takes most of the blow
+	if (p.armor) amount *= ARMOR_TAKES;
 
 	const through = absorbWithShield(w, p, amount);
 	if (through <= 0) return 0;

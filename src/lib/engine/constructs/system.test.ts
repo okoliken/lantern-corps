@@ -8,6 +8,7 @@ import { LANTERNS, type LanternId } from '../lanterns';
 import { CRATE_HP, type Obstacle } from '../map';
 import { createPlayer, updatePlayer, type Player } from '../player';
 import { updateSignature } from './signature';
+import { ARMOR_TAKES, damagePlayer } from '../combat';
 import { MAX_WILLPOWER, RESTART_THRESHOLD } from '../willpower';
 import { BUBBLE_SHIELD, RING_SHOT, RING_SHOT_BURST, RING_SHOT_GAP, CONSTRUCTS, LOADOUTS, constructLabel, MAX_MINES_PER_PLAYER, MAX_TRAPS_PER_PLAYER, MAX_TURRETS_PER_PLAYER, type ConstructDef, type ConstructId } from './defs';
 import {
@@ -61,18 +62,19 @@ describe('choosing constructs', () => {
 	it('slot keys pick a construct', () => {
 		const { p, w } = setup('hal', 'beam');
 		run(p, w, { ...IDLE, select: 3 }, DT);
-		expect(p.loadout[p.selected].id).toBe('fist');
+		expect(p.loadout[p.selected].id).toBe(LOADOUTS.hal[3]);
 	});
 
 	it('the cycle key moves to the next one and wraps around', () => {
-		const { p, w } = setup('hal', 'shotgun');
+		const { p, w } = setup('hal', LOADOUTS.hal[9]);
 		run(p, w, { ...IDLE, cycle: 1 }, DT);
 		expect(p.selected).toBe(0);
 	});
 
 	it('Hal and John carry different loadouts', () => {
 		expect(LOADOUTS.hal).not.toEqual(LOADOUTS.john);
-		expect(LOADOUTS.hal[0]).toBe('beam');
+		expect(LOADOUTS.hal[0]).toBe('glove');
+		expect(LOADOUTS.john[0]).toBe('precisionRifle');
 		expect(LOADOUTS.hal).toHaveLength(10);
 		expect(LOADOUTS.john).toHaveLength(10);
 		expect(new Set(LOADOUTS.hal).size).toBe(10);
@@ -417,9 +419,9 @@ describe('ring shot (free)', () => {
 	});
 
 	it('scroll wheel goes to the previous construct too', () => {
-		const { p, w } = setup('hal', 'beam');
+		const { p, w } = setup('hal', LOADOUTS.hal[0]);
 		run(p, w, { ...IDLE, cycle: -1 }, DT);
-		expect(p.loadout[p.selected].id).toBe('shotgun');
+		expect(p.loadout[p.selected].id).toBe(LOADOUTS.hal[9]);
 	});
 });
 
@@ -745,6 +747,112 @@ describe('what you see is what you hit', () => {
 		p.aimY = 0;
 		p.y = d.y - 40 + 60; // the beam is drawn across the enemy's middle
 		run(p, w, HOLD, 0.3);
+		expect(d.hp).toBeLessThan(DUMMY_HP);
+	});
+});
+
+describe('close-range constructs reach the whole body', () => {
+	/** A big target (Kilowog-sized) whose middle is out of reach but whose side isn't. */
+	const wide = (x: number) => {
+		const d = createDummy(x, 0);
+		d.kind = 'kilowog';
+		return d;
+	};
+
+	it('a sword swing hits a big enemy anywhere the blade reaches', () => {
+		const def = CONSTRUCTS.sword;
+		const d = wide(def.range + BODY.kilowog.halfWidth - 6);
+		const { p, w } = setup('hal', 'sword', [d]);
+		press(p, w, 0.2);
+		expect(d.hp).toBeLessThan(DUMMY_HP);
+	});
+
+	it('a shockwave hits a big enemy whose edge is inside the ring', () => {
+		const def = CONSTRUCTS.shockwave;
+		const d = wide(def.range + BODY.kilowog.halfWidth - 6);
+		const { p, w } = setup('john', 'shockwave', [d]);
+		press(p, w, 0.2);
+		expect(d.hp).toBeLessThan(DUMMY_HP);
+	});
+
+	it('still misses what is really out of reach', () => {
+		const def = CONSTRUCTS.sword;
+		const d = wide(def.range + BODY.kilowog.halfWidth + 20);
+		const { p, w } = setup('hal', 'sword', [d]);
+		press(p, w, 0.2);
+		expect(d.hp).toBe(DUMMY_HP);
+	});
+});
+
+describe("Hal's and John's new kits", () => {
+	const line = (...xs: number[]) => xs.map((x) => createDummy(x, 0));
+
+	it('I-beams go straight through a whole line', () => {
+		const ds = line(120, 220, 320);
+		const { p, w } = setup('john', 'ibeams', ds);
+		press(p, w, 1);
+		for (const d of ds) expect(d.hp).toBeLessThan(DUMMY_HP);
+	});
+
+	it('the Locomotive smashes through everything in its path', () => {
+		const ds = line(150, 300, 450);
+		const { p, w } = setup('hal', 'train', ds);
+		press(p, w, 1.2);
+		for (const d of ds) expect(d.hp).toBeLessThanOrEqual(DUMMY_HP - CONSTRUCTS.train.damage);
+	});
+
+	it('Green Grenades: three of them, lobbed in a fan', () => {
+		const { p, w } = setup('hal', 'grenades');
+		run(p, w, FIRE, DT);
+		expect(w.projectiles.filter((pr) => pr.kind === 'shell')).toHaveLength(3);
+	});
+
+	it('the Fighter Jet dashes and lets two missiles go', () => {
+		const { p, w } = setup('hal', 'fighterJet', [createDummy(250, 0)]);
+		run(p, w, FIRE, DT);
+		expect(p.dash?.look).toBe('jet');
+		expect(w.projectiles.filter((pr) => pr.kind === 'missile')).toHaveLength(2);
+	});
+
+	it('a Marine fireteam follows John and shoots on its own', () => {
+		const d = createDummy(300, 0);
+		const { p, w } = setup('john', 'fireteam', [d]);
+		press(p, w, 0.1);
+		const marines = w.turrets.filter((t) => t.follow);
+		expect(marines).toHaveLength(3);
+		// John walks off; they come with him
+		p.x = 100;
+		run(p, w, IDLE, 2);
+		expect(marines.every((m) => Math.abs(m.x - (100 + m.follow!.dx)) < 20)).toBe(true);
+		expect(d.hp).toBeLessThan(DUMMY_HP);
+	});
+
+	it('Power Armor: less damage taken, and the ring shot becomes an arm cannon', () => {
+		const { p, w } = setup('john', 'powerArmor');
+		press(p, w, 0.1);
+		expect(p.armor).not.toBeNull();
+		const through = damagePlayer(w, p, 50, 100, 0);
+		expect(through).toBeCloseTo(50 * ARMOR_TAKES);
+		run(p, w, { ...IDLE, shot: true }, DT);
+		expect(w.projectiles[0].damage).toBeGreaterThan(RING_SHOT.damage);
+		// It wears off
+		run(p, w, IDLE, 12);
+		expect(p.armor).toBeNull();
+	});
+
+	it('the Industrial Cutter chews through what it is held against', () => {
+		const d = createDummy(CONSTRUCTS.cutter.range, 0);
+		const { p, w } = setup('john', 'cutter', [d]);
+		run(p, w, HOLD, 0.5);
+		expect(d.hp).toBeLessThan(DUMMY_HP - 30);
+	});
+
+	it('the Wrecking Ball shatters a Red Lantern shield', () => {
+		const d = createDummy(CONSTRUCTS.wreckingBall.range, 0);
+		d.ward = { hp: 500, maxHp: 500, life: 10 };
+		const { p, w } = setup('john', 'wreckingBall', [d]);
+		press(p, w, 0.6);
+		expect(d.ward).toBeUndefined();
 		expect(d.hp).toBeLessThan(DUMMY_HP);
 	});
 });

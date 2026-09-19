@@ -34,6 +34,7 @@ import { drawBattery, drawBeam, drawChargeLink, drawCrosshair, drawDownedNotice,
 import { drawEnemy, enemyMuzzle } from './draw/enemies';
 import { drawSpaceRock } from './draw/escort';
 import { drawRageTorpedo } from './draw/interceptor';
+import { drawArmorSuit } from './draw/kits';
 import { drawFallingMeteors, drawRedBeam, drawRedCage, drawRedChain, drawRedEffect, drawRedGround, drawRedShot } from './draw/redConstructs';
 import { AllyInput } from './ally';
 import { RED_HAND_LIFT } from './enemies/redConstructs';
@@ -127,6 +128,9 @@ export interface Director {
 	/** A player pressed Call for backup (missions where a partner can be called in). */
 	callBackup?(game: Game, caller: Player): void;
 }
+
+/** Constructs drawn in the Lantern's hand while they're in use. */
+const HELD_LOOKS: ReadonlySet<string> = new Set(['minigun', 'cannon', 'sniper', 'shotgun', 'rockets', 'rifle', 'cutter']);
 
 /** How big a Lantern is drawn next to Hal and John (Kilowog is huge). */
 const sizeOf = (p: Player) => p.def.figureScale ?? 1;
@@ -614,8 +618,12 @@ export class Game {
 			const y = lerp(p.prevY, p.y, alpha);
 			const pose = this.poseFor(p);
 			const list = p.altitude > 0.5 ? air : ground;
-			// During Jet Strike the Lantern is drawn as the jet's pilot instead (below)
-			if (p.dash?.kind !== 'jet') list.push({ baseY: y, draw: () => drawLantern(ctx, p.def, x, y, pose, this.time, sizeOf(p)) });
+			// During Jet Strike (or the Fighter Jet) the Lantern is drawn as the jet's pilot instead (below)
+			const inJet = p.dash?.kind === 'jet' || p.dash?.look === 'jet';
+			if (!inJet) list.push({ baseY: y, draw: () => drawLantern(ctx, p.def, x, y, pose, this.time, sizeOf(p)) });
+			// Power Armor goes on over the figure
+			const suit = p.armor;
+			if (suit && !inJet) list.push({ baseY: y + 0.01, draw: () => drawArmorSuit(ctx, x, y, pose, this.time, sizeOf(p), suit.time / suit.maxTime) });
 
 			if (p.charging) {
 				const chestY = y - (pose.hoverHeight * p.altitude + 28) * 1.35;
@@ -631,7 +639,7 @@ export class Game {
 					overlays.push(() => drawBeam(ctx, rx, ry, p.aimX, p.aimY, p.beamLength, p.beamLength < def.range, this.time));
 				}
 				const held = p.firing ? def.shape : p.actionShape;
-				if (held === 'minigun' || held === 'cannon' || held === 'sniper' || held === 'shotgun' || held === 'rockets') {
+				if (held && HELD_LOOKS.has(held)) {
 					overlays.push(() => drawHeldConstruct(ctx, held, rx, ry, p.aimX, p.aimY, this.time));
 				}
 				if (p.charge > 0 && def.behavior === 'snipe') {
@@ -655,9 +663,9 @@ export class Game {
 		}
 		for (const o of overlays) o();
 
-		// Jet Strike: the fighter jet wrapped around Hal
+		// Jet Strike (and the Fighter Jet construct): the fighter jet wrapped around Hal
 		for (const p of this.players) {
-			if (p.dash?.kind !== 'jet') continue;
+			if (!p.dash || (p.dash.kind !== 'jet' && p.dash.look !== 'jet')) continue;
 			const x = lerp(p.prevX, p.x, alpha);
 			const y = lerp(p.prevY, p.y, alpha);
 			const bodyY = y - this.poseFor(p).hoverHeight * 1.35 - 34;

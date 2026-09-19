@@ -27,9 +27,14 @@ describe('smart ring', () => {
 		expect(['slash', 'smash']).toContain(picked(p, w));
 	});
 
-	it('fires rockets at a pack further off', () => {
-		const { p, w } = setup('hal', [[300, 0], [330, 30], [320, -30]]);
-		expect(picked(p, w)).toBe('volley');
+	it('fires missiles at a pack further off', () => {
+		const { p, w } = setup('john', [[420, 0], [450, 30], [440, -30]]);
+		expect(['volley', 'lances', 'heavy']).toContain(picked(p, w));
+	});
+
+	it('sends the locomotive through a line of enemies', () => {
+		const { p, w } = setup('hal', [[250, 0], [330, 10], [410, -10]]);
+		expect(picked(p, w)).toBe('ram');
 	});
 
 	it('snipes a lone enemy far away', () => {
@@ -37,10 +42,10 @@ describe('smart ring', () => {
 		expect(picked(p, w)).toBe('snipe');
 	});
 
-	it('puts down an aid station when you are badly hurt', () => {
+	it('suits up in Power Armor when John is badly hurt', () => {
 		const { p, w } = setup('john', [[500, 0]]);
 		p.health = p.maxHealth * 0.3;
-		expect(picked(p, w)).toBe('heal');
+		expect(picked(p, w)).toBe('armor');
 	});
 
 	it('only picks what you can afford', () => {
@@ -67,6 +72,31 @@ describe('smart ring', () => {
 		p.smartRing = true;
 		updatePlayerConstructs(p, { ...IDLE, select: 6, construct: true, constructPressed: true }, DT, w);
 		expect(p.selected).toBe(6);
+	});
+});
+
+describe('smart ring is steady, not a dice roll', () => {
+	it('holding the button against one enemy up close keeps to one or two constructs', () => {
+		const { p, w } = setup('hal', [[60, 0]]);
+		p.smartRing = true;
+		p.willpower = p.maxWillpower = 1000;
+		const used = new Set<number>();
+		for (let i = 0; i < 4 * 60; i++) {
+			const before = p.cooldowns.map((c) => c);
+			updatePlayerConstructs(p, { ...IDLE, construct: true, constructPressed: i === 0 }, DT, w);
+			updateConstructWorld(w, DT);
+			// Anything that just went on cooldown was used this tick
+			p.cooldowns.forEach((c, slot) => {
+				if (c > before[slot] + 0.01) used.add(slot);
+			});
+			// Keep the enemy standing and in place
+			const e = w.dummies[0];
+			e.hp = e.maxHp;
+			e.x = 60;
+			e.y = 0;
+		}
+		expect(used.size).toBeGreaterThan(0);
+		expect(used.size).toBeLessThanOrEqual(2);
 	});
 });
 

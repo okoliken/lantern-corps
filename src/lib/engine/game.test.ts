@@ -37,6 +37,7 @@ function gameWith(map: GameMap, intent: Intent) {
 	const game = new Game({ players: [{ lantern: 'hal', keys: 'solo' }], map });
 	game.setView({ width: 800, height: 600 });
 	game.players[0].input = { read: () => intent };
+	game.players[0].selected = game.players[0].loadout.findIndex((d) => d.id === 'beam');
 	return game;
 }
 

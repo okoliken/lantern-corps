@@ -12,7 +12,7 @@
 //  - KILOWOG, HAMMER QUAKE: a giant hammer brought down where he stands;
 //    everything around is smashed, knocked flying and stunned.
 
-import { isStanding, type Dummy } from '../dummy';
+import { footprintGap, isStanding, type Dummy } from '../dummy';
 import type { Intent } from '../input';
 import type { CrewId } from '../lanterns';
 import type { Player } from '../player';
@@ -165,7 +165,7 @@ function runJet(p: Player, dt: number, w: ConstructWorld) {
 	// Everything close to Hal's path gets hit, once, and flung aside
 	for (const t of w.dummies) {
 		if (!isStanding(t) || d.hit.includes(t)) continue;
-		if (Math.hypot(t.x - p.x, t.y - p.y) > JET.hitRadius) continue;
+		if (footprintGap(t, p.x, p.y) > JET.hitRadius) continue;
 		d.hit.push(t);
 		// Knock them away from the jet's line, not just backward
 		const side = (t.x - p.x) * -d.dy + (t.y - p.y) * d.dx >= 0 ? 1 : -1;
@@ -188,7 +188,7 @@ function runJet(p: Player, dt: number, w: ConstructWorld) {
 function runBurn(p: Player, dt: number, w: ConstructWorld) {
 	const d = p.dash!;
 	for (const t of w.dummies) {
-		if (!isStanding(t) || d.hit.includes(t) || Math.hypot(t.x - p.x, t.y - p.y) > JET.hitRadius) continue;
+		if (!isStanding(t) || d.hit.includes(t) || footprintGap(t, p.x, p.y) > JET.hitRadius) continue;
 		d.hit.push(t);
 		const side = (t.x - p.x) * -d.dy + (t.y - p.y) * d.dx >= 0 ? 1 : -1;
 		hitDummyWithFx(w, t, d.damage ?? 20, d.knockback ?? 300, t.x + d.dy * side * 20 - d.dx * 10, t.y - d.dx * side * 20 - d.dy * 10, p);
@@ -231,7 +231,7 @@ function finishJet(p: Player, w: ConstructWorld) {
 function hammerQuake(p: Player, w: ConstructWorld) {
 	const damage = QUAKE.damage * p.def.traits.power;
 	for (const d of w.dummies) {
-		if (!isStanding(d) || Math.hypot(d.x - p.x, d.y - p.y) > QUAKE.radius) continue;
+		if (!isStanding(d) || footprintGap(d, p.x, p.y) > QUAKE.radius) continue;
 		hitDummyWithFx(w, d, damage, QUAKE.knockback, p.x, p.y, p);
 		d.stun = Math.max(d.stun, QUAKE.stun);
 	}

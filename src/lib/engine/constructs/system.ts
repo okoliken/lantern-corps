@@ -11,7 +11,7 @@
 // doesn't depend on Game and is easy to test on its own.
 
 import { castBeam, castThrough } from '../beam';
-import { DUMMY_HALF_H, DUMMY_HALF_W, aimPoint, distanceToBody, hitDummy, hurtbox, isStanding, type Dummy } from '../dummy';
+import { DUMMY_HALF_H, DUMMY_HALF_W, aimPoint, distanceToBody, footprintGap, footprintPoint, hitDummy, hurtbox, isStanding, type Dummy } from '../dummy';
 import type { Intent } from '../input';
 import type { RedWorld } from '../enemies/redConstructs';
 import type { Obstacle } from '../map';
@@ -20,7 +20,7 @@ import type { Player } from '../player';
 import { RESTART_THRESHOLD, canSpend, spend } from '../willpower';
 import type { PressureMap } from '../enemies/director';
 import { createSquadState, type SquadState } from '../enemies/squad';
-import { chooseShieldTarget, pickConstruct } from './smart';
+import { chooseShieldTarget, smartChoice } from './smart';
 import {
 	BUBBLE_SHIELD,
 	HELD_BEHAVIORS,
@@ -38,7 +38,7 @@ import {
 
 export interface Projectile {
 	/** bolt = ring shot / turret, bullet = minigun/shotgun, shell = cannon, hook = chain, missile = rockets/Jet Strike, saw = buzzsaw. */
-	kind: 'bolt' | 'bullet' | 'shell' | 'hook' | 'missile' | 'saw';
+	kind: 'bolt' | 'bullet' | 'shell' | 'hook' | 'missile' | 'saw' | 'girder' | 'train';
 	owner: Player;
 	def: ConstructDef;
 	x: number;
@@ -57,6 +57,8 @@ export interface Projectile {
 	homing?: Dummy | null;
 	/** Hits from this don't fill the owner's surge meter (signature ability damage). */
 	noSurge?: boolean;
+	/** Seconds of flight it started with (grenades arc over their whole flight). */
+	startLife?: number;
 	/** Buzzsaw: heading back to its thrower, and who it already cut on this pass. */
 	returning?: boolean;
 	cut?: Dummy[];
@@ -198,6 +200,8 @@ export interface Effect {
 	lift?: number;
 	/** An enemy effect made by a Green Lantern (Kilowog sparring): drawn in Corps green instead of red. */
 	green?: boolean;
+	/** Which construct made it, when one kind of effect has several looks (a glove or a fist; pillars or an anvil). */
+	form?: string;
 	/** Who made it: effects at hand height are drawn at that Lantern's ring height. */
 	owner?: Player;
 }
@@ -215,6 +219,8 @@ export interface Turret {
 	maxLife: number;
 	hp: number;
 	maxHp: number;
+	/** A Marine in a fireteam: keeps this spot next to its Lantern instead of standing still. */
+	follow?: { dx: number; dy: number };
 }
 
 /** Pillars on their way down: they land when `time` runs out. */
@@ -329,6 +335,13 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
 	p.shotTimer = Math.max(0, p.shotTimer - dt);
 	p.actionTimer = Math.max(0, p.actionTimer - dt);
 	if (p.actionTimer === 0) p.actionShape = null;
+	if (p.armor) {
+		p.armor.time -= dt;
+		if (p.armor.time <= 0) {
+			p.armor = null;
+			w.effects.push({ kind: 'fizzle', x: p.x, y: p.y - 30, age: 0, life: 0.6 });
+		}
+	}
 
 	// Mid Jet Strike, Hal is busy flying the jet. Downed, nobody can use the ring.
 	if (p.dash || p.downed) {
@@ -361,6 +374,7 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
 
 	if (HELD_BEHAVIORS.has(def.behavior)) {
 		if (def.behavior === 'beam') useBeam(p, def, intent.construct, dt, w);
+		else if (def.behavior === 'grind') useCutter(p, def, intent.construct, dt, w);
 		else useRapid(p, def, intent.construct, w);
 		return;
 	}
@@ -386,8 +400,10 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
  * runs for its time, then the ring picks again. Returns the intent to act on.
  */
 function smartIntent(p: Player, intent: Intent, dt: number, w: ConstructWorld): Intent {
-	p.smartPick = pickConstruct(p, w)?.slot ?? -1;
-	if (!intent.construct && !intent.constructPressed) {
+	const choice = smartChoice(p, w);
+	p.smartPick = choice?.slot ?? -1;
+	p.smartQueued = intent.constructPressed ? SMART_QUEUE : Math.max(0, p.smartQueued - dt);
+	if (!intent.construct && p.smartQueued <= 0) {
 		p.smartTimer = 0;
 		return intent;
 	}
@@ -398,14 +414,21 @@ function smartIntent(p: Player, intent: Intent, dt: number, w: ConstructWorld): 
 		p.smartTimer = SMART_REPICK;
 		return { ...intent, construct: false, constructPressed: false };
 	}
-	const pick = pickConstruct(p, w);
 	// Nothing fits: use whatever's selected, like before
-	if (!pick) return intent;
-	p.selected = pick.slot;
-	p.smartTimer = pick.hold > 0 ? pick.hold : SMART_REPICK;
-	return { ...intent, constructPressed: pick.hold === 0 };
+	if (!choice) {
+		p.smartQueued = 0;
+		return intent;
+	}
+	// The right one is nearly ready: hold the press until it is
+	if (choice.wait) return { ...intent, construct: false, constructPressed: false };
+	p.selected = choice.slot;
+	p.smartTimer = choice.hold > 0 ? choice.hold : SMART_REPICK;
+	p.smartQueued = 0;
+	return { ...intent, construct: intent.construct || choice.hold > 0, constructPressed: choice.hold === 0 };
 }
 
+/** How long a press waits for the ring's pick to come off cooldown. */
+const SMART_QUEUE = 0.5;
 /** Seconds between picks while the construct button is held. */
 const SMART_REPICK = 0.3;
 
@@ -550,7 +573,7 @@ function fireSniper(p: Player, def: ConstructDef, charge: number, w: ConstructWo
 function perform(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 	switch (def.behavior) {
 		case 'heavy':
-			launch(p, def, 'shell', p.aimX, p.aimY, w);
+			lob(p, def, w);
 			return true;
 		case 'grab':
 			launch(p, def, 'hook', p.aimX, p.aimY, w);
@@ -562,6 +585,7 @@ function perform(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 			w.pending.push({ owner: p, def, time: def.windup ?? 0, damage: power(p, def.damage), knockback: power(p, def.knockback) });
 			w.effects.push({
 				kind: def.shape === 'hammer' ? 'hammer' : 'fist',
+				form: def.shape,
 				x: p.x + p.ringDX,
 				y: p.y,
 				age: 0,
@@ -597,6 +621,19 @@ function perform(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 		}
 		case 'dash':
 			return afterburner(p, def, w);
+		case 'squad':
+			return callFireteam(p, def, w);
+		case 'armor':
+			suitUp(p, def, w);
+			return true;
+		case 'lances':
+			throwGirders(p, def, w);
+			return true;
+		case 'ram': {
+			const train = launch(p, def, 'train', p.aimX, p.aimY, w);
+			train.cut = [];
+			return true;
+		}
 		case 'spread':
 			spread(p, def, w);
 			return true;
@@ -654,7 +691,8 @@ function slash(p: Player, def: ConstructDef, w: ConstructWorld) {
 		return diff <= SLASH_HALF_ANGLE;
 	};
 	for (const d of w.dummies) {
-		if (isStanding(d) && inArc(d.x, d.y, def.range + DUMMY_HALF_W)) {
+		// Measured to the nearest part of its body, so wide enemies are hit anywhere the blade reaches
+		if (isStanding(d) && inArc(...footprintPoint(d, p.x, p.y), def.range)) {
 			hitDummyWithFx(w, d, power(p, def.damage), power(p, def.knockback), p.x, p.y, p);
 		}
 	}
@@ -712,7 +750,7 @@ function placeTurret(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 	const y = p.y + p.aimY * def.range;
 	if (w.obstacles.some((o) => boxOverlap(x, y, 10, 6, o))) return false;
 
-	const mine = w.turrets.filter((t) => t.owner === p);
+	const mine = w.turrets.filter((t) => t.owner === p && !t.follow);
 	if (mine.length >= MAX_TURRETS_PER_PLAYER) {
 		const oldest = mine[0];
 		w.turrets.splice(w.turrets.indexOf(oldest), 1);
@@ -760,12 +798,12 @@ function dropPillars(p: Player, def: ConstructDef, w: ConstructWorld) {
 		y = p.y + ((y - p.y) / dist) * def.range;
 	}
 	w.pillarStrikes.push({ owner: p, def, x, y, time: def.charge ?? 0.5 });
-	w.effects.push({ kind: 'pillars', x, y, age: 0, life: (def.charge ?? 0.5) + 0.9, radius: def.radius, owner: p });
+	w.effects.push({ kind: 'pillars', x, y, age: 0, life: (def.charge ?? 0.5) + 0.9, radius: def.radius, owner: p, form: def.shape });
 }
 
 function shockwave(p: Player, def: ConstructDef, w: ConstructWorld) {
 	for (const d of w.dummies) {
-		if (isStanding(d) && Math.hypot(d.x - p.x, d.y - p.y) <= def.range + DUMMY_HALF_W) {
+		if (isStanding(d) && footprintGap(d, p.x, p.y) <= def.range) {
 			hitDummyWithFx(w, d, power(p, def.damage), power(p, def.knockback), p.x, p.y, p);
 		}
 	}
@@ -826,7 +864,185 @@ function afterburner(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 	p.invuln = Math.max(p.invuln, time + 0.1);
 	p.firing = false;
 	w.effects.push({ kind: 'snap', x: p.x, y: p.y, age: 0, life: 0.3, radius: 30 });
+	// The Fighter Jet: built around Hal, and it lets its missiles go as it launches
+	if (def.shape === 'jet' && def.count) {
+		p.dash.look = 'jet';
+		const missile: ConstructDef = { ...def, damage: def.damage * 0.6, knockback: 200, speed: 620, range: 560, radius: 40 };
+		const ahead = nearestAhead(p, w, missile.range, def.count);
+		for (let i = 0; i < def.count; i++) {
+			const angle = Math.atan2(p.aimY, p.aimX) + (i - (def.count - 1) / 2) * 0.35;
+			const m = launch(p, missile, 'missile', Math.cos(angle), Math.sin(angle), w);
+			m.homing = ahead[i % Math.max(1, ahead.length)] ?? null;
+			m.life = (missile.range / (missile.speed ?? 600)) * 1.3;
+		}
+	}
 	return true;
+}
+
+/** Enemies roughly in front of a Lantern within `range`, nearest first (at most `n`). */
+function nearestAhead(p: Player, w: ConstructWorld, range: number, n: number): Dummy[] {
+	const aim = Math.atan2(p.aimY, p.aimX);
+	return w.dummies
+		.filter((d) => isStanding(d) && Math.hypot(d.x - p.x, d.y - p.y) <= range)
+		.filter((d) => Math.abs(Math.atan2(Math.sin(Math.atan2(d.y - p.y, d.x - p.x) - aim), Math.cos(Math.atan2(d.y - p.y, d.x - p.x) - aim))) < 1.2)
+		.sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))
+		.slice(0, n);
+}
+
+// ------------------------------------------------ Hal's and John's kits
+
+/**
+ * Cannon shells and grenades. With a `count`, a fan of them (Green
+ * Grenades); each lands at the crosshair (or its range) and goes off there.
+ */
+function lob(p: Player, def: ConstructDef, w: ConstructWorld) {
+	const n = def.count ?? 1;
+	const aim = Math.atan2(p.aimY, p.aimX);
+	const reach = n > 1 ? Math.min(def.range, Math.max(120, p.aimReach ?? def.range)) : def.range;
+	for (let i = 0; i < n; i++) {
+		const angle = aim + (n > 1 ? (i - (n - 1) / 2) * 0.28 : 0);
+		const shell = launch(p, def, 'shell', Math.cos(angle), Math.sin(angle), w);
+		shell.life = shell.startLife = reach / (def.speed ?? 500);
+	}
+}
+
+/** Seconds between a Marine's shots. */
+const MARINE_FIRE_EVERY = 0.6;
+/** Where each Marine stands around its Lantern. */
+const FIRETEAM_SPOTS: [number, number][] = [
+	[-70, -46],
+	[-78, 44],
+	[62, 58],
+	[66, -60]
+];
+
+/** Marine Fireteam: construct Marines that keep beside John and pick their own targets. */
+function callFireteam(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
+	// One fireteam at a time: the old one is dismissed
+	w.turrets = w.turrets.filter((t) => t.owner !== p || !t.follow);
+	const life = durable(p, def.duration ?? 12);
+	const hp = durable(p, def.hp ?? 60);
+	const n = Math.min(def.count ?? 3, FIRETEAM_SPOTS.length);
+	for (let i = 0; i < n; i++) {
+		const [dx, dy] = FIRETEAM_SPOTS[i];
+		w.turrets.push({
+			owner: p,
+			def,
+			x: p.x + dx * 0.4,
+			y: p.y + dy * 0.4,
+			aim: Math.atan2(p.aimY, p.aimX),
+			// Staggered, so the fireteam shoots in turn rather than all at once
+			cooldown: 0.3 + (i * MARINE_FIRE_EVERY) / n,
+			life,
+			maxLife: life,
+			hp,
+			maxHp: hp,
+			follow: { dx, dy }
+		});
+		w.effects.push({ kind: 'snap', x: p.x + dx, y: p.y + dy, age: 0, life: 0.4, radius: 26 });
+	}
+	return true;
+}
+
+/** Power Armor: John builds a suit around himself for a while. */
+function suitUp(p: Player, def: ConstructDef, w: ConstructWorld) {
+	const time = durable(p, def.duration ?? 8);
+	p.armor = { def, time, maxTime: time };
+	w.effects.push({ kind: 'snap', x: p.x, y: p.y, age: 0, life: 0.45, radius: 50 });
+	w.effects.push({ kind: 'callout', x: p.x, y: p.y, age: 0, life: 1.2, text: 'POWER ARMOR', owner: p });
+}
+
+/** In Power Armor the ring shot is an arm cannon: one heavy round at a time. */
+function armCannon(p: Player, def: ConstructDef, w: ConstructWorld) {
+	const round: ConstructDef = { ...def, range: def.range, speed: def.speed ?? 1300 };
+	launch(p, round, 'bullet', p.aimX, p.aimY, w);
+	p.burstShots = 0;
+	p.shotCooldown = ARM_CANNON_EVERY;
+	p.shotTimer = SHOT_POSE_TIME;
+}
+const ARM_CANNON_EVERY = 0.2;
+
+/** I-Beam Volley: a narrow fan of girders that go straight through everything in a line. */
+function throwGirders(p: Player, def: ConstructDef, w: ConstructWorld) {
+	const n = def.count ?? 3;
+	const aim = Math.atan2(p.aimY, p.aimX);
+	for (let i = 0; i < n; i++) {
+		const angle = aim + (i - (n - 1) / 2) * 0.12;
+		const girder = launch(p, def, 'girder', Math.cos(angle), Math.sin(angle), w);
+		girder.cut = [];
+	}
+}
+
+/**
+ * Girders and the Locomotive: they don't stop at the first enemy. Each one
+ * hits everything it passes through, once. A girder stops at anything solid;
+ * the train smashes breakable things and stops at what it can't break.
+ */
+function updatePiercer(w: ConstructWorld, pr: Projectile, dt: number): boolean {
+	pr.x += pr.vx * dt;
+	pr.y += pr.vy * dt;
+	pr.life -= dt;
+	if (pr.life <= 0) {
+		if (pr.kind === 'train') w.effects.push({ kind: 'fizzle', x: pr.x, y: pr.y, age: 0, life: 0.5 });
+		return false;
+	}
+	const r = pr.kind === 'train' ? (pr.def.radius ?? 36) : 8;
+	for (const d of w.dummies) {
+		if (!isStanding(d) || pr.cut?.includes(d)) continue;
+		if (distanceToBody(d, pr.x, pr.y, pr.lift) > r) continue;
+		pr.cut?.push(d);
+		// Thrown aside by the train, pinned back by a girder
+		const len = Math.hypot(pr.vx, pr.vy) || 1;
+		const side = pr.kind === 'train' ? ((d.x - pr.x) * -pr.vy + (d.y - pr.y) * pr.vx >= 0 ? 1 : -1) : 0;
+		const fromX = d.x - (pr.vx / len) * 20 + (pr.vy / len) * side * 20;
+		const fromY = d.y - (pr.vy / len) * 20 - (pr.vx / len) * side * 20;
+		hitDummyWithFx(w, d, pr.damage, pr.knockback, fromX, fromY, pr.owner, pr.damage, !pr.noSurge);
+		w.effects.push({ kind: 'impact', x: d.x, y: d.y, age: 0, life: 0.2, owner: pr.owner, lift: pr.lift });
+	}
+	const solid = w.obstacles.find((o) => o.kind !== 'wall' && !pr.ignore.includes(o) && boxOverlap(pr.x, pr.y, r * 0.5, r * 0.3, o));
+	if (solid) {
+		damageObstacle(w, solid, pr.damage);
+		if (pr.kind === 'train' && solid.hp !== undefined) {
+			pr.ignore.push(solid);
+			return true;
+		}
+		w.effects.push({ kind: pr.kind === 'train' ? 'blast' : 'impact', x: pr.x, y: pr.y, age: 0, life: 0.4, radius: r, owner: pr.owner, lift: pr.lift });
+		return false;
+	}
+	return true;
+}
+
+/** Industrial Cutter: a spinning blade held out front. It chews through whatever it touches, shields most of all. */
+function useCutter(p: Player, def: ConstructDef, held: boolean, dt: number, w: ConstructWorld) {
+	p.firing = held && !p.exhausted && p.willpower > 0;
+	p.beamLength = 0;
+	if (!p.firing) return;
+	spend(p, def.cost * dt);
+	const bx = p.x + p.ringDX + p.aimX * def.range;
+	const by = p.y + p.aimY * def.range;
+	const r = def.radius ?? 36;
+	const dps = power(p, def.damage);
+	const slot = p.selected;
+	const showNumber = p.cooldowns[slot] === 0;
+	if (showNumber) p.cooldowns[slot] = BEAM_NUMBER_EVERY;
+	for (const d of w.dummies) {
+		if (!isStanding(d) || footprintGap(d, bx, by) > r) continue;
+		// It saws through a Red Lantern's shield twice as fast
+		if (def.breaker && d.ward) d.ward.hp -= dps * dt;
+		hitDummyWithFx(w, d, dps * dt, def.knockback * dt * 10, p.x, p.y, p, showNumber ? dps * BEAM_NUMBER_EVERY : 0);
+	}
+	for (const o of breakables(w)) {
+		const [cx, cy] = center(o);
+		if (Math.hypot(cx - bx, cy - by) <= r + Math.max(o.w, o.h) / 2) damageObstacle(w, o, dps * dt * 2);
+	}
+	if (showNumber) w.effects.push({ kind: 'impact', x: bx, y: by, age: 0, life: 0.12, owner: p, lift: p.ringLift });
+}
+
+/** The Wrecking Ball (and anything else that `breaks`): a Red Lantern's shield just shatters. */
+function breakWard(w: ConstructWorld, d: Dummy) {
+	if (!d.ward) return;
+	d.ward = undefined;
+	w.effects.push({ kind: 'redImpact', x: d.x, y: d.y, age: 0, life: 0.4, lift: 40 });
 }
 
 function placeMine(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
@@ -876,6 +1092,10 @@ export function updateAidStations(w: ConstructWorld, players: readonly Player[],
 /** The free basic attack: bolts straight along the aim, two at a time. */
 function ringShot(p: Player, w: ConstructWorld) {
 	if (p.shotCooldown > 0) return;
+	if (p.armor) {
+		armCannon(p, p.armor.def, w);
+		return;
+	}
 	launch(p, RING_SHOT, 'bolt', p.aimX, p.aimY, w);
 	p.burstShots++;
 	if (p.burstShots < RING_SHOT_BURST) {
@@ -986,6 +1206,10 @@ function updateProjectiles(w: ConstructWorld, dt: number) {
 		if (pr.kind === 'saw') {
 			if (!updateSaw(w, pr, dt)) continue;
 			alive.push(pr);
+			continue;
+		}
+		if (pr.kind === 'girder' || pr.kind === 'train') {
+			if (updatePiercer(w, pr, dt)) alive.push(pr);
 			continue;
 		}
 		pr.x += pr.vx * dt;
@@ -1133,7 +1357,8 @@ function updatePending(w: ConstructWorld, dt: number) {
 		const hy = p.y + p.aimY * s.def.range;
 		const r = s.def.radius ?? 40;
 		for (const d of w.dummies) {
-			if (isStanding(d) && Math.hypot(d.x - hx, d.y - hy) <= r + DUMMY_HALF_W) {
+			if (isStanding(d) && footprintGap(d, hx, hy) <= r) {
+				if (s.def.breaker) breakWard(w, d);
 				hitDummyWithFx(w, d, s.damage, s.knockback, p.x, p.y, p);
 				// The Warhammer leaves them dazed
 				if (s.def.stun && isStanding(d)) d.stun = Math.max(d.stun, durable(p, s.def.stun));
@@ -1142,7 +1367,7 @@ function updatePending(w: ConstructWorld, dt: number) {
 		if (s.def.shape === 'hammer') w.effects.push({ kind: 'blast', x: hx, y: hy, age: 0, life: 0.45, radius: r, owner: p, lift: 0 });
 		for (const o of breakables(w)) {
 			const [cx, cy] = center(o);
-			if (Math.hypot(cx - hx, cy - hy) <= r + Math.max(o.w, o.h) / 2) damageObstacle(w, o, s.damage);
+			if (Math.hypot(cx - hx, cy - hy) <= r + Math.max(o.w, o.h) / 2) damageObstacle(w, o, s.damage * (s.def.breaker ? 2 : 1));
 		}
 	}
 	w.pending = waiting;
@@ -1209,6 +1434,12 @@ function updateTurrets(w: ConstructWorld, dt: number) {
 		}
 		alive.push(t);
 		t.cooldown -= dt;
+		// A Marine keeps its place in the fireteam, next to its Lantern
+		if (t.follow) {
+			const k = Math.min(1, dt * 6);
+			t.x += (t.owner.x + t.follow.dx - t.x) * k;
+			t.y += (t.owner.y + t.follow.dy - t.y) * k;
+		}
 
 		// Nearest standing enemy in range
 		const range = t.def.radius ?? 360;
@@ -1226,7 +1457,7 @@ function updateTurrets(w: ConstructWorld, dt: number) {
 		t.aim = Math.atan2(target.y - t.y, target.x - t.x);
 		if (t.cooldown > 0) continue;
 
-		t.cooldown = 0.35;
+		t.cooldown = t.follow ? MARINE_FIRE_EVERY : 0.35;
 		const boltDef = { ...t.def, range: range + 40, damage: power(t.owner, t.def.damage), knockback: t.def.knockback };
 		const bolt = launch(t.owner, boltDef, 'bolt', Math.cos(t.aim), Math.sin(t.aim), w, {
 			x: t.x + Math.cos(t.aim) * 16,
@@ -1249,7 +1480,7 @@ function updatePillarStrikes(w: ConstructWorld, dt: number) {
 		const p = s.owner;
 		const r = s.def.radius ?? 70;
 		for (const d of w.dummies) {
-			if (!isStanding(d) || Math.hypot(d.x - s.x, d.y - s.y) > r + DUMMY_HALF_W) continue;
+			if (!isStanding(d) || footprintGap(d, s.x, s.y) > r) continue;
 			hitDummyWithFx(w, d, power(p, s.def.damage), power(p, s.def.knockback), s.x, s.y, p);
 			if (isStanding(d)) d.stun = durable(p, s.def.stun ?? 1);
 		}
@@ -1266,7 +1497,7 @@ function updateTraps(w: ConstructWorld, dt: number) {
 	for (const t of w.traps) {
 		t.life -= dt;
 		if (t.kind === 'mine') {
-			const near = w.dummies.some((d) => isStanding(d) && Math.hypot(d.x - t.x, d.y - t.y) <= t.radius);
+			const near = w.dummies.some((d) => isStanding(d) && footprintGap(d, t.x, t.y) <= t.radius);
 			if (near) {
 				detonate(w, t);
 				continue;
@@ -1278,7 +1509,7 @@ function updateTraps(w: ConstructWorld, dt: number) {
 			armed.push(t);
 			continue;
 		}
-		const catchable = w.dummies.find((d) => isStanding(d) && d.caged === 0 && Math.hypot(d.x - t.x, d.y - t.y) <= t.radius);
+		const catchable = w.dummies.find((d) => isStanding(d) && d.caged === 0 && footprintGap(d, t.x, t.y) <= t.radius);
 		if (catchable) {
 			catchable.caged = t.hold;
 			catchable.vx = catchable.vy = 0;
@@ -1297,7 +1528,7 @@ function updateTraps(w: ConstructWorld, dt: number) {
 function detonate(w: ConstructWorld, t: Trap) {
 	const b = t.blast!;
 	for (const d of w.dummies) {
-		if (isStanding(d) && Math.hypot(d.x - t.x, d.y - t.y) <= b.radius + DUMMY_HALF_W) {
+		if (isStanding(d) && footprintGap(d, t.x, t.y) <= b.radius) {
 			hitDummyWithFx(w, d, b.damage, b.knockback, t.x, t.y, t.owner);
 		}
 	}

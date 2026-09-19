@@ -27,7 +27,12 @@ export type Behavior =
 	| 'dash' // press: fly straight through enemies in a burst of speed
 	| 'spread' // press: a short-range blast of pellets
 	| 'mine' // press: place a mine that blows up when an enemy comes close
-	| 'heal'; // press: a station that heals Lanterns standing in it
+	| 'heal' // press: a station that heals Lanterns standing in it
+	| 'squad' // press: a fireteam of construct soldiers that follow you and shoot
+	| 'armor' // press: a suit of construct armor for a while (less damage taken, arm cannon)
+	| 'lances' // press: a narrow fan of piercing projectiles that pass through everything
+	| 'grind' // hold: a spinning cutter held in front of you
+	| 'ram'; // press: something huge charges out along your aim, hitting everything in its path
 
 /** Drawing style for a construct. Forge constructs will add their own. */
 export type ConstructShape =
@@ -51,7 +56,18 @@ export type ConstructShape =
 	| 'jet'
 	| 'shotgun'
 	| 'mine'
-	| 'aid';
+	| 'aid'
+	| 'glove'
+	| 'anvil'
+	| 'train'
+	| 'grenade'
+	| 'rifle'
+	| 'marine'
+	| 'armor'
+	| 'ironFist'
+	| 'wreckingBall'
+	| 'girder'
+	| 'cutter';
 
 export interface ConstructDef {
 	id: string;
@@ -98,12 +114,14 @@ export interface ConstructDef {
 	count?: number;
 	/** Aid Station: health per second for Lanterns inside. */
 	heal?: number;
+	/** Smashes straight through Red Lantern shields and hits breakable things twice as hard. */
+	breaker?: boolean;
 }
 
 export const CONSTRUCTS = {
 	beam: {
-		id: 'beam', name: 'Beam', behavior: 'beam', shape: 'beam',
-		cost: 10, cooldown: 0, damage: 80, knockback: 0, range: 420
+		id: 'beam', name: 'Ring Blast', short: 'Blast', behavior: 'beam', shape: 'beam',
+		cost: 10, cooldown: 0, damage: 100, knockback: 0, range: 440
 	},
 	minigun: {
 		id: 'minigun', name: 'Minigun', behavior: 'rapid', shape: 'minigun',
@@ -190,6 +208,98 @@ export const CONSTRUCTS = {
 	aid: {
 		id: 'aid', name: 'Aid Station', short: 'Aid', space: { name: 'Med Beacon', short: 'Beacon' }, behavior: 'heal', shape: 'aid',
 		cost: 25, cooldown: 12, damage: 0, knockback: 0, range: 40, radius: 110, duration: 10, heal: 8
+	},
+
+	// ---- Hal: flashy, willpower-first, a pilot's instincts ----
+	// The classic: a giant boxing glove on a spring. Fast and readable
+	glove: {
+		id: 'glove', name: 'Boxing Glove', short: 'Glove', behavior: 'smash', shape: 'glove',
+		cost: 8, cooldown: 0.7, damage: 42, knockback: 720, range: 90, radius: 46, windup: 0.08
+	},
+	// He builds a fighter jet, rams through the line and lets its missiles go
+	fighterJet: {
+		id: 'fighterJet', name: 'Fighter Jet', short: 'Jet', behavior: 'dash', shape: 'jet',
+		cost: 12, cooldown: 2.4, damage: 34, knockback: 460, range: 300, speed: 950, count: 2
+	},
+	// Bigger and cruder than John's fist: brought down with a blast
+	megaHammer: {
+		id: 'megaHammer', name: 'Giant Hammer', short: 'Hammer', behavior: 'smash', shape: 'hammer',
+		cost: 14, cooldown: 1.5, damage: 62, knockback: 420, range: 85, radius: 76, windup: 0.3, stun: 1
+	},
+	halSaw: {
+		id: 'halSaw', name: 'Buzzsaw', behavior: 'boomerang', shape: 'saw',
+		cost: 8, cooldown: 1, damage: 22, knockback: 140, range: 340, speed: 680, radius: 18
+	},
+	// A comics favourite: a locomotive charges out and smashes through everything in its way
+	train: {
+		id: 'train', name: 'Locomotive', short: 'Train', behavior: 'ram', shape: 'train',
+		cost: 18, cooldown: 3, damage: 55, knockback: 700, range: 680, speed: 820, radius: 38
+	},
+	// Less detail than John's guns: a spray of green firepower
+	gatling: {
+		id: 'gatling', name: 'Gatling', behavior: 'rapid', shape: 'minigun',
+		cost: 0.5, cooldown: 0.065, damage: 7, knockback: 35, range: 480, speed: 1300
+	},
+	// Cartoon logic: a warning shadow, then a giant anvil drops on them
+	anvil: {
+		id: 'anvil', name: 'Anvil Drop', short: 'Anvil', space: { name: 'Anvil Strike', short: 'Anvil' }, behavior: 'pillars', shape: 'anvil',
+		cost: 14, cooldown: 2, damage: 72, knockback: 160, range: 340, radius: 62, charge: 0.5, stun: 1.2
+	},
+	energySword: {
+		id: 'energySword', name: 'Energy Sword', short: 'Sword', behavior: 'slash', shape: 'sword',
+		cost: 3, cooldown: 0.26, damage: 24, knockback: 180, range: 88
+	},
+	// Three grenades lobbed in a fan; each goes off where it lands
+	grenades: {
+		id: 'grenades', name: 'Green Grenades', short: 'Grenades', behavior: 'heavy', shape: 'grenade',
+		cost: 12, cooldown: 1.6, damage: 34, knockback: 380, range: 320, speed: 520, radius: 70, count: 3
+	},
+
+	// ---- John: solid, engineered, military. Built from the inside out ----
+	precisionRifle: {
+		id: 'precisionRifle', name: 'Precision Rifle', short: 'Sniper', behavior: 'snipe', shape: 'sniper',
+		cost: 12, cooldown: 0.5, damage: 160, knockback: 260, range: 950, charge: 0.8
+	},
+	rifle: {
+		id: 'rifle', name: 'Assault Rifle', short: 'Rifle', behavior: 'rapid', shape: 'rifle',
+		cost: 0.7, cooldown: 0.11, damage: 11, knockback: 45, range: 540, speed: 1500
+	},
+	// range = how far out they stand; duration = how long they stay; count = how many Marines
+	fireteam: {
+		id: 'fireteam', name: 'Marine Fireteam', short: 'Marines', behavior: 'squad', shape: 'marine',
+		cost: 22, cooldown: 4, damage: 9, knockback: 50, range: 70, speed: 1100, duration: 14, hp: 70, radius: 420, count: 3
+	},
+	heavyCannon: {
+		id: 'heavyCannon', name: 'Heavy Cannon', short: 'Cannon', behavior: 'heavy', shape: 'cannon',
+		cost: 15, cooldown: 1.4, damage: 72, knockback: 620, range: 600, speed: 620, radius: 80
+	},
+	// duration = seconds in the suit; damage = each arm-cannon shot
+	powerArmor: {
+		id: 'powerArmor', name: 'Power Armor', short: 'Armor', behavior: 'armor', shape: 'armor',
+		cost: 25, cooldown: 14, damage: 18, knockback: 90, range: 540, speed: 1300, duration: 8
+	},
+	ironFist: {
+		id: 'ironFist', name: 'Reinforced Fist', short: 'Fist', behavior: 'smash', shape: 'ironFist',
+		cost: 12, cooldown: 1, damage: 56, knockback: 640, range: 78, radius: 50, windup: 0.18
+	},
+	// Construction gear as a weapon: great against shields, armour, walls and big enemies
+	wreckingBall: {
+		id: 'wreckingBall', name: 'Wrecking Ball', short: 'Wreck', behavior: 'smash', shape: 'wreckingBall',
+		cost: 16, cooldown: 2, damage: 66, knockback: 900, range: 120, radius: 60, windup: 0.34, breaker: true
+	},
+	missilePods: {
+		id: 'missilePods', name: 'Missile Pods', short: 'Missiles', behavior: 'volley', shape: 'rockets',
+		cost: 18, cooldown: 2.6, damage: 22, knockback: 220, range: 640, speed: 500, radius: 50, count: 6
+	},
+	// Structural steel thrown like spears: they go straight through a whole line
+	ibeams: {
+		id: 'ibeams', name: 'I-Beam Volley', short: 'I-Beams', behavior: 'lances', shape: 'girder',
+		cost: 10, cooldown: 1.1, damage: 28, knockback: 240, range: 620, speed: 1050, count: 3
+	},
+	// damage per second while held; radius = the blade
+	cutter: {
+		id: 'cutter', name: 'Industrial Cutter', short: 'Cutter', behavior: 'grind', shape: 'cutter',
+		cost: 9, cooldown: 0, damage: 95, knockback: 40, range: 58, radius: 38, breaker: true
 	}
 } satisfies Record<string, ConstructDef>;
 
@@ -246,17 +356,17 @@ export const BUBBLE_SHIELD: ConstructDef = {
 };
 
 /** Hold-to-use behaviors. Everything else fires once per key press. */
-export const HELD_BEHAVIORS: ReadonlySet<Behavior> = new Set(['beam', 'rapid']);
+export const HELD_BEHAVIORS: ReadonlySet<Behavior> = new Set(['beam', 'rapid', 'grind']);
 
 /** Structures: things you build and leave in the world. John is cheaper at these. */
 export const STRUCTURE_BEHAVIORS: ReadonlySet<Behavior> = new Set(['barrier', 'trap', 'turret', 'mine', 'heal']);
 
 /** Ten slots each, on keys 1-9 and 0. */
 export const LOADOUTS: Record<CrewId, ConstructId[]> = {
-	// Test pilot: fast, aggressive, up close
-	hal: ['beam', 'minigun', 'sword', 'fist', 'chain', 'hammer', 'rockets', 'buzzsaw', 'afterburner', 'shotgun'],
-	// Marine and architect: precision, fortification, engineering
-	john: ['beam', 'sniper', 'wall', 'turret', 'pillars', 'cannon', 'cage', 'shockwave', 'mines', 'aid'],
+	// Test pilot: flashy, fast and a little showy. He wills a giant glove into existence and punches with it
+	hal: ['glove', 'beam', 'fighterJet', 'megaHammer', 'halSaw', 'train', 'gatling', 'anvil', 'energySword', 'grenades'],
+	// Marine and architect: he builds a rifle that works, down to the bolt
+	john: ['precisionRifle', 'rifle', 'fireteam', 'heavyCannon', 'powerArmor', 'ironFist', 'wreckingBall', 'missilePods', 'ibeams', 'cutter'],
 	// Hammers and fists first, always
 	kilowog: ['hammer', 'fist', 'shockwave', 'cannon', 'minigun', 'wall', 'cage', 'rockets', 'beam', 'pillars']
 };
@@ -265,5 +375,7 @@ export const LOADOUTS: Record<CrewId, ConstructId[]> = {
 export const MAX_TRAPS_PER_PLAYER = 3;
 /** Mines out at once per Lantern (placing another replaces the oldest). */
 export const MAX_MINES_PER_PLAYER = 4;
+/** One fireteam at a time: calling another replaces the first. */
+export const MAX_SQUADS_PER_PLAYER = 1;
 /** How many auto-turrets a single Lantern can have out at once. */
 export const MAX_TURRETS_PER_PLAYER = 2;

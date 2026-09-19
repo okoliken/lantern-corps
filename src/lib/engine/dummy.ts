@@ -228,6 +228,24 @@ export function aimPoint(d: Dummy, lift: number): [number, number] {
 	return [d.x, box.y + (box.h - (d.drift ? 0 : HURT_SLACK)) / 2];
 }
 
+/**
+ * The point of a target's footprint on the ground plane nearest to (x, y): its
+ * full width (big enemies are wide, asteroids are round), not just its feet.
+ * Close-range constructs (sword, fist, shockwave, pillars, mines) measure to
+ * this, so anything they visibly reach, they hit.
+ */
+export function footprintPoint(d: Dummy, x: number, y: number): [number, number] {
+	const hw = d.drift ? d.drift.radius : BODY[d.kind].halfWidth * airAndGrowth(d)[1];
+	const hd = d.drift ? d.drift.radius * 0.6 : DUMMY_HALF_H;
+	return [Math.min(Math.max(x, d.x - hw), d.x + hw), Math.min(Math.max(y, d.y - hd), d.y + hd)];
+}
+
+/** Ground-plane distance from (x, y) to the target's footprint; 0 if inside it. */
+export function footprintGap(d: Dummy, x: number, y: number): number {
+	const [fx, fy] = footprintPoint(d, x, y);
+	return Math.hypot(fx - x, fy - y);
+}
+
 /** Distance from a point on the ground plane (at `lift`) to the target's body; 0 if inside it. */
 export function distanceToBody(d: Dummy, x: number, y: number, lift: number): number {
 	const b = hurtbox(d, lift);

@@ -72,7 +72,7 @@
 		{
 			key: 'smartRing',
 			label: 'Smart ring',
-			help: 'The construct button makes whatever the moment needs: a hammer up close, rockets for a crowd, a sniper for far away, an aid station when someone is hurt. Hold it and it keeps choosing. Number keys still pick by hand.'
+			help: 'The construct button makes whatever the moment needs: a fist or a sword up close, a train or missiles for a crowd, a sniper for far away, armor when you are in trouble. It sticks with what works, so holding it is steady. Number keys still pick by hand.'
 		},
 		{
 			key: 'quickCast',

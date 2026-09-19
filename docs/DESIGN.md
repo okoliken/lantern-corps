@@ -180,6 +180,26 @@ Every construct, whether preset or custom, uses one of 8 **behavior types**:
   | Aid Station | Med Beacon |
   | Fortress (dome on the ground) | Fortress (sphere, turrets become drones) |
   A test checks that every ground-bound construct in a loadout has a space form.
+- **Kits v2 (2026-09-19, the user's lists):** every slot does damage, and each Lantern's style shows.
+  **Hal** (flashy, willpower-first): Boxing Glove (fast spring punch), Ring Blast (beam), Fighter Jet
+  (dash in a construct jet + 2 missiles), Giant Hammer, Buzzsaw, Locomotive (`ram`: charges out and
+  hits everything in its path), Gatling, Anvil Drop (pillars behavior, anvil art; space form "Anvil
+  Strike"), Energy Sword, Green Grenades (3 lobbed in a fan, each bursts where it lands).
+  **John** (engineered, military): Precision Rifle, Assault Rifle, Marine Fireteam (`squad`: 3
+  construct Marines that follow him and shoot, turrets with `follow`), Heavy Cannon, Power Armor
+  (`armor`: 8s, takes 40% damage, ring shot becomes an arm cannon), Reinforced Fist, Wrecking Ball
+  (`breaker`: shatters Red Lantern shields, double damage to breakables), Missile Pods, I-Beam Volley
+  (`lances`: piercing girders), Industrial Cutter (`grind`, held: a spinning blade out front).
+  John's power trait went 1.0 → 1.1. His wall/cage/turret/mines/aid left his loadout (still defined;
+  Kilowog keeps wall and cage). Art in `draw/kits.ts`.
+- **Close-range hits reach the whole body** (`footprintGap`/`footprintPoint` in `dummy.ts`): sword,
+  fists, hammers, shockwave, pillars, mines, cages and dashes measure to the nearest part of the
+  target's footprint (its full width; an asteroid's radius), not to its feet, so wide enemies are hit
+  wherever the construct visibly reaches.
+- **Smart ring is steady** (`smartChoice` in `smart.ts`, for players; AI partners keep
+  `pickConstruct`): it sticks with its last pick while that's still at least 75% as good as the best,
+  waits up to 0.45s for the best one to come off cooldown instead of reaching for the next one down,
+  and a press waits up to 0.5s for it. Holding the button no longer cycles through the loadout.
 - The **beam** is the ring's basic hold-to-fire construct, on top of the 8 types. Beam and rapid are
   held; everything else fires once per press, with a cooldown.
 - **Traits** (in `lanterns.ts`): Hal ×1.2 power, ×0.85 cooldowns, ×0.75 durability. John ×1.4
