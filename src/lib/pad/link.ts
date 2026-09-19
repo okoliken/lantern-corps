@@ -9,10 +9,10 @@ import { PadState, type PadMessage } from '$lib/engine/pad';
 const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_KEY = 'lantern-corps:pad-room';
 
-/** This tab's pairing code: the same across reloads, so the phone stays paired. */
+/** This browser's pairing code: the same in every tab and across reloads, so the phone stays paired whatever you open. */
 export function roomCode(): string {
 	try {
-		const saved = sessionStorage.getItem(ROOM_KEY);
+		const saved = localStorage.getItem(ROOM_KEY);
 		if (saved) return saved;
 	} catch {
 		// Storage blocked: a fresh code each load is fine
@@ -20,7 +20,7 @@ export function roomCode(): string {
 	let code = '';
 	for (let i = 0; i < 4; i++) code += LETTERS[Math.floor(Math.random() * LETTERS.length)];
 	try {
-		sessionStorage.setItem(ROOM_KEY, code);
+		localStorage.setItem(ROOM_KEY, code);
 	} catch {
 		// see above
 	}

@@ -42,6 +42,11 @@ export function padRelay(): Plugin {
 				const msg = JSON.stringify({ t: 'pads', n: room.pads.size });
 				for (const g of room.games) g.send(msg);
 			};
+			// Pads hear how many games are in their room: with none, they go and find the one that's open
+			const tellPads = (room: Room) => {
+				const msg = JSON.stringify({ t: 'games', n: room.games.size });
+				for (const p of room.pads) p.send(msg);
+			};
 
 			const wss = new WebSocketServer({ noServer: true });
 			server.httpServer?.on('upgrade', (req, socket, head) => {
@@ -57,8 +62,13 @@ export function padRelay(): Plugin {
 					const room = roomOf(code);
 					const mine = role === 'game' ? room.games : room.pads;
 					mine.add(ws);
-					if (role === 'pad') tellGames(room);
-					else ws.send(JSON.stringify({ t: 'pads', n: room.pads.size }));
+					if (role === 'pad') {
+						tellGames(room);
+						ws.send(JSON.stringify({ t: 'games', n: room.games.size }));
+					} else {
+						ws.send(JSON.stringify({ t: 'pads', n: room.pads.size }));
+						tellPads(room);
+					}
 					ws.on('message', (data) => {
 						// Pads talk to games; games can answer pads (a buzz, who they're playing)
 						const to = role === 'pad' ? room.games : room.pads;
@@ -68,6 +78,7 @@ export function padRelay(): Plugin {
 					ws.on('close', () => {
 						mine.delete(ws);
 						if (role === 'pad') tellGames(room);
+						else tellPads(room);
 						if (room.games.size === 0 && room.pads.size === 0) rooms.delete(code);
 					});
 				});

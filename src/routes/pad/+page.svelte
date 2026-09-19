@@ -56,6 +56,19 @@
 		connect();
 	}
 
+	let lost: ReturnType<typeof setTimeout> | undefined;
+
+	/** Drop this room and look for the game that's open. */
+	function repair(ws: WebSocket) {
+		if (socket !== ws || games > 0) return;
+		ws.onclose = null;
+		ws.close();
+		socket = null;
+		room = '';
+		status = 'finding';
+		void findGame();
+	}
+
 	function connect() {
 		if (!room) return;
 		const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -69,6 +82,12 @@
 			try {
 				const msg = JSON.parse(String(event.data));
 				if (msg.t === 'buzz') navigator.vibrate?.(msg.ms ?? 30);
+				if (msg.t === 'games') {
+					games = msg.n;
+					// The game we were paired with is gone: find the one that's open now
+					clearTimeout(lost);
+					if (msg.n === 0) lost = setTimeout(() => repair(ws), 1500);
+				}
 			} catch {
 				// not for us
 			}
@@ -227,6 +246,8 @@
 					join(code);
 				}}>{code}</button>
 			{/each}
+		{:else if status === 'connected' && games === 0}
+			Connected · {room} · waiting for the game…
 		{:else if status === 'connected'}
 			● Connected · {room}
 		{:else}
