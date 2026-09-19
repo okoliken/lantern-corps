@@ -208,8 +208,8 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	}),
 	// A bubble on a hurt ally (or itself) that soaks up damage
 	redShield: def({
-		id: 'redShield', name: 'Rage Shield', band: 'support', tell: 'build', windup: 0.45, active: 0.1, recover: 0.3, cooldown: 9,
-		minRange: 0, maxRange: 9999, damage: 0, knockback: 0, melee: false, heavy: false, chance: 0.8
+		id: 'redShield', name: 'Rage Shield', band: 'support', tell: 'build', windup: 0.45, active: 0.1, recover: 0.3, cooldown: 6,
+		minRange: 0, maxRange: 9999, damage: 0, knockback: 0, melee: false, heavy: false, chance: 0.9
 	}),
 	// A spiked turret that shoots at Lanterns until it's broken or burns out
 	redTurret: def({

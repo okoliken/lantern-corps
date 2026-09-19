@@ -103,6 +103,38 @@ describe('AI partner', () => {
 	});
 });
 
+describe('AI partners with the new kits', () => {
+	for (const who of ['hal', 'john'] as const) {
+		it(`AI ${who} fights with several of its constructs`, () => {
+			const game = new Game({ players: [{ lantern: who, keys: 'p2', ai: true }], map: arena() });
+			game.setView({ width: 800, height: 600 });
+			game.godMode = true;
+			for (const [dx, dy] of [[260, 0], [300, 80], [-280, 40]]) game.spawnEnemy('rageGrunt', 1200 + dx, 1200 + dy);
+			const me = game.players[0];
+			const used = new Set<string>();
+			for (let i = 0; i < 60 * 40 && game.enemies.length > 0; i++) {
+				game.update(1 / 60);
+				if (me.actionTimer > 0 || me.firing) used.add(me.loadout[me.selected].id);
+			}
+			expect(game.enemies.length).toBe(0);
+			expect(used.size).toBeGreaterThanOrEqual(2);
+		});
+	}
+
+	it('shields itself when two enemies wind up on it at once, at full health', () => {
+		const { w, me, ally } = setup();
+		for (const x of [120, -120]) {
+			const e = createEnemy('rageGrunt', x, 0);
+			e.brain.target = me;
+			e.brain.state = 'windup';
+			e.brain.ability = 'blast';
+			w.dummies.push(e);
+		}
+		expect(me.health).toBe(me.maxHealth);
+		expect(ally.read().shield).toBe(true);
+	});
+});
+
 describe('Kilowog as a partner', () => {
 	it('fights beside Hal, builds his own constructs, and they win', () => {
 		const game = new Game({ players: [{ lantern: 'hal', keys: 'solo', ai: true }, { lantern: 'kilowog', keys: 'p2', ai: true }], map: arena() });

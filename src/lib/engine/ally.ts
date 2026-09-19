@@ -17,7 +17,7 @@ import { pickConstruct } from './constructs/smart';
 import { BUBBLE_SHIELD } from './constructs/defs';
 import type { ConstructWorld } from './constructs/system';
 import { aimPoint, isStanding, type Dummy } from './dummy';
-import { isEnemy, rangeOf, type Enemy } from './enemies/enemies';
+import { isEnemy, type Enemy } from './enemies/enemies';
 import { IDLE, type InputSource, type Intent } from './input';
 import type { Player } from './player';
 
@@ -26,9 +26,6 @@ export interface AllyWorld {
 	readonly dummies: readonly Dummy[];
 	readonly constructs: ConstructWorld;
 }
-
-/** Enemies that fight from range (worth pulling in with the chain). */
-const ENEMY_IS_RANGED = (e: Enemy) => rangeOf(e) >= 250;
 
 /** read() is called once per fixed tick. */
 const TICK = 1 / 60;
@@ -42,6 +39,8 @@ interface Plan {
 }
 
 const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
+/** Seconds before a partner will put up another shield after raising one. */
+const SHIELD_REST = 5;
 
 export class AllyInput implements InputSource {
 	/** The Lantern this brain controls (set once the player exists). */
@@ -192,25 +191,27 @@ export class AllyInput implements InputSource {
 					dist(e, p) < 380 &&
 					(!big || e.brain.ability === 'slam' || e.brain.ability === 'roar' || e.brain.ability === 'chain')
 			);
-		// A big attack coming: react about half the time (people don't always see it either)
+		// A big attack coming: react most of the time (not always: people miss things too)
 		const bigComing = (p: Player) => {
 			if (!winding(p, true) || this.shieldRoll > 0 || this.shieldRest > 0) return false;
-			this.shieldRoll = 1;
-			return Math.random() < 0.45;
+			this.shieldRoll = 0.6;
+			return Math.random() < 0.85;
 		};
+		// Any attack coming once a bit hurt, or under a lot of pressure at once
+		const pressed = (p: Player) => enemies.filter((e) => e.brain.target === p && e.brain.state === 'windup' && dist(e, p) < 380).length;
 		const needs = (p: Player, hurtBelow: number) =>
-			!shields.some((s) => s.target === p) && ((p.health < hurtBelow && winding(p, false)) || bigComing(p));
+			!shields.some((s) => s.target === p) && ((p.health < hurtBelow && winding(p, false)) || pressed(p) >= 2 || bigComing(p));
 
-		if (needs(me, 40)) {
+		if (needs(me, me.maxHealth * 0.6)) {
 			intent.shield = true;
-			this.shieldRest = 12;
+			this.shieldRest = SHIELD_REST;
 			return;
 		}
-		if (partner && dist(partner, me) < BUBBLE_SHIELD.range * 0.9 && needs(partner, 40)) {
+		if (partner && dist(partner, me) < BUBBLE_SHIELD.range * 0.9 && needs(partner, partner.maxHealth * 0.6)) {
 			me.lock = { kind: 'ally', player: partner };
 			this.lockedPartner = true;
 			intent.shield = true;
-			this.shieldRest = 12;
+			this.shieldRest = SHIELD_REST;
 		}
 	}
 
@@ -227,64 +228,14 @@ export class AllyInput implements InputSource {
 		if (this.decideIn > 0 || me.exhausted) return;
 		this.decideIn = 0.35 + Math.random() * 0.4;
 
-		const d = dist(me, target);
-		const slotOf = (id: string) => me.loadout.findIndex((c) => c.id === id);
-		const ready = (id: string) => {
-			const i = slotOf(id);
-			return i >= 0 && me.cooldowns[i] === 0 && me.willpower >= me.loadout[i].cost + 10;
-		};
-		const press = (id: string): Plan => ({ slot: slotOf(id), hold: 0, selected: false });
-		const hold = (id: string, seconds: number): Plan => ({ slot: slotOf(id), hold: seconds, selected: false });
-		const clustered = enemies.filter((e) => dist(e, target) < 100).length >= 2;
-
-		// Everything that makes sense right now, best first
-		const options: { id: string; plan: Plan; closeIn?: boolean }[] = [];
-		const add = (id: string, plan: Plan, closeIn = false) => {
-			if (ready(id)) options.push({ id, plan, closeIn });
-		};
-		const near = (r: number) => enemies.filter((e) => dist(e, me) < r).length;
-		if (me.def.id === 'kilowog') {
-			// Partners the story brings along let the smart ring choose
-			// Keep some willpower in reserve, like Hal and John do, so he's never left exhausted
-			const pick = me.willpower > 30 ? pickConstruct(me, this.world.constructs) : null;
-			if (pick) options.push({ id: me.loadout[pick.slot].id, plan: { slot: pick.slot, hold: pick.hold, selected: false } });
-		} else if (me.def.id === 'hal') {
-			if (d < 90) add('sword', press('sword'), true);
-			if (d < 110 && clustered) add('hammer', press('hammer'), true);
-			if (d < 120 && clustered) add('fist', press('fist'), true);
-			if (d < 200 && near(220) >= 2) add('shotgun', press('shotgun'), true);
-			// Burn straight through a target that's lined up and not too far
-			if (d > 110 && d < 250 && Math.random() < 0.3) add('afterburner', press('afterburner'));
-			if (d > 150 && d < 520 && enemies.length >= 2) add('rockets', press('rockets'));
-			if (d > 100 && d < 320) add('buzzsaw', press('buzzsaw'));
-			if (d > 170 && d < 340 && ENEMY_IS_RANGED(target)) add('chain', press('chain'), true);
-			if (d < 440 && me.willpower > 40) {
-				const gun = Math.random() < 0.5 ? 'minigun' : 'beam';
-				add(gun, hold(gun, 0.9));
-			}
-		} else {
-			const turrets = this.world.constructs.turrets.filter((t) => t.owner === me).length;
-			const rushing = enemies.some((e) => e.brain.target === me && dist(e, me) < 160 && e.brain.engaged);
-			const partner = this.world.players.find((o) => o !== me && !o.downed) ?? null;
-			const hurt = me.health < 60 || (partner !== null && partner.health < 60);
-			const aidUp = this.world.constructs.aids.some((a) => a.owner === me);
-			if (hurt && !aidUp) add('aid', press('aid'));
-			if (rushing && Math.random() < 0.5) add('wall', press('wall'));
-			if (near(150) >= 2) add('shockwave', press('shockwave'));
-			if (rushing) add('mines', press('mines'));
-			if (rushing && Math.random() < 0.4) add('cage', press('cage'));
-			if (turrets < 1 && enemies.length >= 2) add('turret', press('turret'));
-			if (d < 320 && clustered) add('pillars', press('pillars'));
-			if (d > 150 && d < 500 && clustered) add('cannon', press('cannon'));
-			if (d > 140) add('sniper', hold('sniper', 1));
-			if (d < 400 && me.willpower > 45) add('beam', hold('beam', 1));
-		}
-
+		// The smart ring picks, for every partner; a little willpower is kept in reserve so they're never left exhausted
 		this.closeIn = false;
-		if (options.length === 0) return;
-		const pick = options[0];
-		this.plan = pick.plan;
-		if (pick.closeIn) this.closeIn = true;
+		const smart = me.willpower > 30 ? pickConstruct(me, this.world.constructs) : null;
+		if (!smart) return;
+		const def = me.loadout[smart.slot];
+		// Hal goes in close for his melee constructs
+		this.closeIn = me.def.id === 'hal' && (def.behavior === 'slash' || def.behavior === 'smash' || def.behavior === 'grind');
+		this.plan = { slot: smart.slot, hold: smart.hold, selected: false };
 		this.runPlan(intent);
 	}
 

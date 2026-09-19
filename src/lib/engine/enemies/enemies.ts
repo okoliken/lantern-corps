@@ -812,16 +812,19 @@ function decide(
  */
 function trySupport(e: Enemy, t: Player, pack: readonly Enemy[], dist: number): boolean {
 	const b = e.brain;
-	for (const id of b.kit) {
+	// Every Lantern (red or green) can put up a shield, whatever else it carries
+	const kit = SHIELDERS.has(e.kind) && !b.kit.includes('redShield') ? [...b.kit, 'redShield' as const] : b.kit;
+	for (const id of kit) {
 		const a = ABILITIES[id];
 		if (a.band !== 'support' || b.cooldowns[id] > 0) continue;
 		if (dist < a.minRange || dist > a.maxRange) continue;
 		let worth = false;
 		if (id === 'redShield') {
-			const underFire = (o: Enemy) => !o.ward && o.brain.sinceHit < 1.5 && (o.brain.hurt > 0.2 || o.brain.squad === 'assault');
+			// Anyone taking hits gets one, hurt ones first; itself before a friend on a tie
+			const underFire = (o: Enemy) => !o.ward && o.brain.sinceHit < 1.5;
 			const ally = pack
 				.filter((o) => o.kind !== 'rageTurret' && Math.hypot(o.x - e.x, o.y - e.y) < RED_SHIELD_REACH && underFire(o))
-				.sort((x, y) => y.brain.hurt - x.brain.hurt)[0];
+				.sort((x, y) => y.brain.hurt - x.brain.hurt + (x === e ? -0.05 : 0) + (y === e ? 0.05 : 0))[0];
 			b.ally = ally ?? null;
 			worth = ally !== undefined;
 		} else if (id === 'redWall') {
@@ -838,6 +841,9 @@ function trySupport(e: Enemy, t: Player, pack: readonly Enemy[], dist: number): 
 	}
 	return false;
 }
+
+/** Lanterns, red or green: they can all raise a shield. Machines, ships and turrets can't. */
+const SHIELDERS: ReadonlySet<EnemyKind> = new Set(['rageGrunt', 'zox', 'skallox', 'bleez', 'kilowog', 'sinestro']);
 
 /** Aimed constructs need a clear line; area and self-centred ones don't. */
 function needsClearShot(a: AbilityDef): boolean {

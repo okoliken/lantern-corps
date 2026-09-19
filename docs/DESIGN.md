@@ -200,6 +200,15 @@ Every construct, whether preset or custom, uses one of 8 **behavior types**:
   `pickConstruct`): it sticks with its last pick while that's still at least 75% as good as the best,
   waits up to 0.45s for the best one to come off cooldown instead of reaching for the next one down,
   and a press waits up to 0.5s for it. Holding the button no longer cycles through the loadout.
+- **Everyone shields, more often (2026-09-19, user: "gives the players what to expect").** Every
+  Lantern-type enemy (Rage Grunts, Zox, Skallox, Bleez, and sparring Kilowog/Sinestro, whose shield
+  is tinted Corps green) can raise a shield whatever its kit (`SHIELDERS` in `enemies.ts`): on itself
+  or a nearby ally that's taking hits (any hit in the last 1.5s, hurt ones first), cooldown 6s,
+  chance 0.9. Machines, ships and turrets can't. AI partners shield on a big attack 85% of the time
+  (was 45%), on any attack once below 60% health, and whenever two enemies wind up on them at once;
+  5s between their shields (was 12). AI Hal/John now pick constructs with `pickConstruct` like
+  Kilowog (their hard-coded lists named the old constructs). Bots: sparring fights ~80s (was ~45s);
+  Mission 4 still 3 stars guarding the ship, fighting-only can now lose the ship.
 - The **beam** is the ring's basic hold-to-fire construct, on top of the 8 types. Beam and rapid are
   held; everything else fires once per press, with a cooldown.
 - **Traits** (in `lanterns.ts`): Hal ×1.2 power, ×0.85 cooldowns, ×0.75 durability. John ×1.4

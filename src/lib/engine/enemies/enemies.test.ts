@@ -850,3 +850,37 @@ describe('random kits', () => {
 		}
 	});
 });
+
+describe('every Lantern can shield', () => {
+	/** Keep hitting it (lightly) while it fights, and see if it puts a shield up. */
+	const shieldsUnderFire = (e: Enemy) => {
+		const p = lantern(0, 0);
+		const w = createConstructWorld([], [e]);
+		for (const id in e.brain.cooldowns) e.brain.cooldowns[id as AbilityId] = 0;
+		e.brain.think = 0;
+		// Plenty of health, so light hits register without beating it
+		e.hp = e.maxHp = e.brain.lastHp = 100000;
+		let shielded = false;
+		run(w, [p], 6, () => {
+			p.invuln = 1;
+			if (!e.ward) hitDummy(e, 1, 0, p.x, p.y);
+			if (e.ward) shielded = true;
+		});
+		return shielded;
+	};
+
+	it('a Rage Grunt with no shield in its kit still raises one when it takes hits', () => {
+		const e = grunt(200, 0, 'berserker');
+		e.brain.kit = ['claws'];
+		expect(shieldsUnderFire(e)).toBe(true);
+	});
+
+	it('Kilowog and Sinestro raise shields when you spar with them', () => {
+		expect(shieldsUnderFire(createEnemy('kilowog', 220, 0))).toBe(true);
+		expect(shieldsUnderFire(createEnemy('sinestro', 220, 0))).toBe(true);
+	});
+
+	it("machines don't", () => {
+		expect(shieldsUnderFire(createEnemy('manhunterDrone', 220, 0))).toBe(false);
+	});
+});
