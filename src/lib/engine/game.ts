@@ -14,7 +14,8 @@ import {
 	updateAidStations,
 	updateConstructWorld,
 	updatePlayerConstructs,
-	type ConstructWorld
+	type ConstructWorld,
+	type Effect
 } from './constructs/system';
 import { chooseShieldTarget } from './constructs/smart';
 import {
@@ -41,9 +42,9 @@ import { HeroInput, heroFx, heroMoving, updateHero, updateHeroFx } from './heroe
 import { drawHero, drawHeroFx, drawSpeedTrail } from './draw/heroes';
 import { drawManhunterCore, drawMindLock, drawPsychicFx, drawThrownDebris } from './draw/gorillas';
 import { psychicFx } from './enemies/grodd';
-import { RED_HAND_LIFT } from './enemies/redConstructs';
+import { RED_HAND_LIFT, type RedShot } from './enemies/redConstructs';
 import { updatePlayerCombat, revivePlayer } from './combat';
-import { ENEMIES, createEnemy, enemyLabel, isEnemy, tintOf, updateEnemies, type Enemy, type EnemyKind, type Role } from './enemies/enemies';
+import { ENEMIES, createEnemy, enemyLabel, isEnemy, tintOf, updateEnemies, type Tint, type Enemy, type EnemyKind, type Role } from './enemies/enemies';
 import {
 	FIGURE_HALF_WIDTH,
 	FIGURE_HEIGHT,
@@ -143,6 +144,22 @@ const sizeOf = (p: Player) => p.def.figureScale ?? 1;
 
 /** Draw something red in another colour (a sparring Green Lantern's constructs, Grodd's army). */
 const tinted = inTint;
+
+/**
+ * Draw a list of things; the tinted ones grouped by colour, so each colour's
+ * canvas filter runs once a frame (a filter is a full-screen pass: one per
+ * item made busy fights crawl).
+ */
+function drawTintedAll<T>(ctx: CanvasRenderingContext2D, items: Iterable<T>, tintFor: (item: T) => Tint | undefined, draw: (item: T) => void) {
+	const groups = new Map<Tint, T[]>();
+	for (const item of items) {
+		const tint = tintFor(item);
+		if (!tint) draw(item);
+		else if (groups.has(tint)) groups.get(tint)!.push(item);
+		else groups.set(tint, [item]);
+	}
+	for (const [tint, list] of groups) inTint(ctx, tint, () => list.forEach(draw));
+}
 
 /** XP for knocking an asteroid apart, much less than for beating an enemy. */
 const XP_PER_ROCK = 5;
@@ -495,9 +512,10 @@ export class Game {
 	 * room around it for bodies, name tags and incoming attacks.
 	 */
 	private cameraTarget(): [number, number, number, number] {
-		// Anchors: the players, plus anything the director wants kept in view (the ship to escort)
+		// Anchors: the players, plus anything the director wants kept in view (the ship to escort).
+		// Heroes (the Flash) run all over the place: the camera doesn't chase them.
 		const anchors: [number, number][] = [
-			...this.players.map((p): [number, number] => [p.x, p.y - CAMERA_AIM_UP]),
+			...this.players.filter((p) => !p.hero).map((p): [number, number] => [p.x, p.y - CAMERA_AIM_UP]),
 			...(this.director?.cameraPoints?.() ?? [])
 		];
 		const xs = anchors.map((p) => p[0]);
@@ -587,7 +605,7 @@ export class Game {
 		if (map.environment === 'planet') drawPlanetGround(ctx, visible, map.width, map.height, map.ground);
 		// Traps and Fortress rings are markings on the ground: under everything
 		for (const t of cw.traps) drawTrap(ctx, t, this.time);
-		for (const e of cw.effects) if (e.kind === 'slamMark') tinted(ctx, e.tint, () => drawRedEffect(ctx, e, 0, this.time));
+		drawTintedAll(ctx, cw.effects.filter((e) => e.kind === 'slamMark'), (e) => e.tint, (e) => drawRedEffect(ctx, e, 0, this.time));
 		drawRedGround(ctx, cw.red.puddles, cw.red.strikes, this.time);
 		const inSpace = map.environment === 'space';
 		for (const f of cw.fortresses) drawFortressBack(ctx, f, this.time, inSpace);
@@ -738,23 +756,21 @@ export class Game {
 			}
 		}
 		// Red Lantern projectiles, and Barbed Chains from the hand to the hook or the Lantern caught
+		const redShots: RedShot[] = [];
 		for (const s of cw.red.shots) {
 			const x = lerp(s.prevX, s.x, alpha);
 			const y = lerp(s.prevY, s.y, alpha);
-			if (s.look) {
-				drawThrownDebris(ctx, s, x, y, RED_HAND_LIFT, this.time);
-				continue;
-			}
-			if (s.kind === 'hammer' || s.kind === 'fist' || s.kind === 'blade') {
-				drawCorpsShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
-				continue;
-			}
-			tinted(ctx, tintOf(s.owner), () => {
-				if (s.kind === 'hook') drawRedChain(ctx, ...this.redHand(s.owner, alpha), x, y - RED_HAND_LIFT, this.time);
-				drawRedShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
-			});
+			if (s.look) drawThrownDebris(ctx, s, x, y, RED_HAND_LIFT, this.time);
+			else if (s.kind === 'hammer' || s.kind === 'fist' || s.kind === 'blade') drawCorpsShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
+			else redShots.push(s);
 		}
-		for (const bm of cw.red.beams) tinted(ctx, tintOf(bm.owner), () => drawRedBeam(ctx, bm, ...this.redHand(bm.owner, alpha), this.time));
+		drawTintedAll(ctx, redShots, (s) => tintOf(s.owner), (s) => {
+			const x = lerp(s.prevX, s.x, alpha);
+			const y = lerp(s.prevY, s.y, alpha);
+			if (s.kind === 'hook') drawRedChain(ctx, ...this.redHand(s.owner, alpha), x, y - RED_HAND_LIFT, this.time);
+			drawRedShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
+		});
+		drawTintedAll(ctx, cw.red.beams, (bm) => tintOf(bm.owner), (bm) => drawRedBeam(ctx, bm, ...this.redHand(bm.owner, alpha), this.time));
 		for (const c of cw.red.cages) {
 			const t = c.target;
 			const x = lerp(t.prevX, t.x, alpha);
@@ -769,6 +785,7 @@ export class Game {
 			tinted(ctx, tintOf(c.owner), () => drawRedChain(ctx, ...this.redHand(c.owner, alpha), lerp(t.prevX, t.x, alpha), bodyY, this.time));
 		}
 
+		const tintedFx: Effect[] = [];
 		for (const e of cw.effects) {
 			if (e.kind === 'number' && !this.settings.damageNumbers) continue;
 			if (e.kind === 'slamMark') continue; // drawn on the ground, above
@@ -787,8 +804,10 @@ export class Game {
 				drawEffect(ctx, { ...e, radius: (o.bodyTop - o.bodyBottom) * 0.66 }, bodyMid, this.time);
 				continue;
 			}
-			tinted(ctx, e.tint, () => drawEffect(ctx, e, e.lift ?? 0, this.time, inSpace));
+			if (e.tint) tintedFx.push(e);
+			else drawEffect(ctx, e, e.lift ?? 0, this.time, inSpace);
 		}
+		drawTintedAll(ctx, tintedFx, (e) => e.tint, (e) => drawEffect(ctx, e, e.lift ?? 0, this.time, inSpace));
 		drawHeroFx(ctx, heroFx(cw), this.time);
 		drawPsychicFx(ctx, psychicFx(cw), this.time);
 		if (this.nameTags) for (const t of tags) t();

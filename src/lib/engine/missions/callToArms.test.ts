@@ -35,10 +35,10 @@ function setup() {
 	/** Through the gorilla waves: Grodd comes up out of the dig. */
 	const toGrodd = () => {
 		run(3.1);
-		clear();
-		run(0.5, safe);
-		clear();
-		run(0.5, safe);
+		for (let i = 0; i < 6 && mission.phase !== 'grodd'; i++) {
+			clear();
+			run(0.5, safe);
+		}
 	};
 	/** Grodd beaten: he gets away, and the Manhunter wakes. */
 	const toManhunter = () => {
@@ -59,9 +59,17 @@ describe('Act 2, Mission 1: Call to Arms', () => {
 		expect(game.enemies.every((e) => e.kind === 'gorillaBrute' || e.kind === 'gorillaGunner')).toBe(true);
 	});
 
-	it('beat the gorillas and Grodd comes up out of the dig', () => {
-		const { mission, toGrodd } = setup();
-		toGrodd();
+	it('squad after squad: the arrival, the side streets, the dig and the troopers behind it; then Grodd', () => {
+		const { mission, run, safe, clear } = setup();
+		run(3.1);
+		const phases: string[] = [mission.phase];
+		for (let i = 0; i < 6 && mission.phase !== 'grodd'; i++) {
+			clear();
+			run(0.5, safe);
+			if (phases[phases.length - 1] !== mission.phase) phases.push(mission.phase);
+		}
+		expect(phases).toEqual(['arrival', 'flank', 'push', 'grodd']);
+		expect(mission.defeated).toBeGreaterThanOrEqual(20);
 		expect(mission.phase).toBe('grodd');
 		expect(mission.grodd && isStanding(mission.grodd)).toBe(true);
 	});

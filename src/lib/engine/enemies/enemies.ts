@@ -278,7 +278,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 			"One of Grodd's soldiers from Gorilla City: four hundred pounds of armored gorilla with power gauntlets. It charges, leaps in to pound the ground, and punches hard enough to throw you across the street.",
 		mind: 'rage',
 		hp: 230,
-		speed: 165,
+		speed: 140,
 		accel: 5,
 		sight: 700,
 		poise: 70,
@@ -298,7 +298,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 			'A Gorilla City trooper with a heavy energy rifle. It keeps its distance, fires bursts and cannon shells, throws up energy barricades, and calls down mortar fire.',
 		mind: 'rage',
 		hp: 170,
-		speed: 140,
+		speed: 120,
 		accel: 5,
 		sight: 760,
 		poise: 50,
@@ -319,7 +319,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 			'The smartest gorilla alive, and a telepath: psychic blasts that go straight through a bubble shield, mind control that turns your moves around, and cars thrown with a thought. Up close he is still a gorilla the size of a truck.',
 		mind: 'rage',
 		hp: 2400,
-		speed: 175,
+		speed: 160,
 		accel: 5,
 		sight: 1000,
 		poise: 320,
@@ -697,6 +697,8 @@ export function enemyLabel(e: Enemy): string {
 
 /** Effects that are already drawn in Corps green (the rest get recolored for a sparring Green Lantern). */
 const CORPS_ART: ReadonlySet<string> = new Set(['bigHammer', 'hammerSpin', 'hammerDrop', 'swordArc', 'callout']);
+/** Effects that aren't the enemy's art at all (damage numbers, a Lantern's shield popping): never tinted. */
+const UNTINTED: ReadonlySet<string> = new Set(['number', 'pop', 'text', 'burst', 'fizzle', 'snap']);
 
 // ------------------------------------------------------------------- brains
 
@@ -713,7 +715,7 @@ export function updateEnemies(w: ConstructWorld, players: readonly Player[], dt:
 		w.rage = 1;
 		// A Green Lantern sparring with you makes green constructs, not red ones (and Grodd's army, amber and purple)
 		const tint = tintOf(e);
-		if (tint) for (let i = before; i < w.effects.length; i++) if (!CORPS_ART.has(w.effects[i].kind)) w.effects[i].tint = tint;
+		if (tint) for (let i = before; i < w.effects.length; i++) if (!CORPS_ART.has(w.effects[i].kind) && !UNTINTED.has(w.effects[i].kind)) w.effects[i].tint = tint;
 	}
 	spreadAround(pack);
 	separate(pack, dt);

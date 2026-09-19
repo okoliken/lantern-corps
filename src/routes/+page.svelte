@@ -2,39 +2,53 @@
 	// Main menu. This page is server-rendered like a normal website;
 	// only the game routes turn SSR off.
 	import { dev } from '$app/environment';
+	import MenuPoster from '$lib/components/MenuPoster.svelte';
 </script>
 
 <main>
-	<h1>Lantern Corps</h1>
-	<p class="oath">In brightest day, in blackest night…</p>
+	<MenuPoster />
+	<div class="title">
+		<h1>Lantern Corps</h1>
+		<p class="oath">In brightest day, in blackest night…</p>
 
-	<nav>
-		<a class="btn primary" href="/missions">Missions</a>
-		{#if dev}
-			<a class="btn lab" href="/lab">Lab (dev only)</a>
-		{/if}
-	</nav>
+		<nav>
+			<a class="btn primary" href="/missions">Missions</a>
+			{#if dev}
+				<a class="btn lab" href="/lab">Lab (dev only)</a>
+			{/if}
+		</nav>
+	</div>
 </main>
 
 <style>
 	main {
-		min-height: 100%;
+		position: relative;
+		min-height: 100vh;
+		overflow: hidden;
 		display: grid;
-		place-content: center;
+		align-content: end;
+		justify-content: center;
 		text-align: center;
-		gap: 0.5rem;
-		padding: 1rem;
+		padding: 1rem 1rem 5vh;
+		box-sizing: border-box;
+	}
+	/* Over the poster, in the dark at the bottom */
+	.title {
+		position: relative;
+		display: grid;
+		gap: 0.3rem;
 	}
 	h1 {
-		font-size: clamp(2.5rem, 8vw, 5rem);
+		font-size: clamp(1.4rem, 3.2vw, 2.1rem);
 		margin: 0;
 		color: var(--green);
-		text-shadow: 0 0 24px var(--green);
+		text-shadow: 0 0 14px var(--green);
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
 	}
 	.oath {
-		margin: 0 0 2rem;
+		margin: 0 0 1.2rem;
+		font-size: 0.9rem;
 		opacity: 0.7;
 		font-style: italic;
 	}
@@ -45,7 +59,7 @@
 		flex-wrap: wrap;
 	}
 	.btn {
-		padding: 0.8rem 2rem;
+		padding: 0.6rem 1.6rem;
 		border: 2px solid var(--suit-lit);
 		border-radius: 6px;
 		text-decoration: none;

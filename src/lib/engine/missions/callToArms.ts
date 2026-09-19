@@ -6,7 +6,8 @@
 //
 //   arrival    Grodd's soldiers, already fighting the Flash and Hawkgirl; the
 //              ring talks John through his first fight
-//   push       more of them, up out of the dig
+//   flank      a second squad down the side streets, from above and below
+//   push       the main force up out of the dig, and troopers behind them
 //   grodd      Grodd himself, in three stages:
 //                1  Psychic Blast, Telekinetic Throw, and a gorilla's fists
 //                2  (below 60%) + Mind Control and the Debris Storm, and he
@@ -33,12 +34,12 @@ import { seededRandom, type GameMap, type Obstacle } from '../map';
 import type { Player } from '../player';
 import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type MissionState, type MissionStat } from './mission';
 
-export type CallPhase = 'arrival' | 'push' | 'grodd' | 'escape' | 'awakening' | 'manhunter' | 'farewell';
+export type CallPhase = 'arrival' | 'flank' | 'push' | 'grodd' | 'escape' | 'awakening' | 'manhunter' | 'farewell';
 
 export const CALL_LIVES = 3;
 const INTRO_TIME = 3;
 /** Three stars: done within this many seconds. */
-const PAR_TIME = 420;
+const PAR_TIME = 540;
 /** Grodd's soldiers: health and hitting power on top of their base. */
 const TOUGHNESS = 3.6;
 const MIGHT = 3.1;
@@ -59,6 +60,8 @@ const MANHUNTER_MIGHT = 2.6;
  */
 export const REBUILD_TIMES = [4, 6.5, 8];
 export const CORE_HP = 700;
+/** The core's health after each rebuild, as a share of the last. */
+const CORE_WEAR = 0.8;
 /** A rebuilt Manhunter comes back with this share of its health, and stronger each time. */
 export const REBUILT_HEALTH = 0.5;
 const REBUILT_MIGHT = 1.15;
@@ -86,6 +89,23 @@ const ARRIVAL: Wave = [
 	['gorillaGunner', 1850, 1100],
 	['gorillaGunner', 1800, 850]
 ];
+/** Down the side streets, from the top and the bottom of the map. */
+const FLANK: Wave = [
+	['gorillaBrute', 1250, 380],
+	['gorillaBrute', 1500, 350],
+	['gorillaGunner', 1750, 400],
+	['gorillaBrute', 1300, 1750],
+	['gorillaBrute', 1550, 1780],
+	['gorillaGunner', 1800, 1720],
+	['gorillaGunner', 2000, 1050]
+];
+/** Troopers who come up behind the push once it's half beaten. */
+const PUSH_REAR: Wave = [
+	['gorillaGunner', 2750, 850],
+	['gorillaGunner', 2800, 1250],
+	['gorillaBrute', 2900, 1050],
+	['gorillaGunner', 2650, 1400]
+];
 /** Up out of the dig. */
 const PUSH: Wave = [
 	['gorillaBrute', 2250, 950],
@@ -105,6 +125,8 @@ const GUARDS: Wave = [
 const REINFORCEMENTS: Wave = [
 	['gorillaBrute', 3300, 950],
 	['gorillaBrute', 3300, 1150],
+	['gorillaBrute', 3250, 1350],
+	['gorillaGunner', 3400, 1050],
 	['gorillaGunner', 3350, 800],
 	['gorillaGunner', 3350, 1300]
 ];
@@ -189,12 +211,15 @@ export class CallToArms implements MissionDirector {
 	rebuilds = 0;
 	failReason: 'lantern' | null = null;
 	readonly comms = new Comms();
-	readonly starHint = '★ the Manhunter destroyed · ★ no lives lost · ★ under 7 minutes';
+	readonly starHint = '★ the Manhunter destroyed · ★ no lives lost · ★ under 9 minutes';
 	grodd: Enemy | null = null;
 	manhunter: Enemy | null = null;
 	/** The Manhunter's core, while it lies in pieces. */
 	core: Dummy | null = null;
 	private wave: Enemy[] = [];
+	/** The push up out of the dig, and whether the troopers behind it have come. */
+	private pushed: Enemy[] = [];
+	private rearGuard = false;
 	private counted = new WeakSet<Enemy>();
 	private wasDown = false;
 	private clock = 0;
@@ -214,6 +239,8 @@ export class CallToArms implements MissionDirector {
 		switch (this.phase) {
 			case 'arrival':
 				return 'Help the Flash and Hawkgirl';
+			case 'flank':
+				return "They're coming down the side streets";
 			case 'push':
 				return "Stop Grodd's army";
 			case 'grodd':
@@ -325,8 +352,18 @@ export class CallToArms implements MissionDirector {
 		switch (this.phase) {
 			case 'arrival':
 				if (this.wave.filter(isStanding).length <= 1) {
+					this.phase = 'flank';
+					this.spawn(game, FLANK, true);
+					this.comms.scene([
+						['Hawkgirl', 'Side streets! Above and below us!'],
+						['The Flash', "I'll take the top. Lantern, you've got the middle. Try not to get flattened."]
+					]);
+				}
+				break;
+			case 'flank':
+				if (this.wave.filter(isStanding).length <= 1) {
 					this.phase = 'push';
-					this.spawn(game, PUSH, true);
+					this.pushed = this.spawn(game, PUSH, true);
 					this.comms.scene([
 						['Hawkgirl', "More of them, up out of that hole. Grodd's digging for something."],
 						['The Flash', "Whatever it is, I'm guessing we don't want him to find it."]
@@ -334,7 +371,13 @@ export class CallToArms implements MissionDirector {
 				}
 				break;
 			case 'push':
-				if (this.wave.every((e) => !isStanding(e))) this.groddArrives(game);
+				// Half of them down, and the troopers behind them come up
+				if (!this.rearGuard && this.pushed.filter(isStanding).length <= this.pushed.length / 2) {
+					this.rearGuard = true;
+					this.spawn(game, PUSH_REAR, true);
+					this.comms.say('Hawkgirl', 'Troopers, behind the dig! Watch for their mortars!');
+				}
+				if (this.rearGuard && this.wave.every((e) => !isStanding(e))) this.groddArrives(game);
 				break;
 			case 'grodd':
 				this.duel(game, dt);
@@ -533,7 +576,8 @@ export class CallToArms implements MissionDirector {
 			// Broken: it falls apart round its core, which starts pulling it back together
 			const core = createDummy(m.x, m.y);
 			core.kind = 'manhunterCore';
-			core.hp = core.maxHp = CORE_HP;
+			// Each rebuild wears it out a little: the core gets easier to smash
+			core.hp = core.maxHp = Math.round(CORE_HP * CORE_WEAR ** this.rebuilds);
 			core.respawns = false;
 			core.rebuild = 0;
 			game.dummies.push(core);

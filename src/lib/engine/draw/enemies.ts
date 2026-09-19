@@ -8,7 +8,7 @@
 
 import type { LanternPose } from '../animation';
 import { ENEMIES, type Enemy } from '../enemies/enemies';
-import { ABILITIES, RED_HAND_LIFT, SLAM_HEIGHT } from '../enemies/redConstructs';
+import { ABILITIES, RED_HAND_LIFT, SLAM_HEIGHT, type AbilityId } from '../enemies/redConstructs';
 import { isStanding } from '../dummy';
 import { drawRedLanternAlien, redLanternHand, redLanternTop } from './redLanterns';
 import { drawLieutenant, isLieutenantKind, lieutenantHand, lieutenantTop } from './lieutenants';
@@ -60,7 +60,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 	}
 	if (isGorillaKind(e.kind)) {
 		drawGorilla(ctx, e, x, y, hasGround, time);
-		if (isStanding(e)) inTint(ctx, ENEMIES[e.kind].tint, () => drawEnemyOverlay(ctx, e, x, y, gorillaTop(e, y), gorillaHand(e, x, y), time));
+		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, gorillaTop(e, y), gorillaHand(e, x, y), time);
 		return;
 	}
 	if (e.kind === 'manhunter') {
@@ -142,39 +142,71 @@ function drawEnemyOverlay(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 	const bodyTell = windTell === 'strike' || windTell === 'heavy' || windTell === 'sky';
 	const tell = bodyTell && Math.sin(time * 30) > 0;
 	const progress = windupProgress(e);
-	const color = def.faction === 'manhunter' ? '#ffb040' : RED;
+	// Drawn straight in the enemy's own colour: a canvas filter here would cost a full-screen pass per enemy per frame
+	const color = def.tint && def.tint !== 'corps' ? TINT_COLORS[def.tint] : def.faction === 'manhunter' ? '#ffb040' : RED;
 
 	// A Rage Shield around it
 	if (e.ward) drawWard(ctx, x, (y + top) / 2 + 4, (y - top) * 0.5, e.ward.hp / e.ward.maxHp, time);
 
-	// Weapon constructs forming in the hand during the windup
-	if (winding === 'axe' || winding === 'mace' || winding === 'cannon') {
-		const [hx, hy] = muzzle;
-		ctx.save();
-		ctx.translate(hx, hy);
-		ctx.globalAlpha = 0.4 + 0.6 * progress;
-		const aimAngle = Math.atan2(b.aimY, b.aimX);
-		if (winding === 'cannon') {
-			ctx.rotate(aimAngle);
-			if (b.aimX < 0) ctx.scale(1, -1);
-			ctx.scale(0.5 + 0.5 * progress, 0.5 + 0.5 * progress);
-			rage(ctx, rageCannonPath(), time);
-		} else {
-			// Raised back over the shoulder, ready to swing
-			ctx.scale(e.dir, 1);
-			ctx.rotate(-Math.PI / 2 - 0.6 * progress);
-			if (winding === 'axe') rage(ctx, axePath(40 * (0.5 + 0.5 * progress)), time);
-			else {
-				const handle = new Path2D();
-				handle.moveTo(0, 0);
-				handle.lineTo(34, 0);
-				rage(ctx, handle, time, 2.5);
-				ctx.translate(36, 0);
-				rage(ctx, macePath(10 * (0.5 + 0.5 * progress)), time);
-			}
+	// Weapon constructs forming in the hand during the windup (only while winding up: rare enough to tint)
+	if ((winding === 'axe' || winding === 'mace' || winding === 'cannon') && def.tint && def.tint !== 'corps') {
+		inTint(ctx, def.tint, () => drawWindupWeapon(ctx, e, muzzle, progress, time));
+	} else if (winding === 'axe' || winding === 'mace' || winding === 'cannon') drawWindupWeapon(ctx, e, muzzle, progress, time);
+
+	drawTells(ctx, e, x, y, top, muzzle, time, color, s, winding, windTell, bodyTell, tell, progress);
+}
+
+/** Tint colours for the overlays that are drawn directly (see inTint for the art that's filtered). */
+const TINT_COLORS: Record<'tech' | 'psychic', string> = { tech: '#ffb020', psychic: '#b36bff' };
+
+function drawWindupWeapon(ctx: CanvasRenderingContext2D, e: Enemy, muzzle: [number, number], progress: number, time: number) {
+	const b = e.brain;
+	const winding = b.ability;
+	const [hx, hy] = muzzle;
+	ctx.save();
+	ctx.translate(hx, hy);
+	ctx.globalAlpha = 0.4 + 0.6 * progress;
+	const aimAngle = Math.atan2(b.aimY, b.aimX);
+	if (winding === 'cannon') {
+		ctx.rotate(aimAngle);
+		if (b.aimX < 0) ctx.scale(1, -1);
+		ctx.scale(0.5 + 0.5 * progress, 0.5 + 0.5 * progress);
+		rage(ctx, rageCannonPath(), time);
+	} else {
+		// Raised back over the shoulder, ready to swing
+		ctx.scale(e.dir, 1);
+		ctx.rotate(-Math.PI / 2 - 0.6 * progress);
+		if (winding === 'axe') rage(ctx, axePath(40 * (0.5 + 0.5 * progress)), time);
+		else {
+			const handle = new Path2D();
+			handle.moveTo(0, 0);
+			handle.lineTo(34, 0);
+			rage(ctx, handle, time, 2.5);
+			ctx.translate(36, 0);
+			rage(ctx, macePath(10 * (0.5 + 0.5 * progress)), time);
 		}
-		ctx.restore();
 	}
+	ctx.restore();
+}
+
+function drawTells(
+	ctx: CanvasRenderingContext2D,
+	e: Enemy,
+	x: number,
+	y: number,
+	top: number,
+	muzzle: [number, number],
+	time: number,
+	color: string,
+	s: number,
+	winding: AbilityId | null,
+	windTell: string | null,
+	bodyTell: boolean,
+	tell: boolean,
+	progress: number
+) {
+	const def = ENEMIES[e.kind];
+	const b = e.brain;
 
 	// Ranged tells: an aim line in the last part of the windup (that's when the aim locks)
 	if ((windTell === 'aim' || winding === 'charge') && progress > 0.4) {
@@ -194,10 +226,10 @@ function drawEnemyOverlay(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 		ctx.restore();
 	}
 
-	// Roar tell: rings of red closing in on the body
+	// Roar tell: rings closing in on the body
 	if (winding === 'roar') {
 		ctx.save();
-		ctx.strokeStyle = RED;
+		ctx.strokeStyle = color;
 		for (let i = 0; i < 2; i++) {
 			const k = (progress * 2 + i * 0.5) % 1;
 			ctx.globalAlpha = k * 0.8;

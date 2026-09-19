@@ -80,12 +80,12 @@ export interface HeroFx {
 }
 
 const COOLDOWNS: Record<HeroPower, number> = {
-	blitz: 0.7,
+	blitz: 1.3,
 	barrage: 7,
 	tornado: 13,
 	lightning: 4.5,
 	dodge: 2.2,
-	mace: 0.8,
+	mace: 1,
 	dive: 7,
 	rush: 5,
 	thunder: 10,
@@ -94,7 +94,7 @@ const COOLDOWNS: Record<HeroPower, number> = {
 
 // ---- The Flash ----
 /** How fast he runs in and out of a Blitz (px/s), and how close he stops. */
-const BLITZ_SPEED = 1500;
+const BLITZ_SPEED = 1100;
 const BLITZ_REACH = 32;
 export const BLITZ = { punches: 3, gap: 0.08, damage: 7, knockback: 80, lastKnockback: 300, range: 620 };
 /** Speed Barrage: how many, how far he looks, how long each zip takes. */
@@ -390,7 +390,7 @@ function run(p: Player, h: HeroState, m: Move, dt: number, w: ConstructWorld, so
 				m.queue.shift();
 				return;
 			}
-			if (runTo(t.x - (t.x > p.x ? 26 : -26), t.y, 2400) || m.elapsed > BARRAGE.zip * 3) {
+			if (runTo(t.x - (t.x > p.x ? 26 : -26), t.y, 1700) || m.elapsed > BARRAGE.zip * 3) {
 				fx.push({ kind: 'zip', x: m.fromX, y: m.fromY, x2: p.x, y2: p.y, age: 0, life: 0.3 });
 				hit(w, p, t, BARRAGE.damage, BARRAGE.knockback, p.x, p.y);
 				w.effects.push({ kind: 'impact', x: t.x, y: t.y, age: 0, life: 0.2, lift: 34 });
@@ -406,7 +406,7 @@ function run(p: Player, h: HeroState, m: Move, dt: number, w: ConstructWorld, so
 		case 'tornado': {
 			p.invuln = Math.max(p.invuln, 0.05);
 			// Round and round the middle, faster than the eye can follow
-			const ang = m.elapsed * 15;
+			const ang = m.elapsed * 10;
 			p.prevX = p.x;
 			p.prevY = p.y;
 			p.x = m.x + Math.cos(ang) * TORNADO.circle;
@@ -555,8 +555,10 @@ function run(p: Player, h: HeroState, m: Move, dt: number, w: ConstructWorld, so
 /** Health (0..1) where a hero backs out of the fight, and where they go back in. */
 const RETREAT_BELOW = 0.3;
 const RETURN_ABOVE = 0.65;
-/** How far they'll go from the Lantern they're fighting beside. */
-const LEASH = 520;
+/** How far they'll roam from the Lantern they're fighting beside. */
+const LEASH = 950;
+/** They'll drop what they're doing to stop a hit on the Lantern from this close. */
+const HELP_RANGE = 450;
 
 export interface HeroWorld {
 	readonly players: readonly Player[];
@@ -569,8 +571,9 @@ export interface HeroWorld {
  * powers themselves are picked in updateHero.
  *  - the Flash circles his target at a run, never standing still,
  *  - Hawkgirl gets in close with the mace,
- *  - both go for whoever is about to hit the Lantern first, back out when
- *    badly hurt, and stay near the fight.
+ *  - each picks their own fight: enemies nobody else is on, roaming well away
+ *    from the Lantern, and only comes back to stop something about to hit
+ *    him; both back out when badly hurt.
  */
 export class HeroInput implements InputSource {
 	me: Player | null = null;
@@ -615,7 +618,7 @@ export class HeroInput implements InputSource {
 			}
 			if (h.id === 'flash') {
 				// Always running: round and round whoever he's after
-				this.orbit += this.orbitDir * 2.2 * dt;
+				this.orbit += this.orbitDir * 1.4 * dt;
 				gx = t.x + Math.cos(this.orbit) * 180;
 				gy = t.y + Math.sin(this.orbit) * 120;
 			} else {
@@ -655,14 +658,25 @@ export class HeroInput implements InputSource {
 		return intent;
 	}
 
-	/** Whoever's about to hit the Lantern, then whoever's on me, then the nearest. */
+	/**
+	 * Their own fight, not the Lantern's: whoever's about to hit the Lantern
+	 * (if I'm close enough to stop it and nobody else is), then whoever's on
+	 * me, then who I'm already fighting, then the nearest enemy nobody else is
+	 * fighting, and only then anyone.
+	 */
 	private pickTarget(me: Player, lead: Player | null, enemies: Enemy[]): Enemy | null {
 		const near = (e: Enemy, r: number) => dist(e, me) < r;
+		const others = this.world.players.filter((p) => p !== me);
+		const taken = (e: Enemy) =>
+			others.some((p) => (p.hero ? p.hero.target === e : p.attackTarget?.kind === 'enemy' && p.attackTarget.dummy === e));
 		const held = me.hero?.target;
-		const current = held && isEnemy(held) && isStanding(held) && near(held, 700) ? held : null;
-		const winding = enemies.filter((e) => lead && e.brain.target === lead && e.brain.state === 'windup' && near(e, 600));
-		const onMe = enemies.filter((e) => e.brain.target === me && near(e, 500));
-		const pool = [winding, onMe, current ? [current] : [], enemies.filter((e) => near(e, 900)), enemies].find((l) => l.length > 0) ?? [];
+		const current = held && isEnemy(held) && isStanding(held) && near(held, 800) ? held : null;
+		const winding = enemies.filter(
+			(e) => lead && e.brain.target === lead && e.brain.state === 'windup' && dist(e, lead) < HELP_RANGE && near(e, 700) && !taken(e)
+		);
+		const onMe = enemies.filter((e) => e.brain.target === me && near(e, 450));
+		const free = enemies.filter((e) => !taken(e) && (!lead || dist(e, lead) < LEASH + 150));
+		const pool = [winding, onMe, current ? [current] : [], free, enemies].find((l) => l.length > 0) ?? [];
 		let best: Enemy | null = null;
 		for (const e of pool) if (!best || dist(e, me) < dist(best, me)) best = e;
 		return best;

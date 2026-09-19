@@ -390,6 +390,10 @@ glows) → **manhunter** (health x3, might 2.6). Broken, the Manhunter becomes a
 (`REBUILD_TIMES`), at 50% health and x1.15 might per rebuild (capped at 3), with up to 2 Manhunter
 Drones; smash the core and it's over → **farewell** (the Flash mentions the Justice League; the ring
 calls John to Oa and lifts him into the sky). Soldiers x3.6 health, might 3.1.
+Waves (user: "too short, didn't fight enough gorillas"): arrival 5 → **flank** 7 down the side
+streets (top and bottom) → **push** 8 from the dig, and 4 troopers behind it once half are down →
+Grodd (+6 reinforcements in stage 2): ~31 gorillas, ~1:40 of street fighting for the bot. The core
+wears down 20% per rebuild (`CORE_WEAR`), so it can't loop forever. ★ under 9 min.
 Enemies: **Gorilla Soldier** (`gorillaBrute`: claws/power gauntlets, charge, slam, roar), **Gorilla
 Trooper** (`gorillaGunner`: blast, cannon, barricade, mortar `meteors`), **Gorilla Grodd** (`grodd`:
 Psychic Blast = a cone that goes through bubble shields (`damagePlayer(..., pierce)`), Mind Control =
@@ -398,6 +402,10 @@ Psychic Blast = a cone that goes through bubble shields (`damagePlayer(..., pier
 targets every 4.5-7s (60% John) with an opener, takes the Flash's mind once in stage 2), **Manhunter**
 (`manhunter`: eye laser, sweep, pulse, baton, slam). ★ Manhunter destroyed ★ no lives lost ★ under 7 min.
 Bots: win ~6/8, usually losing 1-2 lives; 4-5 minutes; 1-2 rebuilds.
+
+**Main menu** (`routes/+page.svelte`, `components/MenuPoster.svelte`, 2026-09-19): a poster-like
+canvas: Kilowog, Hal and John full-body on a glowing platform on Oa, rings raised, their beams meeting
+in the sky (drawn with `drawLantern`), towers, clouds, motes; a small title and buttons below.
 
 **Theme green** (`src/lib/theme.ts`, 2026-09-19): one green for the whole game. `THEME_GREEN`
 (#3dff6e) with shades mixed from it: `GREEN_LIGHT` (glows, highlights), `GREEN_DIM` (unlit/off
@@ -445,10 +453,19 @@ skips normal movement while a move carries them (`heroMoving`). No HUD. Enemies 
   lightning ring, stun), **Wing Guard** (wings wrapped round her: a hit does 25%). Nth metal does 3× to
   a Manhunter's core.
 - Grodd's Mind Control (`Player.confused`) reverses a player's movement; a hero stands dazed.
+- **They fight independently** (user, 2026-09-19): each picks enemies nobody else (the Lantern or the
+  other hero) is on, roams up to 950 px from the Lantern, and only drops that to stop a windup on the
+  Lantern within 450 px. The camera frames the Lanterns only, not the heroes.
+- Pace (user: "everything is too fast"): Flash 400 px/s, Blitz 1100 px/s every 1.3s, slower orbit and
+  Tornado spin; gorillas 140/120 px/s, Grodd 160.
 
 **Enemy tints:** enemy art is drawn red; `EnemyDef.tint` recolors it with a canvas filter
 (`inTint` in `draw/corps.ts`): `corps` green (sparring Lanterns), `tech` amber (Gorilla City), `psychic`
-purple (Grodd). Effects and cages carry `tint`.
+purple (Grodd). Effects and cages carry `tint`. **A canvas filter is a full-screen pass**, so the Game
+draws tinted shots, beams and effects grouped by colour (`drawTintedAll`: at most one pass per colour
+per list), enemy overlays (health bar, tells) are drawn directly in the tint colour, and damage numbers
+and pops are never tinted. Per-item filtering caused the lag in busy Call to Arms fights (profiled
+2026-09-19: now ~0.6 filter passes per frame, at most 3).
 
 **Earth** (`ground: 'street'`): asphalt roads on a grid (`CITY_BLOCK` 700, `ROAD_WIDTH` 240) with
 lane lines, kerbs and crosswalks; `car` obstacles (breakable cover, and what Grodd throws);

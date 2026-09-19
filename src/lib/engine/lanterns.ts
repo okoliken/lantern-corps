@@ -144,9 +144,9 @@ export const LANTERNS: Record<CrewId, LanternDef> = {
 		name: 'The Flash',
 		title: 'The Fastest Man Alive',
 		blurb: 'Too fast to see: a blur of punches, lightning thrown from the Speed Force, and tornadoes run into being.',
-		maxSpeed: 520,
-		accel: 5200,
-		decel: 5200,
+		maxSpeed: 400,
+		accel: 3600,
+		decel: 3600,
 		traits: { power: 1, durability: 1, cooldown: 1, structureCost: 1 },
 		look: { skin: '#e8b996', hair: '#b8331f', hairStyle: 'cropped', mask: false },
 		hero: 'flash'
