@@ -359,22 +359,38 @@ function rifle(ctx: CanvasRenderingContext2D, l: Skeleton['front'], e: Enemy, ti
 
 // ------------------------------------------------------------------ Manhunter
 
+/** How high a Manhunter flies, before scaling. */
+export const MANHUNTER_HOVER = 24;
+
+/** Manhunters fly: legs trailing, leaning into it when they move, bobbing when they hold still. */
+function manhunterPose(e: Enemy, hasGround: boolean, time: number): LanternPose {
+	const base = enemyPose(e, hasGround, time);
+	return {
+		...base,
+		altitude: 1,
+		hoverHeight: MANHUNTER_HOVER + Math.sin(time * 2 + e.homeX) * 2,
+		lean: Math.min(0.8, Math.max(0, e.vx * e.dir) / 220),
+		walkPhase: 0,
+		build: MANHUNTER_BUILD,
+		hunch: 0
+	};
+}
+
 export function manhunterHand(e: Enemy, x: number, y: number): Point {
 	const s = scaleOf(e);
-	const pose = groundPose(e, true, 0, MANHUNTER_BUILD, 0);
-	const sk = computeSkeleton({ ...pose, firing: true }, 0);
+	const sk = computeSkeleton({ ...manhunterPose(e, true, 0), firing: true }, 0);
 	// Its lasers come from its eyes
 	return [x + (sk.headCenter[0] + 4) * e.dir * s, y - e.brain.air * SLAM_HEIGHT + sk.headCenter[1] * s];
 }
 
 export function manhunterTop(e: Enemy, y: number): number {
-	return y - e.brain.air * SLAM_HEIGHT - 90 * scaleOf(e);
+	return y - e.brain.air * SLAM_HEIGHT - (90 + MANHUNTER_HOVER) * scaleOf(e);
 }
 
 export function drawManhunter(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number) {
 	const b = e.brain;
 	const s = scaleOf(e);
-	const pose = groundPose(e, hasGround, time, MANHUNTER_BUILD, 0);
+	const pose = manhunterPose(e, hasGround, time);
 	const sk = computeSkeleton(pose, time);
 	const defeated = !isStanding(e);
 	const winding = b.state === 'windup' ? b.ability : null;
@@ -387,9 +403,10 @@ export function drawManhunter(ctx: CanvasRenderingContext2D, e: Enemy, x: number
 	ctx.globalAlpha = defeated ? Math.min(1, e.down / 0.5) : 1;
 	ctx.translate(x, y);
 	if (hasGround) {
-		ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+		// Its shadow on the ground far below it
+		ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
 		ctx.beginPath();
-		ctx.ellipse(0, 0, 14 * s, 4 * s, 0, 0, TAU);
+		ctx.ellipse(0, 0, 11 * s, 3 * s, 0, 0, TAU);
 		ctx.fill();
 	}
 	ctx.translate(0, -air);
@@ -737,7 +754,36 @@ export function drawPsychicFx(ctx: CanvasRenderingContext2D, list: readonly Psyc
 		ctx.save();
 		ctx.shadowColor = PSYCHIC;
 		ctx.shadowBlur = 14;
-		if (f.kind === 'wave') {
+		if (f.kind === 'grip' && f.holder && f.held) {
+			// A beam of force from his head to whoever he's holding, and a purple glow round them
+			const h = f.held;
+			const hx = h.x;
+			const hy = h.y - (h.bodyBottom + h.bodyTop) / 2;
+			const gx = f.holder.x;
+			const gy = f.holder.y - 150;
+			const pulse = 0.7 + 0.3 * Math.sin(time * 18);
+			ctx.strokeStyle = `rgba(200, 150, 255, ${0.55 * pulse})`;
+			ctx.lineWidth = 5;
+			ctx.beginPath();
+			ctx.moveTo(gx, gy);
+			ctx.quadraticCurveTo((gx + hx) / 2, Math.min(gy, hy) - 60, hx, hy);
+			ctx.stroke();
+			const aura = ctx.createRadialGradient(hx, hy, 4, hx, hy, 60);
+			aura.addColorStop(0, `rgba(179, 107, 255, ${0.5 * pulse})`);
+			aura.addColorStop(1, 'rgba(179, 107, 255, 0)');
+			ctx.fillStyle = aura;
+			ctx.beginPath();
+			ctx.arc(hx, hy, 60, 0, TAU);
+			ctx.fill();
+			ctx.strokeStyle = `rgba(226, 198, 255, ${0.8 * pulse})`;
+			ctx.lineWidth = 2;
+			for (let i = 0; i < 3; i++) {
+				const a = time * 6 + (i / 3) * TAU;
+				ctx.beginPath();
+				ctx.ellipse(hx, hy, 34, 14, 0, a, a + 1.4);
+				ctx.stroke();
+			}
+		} else if (f.kind === 'wave') {
 			// Rings of force spreading out in a cone, at head height
 			for (let i = 0; i < 3; i++) {
 				const r = f.radius * Math.min(1, k * 1.15 - i * 0.12);

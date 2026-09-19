@@ -40,7 +40,7 @@ export interface EnemyDef {
 	kind: EnemyKind;
 	name: string;
 	/** 'corps': a Green Lantern sparring with you (Kilowog); his constructs are drawn green. 'gorilla': Grodd's army. */
-	faction: 'red' | 'manhunter' | 'corps' | 'gorilla';
+	faction: 'red' | 'manhunter' | 'corps' | 'gorilla' | 'rogue';
 	/** Its constructs and effects are drawn in this colour instead of red. */
 	tint?: Tint;
 	/** One line for the codex and lab. */
@@ -329,6 +329,27 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		kit: ['mindBlast', 'mindLock', 'carThrow', 'claws', 'slam', 'charge'],
 		range: 220,
 		leans: { aggression: 0.5, caution: -0.2 },
+		lieutenant: true
+	},
+	// The Flash's nemesis, along with Grodd for one reason: to end the Flash
+	reverseFlash: {
+		kind: 'reverseFlash',
+		name: 'Reverse-Flash',
+		faction: 'rogue',
+		description:
+			"Eobard Thawne: everything the Flash can do, turned against him. He runs in at a blur, pins his target for a beatdown faster than they can fall, and throws red lightning. He's here for the Flash, and turns on anyone else only when the Flash is down.",
+		mind: 'rage',
+		hp: 1500,
+		speed: 330,
+		accel: 12,
+		sight: 1200,
+		poise: 220,
+		scale: 1,
+		agility: 1,
+		movement: 'hover',
+		kit: ['rfBlitz', 'rfBeatdown', 'rfLightning'],
+		range: 140,
+		leans: { aggression: 0.8, caution: -0.3 },
 		lieutenant: true
 	},
 	// The Guardians' first peacekeepers, woken under Central City: it rebuilds itself when destroyed

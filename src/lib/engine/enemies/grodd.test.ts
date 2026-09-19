@@ -6,7 +6,7 @@ import { IDLE } from '../input';
 import { LANTERNS } from '../lanterns';
 import { createPlayer, updatePlayer, type Player } from '../player';
 import { createEnemy, updateEnemies, type Enemy } from './enemies';
-import { MIND_LOCK_TIME } from './grodd';
+import { GRIP, MIND_LOCK_TIME } from './grodd';
 import type { AbilityId } from './redConstructs';
 
 const DT = 1 / 60;
@@ -64,6 +64,22 @@ describe("Grodd's powers", () => {
 		run(w, [p], 0.2);
 		expect(p.confused).toBe(0);
 		expect(w.shields).toHaveLength(0);
+	});
+
+	it('Telekinetic Grip: lifts the Lantern (shield or not), carries them to him, and hurls them away', () => {
+		const { p, grodd, w } = arena(450);
+		w.shields.push({ owner: p, target: p, hp: 999, maxHp: 999, life: 10, maxLife: 10, ripple: 0 });
+		force(grodd, 'tkGrip', p);
+		run(w, [p], 0.1);
+		expect(w.shields).toHaveLength(0);
+		run(w, [p], GRIP.carry);
+		// Carried in close to him, off the ground, and no constructs while he holds them
+		expect(Math.hypot(p.x - grodd.x, p.y - grodd.y)).toBeLessThan(200);
+		expect(p.altitude).toBeGreaterThan(0.5);
+		expect(p.branded).toBeGreaterThan(0);
+		run(w, [p], GRIP.hold + 0.4);
+		expect(p.health).toBeLessThan(p.maxHealth);
+		expect(Math.hypot(p.x - grodd.x, p.y - grodd.y)).toBeGreaterThan(200);
 	});
 
 	it('Telekinetic Throw: a car flies at the Lantern and bursts where it lands', () => {

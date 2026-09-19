@@ -9,6 +9,9 @@
 import { HEAD_R, TORSO, computeSkeleton, turnScale, type LanternPose, type Point, type Skeleton } from '../animation';
 import type { HeroFx } from '../heroes';
 import type { HeroId, Look } from '../lanterns';
+import { isStanding } from '../dummy';
+import type { Enemy } from '../enemies/enemies';
+import { enemyPose } from './enemies';
 import { FIGURE_HEIGHT, lerpP, poly, segment, shadeColor } from './lantern';
 
 const FIGURE_SCALE = 1.35;
@@ -71,12 +74,7 @@ export function drawHero(
 	ctx.lineCap = 'round';
 
 	if (id === 'flash') {
-		drawFlashArm(ctx, sk.back, true);
-		drawFlashLeg(ctx, sk.back, true);
-		drawFlashTorso(ctx, sk);
-		drawFlashLeg(ctx, sk.front, false);
-		drawFlashHead(ctx, sk, look, time);
-		drawFlashArm(ctx, sk.front, false);
+		drawSpeedsterBody(ctx, sk, look, time, FLASH_COLORS);
 	} else {
 		const flying = air > 0.5 && !pose.downed;
 		const guard = extra.guard ?? 0;
@@ -95,9 +93,34 @@ export function drawHero(
 
 // ------------------------------------------------------------------ the Flash
 
-function drawFlashLeg(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean) {
-	const red = far ? RED_DARK : RED;
-	const boot = far ? YELLOW_DARK : YELLOW;
+/** A speedster's costume colours: the Flash's, or Reverse-Flash's (the same suit, the colours swapped). */
+export interface SpeedsterColors {
+	suit: string;
+	lit: string;
+	dark: string;
+	/** Boots, belt, cuffs and the lightning at the ears. */
+	trim: string;
+	trimDark: string;
+	/** The emblem's disc, and the bolt across it. */
+	disc: string;
+	bolt: string;
+}
+export const FLASH_COLORS: SpeedsterColors = { suit: RED, lit: RED_LIT, dark: RED_DARK, trim: YELLOW, trimDark: YELLOW_DARK, disc: '#f7f3ea', bolt: YELLOW };
+export const REVERSE_FLASH_COLORS: SpeedsterColors = { suit: '#e5bd14', lit: '#ffdc4a', dark: '#a8850a', trim: '#c8141c', trimDark: '#8e0c12', disc: '#17110b', bolt: '#e0202a' };
+
+/** A speedster on the Lantern skeleton, in the given colours (the caller has translated, scaled and mirrored). */
+export function drawSpeedsterBody(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look, time: number, P: SpeedsterColors) {
+	drawFlashArm(ctx, sk.back, true, P);
+	drawFlashLeg(ctx, sk.back, true, P);
+	drawFlashTorso(ctx, sk, P);
+	drawFlashLeg(ctx, sk.front, false, P);
+	drawFlashHead(ctx, sk, look, time, P);
+	drawFlashArm(ctx, sk.front, false, P);
+}
+
+function drawFlashLeg(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean, P: SpeedsterColors) {
+	const red = far ? P.dark : P.suit;
+	const boot = far ? P.trimDark : P.trim;
 	segment(ctx, l.hipJoint, l.knee, 3.7, 2.9, red);
 	const bootTop = lerpP(l.knee, l.foot, 0.45);
 	segment(ctx, l.knee, bootTop, 2.9, 2.6, red);
@@ -107,7 +130,7 @@ function drawFlashLeg(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: 
 	const toe: Point = [l.foot[0] + Math.cos(toeAngle) * 4.4, l.foot[1] + Math.sin(toeAngle) * 4.4];
 	segment(ctx, l.foot, toe, 2.2, 1.5, boot);
 	// The little lightning wing on the boot
-	ctx.fillStyle = far ? YELLOW_DARK : YELLOW;
+	ctx.fillStyle = far ? P.trimDark : P.trim;
 	ctx.beginPath();
 	ctx.moveTo(bootTop[0] - 2.4, bootTop[1] + 0.5);
 	ctx.lineTo(bootTop[0] - 5.5, bootTop[1] - 1.5);
@@ -116,13 +139,13 @@ function drawFlashLeg(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: 
 	ctx.fill();
 }
 
-function drawFlashArm(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean) {
-	const red = far ? RED_DARK : RED_LIT;
-	segment(ctx, l.shoulder, l.elbow, 2.9, 2.4, far ? RED_DARK : RED);
+function drawFlashArm(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean, P: SpeedsterColors) {
+	const red = far ? P.dark : P.lit;
+	segment(ctx, l.shoulder, l.elbow, 2.9, 2.4, far ? P.dark : P.suit);
 	segment(ctx, l.elbow, l.hand, 2.3, 2.0, red);
 	// Yellow cuff
 	const cuff = lerpP(l.elbow, l.hand, 0.7);
-	segment(ctx, cuff, lerpP(l.elbow, l.hand, 0.82), 2.3, 2.2, far ? YELLOW_DARK : YELLOW);
+	segment(ctx, cuff, lerpP(l.elbow, l.hand, 0.82), 2.3, 2.2, far ? P.trimDark : P.trim);
 	ctx.fillStyle = red;
 	ctx.beginPath();
 	ctx.arc(l.hand[0], l.hand[1], 2.3, 0, TAU);
@@ -158,18 +181,18 @@ function torsoShape(at: (a: number, s: number) => Point, slim = 0) {
 	]);
 }
 
-function drawFlashTorso(ctx: CanvasRenderingContext2D, sk: Skeleton) {
+function drawFlashTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, P: SpeedsterColors) {
 	const at = frame(sk);
 	const body = torsoShape(at);
 	const [bx, by] = at(8, -6);
 	const [fx, fy] = at(8, 7);
 	const shade = ctx.createLinearGradient(bx, by, fx, fy);
-	shade.addColorStop(0, RED_DARK);
-	shade.addColorStop(1, RED_LIT);
+	shade.addColorStop(0, P.dark);
+	shade.addColorStop(1, P.lit);
 	ctx.fillStyle = shade;
 	ctx.fill(body);
 	// Yellow belt
-	ctx.strokeStyle = YELLOW;
+	ctx.strokeStyle = P.trim;
 	ctx.lineWidth = 1.6;
 	ctx.beginPath();
 	ctx.moveTo(...at(1.3, -4.4));
@@ -184,14 +207,14 @@ function drawFlashTorso(ctx: CanvasRenderingContext2D, sk: Skeleton) {
 	ctx.save();
 	ctx.translate(ex, ey);
 	ctx.rotate(sk.torsoAngle);
-	ctx.fillStyle = '#f7f3ea';
+	ctx.fillStyle = P.disc;
 	ctx.beginPath();
 	ctx.arc(0, 0, 2.8, 0, TAU);
 	ctx.fill();
-	ctx.strokeStyle = YELLOW_DARK;
+	ctx.strokeStyle = P.trimDark;
 	ctx.lineWidth = 0.4;
 	ctx.stroke();
-	ctx.fillStyle = YELLOW;
+	ctx.fillStyle = P.bolt;
 	ctx.beginPath();
 	ctx.moveTo(-1, -3.2);
 	ctx.lineTo(1.5, -0.8);
@@ -203,7 +226,7 @@ function drawFlashTorso(ctx: CanvasRenderingContext2D, sk: Skeleton) {
 	ctx.fill();
 	ctx.restore();
 
-	segment(ctx, sk.neck, lerpP(sk.neck, sk.headCenter, 0.45), 1.9, 1.8, RED);
+	segment(ctx, sk.neck, lerpP(sk.neck, sk.headCenter, 0.45), 1.9, 1.8, P.suit);
 }
 
 function faceShape(): Path2D {
@@ -221,7 +244,7 @@ function faceShape(): Path2D {
 	return face;
 }
 
-function drawFlashHead(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look, time: number) {
+function drawFlashHead(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look, time: number, P: SpeedsterColors) {
 	const R = HEAD_R;
 	ctx.save();
 	ctx.translate(...sk.headCenter);
@@ -232,7 +255,7 @@ function drawFlashHead(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look, 
 	ctx.fill(face);
 	ctx.save();
 	ctx.clip(face);
-	ctx.fillStyle = RED;
+	ctx.fillStyle = P.suit;
 	ctx.beginPath();
 	ctx.moveTo(-R - 2, -R - 2);
 	ctx.lineTo(R + 3, -R - 2);
@@ -254,8 +277,8 @@ function drawFlashHead(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look, 
 
 	// Lightning wing at the ear, swept back
 	const flick = Math.sin(time * 9) * 0.3;
-	ctx.fillStyle = YELLOW;
-	ctx.strokeStyle = YELLOW_DARK;
+	ctx.fillStyle = P.trim;
+	ctx.strokeStyle = P.trimDark;
 	ctx.lineWidth = 0.4;
 	ctx.beginPath();
 	ctx.moveTo(0.4, -0.6);
@@ -571,7 +594,7 @@ function lightning(ctx: CanvasRenderingContext2D, ax: number, ay: number, bx: nu
 }
 
 /** The Flash's trail: a fading red-and-yellow streak along where he ran. */
-export function drawSpeedTrail(ctx: CanvasRenderingContext2D, trail: { x: number; y: number; age: number }[], height: number) {
+export function drawSpeedTrail(ctx: CanvasRenderingContext2D, trail: { x: number; y: number; age: number }[], height: number, reverse = false) {
 	if (trail.length < 2) return;
 	ctx.save();
 	ctx.lineCap = 'round';
@@ -580,10 +603,12 @@ export function drawSpeedTrail(ctx: CanvasRenderingContext2D, trail: { x: number
 		const b = trail[i];
 		const fade = 1 - b.age / 0.28;
 		if (fade <= 0) continue;
+		// The Flash streaks red and gold; Reverse-Flash gold and red
+		const [outer, inner] = reverse ? ['rgba(240, 200, 30, ', 'rgba(230, 30, 40, '] : ['rgba(232, 50, 58, ', 'rgba(255, 228, 92, '];
 		for (const [color, width, lift] of [
-			['rgba(232, 50, 58, ', 7, height * 0.55],
-			['rgba(255, 228, 92, ', 3, height * 0.7],
-			['rgba(255, 228, 92, ', 2, height * 0.35]
+			[outer, 7, height * 0.55],
+			[inner, 3, height * 0.7],
+			[inner, 2, height * 0.35]
 		] as const) {
 			ctx.strokeStyle = `${color}${0.55 * fade})`;
 			ctx.lineWidth = width * fade;
@@ -607,9 +632,9 @@ export function drawHeroFx(ctx: CanvasRenderingContext2D, list: readonly HeroFx[
 		switch (f.kind) {
 			case 'bolt': {
 				const lift = f.lift ?? 36;
-				ctx.shadowColor = SPEED_YELLOW;
+				ctx.shadowColor = f.red ? '#ff2a2a' : SPEED_YELLOW;
 				ctx.shadowBlur = 14;
-				ctx.strokeStyle = `rgba(255, 150, 40, ${0.8 * fade})`;
+				ctx.strokeStyle = f.red ? `rgba(230, 30, 40, ${0.85 * fade})` : `rgba(255, 150, 40, ${0.8 * fade})`;
 				ctx.lineWidth = 5;
 				lightning(ctx, f.x, f.y - lift, f.x2!, f.y2! - lift, Math.floor(time * 30));
 				ctx.strokeStyle = `rgba(255, 250, 210, ${fade})`;
@@ -620,13 +645,13 @@ export function drawHeroFx(ctx: CanvasRenderingContext2D, list: readonly HeroFx[
 			case 'zip': {
 				// A blur where he went: red with a yellow core
 				const lift = FIGURE_HEIGHT * 0.5;
-				ctx.strokeStyle = `rgba(232, 50, 58, ${0.5 * fade})`;
+				ctx.strokeStyle = f.red ? `rgba(240, 200, 30, ${0.5 * fade})` : `rgba(232, 50, 58, ${0.5 * fade})`;
 				ctx.lineWidth = 14 * fade;
 				ctx.beginPath();
 				ctx.moveTo(f.x, f.y - lift);
 				ctx.lineTo(f.x2!, f.y2! - lift);
 				ctx.stroke();
-				ctx.strokeStyle = `rgba(255, 228, 92, ${0.8 * fade})`;
+				ctx.strokeStyle = f.red ? `rgba(230, 30, 40, ${0.85 * fade})` : `rgba(255, 228, 92, ${0.8 * fade})`;
 				ctx.lineWidth = 2;
 				lightning(ctx, f.x, f.y - lift, f.x2!, f.y2! - lift, f.x, 6);
 				break;
@@ -695,3 +720,55 @@ export function drawHeroFx(ctx: CanvasRenderingContext2D, list: readonly HeroFx[
 		ctx.restore();
 	}
 }
+
+// -------------------------------------------------------------- Reverse-Flash
+
+const RF_TRAIL = new WeakMap<Enemy, { x: number; y: number; t: number }[]>();
+const RF_LOOK: Look = { skin: '#e2b48e', hair: '#e2b48e', hairStyle: 'cropped', mask: false };
+
+/** Reverse-Flash: the Flash's suit in reverse, running on his feet, a red and gold streak behind him. */
+export function drawReverseFlash(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number) {
+	const speed = Math.hypot(e.vx, e.vy);
+	const base = enemyPose(e, hasGround, time);
+	const pose: LanternPose = {
+		...base,
+		altitude: 0,
+		hoverHeight: 0,
+		lean: 0,
+		walkPhase: speed > 14 ? time * Math.min(speed, 600) * 0.05 + e.homeX : 0,
+		glow: false
+	};
+	// The streak: where he's been in the last quarter second
+	const trail = RF_TRAIL.get(e) ?? [];
+	RF_TRAIL.set(e, trail);
+	if (speed > 280 && isStanding(e)) trail.push({ x, y, t: time });
+	while (trail.length && time - trail[0].t > 0.25) trail.shift();
+	if (trail.length > 1) drawSpeedTrail(ctx, trail.map((p) => ({ x: p.x, y: p.y, age: Math.max(0, time - p.t) })), FIGURE_HEIGHT, true);
+
+	const defeated = !isStanding(e);
+	const s = FIGURE_SCALE;
+	const sk = computeSkeleton(pose, time);
+	ctx.save();
+	ctx.globalAlpha = defeated ? Math.min(1, e.down / 0.5) : 1;
+	ctx.translate(x, y);
+	ctx.scale(s, s);
+	if (hasGround) {
+		ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+		ctx.beginPath();
+		ctx.ellipse(0, 0, 12, 3.8, 0, 0, TAU);
+		ctx.fill();
+	}
+	ctx.scale(pose.dir * turnScale(pose), 1);
+	ctx.lineJoin = 'round';
+	ctx.lineCap = 'round';
+	// A hit makes him flicker
+	if (e.flash > 0) ctx.globalAlpha *= 0.55;
+	drawSpeedsterBody(ctx, sk, RF_LOOK, time, REVERSE_FLASH_COLORS);
+	ctx.restore();
+}
+
+/** Where Reverse-Flash's hand is, and the top of his head (for his tells and name). */
+export function reverseFlashHand(e: Enemy, x: number, y: number): [number, number] {
+	return [x + e.dir * 16, y - 52];
+}
+export const reverseFlashTop = (y: number) => y - FIGURE_HEIGHT - 6;

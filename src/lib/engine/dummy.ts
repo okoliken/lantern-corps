@@ -19,7 +19,7 @@ export const DUMMY_RESPAWN = 3;
 export const DEFEAT_LINGER = 0.9;
 
 /** What kind of target: a training dummy, or which enemy. */
-export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterCore';
+export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterCore' | 'reverseFlash';
 
 export interface Dummy {
 	kind: TargetKind;
@@ -204,8 +204,10 @@ export const BODY: Record<TargetKind, { halfWidth: number; height: number }> = {
 	gorillaBrute: { halfWidth: 26, height: 96 },
 	gorillaGunner: { halfWidth: 24, height: 90 },
 	grodd: { halfWidth: 34, height: 128 },
-	manhunter: { halfWidth: 22, height: 120 },
-	manhunterCore: { halfWidth: 22, height: 40 }
+	// Flying: its body is drawn well off the ground, so the box reaches up to it
+	manhunter: { halfWidth: 22, height: 160 },
+	manhunterCore: { halfWidth: 22, height: 40 },
+	reverseFlash: { halfWidth: 14, height: 86 }
 };
 /** A little slack below the feet, and the size of a bolt. */
 const HURT_SLACK = 8;

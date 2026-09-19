@@ -6,7 +6,11 @@
 //
 //   arrival    Grodd's soldiers, already fighting the Flash and Hawkgirl; the
 //              ring talks John through his first fight
-//   flank      a second squad down the side streets, from above and below
+//   flank      a second squad down the side streets, from above and below;
+//              and Reverse-Flash, here for the Flash: the Flash takes him on
+//              while John and Hawkgirl hold off Grodd's army (you can shoot
+//              him, and shield the Flash). Beaten, he runs; if he's still up
+//              when Grodd escapes, he goes with him
 //   push       the main force up out of the dig, and troopers behind them
 //   grodd      Grodd himself, in three stages:
 //                1  Psychic Blast, Telekinetic Throw, and a gorilla's fists
@@ -22,6 +26,9 @@
 //
 // Lose: John goes down 3 times.
 
+import { heroFx } from '../heroes';
+import { IDLE } from '../input';
+import { green, greenCore } from '../../theme';
 import type { Dummy } from '../dummy';
 import { createDummy, isStanding } from '../dummy';
 import { drawDigSite, drawLampPost, drawStreetTree } from '../draw/earth';
@@ -70,6 +77,11 @@ const REBUILT_MIGHT = 1.15;
 /** He turns on someone new every so often (seconds, plus up to SWITCH_SPREAD more). */
 const SWITCH_EVERY = 4.5;
 const SWITCH_SPREAD = 2.5;
+/** Reverse-Flash: health and might on top of his base, and where he gives up and runs. */
+const RF_HEALTH = 4.5;
+const RF_MIGHT = 3;
+export const RF_FLEES = 0.12;
+
 /** Seconds between Grodd getting away and the Manhunter standing up. */
 const AWAKEN_TIME = 4;
 /** Seconds John rises into the sky at the end. */
@@ -135,9 +147,9 @@ const REINFORCEMENTS: Wave = [
 
 /** Grodd's kit in each stage: it only grows. */
 const KITS: Record<1 | 2 | 3, AbilityId[]> = {
-	1: ['mindBlast', 'carThrow', 'claws', 'slam', 'charge', 'roar'],
-	2: ['mindBlast', 'carThrow', 'claws', 'slam', 'charge', 'roar', 'mindLock', 'debrisStorm'],
-	3: ['mindBlast', 'carThrow', 'claws', 'slam', 'charge', 'roar', 'mindLock', 'debrisStorm']
+	1: ['tkGrip', 'mindLock', 'mindBlast', 'carThrow', 'claws', 'slam', 'charge', 'roar'],
+	2: ['tkGrip', 'mindLock', 'mindBlast', 'carThrow', 'claws', 'slam', 'charge', 'roar', 'debrisStorm'],
+	3: ['tkGrip', 'mindLock', 'mindBlast', 'carThrow', 'claws', 'slam', 'charge', 'roar', 'debrisStorm']
 };
 
 /** Where the roads run (the ground draws them the same way). */
@@ -215,6 +227,8 @@ export class CallToArms implements MissionDirector {
 	readonly comms = new Comms();
 	readonly starHint = '★ the Manhunter destroyed · ★ no lives lost · ★ under 9 minutes';
 	grodd: Enemy | null = null;
+	/** Reverse-Flash, while he's here. */
+	reverseFlash: Enemy | null = null;
 	manhunter: Enemy | null = null;
 	/** The Manhunter's core, while it lies in pieces. */
 	core: Dummy | null = null;
@@ -234,6 +248,8 @@ export class CallToArms implements MissionDirector {
 	private escapeFigure = createEnemy('grodd', DIG.x, DIG.y);
 	private decor: Drawable[] | null = null;
 	private liftFrom = { x: 0, y: 0 };
+	/** John, once the ring is calling him (for drawing his ascent). */
+	private john: Player | null = null;
 
 	// ------------------------------------------------------------ reporting
 
@@ -351,16 +367,14 @@ export class CallToArms implements MissionDirector {
 		this.countDowns(game);
 		if (this.state !== 'playing') return;
 		this.hint(game);
+		this.rivalry(game);
 
 		switch (this.phase) {
 			case 'arrival':
 				if (this.wave.filter(isStanding).length <= 1) {
 					this.phase = 'flank';
 					this.spawn(game, FLANK, true);
-					this.comms.scene([
-						['Hawkgirl', 'Side streets! Above and below us!'],
-						['The Flash', "I'll take the top. Lantern, you've got the middle. Try not to get flattened."]
-					]);
+					this.reverseFlashArrives(game);
 				}
 				break;
 			case 'flank':
@@ -406,6 +420,56 @@ export class CallToArms implements MissionDirector {
 				this.farewell(game);
 				break;
 		}
+	}
+
+	/** A red and gold blur down the street: he's come for the Flash. */
+	private reverseFlashArrives(game: Game) {
+		const flash = game.players.find((p) => p.def.id === 'flash');
+		const at = flash ? { x: Math.min(W - 200, flash.x + 500), y: flash.y } : { x: 2200, y: 1050 };
+		const rf = game.spawnEnemy('reverseFlash', at.x, at.y);
+		rf.hp = rf.maxHp = rf.brain.lastHp = Math.round(rf.maxHp * RF_HEALTH);
+		rf.brain.might = RF_MIGHT;
+		rf.brain.grit = TOUGHNESS;
+		rf.brain.directed = true;
+		rf.brain.alert = 10;
+		if (flash) rf.brain.target = flash;
+		this.reverseFlash = rf;
+		this.comms.scene([
+			['Reverse-Flash', 'Hello, Flash. Did you miss me?'],
+			['The Flash', "Thawne. Of course Grodd brought you. Guys, he's mine."],
+			['Hawkgirl', 'Then we take the apes. Lantern, cover him when you can.']
+		]);
+	}
+
+	/** Reverse-Flash only wants the Flash; anyone else is just in the way. Beaten, he runs. */
+	private rivalry(game: Game) {
+		const rf = this.reverseFlash;
+		if (!rf) return;
+		if (!isStanding(rf) || rf.hp <= rf.maxHp * RF_FLEES) {
+			this.reverseFlashRuns(game, "This isn't over, Barry. It never is.");
+			return;
+		}
+		const b = rf.brain;
+		const up = game.players.filter((p) => !p.downed && !p.boarded);
+		const flash = up.find((p) => p.def.id === 'flash');
+		if (flash) b.target = flash;
+		else if (!b.target || b.target.downed) b.target = up.reduce<Player | null>((best, p) => (!best || Math.hypot(p.x - rf.x, p.y - rf.y) < Math.hypot(best.x - rf.x, best.y - rf.y) ? p : best), null);
+	}
+
+	/** Gone in a streak of red lightning. */
+	private reverseFlashRuns(game: Game, line: string | null) {
+		const rf = this.reverseFlash;
+		if (!rf) return;
+		this.reverseFlash = null;
+		const i = game.dummies.indexOf(rf);
+		if (i >= 0) game.dummies.splice(i, 1);
+		heroFx(game.constructs).push({ kind: 'zip', x: rf.x, y: rf.y, x2: rf.x + 900, y2: rf.y - 300, age: 0, life: 0.5, red: true });
+		game.constructs.effects.push({ kind: 'callout', x: rf.x, y: rf.y - 120, age: 0, life: 1.6, text: 'REVERSE-FLASH FLEES', hurt: true });
+		if (line)
+			this.comms.scene([
+				['Reverse-Flash', line],
+				['The Flash', 'Yeah, yeah. Run.']
+			]);
 	}
 
 	private spawn(game: Game, wave: Wave, fromDig = false) {
@@ -454,8 +518,7 @@ export class CallToArms implements MissionDirector {
 		this.intent(game, g, dt);
 		if (this.stage === 1 && hp <= GRODD_STAGE_2) {
 			this.stage = 2;
-			// Mind Control is saved for the Flash first (see intent)
-			g.brain.kit = KITS[2].filter((id) => id !== 'mindLock');
+			g.brain.kit = [...KITS[2]];
 			for (const id of KITS[2]) g.brain.cooldowns[id] = Math.min(g.brain.cooldowns[id], 0.8);
 			this.spawn(game, REINFORCEMENTS, true);
 			game.constructs.effects.push({ kind: 'callout', x: g.x, y: g.y - 180, age: 0, life: 1.8, text: 'TO ME!', hurt: true });
@@ -521,7 +584,9 @@ export class CallToArms implements MissionDirector {
 			b.engaged = false;
 			b.focusTime = 0;
 			const d = dist(next);
-			const opener: AbilityId | null = ready('carThrow') && d > 180 ? 'carThrow' : ready('mindBlast') && d < 420 ? 'mindBlast' : ready('charge') && d > 150 ? 'charge' : null;
+			// His mind first: grab them, get in their head, or throw something at them
+			const opener: AbilityId | null =
+				ready('tkGrip') && d < 600 ? 'tkGrip' : ready('mindLock') && d < 580 ? 'mindLock' : ready('carThrow') && d > 180 ? 'carThrow' : ready('mindBlast') && d < 420 ? 'mindBlast' : null;
 			if (opener) beginWindup(g, opener, next);
 			if (this.taunts++ % 2 === 0) this.comms.say('Grodd', TAUNTS[next.def.id] ?? 'Next.', true);
 		}
@@ -545,8 +610,12 @@ export class CallToArms implements MissionDirector {
 		}
 		this.wave = [];
 		game.constructs.effects.push({ kind: 'callout', x: g.x, y: g.y - 180, age: 0, life: 2, text: 'GRODD ESCAPES', hurt: true });
+		// If Reverse-Flash is still here, he goes too
+		const rfLeaves = this.reverseFlash !== null;
+		if (rfLeaves) this.reverseFlashRuns(game, null);
 		this.comms.scene([
 			['Grodd', "Keep the city. I have what I came for: I've woken it. Let's see how you like it."],
+			...(rfLeaves ? [['Reverse-Flash', 'Another time, Flash. I have all the time in the world.'] as [string, string]] : []),
 			['The Flash', 'He\'s gone. What did he mean, "woken it"?']
 		]);
 	}
@@ -634,6 +703,15 @@ export class CallToArms implements MissionDirector {
 		this.clock = 0;
 		const john = game.players[0];
 		john.invuln = 99;
+		this.john = john;
+		// The Flash and Hawkgirl stop where they are: they're here to see him off, not follow him
+		for (const p of game.players.slice(1)) {
+			p.input = { read: () => ({ ...IDLE }) };
+			if (p.hero) {
+				p.hero.move = null;
+				p.hero.target = null;
+			}
+		}
 		this.comms.scene([
 			['The Flash', 'Okay. That was new. Nice work, Lantern.'],
 			['Hawkgirl', 'You fight like a soldier. Where did you learn that?'],
@@ -644,7 +722,18 @@ export class CallToArms implements MissionDirector {
 		]);
 	}
 
+	/** The others turn to watch John. */
+	private watchJohn(game: Game) {
+		const john = game.players[0];
+		for (const p of game.players.slice(1)) {
+			p.dir = john.x > p.x ? 1 : -1;
+			p.vx = p.vy = 0;
+			if (p.hero) p.hero.move = null;
+		}
+	}
+
 	private farewell(game: Game) {
+		this.watchJohn(game);
 		for (const p of game.players) p.invuln = Math.max(p.invuln, 1);
 		// Once everyone has had their say, the ring takes him up into the sky
 		if (!this.comms.current) this.lift(game, game.players[0]);
@@ -663,7 +752,12 @@ export class CallToArms implements MissionDirector {
 	private hold(game: Game) {
 		const john = game.players[0];
 		if (!john || john.boarded) return;
+		this.watchJohn(game);
 		const k = Math.min(1, this.timer / LIFT_TIME);
+		// Rings of the ring's light pulsing out from him as he rises
+		if (Math.floor(this.timer / 0.22) !== Math.floor((this.timer - 1 / 60) / 0.22)) {
+			game.constructs.effects.push({ kind: 'snap', x: john.x, y: john.y - john.bodyTop / 2 - 20, age: 0, life: 0.55, radius: 55 + k * 40 });
+		}
 		john.x = john.prevX = this.liftFrom.x;
 		john.y = john.prevY = this.liftFrom.y - k * k * 900;
 		john.vx = 0;
@@ -671,7 +765,7 @@ export class CallToArms implements MissionDirector {
 		john.flying = true;
 		if (k >= 1) {
 			john.boarded = true;
-			game.constructs.effects.push({ kind: 'snap', x: john.x, y: john.y - 60, age: 0, life: 0.6, radius: 60 });
+			game.constructs.effects.push({ kind: 'snap', x: john.x, y: john.y - 60, age: 0, life: 0.8, radius: 120 });
 		}
 	}
 
@@ -726,6 +820,8 @@ export class CallToArms implements MissionDirector {
 
 	drawables(ctx: CanvasRenderingContext2D, _alpha: number, time: number): Drawable[] {
 		const list: Drawable[] = [...this.decorations(ctx)];
+		const john = this.john;
+		if (this.state === 'won' && john && !john.boarded) list.push({ baseY: this.liftFrom.y + 1, draw: () => drawAscent(ctx, this.liftFrom, john, this.timer / LIFT_TIME, time) });
 		const wake = this.phase === 'awakening' ? Math.min(1, this.clock / AWAKEN_TIME) : this.phase === 'escape' ? 0.15 : this.phase === 'manhunter' ? 0.3 : 0;
 		list.push({ baseY: DIG.y - 80, draw: () => drawDigSite(ctx, DIG.x, DIG.y, time, wake) });
 		if (this.phase === 'escape') {
@@ -764,6 +860,45 @@ export class CallToArms implements MissionDirector {
 		this.decor = list;
 		return list;
 	}
+}
+
+/**
+ * The ring carrying John up: a column of green light from where he stood into
+ * the sky, a glow on the ground under it, and a blaze round John himself.
+ */
+function drawAscent(ctx: CanvasRenderingContext2D, from: { x: number; y: number }, john: Player, k: number, time: number) {
+	const grow = Math.min(1, k * 3);
+	const pulse = 0.85 + 0.15 * Math.sin(time * 14);
+	ctx.save();
+	ctx.globalCompositeOperation = 'lighter';
+	// On the ground where he stood
+	const pool = ctx.createRadialGradient(from.x, from.y, 4, from.x, from.y, 130);
+	pool.addColorStop(0, green(0.55 * grow));
+	pool.addColorStop(1, green(0));
+	ctx.fillStyle = pool;
+	ctx.beginPath();
+	ctx.ellipse(from.x, from.y, 130, 45, 0, 0, Math.PI * 2);
+	ctx.fill();
+	// The column of light, up past the top of the screen
+	const top = john.y - 1400;
+	const width = 60 * grow;
+	const column = ctx.createLinearGradient(from.x - width, 0, from.x + width, 0);
+	column.addColorStop(0, green(0));
+	column.addColorStop(0.5, greenCore(0.45 * pulse * grow));
+	column.addColorStop(1, green(0));
+	ctx.fillStyle = column;
+	ctx.fillRect(from.x - width, top, width * 2, from.y - top);
+	// A blaze round John
+	const jy = john.y - (john.bodyBottom + john.bodyTop) / 2;
+	const blaze = ctx.createRadialGradient(john.x, jy, 6, john.x, jy, 110);
+	blaze.addColorStop(0, greenCore(0.8 * pulse));
+	blaze.addColorStop(0.35, green(0.45));
+	blaze.addColorStop(1, green(0));
+	ctx.fillStyle = blaze;
+	ctx.beginPath();
+	ctx.arc(john.x, jy, 110, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.restore();
 }
 
 /** What Grodd says when he turns on someone. */

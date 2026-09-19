@@ -191,6 +191,10 @@ Atrocitus wants them.
    **Manhunter**, which falls apart round its core when broken and rebuilds itself, stronger, unless
    the core is smashed first (Hawkgirl's Nth metal mace hits the core three times as hard). Ending:
    the Flash mentions the Justice League; the ring summons John to Oa and carries him up into the sky.
+   Added with the user (2026-09-19): **Reverse-Flash** came with Grodd, but only to end the Flash:
+   the Flash duels him while John and Hawkgirl hold off Grodd's army (John can shoot him and shield
+   the Flash); beaten, he runs ("This isn't over, Barry"). Grodd's telekinesis grabs anyone and hurls
+   them across the street.
 2. **Summoned** (Oa): the ring carries John to Oa, like the 2011 film. The Guardians, Hal, Kilowog,
    Tomar-Re; Kilowog's training, for John.
 3. **First Patrol** (built; was Colony Under Fire): John's first off-world call, Hal on backup.

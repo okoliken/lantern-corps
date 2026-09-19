@@ -6,6 +6,7 @@
 // hand with an aim line, the body crouches before a slam, and red rings pull
 // inward before a roar.
 
+import { drawReverseFlash, reverseFlashHand, reverseFlashTop } from './heroes';
 import type { LanternPose } from '../animation';
 import { ENEMIES, type Enemy } from '../enemies/enemies';
 import { ABILITIES, RED_HAND_LIFT, SLAM_HEIGHT, type AbilityId } from '../enemies/redConstructs';
@@ -63,6 +64,11 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, gorillaTop(e, y), gorillaHand(e, x, y), time);
 		return;
 	}
+	if (e.kind === 'reverseFlash') {
+		drawReverseFlash(ctx, e, x, y, hasGround, time);
+		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, reverseFlashTop(y), reverseFlashHand(e, x, y), time);
+		return;
+	}
 	if (e.kind === 'manhunter') {
 		drawManhunter(ctx, e, x, y, hasGround, time);
 		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, manhunterTop(e, y), manhunterHand(e, x, y), time);
@@ -85,6 +91,7 @@ export function enemyMuzzle(e: Enemy, x: number, y: number): [number, number] {
 	if (isLieutenantKind(e.kind)) return lieutenantHand(e, x, y);
 	if (isGorillaKind(e.kind)) return gorillaHand(e, x, y);
 	if (e.kind === 'manhunter') return manhunterHand(e, x, y);
+	if (e.kind === 'reverseFlash') return reverseFlashHand(e, x, y);
 	if (isCorpsKind(e.kind)) return corpsRing(e.kind, x, y, enemyPose(e, true, 0), 0);
 	return redLanternHand(e, x, y);
 }

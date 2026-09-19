@@ -9,6 +9,10 @@
 //   Telekinetic Throw   a car lifted off the street and hurled; it bursts where
 //                       it lands
 //   Debris Storm        everything loose around him lifted and flung at you
+//   Telekinetic Grip    he lifts someone off the ground with his mind (John, the
+//                       Flash, Hawkgirl: anyone), carries them to him, holds
+//                       them up, and hurls them across the street. A bubble
+//                       shield doesn't stop it; while held, a ring builds nothing
 // He also leaps (slam), charges, roars and claws, like any gorilla.
 
 import { damagePlayer } from '../combat';
@@ -17,7 +21,10 @@ import type { Player } from '../player';
 import { steer, type Enemy } from './enemies';
 import { fire, power, type AbilityDef, type AbilityId } from './redConstructs';
 
-export const GRODD_ABILITIES: ReadonlySet<AbilityId> = new Set<AbilityId>(['mindBlast', 'mindLock', 'carThrow', 'debrisStorm']);
+export const GRODD_ABILITIES: ReadonlySet<AbilityId> = new Set<AbilityId>(['mindBlast', 'mindLock', 'carThrow', 'debrisStorm', 'tkGrip']);
+
+/** Telekinetic Grip: seconds carrying them in, seconds holding them up, and how hard they're thrown (px/s). */
+export const GRIP = { carry: 0.75, hold: 0.35, throwSpeed: 1250, lift: 0.9 };
 
 /** Seconds of Mind Control. */
 export const MIND_LOCK_TIME = 3.2;
@@ -29,7 +36,10 @@ const STORM_GAP = 0.13;
 
 /** A psychic wave or grip: drawn by draw/gorillas.ts. */
 export interface PsychicFx {
-	kind: 'wave' | 'lock';
+	kind: 'wave' | 'lock' | 'grip';
+	/** Telekinetic Grip: who's holding whom (drawn where they are each frame). */
+	holder?: Enemy;
+	held?: Player;
 	x: number;
 	y: number;
 	angle: number;
@@ -77,6 +87,23 @@ export function startGroddAbility(e: Enemy, a: AbilityDef, w: ConstructWorld) {
 		case 'debrisStorm':
 			w.effects.push({ kind: 'callout', x: e.x, y: e.y - 170, age: 0, life: 1.3, text: 'DEBRIS STORM', hurt: true });
 			break;
+		case 'tkGrip': {
+			const t = b.target;
+			if (!t || t.downed || t.boarded || dist(t, e) > a.maxRange + 150) {
+				b.timer = 0;
+				break;
+			}
+			b.struck = [t];
+			// Psychic: a bubble shield is no help
+			const shield = w.shields.find((s) => s.target === t);
+			if (shield) {
+				w.shields.splice(w.shields.indexOf(shield), 1);
+				w.effects.push({ kind: 'pop', x: t.x, y: t.y, age: 0, life: 0.45, owner: t });
+			}
+			psychicFx(w).push({ kind: 'grip', x: e.x, y: e.y, angle: 0, radius: 0, age: 0, life: a.active, holder: e, held: t });
+			w.effects.push({ kind: 'callout', x: t.x, y: t.y, age: 0, life: 1.2, text: 'TELEKINESIS', hurt: true, owner: t });
+			break;
+		}
 	}
 }
 
@@ -99,6 +126,9 @@ export function updateGroddAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, p
 			}
 			break;
 		}
+		case 'tkGrip':
+			grip(e, a, w, dt);
+			break;
 		case 'debrisStorm': {
 			const up = players.filter((p) => !p.downed);
 			if (up.length && b.fired < STORM_PIECES && b.elapsed >= b.fired * STORM_GAP) {
@@ -112,6 +142,42 @@ export function updateGroddAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, p
 			break;
 		}
 	}
+}
+
+/**
+ * Telekinetic Grip: carry them in off the ground, hold them up in front of
+ * him, then throw them far away. Whoever's held can't use powers or build
+ * with the ring, but a Lantern can still shoot.
+ */
+function grip(e: Enemy, a: AbilityDef, w: ConstructWorld, dt: number) {
+	const b = e.brain;
+	const held = b.struck[0];
+	if (!held || b.hitDone) return;
+	if (held.downed) {
+		b.hitDone = true;
+		return;
+	}
+	// Held fast: no powers, no constructs, lifted off the ground
+	if (held.hero) held.hero.move = null;
+	held.branded = Math.max(held.branded, 0.1);
+	held.altitude = Math.max(held.altitude, Math.min(GRIP.lift, b.elapsed * 3));
+	const spot = { x: e.x + b.aimX * 70, y: e.y + b.aimY * 30 };
+	if (b.elapsed < GRIP.carry + GRIP.hold) {
+		const k = Math.min(1, dt * (b.elapsed < GRIP.carry ? 4.5 : 12));
+		held.prevX = held.x;
+		held.prevY = held.y;
+		held.x += (spot.x - held.x) * k;
+		held.y += (spot.y - held.y) * k;
+		held.vx = held.vy = 0;
+		return;
+	}
+	// ...and thrown, away from him and off to one side
+	b.hitDone = true;
+	const away = Math.atan2(held.y - e.y, held.x - e.x) + (Math.random() - 0.5) * 1.2;
+	damagePlayer(w, held, power(e, a), e.x, e.y, 0, true);
+	held.vx = Math.cos(away) * GRIP.throwSpeed;
+	held.vy = Math.sin(away) * GRIP.throwSpeed * 0.7;
+	w.effects.push({ kind: 'roar', x: held.x, y: held.y, age: 0, life: 0.4, radius: 40, lift: 40, tint: 'psychic' });
 }
 
 /** Mind Control on whoever he's after. A bubble shield takes it (and breaks). */

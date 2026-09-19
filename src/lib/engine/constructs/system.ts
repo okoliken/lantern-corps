@@ -220,8 +220,10 @@ export interface Turret {
 	maxLife: number;
 	hp: number;
 	maxHp: number;
-	/** A Marine in a fireteam: keeps this spot next to its Lantern instead of standing still. */
+	/** A Marine in a fireteam: this spot next to its Lantern is home when there's nothing to fight. */
 	follow?: { dx: number; dy: number };
+	/** A Marine's own mind: where it's heading, when it rethinks, and its stride (for drawing). */
+	march?: { x: number; y: number; rethink: number; stride: number; moving: boolean };
 }
 
 /** Pillars on their way down: they land when `time` runs out. */
@@ -933,7 +935,82 @@ const FIRETEAM_SPOTS: [number, number][] = [
 	[66, -60]
 ];
 
-/** Marine Fireteam: construct Marines that keep beside John and pick their own targets. */
+/** How fast a Marine moves (px/s), how far it keeps from its target, and how far it will go from its Lantern. */
+const MARINE_SPEED = 210;
+const MARINE_RANGE = 240;
+const MARINE_LEASH = 520;
+
+/**
+ * A Marine's mind: take a firing position around whatever its Lantern is
+ * fighting (each from its own angle, shifting every second or two), back off
+ * from anything that gets too close, never stray far from the Lantern, and
+ * fall back beside the Lantern when there's nothing to fight. Returns who it
+ * should shoot at first.
+ */
+function moveMarine(t: Turret, w: ConstructWorld, dt: number): Dummy | null {
+	const lead = t.owner;
+	const home = t.follow!;
+	const m = (t.march ??= { x: t.x, y: t.y, rethink: 0, stride: 0, moving: false });
+	const enemies = w.dummies.filter((d) => isStanding(d));
+	const locked = lead.attackTarget?.kind === 'enemy' ? lead.attackTarget.dummy : null;
+	let focus: Dummy | null = locked && isStanding(locked) && Math.hypot(locked.x - lead.x, locked.y - lead.y) < MARINE_LEASH + 300 ? locked : null;
+	if (!focus) {
+		// The nearest enemy anywhere a Marine could reach from its Lantern
+		let best = Infinity;
+		for (const d of enemies) {
+			if (Math.hypot(d.x - lead.x, d.y - lead.y) > MARINE_LEASH + MARINE_RANGE) continue;
+			const dist = Math.hypot(d.x - t.x, d.y - t.y);
+			if (dist < best) {
+				best = dist;
+				focus = d;
+			}
+		}
+	}
+	m.rethink -= dt;
+	if (m.rethink <= 0) {
+		m.rethink = 1.1 + Math.random() * 1.4;
+		if (focus) {
+			// Round the target from its own side, a step or two along each time
+			const side = Math.atan2(t.y - focus.y, t.x - focus.x) + (Math.random() - 0.5) * 1.1;
+			const reach = MARINE_RANGE * (0.85 + Math.random() * 0.35);
+			m.x = focus.x + Math.cos(side) * reach;
+			m.y = focus.y + Math.sin(side) * reach * 0.8;
+		} else {
+			m.x = lead.x + home.dx;
+			m.y = lead.y + home.dy;
+		}
+		// Never far from the Lantern
+		const fromLead = Math.hypot(m.x - lead.x, m.y - lead.y);
+		if (fromLead > MARINE_LEASH) {
+			m.x = lead.x + ((m.x - lead.x) * MARINE_LEASH) / fromLead;
+			m.y = lead.y + ((m.y - lead.y) * MARINE_LEASH) / fromLead;
+		}
+	}
+	// Something right on top of it: back off first
+	for (const d of enemies) {
+		const dist = Math.hypot(d.x - t.x, d.y - t.y);
+		if (dist < 110 && dist > 0) {
+			m.x = t.x + ((t.x - d.x) / dist) * 150;
+			m.y = t.y + ((t.y - d.y) / dist) * 150;
+			m.rethink = Math.max(m.rethink, 0.6);
+		}
+	}
+	const dx = m.x - t.x;
+	const dy = m.y - t.y;
+	const dist = Math.hypot(dx, dy);
+	m.moving = dist > 10;
+	if (m.moving) {
+		const step = Math.min(dist, MARINE_SPEED * dt);
+		t.x += (dx / dist) * step;
+		t.y += (dy / dist) * step;
+		m.stride += step * 0.09;
+		// Facing the way it walks until it has something to shoot
+		if (!focus) t.aim = Math.atan2(dy, dx);
+	}
+	return focus;
+}
+
+/** Marine Fireteam: construct Marines that go where John's will sends them and pick their own targets. */
 function callFireteam(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 	// One fireteam at a time: the old one is dismissed
 	w.turrets = w.turrets.filter((t) => t.owner !== p || !t.follow);
@@ -1452,18 +1529,14 @@ function updateTurrets(w: ConstructWorld, dt: number) {
 		}
 		alive.push(t);
 		t.cooldown -= dt;
-		// A Marine keeps its place in the fireteam, next to its Lantern
-		if (t.follow) {
-			const k = Math.min(1, dt * 6);
-			t.x += (t.owner.x + t.follow.dx - t.x) * k;
-			t.y += (t.owner.y + t.follow.dy - t.y) * k;
-		}
+		// A Marine moves on its own: John's will sends it into the fight
+		const focus = t.follow ? moveMarine(t, w, dt) : null;
 
-		// Nearest standing enemy in range
+		// Nearest standing enemy in range (a Marine prefers whoever John is fighting)
 		const range = t.def.radius ?? 360;
-		let target: Dummy | null = null;
-		let best = range;
-		for (const d of w.dummies) {
+		let target: Dummy | null = focus && Math.hypot(focus.x - t.x, focus.y - t.y) <= range ? focus : null;
+		let best = target ? 0 : range;
+		for (const d of target ? [] : w.dummies) {
 			if (!isStanding(d)) continue;
 			const dist = Math.hypot(d.x - t.x, d.y - t.y);
 			if (dist <= best) {

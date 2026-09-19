@@ -413,6 +413,27 @@ Still "dies way too fast" (user): measured, single hits of 40-144 (thrown car 99
 (about a quarter of John's health), Telekinetic Throw damage 22. Full to down now takes 18-97s. Bots:
 win 10/10 but usually drop to 1-13% health, and go down about once in half the runs.
 
+**User playtest round 3 (2026-09-19):**
+- **Marines move freely** (`moveMarine` in `system.ts`, `Turret.march`): each takes a firing spot
+  ~240 px round whatever John is fighting (his target, else the nearest enemy within reach of him),
+  from its own side, shifting every 1-2.5s; backs off from anything within 110 px; never more than
+  520 px from John; back to its spot beside him when there's nothing to fight. Legs stride as it walks.
+- **Manhunters fly** (`manhunterPose`: altitude 1, hover 24, leaning into flight; hitbox height 160).
+- **Grodd's telepathy** (`enemies/grodd.ts`): **Telekinetic Grip** (`tkGrip`): purple windup, then he
+  lifts anyone (John, the Flash, Hawkgirl; a bubble shield is popped), carries them to him (0.75s),
+  holds them (0.35s: no powers, no constructs), and hurls them at 1250 px/s. In every stage, and his
+  opener when he switches targets. Mind Control cooldown 6 (was 9), in every stage, on heroes too
+  (they stand dazed, moves reversed); he still makes a point of taking the Flash's mind in stage 2.
+- **Reverse-Flash** (`reverseFlash`, faction 'rogue', `enemies/reverseFlash.ts`, art
+  `drawReverseFlash`: the Flash's suit in `REVERSE_FLASH_COLORS`): arrives with the flank wave, hunts
+  the Flash (`rivalry`: target is the Flash whenever he's up, else the nearest), Blitz (dash, 4 punches,
+  out), Beatdown (pins, 10 punches, each clears invulnerability), red lightning. The Flash targets him
+  above all else. Health x4.5, might 3. At 12% he runs; if he's still up when Grodd escapes, he goes
+  too. Bots: he lasts 80-110s, the Flash goes down 3-9 times.
+- **Ending:** the Flash and Hawkgirl stop (idle input) and turn to watch; John rises in a column of
+  green light with a blaze round him and rings of light pulsing out (`drawAscent`).
+- Bots: win 8/8, John loses 0-2 lives (usually 1-2); Grodd grabs John 4-8 times a fight.
+
 **Main menu** (`routes/+page.svelte`, `components/MenuPoster.svelte`, 2026-09-19): a poster-like
 canvas: Kilowog, Hal and John small, **facing the viewer** (`draw/lanternFront.ts`, menu only: the game
 draws everyone side-on), floating over a glowing platform on Oa with their rings raised and glowing

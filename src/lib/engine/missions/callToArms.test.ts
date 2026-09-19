@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { isStanding } from '../dummy';
 import { Game } from '../game';
-import { CORE_HP, CallToArms, GRODD_ESCAPE, GRODD_STAGE_2, REBUILD_TIMES, buildCentralCityMap } from './callToArms';
+import { CORE_HP, CallToArms, GRODD_ESCAPE, GRODD_STAGE_2, REBUILD_TIMES, RF_FLEES, buildCentralCityMap } from './callToArms';
 
 /**
  * A stand-in canvas: every call is a no-op, except it throws on a negative
@@ -56,7 +56,7 @@ function setup() {
 	};
 	const clear = () => {
 		for (const e of game.enemies) {
-			if (e.kind === 'grodd' || e.kind === 'manhunter') continue;
+			if (e.kind === 'grodd' || e.kind === 'manhunter' || e.kind === 'reverseFlash') continue;
 			e.hp = 0;
 			e.down = 1;
 		}
@@ -196,6 +196,59 @@ describe('Act 2, Mission 1: Call to Arms', () => {
 			draw();
 		});
 		expect(mission.phase).toBe('manhunter');
+	});
+
+	it('Reverse-Flash comes with the side-street squad, goes after the Flash, and the Flash takes him on', () => {
+		const { game, mission, run, safe, clear } = setup();
+		run(3.1);
+		clear();
+		run(0.5, safe);
+		expect(mission.phase).toBe('flank');
+		const rf = mission.reverseFlash!;
+		expect(rf.kind).toBe('reverseFlash');
+		const flash = game.players[1];
+		run(4, safe);
+		expect(rf.brain.target).toBe(flash);
+		expect(flash.hero!.target).toBe(rf);
+		expect(rf.hp).toBeLessThan(rf.maxHp);
+	});
+
+	it('beaten down, Reverse-Flash runs; and if he is still here when Grodd escapes, he goes too', () => {
+		const a = setup();
+		a.run(3.1);
+		a.clear();
+		a.run(0.5, a.safe);
+		const rf = a.mission.reverseFlash!;
+		rf.hp = rf.maxHp * (RF_FLEES - 0.01);
+		a.run(0.1, a.safe);
+		expect(a.mission.reverseFlash).toBeNull();
+		expect(a.game.dummies).not.toContain(rf);
+
+		const b = setup();
+		b.toGrodd();
+		expect(b.mission.reverseFlash).not.toBeNull();
+		b.mission.grodd!.hp = b.mission.grodd!.maxHp * (GRODD_ESCAPE - 0.01);
+		b.run(0.2, b.safe);
+		expect(b.mission.reverseFlash).toBeNull();
+	});
+
+	it("at the end the Flash and Hawkgirl stay put and watch the ring take John", () => {
+		const { game, mission, run, safe, toManhunter } = setup();
+		toManhunter();
+		const m = mission.manhunter!;
+		m.hp = 0;
+		m.down = 0.9;
+		run(0.1, safe);
+		mission.core!.hp = 0;
+		mission.core!.down = 1;
+		run(0.1, safe);
+		const [john, flash, hawk] = game.players;
+		const at = [flash.x, flash.y, hawk.x, hawk.y];
+		run(60, safe);
+		run(3);
+		expect(john.boarded).toBe(true);
+		expect(Math.hypot(flash.x - at[0], flash.y - at[1])).toBeLessThan(60);
+		expect(Math.hypot(hawk.x - at[2], hawk.y - at[3])).toBeLessThan(60);
 	});
 
 	it('John going down three times loses it', () => {

@@ -21,6 +21,7 @@ import { ENEMIES, createEnemy, face, steer, tintOf, type Enemy, type Role, type 
 import { CORPS_ABILITIES, startCorpsAbility, updateCorpsAbility } from './corpsConstructs';
 import { RAZER_ABILITIES, startRazerAbility, updateRazerAbility } from './razer';
 import { GRODD_ABILITIES, startGroddAbility, updateGroddAbility, updatePsychicFx } from './grodd';
+import { REVERSE_FLASH_ABILITIES, startReverseFlashAbility, updateReverseFlashAbility } from './reverseFlash';
 
 export type AbilityId =
 	| 'claws'
@@ -75,7 +76,12 @@ export type AbilityId =
 	| 'mindBlast'
 	| 'mindLock'
 	| 'carThrow'
-	| 'debrisStorm';
+	| 'debrisStorm'
+	| 'tkGrip'
+	// Reverse-Flash (reverseFlash.ts)
+	| 'rfBlitz'
+	| 'rfBeatdown'
+	| 'rfLightning';
 
 /** How far away a construct is used from. Kits take some of each. */
 export type Band = 'close' | 'mid' | 'long' | 'support';
@@ -355,13 +361,34 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	}),
 	// Into a Lantern's head: every move goes the wrong way for a few seconds
 	mindLock: def({
-		id: 'mindLock', name: 'Mind Control', band: 'long', tell: 'aim', windup: 0.7, active: 0.1, recover: 0.4, cooldown: 9,
+		id: 'mindLock', name: 'Mind Control', band: 'long', tell: 'aim', windup: 0.7, active: 0.1, recover: 0.4, cooldown: 6,
 		minRange: 0, maxRange: 600, damage: 10, knockback: 0, melee: false, heavy: false, chance: 0.85
 	}),
 	// A car lifted off the street and hurled; it bursts where it lands
 	carThrow: def({
 		id: 'carThrow', name: 'Telekinetic Throw', band: 'long', tell: 'sky', windup: 0.8, active: 0.2, recover: 0.6, cooldown: 5.5,
 		minRange: 140, maxRange: 640, damage: 22, knockback: 700, melee: false, heavy: true, chance: 0.9, radius: 85, speed: 540
+	}),
+	// ---- Reverse-Flash ----
+	// In at a blur, a burst of punches, out again
+	rfBlitz: def({
+		id: 'rfBlitz', name: 'Blitz', band: 'close', tell: 'strike', windup: 0.28, active: 0.9, recover: 0.25, cooldown: 1.6,
+		minRange: 0, maxRange: 520, damage: 6, knockback: 520, melee: false, heavy: false, chance: 1
+	}),
+	// Pins them and hits them again and again
+	rfBeatdown: def({
+		id: 'rfBeatdown', name: 'Beatdown', band: 'close', tell: 'heavy', windup: 0.4, active: 1.5, recover: 0.5, cooldown: 6,
+		minRange: 0, maxRange: 480, damage: 4, knockback: 700, melee: false, heavy: true, chance: 0.9
+	}),
+	// Red Speed Force lightning
+	rfLightning: def({
+		id: 'rfLightning', name: 'Red Lightning', band: 'long', tell: 'aim', windup: 0.45, active: 0.1, recover: 0.3, cooldown: 3.5,
+		minRange: 150, maxRange: 650, damage: 12, knockback: 320, melee: false, heavy: false, chance: 0.8
+	}),
+	// Lifts someone with his mind, carries them to him and hurls them across the street
+	tkGrip: def({
+		id: 'tkGrip', name: 'Telekinetic Grip', band: 'long', tell: 'aim', windup: 0.6, active: 1.3, recover: 0.5, cooldown: 5.5,
+		minRange: 0, maxRange: 620, damage: 12, knockback: 0, melee: false, heavy: true, chance: 1
 	}),
 	// Everything loose around him lifted and flung
 	debrisStorm: def({
@@ -373,7 +400,7 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 /** What the machines use. They're never part of a Red Lantern's random kit. */
 export const MACHINE_ABILITIES: readonly AbilityId[] = ['eyeLaser', 'sweep', 'pulse', 'strafe', 'bombs'];
 /** Signature moves of named Red Lanterns, never handed out in random kits. */
-const SIGNATURE_ABILITIES: readonly AbilityId[] = ['swoop', ...CORPS_ABILITIES, ...RAZER_ABILITIES, ...GRODD_ABILITIES];
+const SIGNATURE_ABILITIES: readonly AbilityId[] = ['swoop', ...CORPS_ABILITIES, ...RAZER_ABILITIES, ...GRODD_ABILITIES, ...REVERSE_FLASH_ABILITIES];
 
 /** Every red construct a Red Lantern's kit can be built from. */
 export const ABILITY_LIST = (Object.keys(ABILITIES) as AbilityId[]).filter(
@@ -555,6 +582,7 @@ export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Play
 	if (CORPS_ABILITIES.has(a.id)) return startCorpsAbility(e, a, w, players);
 	if (RAZER_ABILITIES.has(a.id)) return startRazerAbility(e, a, w, players);
 	if (GRODD_ABILITIES.has(a.id)) return startGroddAbility(e, a, w);
+	if (REVERSE_FLASH_ABILITIES.has(a.id)) return startReverseFlashAbility(e, a, w);
 	switch (a.id) {
 		case 'claws':
 			e.vx += b.aimX * 340;
@@ -726,6 +754,10 @@ export function updateAbility(e: Enemy, w: ConstructWorld, players: readonly Pla
 	}
 	if (GRODD_ABILITIES.has(a.id)) {
 		updateGroddAbility(e, a, w, players, dt);
+		return b.timer <= 0;
+	}
+	if (REVERSE_FLASH_ABILITIES.has(a.id)) {
+		updateReverseFlashAbility(e, a, w, dt);
 		return b.timer <= 0;
 	}
 	if (CORPS_ABILITIES.has(a.id)) {

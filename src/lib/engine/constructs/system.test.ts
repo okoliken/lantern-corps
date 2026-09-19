@@ -814,17 +814,24 @@ describe("Hal's and John's new kits", () => {
 		expect(w.projectiles.filter((pr) => pr.kind === 'missile')).toHaveLength(2);
 	});
 
-	it('a Marine fireteam follows John and shoots on its own', () => {
-		const d = createDummy(300, 0);
+	it('a Marine fireteam moves into the fight on its own, spreads out round the target, and comes back to John after', () => {
+		const d = createDummy(500, 0);
+		d.hp = d.maxHp = 5000;
 		const { p, w } = setup('john', 'fireteam', [d]);
 		press(p, w, 0.1);
 		const marines = w.turrets.filter((t) => t.follow);
 		expect(marines).toHaveLength(3);
-		// John walks off; they come with him
-		p.x = 100;
-		run(p, w, IDLE, 2);
-		expect(marines.every((m) => Math.abs(m.x - (100 + m.follow!.dx)) < 20)).toBe(true);
-		expect(d.hp).toBeLessThan(DUMMY_HP);
+		run(p, w, IDLE, 4);
+		// Out to firing positions round the target, not standing in a row by John
+		expect(marines.every((m) => Math.hypot(m.x - d.x, m.y - d.y) < 340)).toBe(true);
+		const spread = Math.max(...marines.map((m) => m.y)) - Math.min(...marines.map((m) => m.y));
+		expect(spread).toBeGreaterThan(60);
+		expect(d.hp).toBeLessThan(d.maxHp);
+		// Nothing left to fight: back beside John
+		w.dummies.length = 0;
+		p.x = -200;
+		run(p, w, IDLE, 5);
+		expect(marines.every((m) => Math.hypot(m.x - (p.x + m.follow!.dx), m.y - (p.y + m.follow!.dy)) < 40)).toBe(true);
 	});
 
 	it('Power Armor: less damage taken, and the ring shot becomes an arm cannon', () => {

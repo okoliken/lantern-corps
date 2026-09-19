@@ -421,9 +421,11 @@ export function drawMarine(ctx: CanvasRenderingContext2D, t: Turret, time: numbe
 	ctx.scale(facing * grow, grow);
 
 	const body = new Path2D();
-	// Legs, a wide stance
-	body.roundRect(-8, -20, 5, 20, 2);
-	body.roundRect(2, -20, 5, 20, 2);
+	// Legs: a wide stance, or striding when it's on the move
+	const m = t.march;
+	const step = m?.moving ? Math.sin(m.stride) * 4 : 0;
+	body.roundRect(-8 + step, -20, 5, 20, 2);
+	body.roundRect(2 - step, -20, 5, 20, 2);
 	// Torso in a plate carrier
 	body.roundRect(-8, -40, 16, 22, 3);
 	// Helmet and visor line

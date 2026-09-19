@@ -77,6 +77,8 @@ export interface HeroFx {
 	angle?: number;
 	/** Drawn this high above the ground. */
 	lift?: number;
+	/** Reverse-Flash's: red lightning instead of yellow. */
+	red?: boolean;
 }
 
 const COOLDOWNS: Record<HeroPower, number> = {
@@ -593,7 +595,9 @@ export class HeroInput implements InputSource {
 		const enemies = this.world.dummies.filter((d): d is Enemy => isEnemy(d) && isStanding(d));
 		// A broken Manhunter's core comes first: it has to be smashed before it rebuilds
 		const core = this.world.dummies.find((d) => d.kind === 'manhunterCore' && isStanding(d));
-		h.target = core ?? this.pickTarget(me, lead, enemies);
+		// The Flash drops everything for Reverse-Flash
+		const rival = h.id === 'flash' ? enemies.find((e) => e.kind === 'reverseFlash') : undefined;
+		h.target = core ?? rival ?? this.pickTarget(me, lead, enemies);
 		const t = h.target;
 		const intent: Intent = { ...IDLE };
 		if (h.id === 'hawkgirl' && !me.flying) intent.toggleFly = true;
