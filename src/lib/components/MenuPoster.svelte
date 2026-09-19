@@ -1,22 +1,20 @@
 <script lang="ts">
 	// The main menu's backdrop, like a movie poster: Kilowog, Hal and John
-	// standing together on Oa, rings raised, their light meeting in the sky.
-	// Drawn with the game's own drawLantern, so it always matches the game.
+	// standing together on Oa, facing you, rings raised.
 	import { onMount } from 'svelte';
-	import type { LanternPose } from '$lib/engine/animation';
-	import { drawLantern, ringPosition } from '$lib/engine/draw/lantern';
-	import { LANTERNS, type CrewId } from '$lib/engine/lanterns';
+	import { drawLanternFront } from '$lib/engine/draw/lanternFront';
+	import type { CrewId } from '$lib/engine/lanterns';
 	import { green, greenCore } from '$lib/theme';
 
 	let canvas: HTMLCanvasElement;
 
 	const TAU = Math.PI * 2;
 
-	/** Who stands where: across from the middle (-1..1) and how far back (smaller, darker). All face the same way. */
-	const LINEUP: { id: CrewId; across: number; back: number; dir: 1 | -1 }[] = [
-		{ id: 'kilowog', across: -1, back: 0.9, dir: 1 },
-		{ id: 'john', across: 1, back: 0.9, dir: 1 },
-		{ id: 'hal', across: 0, back: 1, dir: 1 }
+	/** Who stands where: across from the middle (-1..1) and how far back (smaller, darker). */
+	const LINEUP: { id: CrewId; across: number; back: number }[] = [
+		{ id: 'kilowog', across: -1, back: 0.9 },
+		{ id: 'john', across: 1, back: 0.9 },
+		{ id: 'hal', across: 0, back: 1 }
 	];
 
 	function seeded(seed: number) {
@@ -38,26 +36,6 @@
 		[0.95, 0.05, 0.66]
 	];
 
-	function pose(dir: 1 | -1, id: CrewId, time: number): LanternPose {
-		const def = LANTERNS[id];
-		return {
-			dir,
-			walkPhase: 0,
-			altitude: 0,
-			hoverHeight: 0,
-			lean: 0,
-			glow: true,
-			shadow: false,
-			// Ring arm straight up, a little behind the head so the face shows
-			firing: true,
-			aimX: -dir * 0.32,
-			aimY: -1,
-			cast: 0,
-			build: def.build,
-			hunch: def.hunch
-		};
-	}
-
 	function draw(ctx: CanvasRenderingContext2D, W: number, H: number, t: number) {
 		// ---- Sky: a stormy blue-green night, lighter where the rings' light meets ----
 		const sky = ctx.createLinearGradient(0, 0, 0, H);
@@ -68,6 +46,7 @@
 		ctx.fillRect(0, 0, W, H);
 		const meet = { x: W / 2, y: H * 0.3 };
 		const pulse = 0.85 + 0.15 * Math.sin(t * 1.3);
+		// A soft green light above them
 		const burst = ctx.createRadialGradient(meet.x, meet.y, 0, meet.x, meet.y, H * 0.45);
 		burst.addColorStop(0, green(0.35 * pulse));
 		burst.addColorStop(0.35, green(0.1));
@@ -125,45 +104,25 @@
 		ctx.stroke();
 
 		// ---- The three of them, head to toe ----
-		const beams: [number, number, number][] = [];
-		for (const { id, across, back, dir } of LINEUP) {
-			const def = LANTERNS[id];
+		const rings: [number, number, number][] = [];
+		for (const { id, across, back } of LINEUP) {
 			const scale = size * back * (id === 'kilowog' ? 0.92 : 1);
 			const x = W / 2 + across * gap;
 			// Standing on the platform; the ones behind a little further back
 			const y = floor - (1 - back) * gap * 0.5;
-			const p = pose(dir, id, t);
 			ctx.save();
 			if (back < 1) ctx.filter = 'brightness(0.72) saturate(0.9)';
-			drawLantern(ctx, def, x, y, p, t, scale);
+			// Floating above the platform, each bobbing on their own beat
+			const float = 16 + Math.sin(t * 1.4 + across * 1.7) * 2.5;
+			const [rx, ry] = drawLanternFront(ctx, id, x, y, t, scale, float);
 			ctx.restore();
-			const [rx, ry] = ringPosition(x, y, p, t, scale);
-			beams.push([rx, ry, back]);
+			rings.push([rx, ry, back]);
 		}
 
-		// Their light, rising from each ring to meet above them
+		// Each ring blazing in its raised hand
 		ctx.save();
 		ctx.globalCompositeOperation = 'lighter';
-		for (const [rx, ry, back] of beams) {
-			const beam = ctx.createLinearGradient(rx, ry, meet.x, meet.y);
-			beam.addColorStop(0, greenCore(0.7 * back * pulse));
-			beam.addColorStop(0.2, green(0.35 * back));
-			beam.addColorStop(1, green(0.08));
-			ctx.strokeStyle = beam;
-			ctx.lineCap = 'round';
-			for (const [width, alpha] of [
-				[size * 3.2, 0.25],
-				[size * 1.1, 0.8]
-			]) {
-				ctx.globalAlpha = alpha;
-				ctx.lineWidth = width;
-				ctx.beginPath();
-				ctx.moveTo(rx, ry);
-				ctx.lineTo(meet.x, meet.y);
-				ctx.stroke();
-			}
-			// The ring itself, blazing
-			ctx.globalAlpha = 1;
+		for (const [rx, ry] of rings) {
 			const glow = ctx.createRadialGradient(rx, ry, 0, rx, ry, size * 7);
 			glow.addColorStop(0, greenCore(0.9 * pulse));
 			glow.addColorStop(0.25, green(0.45));

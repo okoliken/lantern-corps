@@ -404,8 +404,9 @@ targets every 4.5-7s (60% John) with an opener, takes the Flash's mind once in s
 Bots: win ~6/8, usually losing 1-2 lives; 4-5 minutes; 1-2 rebuilds.
 
 **Main menu** (`routes/+page.svelte`, `components/MenuPoster.svelte`, 2026-09-19): a poster-like
-canvas: Kilowog, Hal and John full-body on a glowing platform on Oa, rings raised, their beams meeting
-in the sky (drawn with `drawLantern`), towers, clouds, motes; a small title and buttons below.
+canvas: Kilowog, Hal and John small, **facing the viewer** (`draw/lanternFront.ts`, menu only: the game
+draws everyone side-on), floating over a glowing platform on Oa with their rings raised and glowing
+(not joined by beams), towers, clouds, motes; a small title and buttons below. User: keep them small.
 
 **Theme green** (`src/lib/theme.ts`, 2026-09-19): one green for the whole game. `THEME_GREEN`
 (#3dff6e) with shades mixed from it: `GREEN_LIGHT` (glows, highlights), `GREEN_DIM` (unlit/off
