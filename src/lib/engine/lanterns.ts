@@ -91,9 +91,9 @@ export const LANTERNS: Record<CrewId, LanternDef> = {
 		// Everything he builds hits harder and lasts longer; he's just slower about it
 		traits: { power: 1.35, durability: 1.3, cooldown: 1.1, structureCost: 1 },
 		look: { skin: '#b89a9c', hair: '#b89a9c', hairStyle: 'cropped', mask: false, bolovaxian: true },
-		bulk: 2.3,
-		figureScale: 1.45,
-		build: { leg: 0.85, torso: 1.35, arm: 1.2, neck: 0.25 },
+		bulk: 1.85,
+		figureScale: 1.2,
+		build: { leg: 0.88, torso: 1.22, arm: 1.12, neck: 0.3 },
 		hunch: 0.05
 	},
 

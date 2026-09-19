@@ -145,7 +145,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		accel: 3,
 		sight: 900,
 		poise: 300,
-		scale: 1.45,
+		scale: 1.2,
 		agility: 0.25,
 		movement: 'hover',
 		kit: ['bigHammer', 'hammerSpin', 'hammerThrow', 'hammerRain', 'bigFist', 'charge', 'roar'],

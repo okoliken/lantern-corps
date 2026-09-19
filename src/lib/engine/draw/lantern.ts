@@ -562,6 +562,26 @@ function drawBolovaxianHead(ctx: CanvasRenderingContext2D, skin: string) {
 	ctx.lineWidth = 0.8;
 	ctx.stroke(head);
 
+	// Ear: a thick, slightly pointed ear set high on the side of the head, swept back
+	const ear = new Path2D();
+	ear.moveTo(-1.6, 0.8);
+	ear.quadraticCurveTo(-4.6, -1.4, -3.6, -4.6);
+	ear.quadraticCurveTo(-1.2, -3.6, 0.2, -1.2);
+	ear.quadraticCurveTo(0.4, 0.4, -1.6, 0.8);
+	ear.closePath();
+	ctx.fillStyle = shadeColor(skin, -0.08);
+	ctx.fill(ear);
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.6;
+	ctx.stroke(ear);
+	ctx.fillStyle = shadeColor(skin, -0.3);
+	ctx.beginPath();
+	ctx.moveTo(-1.5, -0.2);
+	ctx.quadraticCurveTo(-3.1, -1.6, -2.9, -3.4);
+	ctx.quadraticCurveTo(-1.3, -2.4, -0.7, -0.8);
+	ctx.closePath();
+	ctx.fill();
+
 	// Ridges over the scalp
 	ctx.strokeStyle = shadeColor(skin, -0.25);
 	ctx.lineWidth = 0.6;
@@ -590,6 +610,23 @@ function drawBolovaxianHead(ctx: CanvasRenderingContext2D, skin: string) {
 	ctx.moveTo(R - 1.8, 4.8);
 	ctx.lineTo(R + 1.2, 4.3);
 	ctx.stroke();
+
+	// Two teeth jutting up out of the underbite, over the upper lip
+	const tooth = (x: number, h: number, shade: string) => {
+		ctx.fillStyle = shade;
+		ctx.strokeStyle = OUTLINE;
+		ctx.lineWidth = 0.45;
+		ctx.beginPath();
+		ctx.moveTo(x - 0.55, 4.6);
+		ctx.lineTo(x - 0.25, 4.6 - h);
+		ctx.quadraticCurveTo(x + 0.1, 4.4 - h, x + 0.45, 4.5 - h * 0.7);
+		ctx.lineTo(x + 0.55, 4.5);
+		ctx.closePath();
+		ctx.fill();
+		ctx.stroke();
+	};
+	tooth(R - 0.4, 1.9, '#d9d2bf');
+	tooth(R + 1.1, 2.3, '#f4efe2');
 }
 
 /** A construction hard hat: a dome with a brim out front. */

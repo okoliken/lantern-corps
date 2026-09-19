@@ -193,7 +193,7 @@ export const BODY: Record<TargetKind, { halfWidth: number; height: number }> = {
 	skallox: { halfWidth: 30, height: 128 },
 	bleez: { halfWidth: 24, height: 100 },
 	rageTurret: { halfWidth: 18, height: 76 },
-	kilowog: { halfWidth: 34, height: 118 },
+	kilowog: { halfWidth: 28, height: 100 },
 	sinestro: { halfWidth: 18, height: 96 },
 	razer: { halfWidth: 18, height: 100 },
 	// Real size comes from its drift radius
