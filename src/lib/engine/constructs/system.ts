@@ -276,6 +276,11 @@ export interface ConstructWorld {
 	 * shorter cooldowns and fewer hesitations (a harder fight).
 	 */
 	redTempo: number;
+	/**
+	 * Set while a Red Lantern's construct is hurting someone: rage breaks
+	 * willpower, so bubble shields take this many times the damage (1 = not rage).
+	 */
+	rage: number;
 	/** Whose turn it is to attack each Lantern (enemies/director.ts). */
 	pressure: PressureMap;
 	/** Which enemies attack now and which wait in reserve (enemies/squad.ts). */
@@ -287,7 +292,7 @@ export interface ConstructWorld {
 }
 
 export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[], space = false): ConstructWorld {
-	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], aids: [], pillarStrikes: [], effects: [], space, events: [], red: { shots: [], chains: [], strikes: [], puddles: [], beams: [], cages: [] }, redTempo: 1, pressure: new Map(), squad: createSquadState(), players: [], protectables: [] };
+	return { obstacles, dummies, projectiles: [], tethers: [], traps: [], pending: [], shields: [], fortresses: [], turrets: [], aids: [], pillarStrikes: [], effects: [], space, events: [], red: { shots: [], chains: [], strikes: [], puddles: [], beams: [], cages: [] }, redTempo: 1, rage: 1, pressure: new Map(), squad: createSquadState(), players: [], protectables: [] };
 }
 
 // --------------------------------------------------------------- tuning
@@ -1158,14 +1163,15 @@ export function absorbWithShield(w: ConstructWorld, target: Player | Protectable
 	if (w.fortresses.some((f) => Math.hypot(target.x - f.x, target.y - f.y) <= f.radius)) return 0;
 	const shield = w.shields.find((s) => s.target === target);
 	if (!shield) return damage;
-	const absorbed = Math.min(shield.hp, damage);
-	shield.hp -= absorbed;
+	// Rage tears through willpower: a Red Lantern's hit takes a bigger bite out of the bubble
+	const bite = Math.min(shield.hp, damage * w.rage);
+	shield.hp -= bite;
 	shield.ripple = 0.25;
 	if (shield.hp <= 0) {
 		w.shields.splice(w.shields.indexOf(shield), 1);
 		popShield(w, target);
 	}
-	return damage - absorbed;
+	return Math.max(0, damage - bite / w.rage);
 }
 
 export const isPlayer = (t: Player | Protectable): t is Player => 'def' in t;

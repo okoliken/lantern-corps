@@ -6,10 +6,12 @@
 //
 //   guards   Razer watches from his dais while his Red Lanterns fight
 //   duel     then he comes down himself, and the fight gets harder as he does:
-//              phase 1  Twin Rage Blades, Crimson Chakram, Rage Tether, Rage Shield
-//              phase 2  (below 60%) + Construct Shatter, Rage Brand, Rage Plasma
-//              phase 3  (below 30%) berserk: faster and stronger, + Blade Storm
-//                       and Crimson Nova
+//              phase 1  Twin Rage Blades, Crimson Chakram, Rage Tether, Rage Mace,
+//                       Rage Shield
+//              phase 2  (below 60%) + Construct Shatter, Rage Brand, Rage Plasma,
+//                       Blood Meteors
+//              phase 3  (below 30%) berserk: faster and stronger, + Blade Storm,
+//                       Crimson Nova and the Rage Beam
 //   captured with almost nothing left, a Green Lantern cage closes round him;
 //            he gives up the name of his master: Atrocitus
 //
@@ -32,10 +34,10 @@ const INTRO_TIME = 3;
 const PAR_TIME = 300;
 /** His Red Lanterns (like the Prison Moon's). */
 const TOUGHNESS = 4;
-const MIGHT = 2.5;
+const MIGHT = 3;
 /** Razer himself: health and hitting power on top of his base. */
-export const RAZER_HEALTH = 2.1;
-const RAZER_MIGHT = 1.6;
+export const RAZER_HEALTH = 3.4;
+const RAZER_MIGHT = 2.4;
 /** Health left (0..1) where each phase begins, and where he's caught. */
 export const PHASE_2 = 0.6;
 export const PHASE_3 = 0.3;
@@ -45,9 +47,9 @@ const DESCENT_TIME = 2.5;
 
 /** His kit in each phase: it only grows. */
 const KITS: Record<1 | 2 | 3, AbilityId[]> = {
-	1: ['twinBlades', 'chakram', 'chain', 'redShield'],
-	2: ['twinBlades', 'chakram', 'chain', 'redShield', 'shatter', 'brand', 'vomit'],
-	3: ['twinBlades', 'chakram', 'chain', 'redShield', 'shatter', 'brand', 'vomit', 'razerStorm', 'crimsonNova']
+	1: ['twinBlades', 'chakram', 'chain', 'mace', 'redShield'],
+	2: ['twinBlades', 'chakram', 'chain', 'mace', 'redShield', 'shatter', 'brand', 'vomit', 'meteors'],
+	3: ['twinBlades', 'chakram', 'chain', 'mace', 'redShield', 'shatter', 'brand', 'vomit', 'meteors', 'razerStorm', 'crimsonNova', 'beam']
 };
 
 const W = 3200;

@@ -342,6 +342,21 @@ sigil `drawBrand` over the head), Rage Plasma (`vomit`); 3 (below 30%) berserk (
 drawn in a green `drawCage`), names Atrocitus, win. ★ captured ★ no lives lost ★ under 5 min.
 Bots: win ~7/8, usually losing 1-2 lives; duel ~2.5-3.5 min.
 
+**Red Lanterns are strong (user playtest, 2026-09-19: "enemies are enemies... their constructs are
+way powerful... the boss should be trashing Kilowog").** Every Rage Grunt anywhere now gets a full
+random kit of 6 constructs (`createEnemy` uses `randomKit(role)`; `KIT_PLAN` 5 fighting + 1 support):
+the missions used to hand out the tiny role defaults (claws/chain/blast), so they looked like "blast
+and shield". **Rage breaks willpower:** while a red construct hurts someone (`ConstructWorld.rage`,
+set in `updateEnemies` / `updateRedConstructs`), bubble shields take `RAGE_VS_SHIELD` = 2x damage
+(two Rage Blasts break Hal's bubble) and knockback is x`RAGE_KNOCKBACK` 1.45. Up to 3 attackers per
+Lantern (`ATTACK_BUDGET`). Player regen 3.5/s after 5s (was 6/s after 4s). Mission MIGHT raised
+(Outpost 3, Colony 1.8, Interceptor 1.8, Prison 3, Razer's guard 3). Rage Shield less spammy
+(cooldown 11, chance 0.7, only when hurt > 20% and being hit). **Razer:** health x3.4, might 2.4,
+poise 320, faster and more aggressive; harder-hitting moves with bigger knockback; kit 1 blades,
+chakram, tether, mace, shield / 2 + shatter, brand, plasma, meteors / 3 + storm, nova, beam.
+Bots: Mission 2 won, Kilowog down 2-4x; Prison Moon costs 1-2 lives; Razer beats the bot ~4/5 (it
+gets him to 8-17% first).
+
 **Theme green** (`src/lib/theme.ts`, 2026-09-19): one green for the whole game. `THEME_GREEN`
 (#3dff6e) with shades mixed from it: `GREEN_LIGHT` (glows, highlights), `GREEN_DIM` (unlit/off
 states, borders), `GREEN_CORE` (the white-hot centre of ring energy), `greenShade(t)`; with alpha:

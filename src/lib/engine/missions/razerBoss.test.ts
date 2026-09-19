@@ -54,7 +54,7 @@ describe('Act 1, Mission 5: Razer', () => {
 		expect(mission.phase).toBe('duel');
 		const razer = game.enemies.find((e) => e.kind === 'razer')!;
 		expect(razer).toBeTruthy();
-		expect(razer.brain.kit).toEqual(['twinBlades', 'chakram', 'chain', 'redShield']);
+		expect(razer.brain.kit).toEqual(['twinBlades', 'chakram', 'chain', 'mace', 'redShield']);
 	});
 
 	it('he gets more dangerous as he gets hurt: new constructs, then berserk', () => {

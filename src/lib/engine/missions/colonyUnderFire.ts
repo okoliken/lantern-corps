@@ -52,7 +52,7 @@ const LAUNCH_TIME = 50;
 const SHUTTLE_HULL = 420;
 /** Red Lanterns here are this much tougher and harder-hitting than the lab's. */
 const TOUGHNESS = 3;
-const MIGHT = 1.35;
+const MIGHT = 1.8;
 /** Backup: Hal, twice, this many seconds each time. */
 const BACKUP_USES = 2;
 const BACKUP_TIME = 40;

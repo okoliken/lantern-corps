@@ -3,11 +3,12 @@ import { DOWNED_TIME, HIT_INVULN, REGEN_DELAY, damagePlayer, revivePlayer, updat
 import { createConstructWorld, updateConstructWorld, updatePlayerConstructs, type ConstructWorld } from '../constructs/system';
 import { hitDummy, isStanding, updateDummy } from '../dummy';
 import { IDLE } from '../input';
+import { BUBBLE_SHIELD } from '../constructs/defs';
 import { LANTERNS } from '../lanterns';
 import { bodyAim, createPlayer, hitsBody, updatePlayer, type Player } from '../player';
 import type { Obstacle } from '../map';
 import { ATTACK_BUDGET } from './director';
-import { ENEMIES, ENEMY_SPACING, MAX_RED_TURRETS, MELEE_SLOTS, createEnemy, updateEnemies, type Enemy, type Role } from './enemies';
+import { ENEMIES, ENEMY_SPACING, MAX_RED_TURRETS, MELEE_SLOTS, ROLES, createEnemy, updateEnemies, type Enemy, type Role } from './enemies';
 import { clearShot, tryDodge } from './tactics';
 import { ASSAULT_PER_EXTRA_LANTERN, ASSAULT_SIZE } from './squad';
 import { ABILITIES, RED_HAND_LIFT, randomKit, type AbilityId } from './redConstructs';
@@ -27,9 +28,9 @@ function run(w: ConstructWorld, players: Player[], seconds: number, each?: () =>
 	}
 }
 
-/** A grunt of a role, ready to act right away (no spawn grace). */
+/** A grunt of a role, ready to act right away (no spawn grace), with its role's basic kit (tests pick kits on purpose). */
 function grunt(x: number, y: number, role: Role = 'berserker'): Enemy {
-	const e = createEnemy('rageGrunt', x, y, role);
+	const e = createEnemy('rageGrunt', x, y, role, Math.random, [...ROLES[role].abilities]);
 	for (const id in e.brain.cooldowns) e.brain.cooldowns[id as AbilityId] = 0;
 	e.brain.think = 0;
 	return e;
@@ -834,12 +835,19 @@ describe('enemy shots hit what they are seen to hit', () => {
 });
 
 describe('random kits', () => {
-	it('gives five different constructs, one of them a support construct (wall, shield or turret)', () => {
+	it('every Rage Grunt comes with a full kit of constructs, not just a blast', () => {
+		for (const role of ['berserker', 'hunter', 'gunner'] as const) {
+			const e = createEnemy('rageGrunt', 0, 0, role);
+			expect(e.brain.kit.length).toBe(6);
+		}
+	});
+
+	it('gives six different constructs, one of them a support construct (wall, shield or turret)', () => {
 		for (let i = 0; i < 50; i++) {
 			const kit = randomKit('hunter');
-			expect(kit).toHaveLength(5);
+			expect(kit).toHaveLength(6);
 			expect(kit.filter((id) => ABILITIES[id].band === 'support')).toHaveLength(1);
-			expect(new Set(kit).size).toBe(5);
+			expect(new Set(kit).size).toBe(6);
 		}
 	});
 
@@ -858,8 +866,9 @@ describe('every Lantern can shield', () => {
 		const w = createConstructWorld([], [e]);
 		for (const id in e.brain.cooldowns) e.brain.cooldowns[id as AbilityId] = 0;
 		e.brain.think = 0;
-		// Plenty of health, so light hits register without beating it
-		e.hp = e.maxHp = e.brain.lastHp = 100000;
+		// Plenty of health, already hurt (they only shield when it matters), so light hits register without beating it
+		e.maxHp = 100000;
+		e.hp = e.brain.lastHp = 60000;
 		let shielded = false;
 		run(w, [p], 6, () => {
 			p.invuln = 1;
@@ -882,5 +891,30 @@ describe('every Lantern can shield', () => {
 
 	it("machines don't", () => {
 		expect(shieldsUnderFire(createEnemy('manhunterDrone', 220, 0))).toBe(false);
+	});
+});
+
+describe('rage breaks willpower', () => {
+	it("two Rage Blasts break Hal's bubble shield", () => {
+		const e = grunt(260, 0, 'gunner');
+		e.brain.kit = ['blast'];
+		e.brain.might = 2.5;
+		const w = createConstructWorld([], [e]);
+		const p = lantern();
+		const hp = BUBBLE_SHIELD.hp! * LANTERNS.hal.traits.durability;
+		const put = () => w.shields.push({ owner: p, target: p, hp, maxHp: hp, life: 12, maxLife: 12, ripple: 0 });
+		put();
+		let hits = 0;
+		let seen = 0;
+		run(w, [p], 12, () => {
+			const s = w.shields.find((sh) => sh.target === p);
+			if (s && s.hp < s.maxHp && s.hp !== seen) {
+				seen = s.hp;
+				hits++;
+			}
+			if (!s && hits > 0) return;
+		});
+		expect(w.shields.some((sh) => sh.target === p)).toBe(false);
+		expect(hits).toBeLessThanOrEqual(2);
 	});
 });

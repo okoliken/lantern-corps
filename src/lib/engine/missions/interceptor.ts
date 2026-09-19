@@ -64,7 +64,7 @@ const TORPEDO_RANGE = 1100;
 const TORPEDO_EVERY: [number, number] = [3.2, 4.6];
 /** Red Lanterns here are this much tougher and harder-hitting than the lab's. */
 const TOUGHNESS = 3.5;
-const MIGHT = 1.3;
+const MIGHT = 1.8;
 
 /** A rage torpedo: small, quick, one ring-shot burst breaks it. */
 export const TORPEDO = { radius: 14, hp: 18, speed: 210, shipDamage: 30, lanternDamage: 14 };

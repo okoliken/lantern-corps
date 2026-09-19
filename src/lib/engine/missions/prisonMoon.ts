@@ -34,7 +34,7 @@ export const CELL_HP = 420;
 const PAR_TIME = 360;
 /** How much tougher and harder-hitting these Red Lanterns are than the lab's (like Silent Outpost). */
 const TOUGHNESS = 4;
-const MIGHT = 2.5;
+const MIGHT = 3;
 /** Freed Lanterns come out of the cells worn down. */
 const FREED_HEALTH = 0.5;
 const FREED_WILLPOWER = 0.4;

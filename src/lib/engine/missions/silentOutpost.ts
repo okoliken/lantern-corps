@@ -40,7 +40,7 @@ const RING_TIME = 8;
 const PAR_TIME = 300;
 /** How much tougher and harder-hitting these Red Lanterns are than the lab's (like the Ambush scene). */
 const TOUGHNESS = 4;
-const MIGHT = 1.7;
+const MIGHT = 3;
 
 const W = 3800;
 const H = 1800;

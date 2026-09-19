@@ -23,7 +23,7 @@ import type { ConstructWorld } from '../constructs/system';
 import { DUMMY_HALF_W, isStanding, type Dummy, type TargetKind } from '../dummy';
 import { bodyAim, type Player } from '../player';
 import { attackStarted, mayAttack, updatePressure, type Attacker } from './director';
-import { ABILITIES, RED_HAND_LIFT, SWOOP_HEIGHT, cancelAbility, startAbility, updateAbility, updateRedConstructs, type AbilityDef, type AbilityId } from './redConstructs';
+import { ABILITIES, RED_HAND_LIFT, SWOOP_HEIGHT, cancelAbility, startAbility, updateAbility, updateRedConstructs, type AbilityDef, type AbilityId, RAGE_VS_SHIELD, randomKit } from './redConstructs';
 import { flyShip } from './ships';
 import { updateSquads, type SquadRole } from './squad';
 import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
@@ -246,16 +246,16 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 			"Atrocitus's lieutenant, and the angriest Red Lantern of them all: grief turned to rage. He fights up close with twin blades, throws curving chakrams, shatters Green Lantern constructs, and brands Lanterns so their rings go dark.",
 		mind: 'rage',
 		hp: 2600,
-		speed: 210,
-		accel: 6,
-		sight: 900,
-		poise: 160,
+		speed: 245,
+		accel: 7,
+		sight: 1000,
+		poise: 320,
 		scale: 1.08,
 		agility: 1,
 		movement: 'hover',
 		kit: ['twinBlades', 'chakram', 'chain', 'redShield'],
 		range: 150,
-		leans: { aggression: 0.5, caution: -0.2 },
+		leans: { aggression: 0.85, caution: -0.4 },
 		lieutenant: true
 	},
 
@@ -479,7 +479,8 @@ export function createEnemy(
 	y: number,
 	role: Role = 'berserker',
 	rand = Math.random,
-	kit: AbilityId[] = ENEMIES[kind].kit ?? ROLES[role].abilities
+	// Rage Grunts each get a full kit of constructs for their role
+	kit: AbilityId[] = ENEMIES[kind].kit ?? (kind === 'rageGrunt' ? randomKit(role, rand) : ROLES[role].abilities)
 ): Enemy {
 	const def = ENEMIES[kind];
 	const hp = Math.round(def.hp * (def.kit ? 1 : ROLES[role].hp));
@@ -602,7 +603,9 @@ export function updateEnemies(w: ConstructWorld, players: readonly Player[], dt:
 	const attackers: (Attacker & { e: Enemy })[] = pack.map((e) => ({ e, target: e.brain.target, attack: attackOf(e) }));
 	for (const e of pack) {
 		const before = w.effects.length;
+		w.rage = ENEMIES[e.kind].faction === 'red' ? RAGE_VS_SHIELD : 1;
 		think(e, pack, attackers, w, players, dt);
+		w.rage = 1;
 		// A Green Lantern sparring with you makes green constructs, not red ones
 		if (ENEMIES[e.kind].faction === 'corps') for (let i = before; i < w.effects.length; i++) if (!CORPS_ART.has(w.effects[i].kind)) w.effects[i].green = true;
 	}
@@ -842,8 +845,9 @@ function trySupport(e: Enemy, t: Player, pack: readonly Enemy[], dist: number): 
 		if (dist < a.minRange || dist > a.maxRange) continue;
 		let worth = false;
 		if (id === 'redShield') {
-			// Anyone taking hits gets one, hurt ones first; itself before a friend on a tie
-			const underFire = (o: Enemy) => !o.ward && o.brain.sinceHit < 1.5;
+			// Someone hurt and still taking hits gets one, the most hurt first; itself before a friend on a tie
+			// (rage would rather attack, so it isn't every scratch)
+			const underFire = (o: Enemy) => !o.ward && o.brain.sinceHit < 1.5 && o.brain.hurt > 0.2;
 			const ally = pack
 				.filter((o) => o.kind !== 'rageTurret' && Math.hypot(o.x - e.x, o.y - e.y) < RED_SHIELD_REACH && underFire(o))
 				.sort((x, y) => y.brain.hurt - x.brain.hurt + (x === e ? -0.05 : 0) + (y === e ? 0.05 : 0))[0];

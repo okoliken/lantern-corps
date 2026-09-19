@@ -14,15 +14,17 @@ export const PLAYER_MAX_HEALTH = 150;
 /** Seconds of invulnerability after taking a hit. */
 export const HIT_INVULN = 0.5;
 /** Out of the fight this long (no damage taken), health starts coming back... */
-export const REGEN_DELAY = 4;
+export const REGEN_DELAY = 5;
 /** ...at this many points a second. */
-export const REGEN_RATE = 6;
+export const REGEN_RATE = 3.5;
 /** Seconds of invulnerability after getting back up. */
 export const REVIVE_INVULN = 2;
 /** Seconds spent downed before getting back up. */
 export const DOWNED_TIME = 4;
 /** How long the flinch pose lasts. */
 export const HURT_TIME = 0.35;
+/** How much further a Red Lantern's hit throws a Lantern. */
+export const RAGE_KNOCKBACK = 1.45;
 /** How much damage still gets through John's Power Armor. */
 export const ARMOR_TAKES = 0.4;
 
@@ -39,6 +41,8 @@ export function damagePlayer(
 	knockback = 0
 ): number {
 	if (p.downed || p.invuln > 0 || amount <= 0) return 0;
+	// Red Lantern hits throw you further
+	if (w.rage > 1) knockback *= RAGE_KNOCKBACK;
 	// Power Armor takes most of the blow
 	if (p.armor) amount *= ARMOR_TAKES;
 

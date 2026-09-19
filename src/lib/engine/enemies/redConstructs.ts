@@ -216,8 +216,8 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	}),
 	// A bubble on a hurt ally (or itself) that soaks up damage
 	redShield: def({
-		id: 'redShield', name: 'Rage Shield', band: 'support', tell: 'build', windup: 0.45, active: 0.1, recover: 0.3, cooldown: 6,
-		minRange: 0, maxRange: 9999, damage: 0, knockback: 0, melee: false, heavy: false, chance: 0.9
+		id: 'redShield', name: 'Rage Shield', band: 'support', tell: 'build', windup: 0.45, active: 0.1, recover: 0.3, cooldown: 11,
+		minRange: 0, maxRange: 9999, damage: 0, knockback: 0, melee: false, heavy: false, chance: 0.7
 	}),
 	// A spiked turret that shoots at Lanterns until it's broken or burns out
 	redTurret: def({
@@ -300,33 +300,33 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	// ---- Razer ----
 	// Blades on both arms: a lunge and three quick cuts
 	twinBlades: def({
-		id: 'twinBlades', name: 'Twin Rage Blades', band: 'close', tell: 'strike', windup: 0.42, active: 0.62, recover: 0.4, cooldown: 2.2,
-		minRange: 0, maxRange: 240, damage: 13, knockback: 260, melee: true, heavy: false, chance: 1, radius: 100, speed: 680
+		id: 'twinBlades', name: 'Twin Rage Blades', band: 'close', tell: 'strike', windup: 0.42, active: 0.62, recover: 0.35, cooldown: 1.6,
+		minRange: 0, maxRange: 240, damage: 18, knockback: 420, melee: true, heavy: false, chance: 1, radius: 100, speed: 680
 	}),
 	// Two crescent blades thrown wide: they swing round in arcs and come back
 	chakram: def({
 		id: 'chakram', name: 'Crimson Chakram', band: 'mid', tell: 'aim', windup: 0.5, active: 0.15, recover: 0.35, cooldown: 3.4,
-		minRange: 120, maxRange: 420, damage: 16, knockback: 240, melee: false, heavy: false, chance: 0.9, speed: 520
+		minRange: 120, maxRange: 420, damage: 22, knockback: 380, melee: false, heavy: false, chance: 0.9, speed: 560
 	}),
 	// A pulse of hate that breaks every Green Lantern construct near him: walls, turrets, Marines, armor, bubble shields
 	shatter: def({
 		id: 'shatter', name: 'Construct Shatter', band: 'close', tell: 'heavy', windup: 0.7, active: 0.15, recover: 0.6, cooldown: 9,
-		minRange: 0, maxRange: 240, damage: 10, knockback: 420, melee: false, heavy: true, chance: 0.85, radius: 280
+		minRange: 0, maxRange: 240, damage: 24, knockback: 700, melee: false, heavy: true, chance: 0.9, radius: 280
 	}),
 	// A red sigil burned onto a Lantern: for a few seconds their ring can't build anything
 	brand: def({
 		id: 'brand', name: 'Rage Brand', band: 'long', tell: 'aim', windup: 0.6, active: 0.1, recover: 0.4, cooldown: 11,
-		minRange: 0, maxRange: 560, damage: 6, knockback: 0, melee: false, heavy: false, chance: 0.8
+		minRange: 0, maxRange: 560, damage: 12, knockback: 0, melee: false, heavy: false, chance: 0.85
 	}),
 	// Everything he has, released at once: a huge ring of rage around him. Get out, or shield in time
 	crimsonNova: def({
 		id: 'crimsonNova', name: 'Crimson Nova', band: 'mid', tell: 'sky', windup: 0.5, active: 0.1, recover: 1.2, cooldown: 12,
-		minRange: 0, maxRange: 320, damage: 46, knockback: 760, melee: false, heavy: true, chance: 0.9, radius: 250
+		minRange: 0, maxRange: 320, damage: 62, knockback: 950, melee: false, heavy: true, chance: 0.95, radius: 250
 	}),
 	// A spinning vortex of blades that drags Lanterns in, then bursts
 	razerStorm: def({
 		id: 'razerStorm', name: 'Blade Storm', band: 'mid', tell: 'heavy', windup: 0.6, active: 1.6, recover: 0.7, cooldown: 10,
-		minRange: 0, maxRange: 340, damage: 9, knockback: 380, melee: false, heavy: true, chance: 0.9, radius: 330, speed: 620
+		minRange: 0, maxRange: 340, damage: 13, knockback: 520, melee: false, heavy: true, chance: 0.95, radius: 330, speed: 620
 	})
 };
 
@@ -342,12 +342,12 @@ export const ABILITY_LIST = (Object.keys(ABILITIES) as AbilityId[]).filter(
 
 /** Which bands each role's kit is built from ('any' = a random fighting band). Everyone gets one support construct. */
 const KIT_PLAN: Record<Role, (Band | 'any')[]> = {
-	berserker: ['close', 'close', 'mid', 'any', 'support'],
-	hunter: ['close', 'mid', 'long', 'any', 'support'],
-	gunner: ['long', 'long', 'mid', 'any', 'support']
+	berserker: ['close', 'close', 'mid', 'any', 'any', 'support'],
+	hunter: ['close', 'mid', 'long', 'any', 'any', 'support'],
+	gunner: ['long', 'long', 'mid', 'any', 'any', 'support']
 };
 
-/** A random kit of five different constructs that suits the role: four to fight with, one to support. */
+/** A random kit of six different constructs that suits the role: five to fight with, one to support. */
 export function randomKit(role: Role, rand = Math.random): AbilityId[] {
 	const kit: AbilityId[] = [];
 	const bands: Band[] = ['close', 'mid', 'long'];
@@ -488,6 +488,9 @@ export interface RedWorld {
 export function createRedWorld(): RedWorld {
 	return { shots: [], chains: [], strikes: [], puddles: [], beams: [], cages: [] };
 }
+
+/** Rage breaks willpower: bubble shields take this many times the damage from a Red Lantern's hit. */
+export const RAGE_VS_SHIELD = 2;
 
 /** Damage for one hit of a construct: angrier and mightier enemies hit harder. */
 export function power(e: Enemy, a: AbilityDef): number {
@@ -973,10 +976,22 @@ function meteorShower(e: Enemy, a: AbilityDef, w: ConstructWorld) {
 /** Move red projectiles, beams, chains, cages, falling strikes and fire. Called once per tick after the brains. */
 export function updateRedConstructs(w: ConstructWorld, players: readonly Player[], dt: number) {
 	const red = w.red;
-	red.shots = red.shots.filter((s) => updateShot(s, w, players, dt));
+	// Everything red is rage (Green Lanterns sparring with you aren't)
+	const rageOf = (e: Enemy) => (ENEMIES[e.kind].faction === 'red' ? RAGE_VS_SHIELD : 1);
+	red.shots = red.shots.filter((s) => {
+		w.rage = rageOf(s.owner);
+		return updateShot(s, w, players, dt);
+	});
 	red.chains = red.chains.filter((c) => updateChain(c, dt));
-	red.beams = red.beams.filter((bm) => updateBeam(bm, w, players, dt));
-	red.strikes = red.strikes.filter((s) => updateStrike(s, w, players, dt));
+	red.beams = red.beams.filter((bm) => {
+		w.rage = rageOf(bm.owner);
+		return updateBeam(bm, w, players, dt);
+	});
+	red.strikes = red.strikes.filter((s) => {
+		w.rage = s.kind === 'hammer' ? 1 : RAGE_VS_SHIELD;
+		return updateStrike(s, w, players, dt);
+	});
+	w.rage = RAGE_VS_SHIELD;
 
 	red.cages = red.cages.filter((c) => {
 		c.time -= dt;
@@ -999,6 +1014,7 @@ export function updateRedConstructs(w: ConstructWorld, players: readonly Player[
 		}
 		return pd.life > 0;
 	});
+	w.rage = 1;
 }
 
 function updateChain(c: RedChain, dt: number): boolean {

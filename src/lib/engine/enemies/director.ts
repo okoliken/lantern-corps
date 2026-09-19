@@ -32,7 +32,7 @@ export interface Pressure {
 export type PressureMap = Map<Player, Pressure>;
 
 /** How many attacks can be coming at one Lantern at once. */
-export const ATTACK_BUDGET = 2;
+export const ATTACK_BUDGET = 3;
 /** Recent damage above this shrinks the budget to 1 until it cools down. */
 const HEAT_LIMIT = 28;
 /** Seconds for recent damage to fade to about a third. */
