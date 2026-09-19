@@ -46,12 +46,18 @@ describe('the landing on Oa', () => {
 });
 
 describe('the ring finds John Stewart', () => {
-	it('talks, chooses him, and ends', () => {
+	it('talks, and ends on the cliffhanger, before he puts the ring on', () => {
 		const scene = new JohnChosen(JOHN_CHOSEN);
 		run(scene, 6);
 		expect(scene.current?.who).toBe('ring');
-		const chosen = JOHN_CHOSEN.findIndex((l) => l.mood === 'chosen');
-		expect(chosen).toBeGreaterThan(0);
+		expect(JOHN_CHOSEN.some((l) => l.mood === 'chosen')).toBe(false);
+		run(scene, 120);
+		expect(scene.done).toBe(true);
+	});
+
+	it('still plays the transformation when a line says so (for Act 2)', () => {
+		const lines = [...JOHN_CHOSEN, { who: 'ring' as const, text: 'Welcome to the Green Lantern Corps.', mood: 'chosen' as const }];
+		const scene = new JohnChosen(lines);
 		run(scene, 120);
 		expect(scene.done).toBe(true);
 	});

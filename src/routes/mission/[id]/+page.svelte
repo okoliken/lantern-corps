@@ -11,11 +11,13 @@
 	import type { CommsLine, MissionMeter, MissionState, MissionStat } from '$lib/engine/missions/mission';
 	import type { DialogueScene } from '$lib/engine/scenes/scene';
 	import { buildMission } from '$lib/missions';
+	import { placeOf } from '$lib/story/missions';
 	import { profiles } from '$lib/profiles.svelte';
 	import { settings } from '$lib/settings.svelte';
 
 	let { data } = $props();
 	const mission = $derived(data.mission);
+	const place = $derived(placeOf(mission.id));
 
 	let round = $state(0);
 
@@ -24,7 +26,9 @@
 		return buildMission(mission.id, {
 			settings: untrack(() => settings.snapshot()),
 			profiles: untrack(() => profiles.snapshot()),
-			onProgress: (id, profile) => profiles.update(id, profile)
+			onProgress: (id, profile) => profiles.update(id, profile),
+			// Dev only: ?zoom=2 brings the camera closer (for recording footage)
+			zoom: import.meta.env.DEV ? Number(new URLSearchParams(location.search).get('zoom')) || undefined : undefined
 		});
 	});
 	const startLives = $derived(setup.director.lives);
@@ -124,7 +128,7 @@
 			<button class="pause" onclick={() => setPaused(true)} aria-label="Pause">❚❚ <kbd>Esc</kbd></button>
 			<div class="panel">
 				<div class="row">
-					<span class="title">{mission.number}. {mission.title}</span>
+					<span class="title">{place.act.number}-{place.number}. {mission.title}</span>
 					<span class="lives" title="Lives">
 						{#each { length: startLives } as _, i (i)}
 							<span class:lost={i >= status.lives}>♥</span>
@@ -169,8 +173,8 @@
 
 	{#if briefing}
 		<div class="briefing" role="dialog" aria-label="Mission briefing">
-			<small class="place">{mission.place}</small>
-			<h1>Mission {mission.number}: {mission.title}</h1>
+			<small class="place">Act {place.act.number} · {place.act.title} · {mission.place}</small>
+			<h1>Mission {place.number}: {mission.title}</h1>
 			<p class="as">Playing as <strong>{LANTERNS[mission.lantern].name}</strong></p>
 			{#each mission.briefing as paragraph, i (i)}
 				<p>{paragraph}</p>

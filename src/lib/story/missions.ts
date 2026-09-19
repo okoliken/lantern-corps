@@ -1,13 +1,14 @@
-// Missions: the story, as data. Each mission names who you play, where, and
-// the briefing shown before it starts. The rules live in its director
-// (src/lib/engine/missions/).
+// Missions: the story, as data. The story is told in ACTS; each act lists its
+// missions in order, built ones by id and planned ones as a title and a
+// teaser (shown locked in the mission list). Each mission names who you play,
+// where, and the briefing shown before it starts. The rules live in its
+// director (src/lib/engine/missions/).
 
 import type { EnvironmentKind } from '$lib/engine/environment';
 import type { CrewId, LanternId } from '$lib/engine/lanterns';
 
 export interface MissionInfo {
 	id: string;
-	number: number;
 	title: string;
 	/** One line for the mission list. */
 	tagline: string;
@@ -27,7 +28,6 @@ export interface MissionInfo {
 export const MISSIONS: MissionInfo[] = [
 	{
 		id: 'safe-passage',
-		number: 1,
 		title: 'Safe Passage',
 		tagline: 'Clear a path for a wounded Lantern through an asteroid storm.',
 		lantern: 'hal',
@@ -48,7 +48,6 @@ export const MISSIONS: MissionInfo[] = [
 
 MISSIONS.push({
 	id: 'silent-outpost',
-	number: 2,
 	title: 'Silent Outpost',
 	tagline: 'Kel-Aris Station went dark. Find out why, with Kilowog at your side.',
 	lantern: 'hal',
@@ -65,14 +64,13 @@ MISSIONS.push({
 
 MISSIONS.push({
 	id: 'colony-under-fire',
-	number: 3,
-	title: 'Colony Under Fire',
-	tagline: "John Stewart's first mission: get Mirrow's colonists out through Zilius Zox's fire.",
+	title: 'First Patrol',
+	tagline: "John Stewart's first call as a Lantern: get Mirrow's colonists out through Zilius Zox's fire.",
 	lantern: 'john',
 	environment: 'planet',
 	place: 'Sector 2814 · Mirrow Colony',
 	briefing: [
-		'Three days ago John Stewart was an architect on a building site in Detroit. Now he wears the ring of Sector 2814, and his first call has come in: Mirrow, a farming colony on the frontier, is burning.',
+		"Two weeks ago John Stewart was an architect on a building site in Detroit. Since then he's fought beside the Justice League, been carried across the galaxy to Oa, and survived Kilowog's training. Now his first real call has come in: Mirrow, a farming colony on the frontier, is burning.",
 		"Hal is on the other side of the sector, but he can be there if John calls. The colonists are hiding in their shelters. The shuttles are waiting. Something up there is laughing.",
 		'Get them out.'
 	],
@@ -86,7 +84,6 @@ MISSIONS.push({
 
 MISSIONS.push({
 	id: 'the-interceptor',
-	number: 4,
 	title: 'The Interceptor',
 	tagline: 'Steal the Corps\' prototype ship with Kilowog, and get it past the frontier in one piece.',
 	lantern: 'hal',
@@ -108,4 +105,58 @@ MISSIONS.push({
 
 export function missionById(id: string): MissionInfo | undefined {
 	return MISSIONS.find((m) => m.id === id);
+}
+
+/** A mission that's part of the story but not built yet: shown locked, with a teaser. */
+export interface PlannedMission {
+	title: string;
+	tagline: string;
+}
+
+export interface ActInfo {
+	number: number;
+	title: string;
+	/** What the act is about, in a line. */
+	tagline: string;
+	/** Its missions in order: a built mission's id, or one still to come. */
+	lineup: (string | PlannedMission)[];
+}
+
+export const ACTS: ActInfo[] = [
+	{
+		number: 1,
+		title: 'Rage at the Border',
+		tagline: "The frontier is burning. Find out who's hunting Green Lanterns, and why.",
+		lineup: [
+			'safe-passage',
+			'silent-outpost',
+			'the-interceptor',
+			{ title: 'Prison Moon', tagline: 'Break captured Green Lanterns out of a Red Lantern prison. Every Lantern you free fights beside you.' },
+			{ title: 'Razer', tagline: "Atrocitus's lieutenant. His Red Lanterns fight you first. Then he does." }
+		]
+	},
+	{
+		number: 2,
+		title: 'The Old Machines',
+		tagline: 'A new Lantern on Earth, and something ancient waking up.',
+		lineup: [
+			{ title: 'Call to Arms', tagline: 'The Flash and Hawkgirl are losing to Gorilla Grodd. A ring finds its new bearer in the middle of the fight.' },
+			{ title: 'Summoned', tagline: 'The ring carries John Stewart across the galaxy to Oa, and to the Corps.' },
+			'colony-under-fire',
+			{ title: "The Guardians' Shame", tagline: 'The Guardians built the Manhunters. Now Atrocitus wants them.' },
+			{ title: 'Sleepers', tagline: 'Manhunters wake up all over Earth. John stands with the Justice League.' },
+			{ title: 'Manhunter Prime', tagline: 'Hal and John, together, at the heart of the vault.' }
+		]
+	},
+	{ number: 3, title: 'Blood Oath', tagline: 'Into Sector 666, to end it at the source.', lineup: [] },
+	{ number: 4, title: 'To be revealed', tagline: '', lineup: [] }
+];
+
+/** Which act a mission is in and its number within that act. */
+export function placeOf(id: string): { act: ActInfo; number: number } {
+	for (const act of ACTS) {
+		const i = act.lineup.indexOf(id);
+		if (i >= 0) return { act, number: i + 1 };
+	}
+	throw new Error(`Mission ${id} isn't in any act`);
 }

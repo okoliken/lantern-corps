@@ -106,6 +106,8 @@ export interface GameOptions {
 	profiles?: Profiles;
 	/** Called whenever a profile changes (XP earned, level gained), so it can be saved. */
 	onProgress?: (lantern: LanternId, profile: Profile, levelsGained: number) => void;
+	/** Camera zoom (normal play is the Camera default); the demo reel sits closer. */
+	zoom?: number;
 }
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -162,7 +164,7 @@ export class Game {
 	settings: Settings;
 	readonly players: Player[];
 	readonly map: GameMap;
-	readonly camera = new Camera();
+	readonly camera: Camera;
 	readonly batteries: Battery[];
 	readonly dummies: Dummy[];
 	readonly constructs: ConstructWorld;
@@ -201,8 +203,10 @@ export class Game {
 		showSlots = false,
 		settings = defaultSettings(),
 		profiles,
-		onProgress
+		onProgress,
+		zoom
 	}: GameOptions) {
+		this.camera = new Camera(zoom);
 		this.settings = settings;
 		this.profiles = profiles ?? null;
 		this.onProgress = onProgress;

@@ -2,9 +2,9 @@
 // bearer on Earth. Detroit, night, the roof of a building going up: John
 // Stewart, Marine and architect, still in his work clothes and hard hat,
 // looks up as a green star falls out of the sky and stops right in front of
-// him. When the ring says "Welcome to the
-// Green Lantern Corps" it slides onto his finger, there's a flash, and he's
-// in the uniform.
+// him, and it speaks. A line with the 'chosen' mood plays the transformation
+// (the ring slides onto his finger, a flash, the uniform); Mission 2's scene
+// stops before that, on the cliffhanger.
 
 import type { LanternPose } from '../animation';
 import { EARTH_H, EARTH_W, ROOF, drawDetroit } from '../draw/earth';

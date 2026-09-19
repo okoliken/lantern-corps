@@ -138,7 +138,7 @@ back and let them fight, lure one faction into the other, or get caught in the m
   wave hits. Her last recording says the Red Lanterns' leader swore "the Guardians will burn for Sector
   666". Kilowog: "The Lost Sector." **Ending scene:** Detroit at night; the ring finds **John Stewart**
   (Marine, architect) on a construction site roof and makes him a Lantern (user's idea, 2026-09-18).
-- **Mission 3: Colony Under Fire** (John's first mission, played as John, solo with Hal on call as
+- **Colony Under Fire** (now **Act 2 · First Patrol**; played as John, solo with Hal on call as
   backup): Mirrow, a farming colony, is burning. John leads its colonists from their shelters to the
   evacuation shuttles through **Zilius Zox**'s fire, then holds the pad while the last shuttle's engines
   warm up and Zox attacks. User's direction (2026-09-18): missions vary between space, planets and
@@ -158,37 +158,46 @@ time the name Atrocitus is heard). Then Act 2 (the Manhunter vault), an Earth de
 Stewart joins, a DC guest hero), Act 3 (Ysmault, Atrocitus; Sinestro's distrust grows).
 
 ## Acts & missions
-Mission types come from what's happening in the story. Planets are original; Oa and Ysmault are canon.
+*Restructured 2026-09-19 with the user.* The mission list is organised by act; an act has as many
+missions as it needs (no fixed count). Built missions are listed by id in `ACTS`
+(`src/lib/story/missions.ts`); planned ones show locked, with a teaser. The story is free-form:
+inspired by the comics, the 2011 animated series and the 2011 film, not bound to any of them.
 
-### Act 1: Rage at the Border
-*The frontier is on fire. Find out who's attacking and why.*
-1. **Silent Outpost** (planet, Kel-Aris Station): investigate a dark outpost. Tutorial: movement,
-   ring shot, flying. First Rage Grunts.
-2. **Colony Under Fire** (planet, Mirrow Colony): **rescue** colonists (shield them!) while Grunts
-   attack. Zilius Zox appears.
-3. **The Ambush** (space, Durvan Belt): defend a damaged Green Lantern ship in the asteroid field.
-   First Red Lantern fighters, and Skallox.
-4. **Boss: Skarr Vell** (planet, the burning outpost). His defeat reveals the Reds are hunting for
-   "the Guardians' buried shame".
+### Act 1: Rage at the Border (Hal and Kilowog)
+*The frontier is burning. Find out who's hunting Green Lanterns, and why.* John Stewart only
+appears at the end of Mission 2, when the ring finds him (the scene ends there, a cliffhanger).
+1. **Safe Passage** (built)
+2. **Silent Outpost** (built): Tolen Vex's ring leaves for Earth and finds John Stewart.
+3. **The Interceptor** (built)
+4. **Prison Moon**: the Interceptor comes out of its jump over a blood-red moon where the Red
+   Lanterns hold captured Green Lanterns. Break the cells open; each freed Lantern fights beside you.
+   Hold out against the waves; the last prisoner names who runs the place: Razer.
+5. **Boss: Razer**: Atrocitus's lieutenant, driven by grief for his wife. 4-5 Red Lanterns fight first
+   while he watches; then he fights. Kit: Twin Rage Blades, Crimson Chakram (curves round a shield),
+   Rage Tether (hooks you in), Construct Shatter (breaks green constructs and shields near him), Rage
+   Brand (3s: no constructs), Rage Plasma pools, Rage Shield. Phases at 60% and 30% (berserk: Blade
+   Storm vortex, Crimson Nova blast). Beaten and captured, he names Atrocitus.
 
-### Act 2: The Old Machines
-*Atrocitus is after a Manhunter vault. The Guardians have been hiding something.*
-5. **Briefing on Oa**: story scene. The Guardians admit they built the Manhunters.
-6. **Race to the Vault** (planet, Tharsis Deep): get there before the Reds. First Manhunter Drones
-   wake up. First three-way fight.
-7. **The Vault Awakens** (planet, inside the vault): **escort** John as he tries to shut it down.
-   Sentries and Adapters.
-8. **Protect the Survivors** (space, around a colony ship): Manhunters target everyone. **Defend**
-   with walls and shields.
-9. **Boss: Manhunter Prime** (vault core). It locks out constructs as it learns you.
+### Act 2: The Old Machines (John's arc, mostly on Earth)
+*A new Lantern on Earth, and something ancient waking up.* The Guardians built the Manhunters;
+Atrocitus wants them.
+1. **Call to Arms** (Earth, Central City): The Flash and Hawkgirl are losing to Gorilla Grodd. The
+   ring transforms John and throws him in; he learns his powers mid-fight (in-fight hints). What
+   Grodd dug up switches on: an old Manhunter machine.
+2. **Summoned** (Oa): the ring carries John to Oa, like the 2011 film. The Guardians, Hal, Kilowog,
+   Tomar-Re; Kilowog's training, for John.
+3. **First Patrol** (built; was Colony Under Fire): John's first off-world call, Hal on backup.
+4. **The Guardians' Shame** (Hal): the Guardians admit they built the Manhunters; Hal, Kilowog and a
+   reluctant Razer race to the vault. First three-way fight.
+5. **Sleepers** (Earth): Manhunters wake up across Earth; John stands with the Justice League, who
+   offer him a place on the team.
+6. **Boss: Manhunter Prime**: Hal and John together; choose who to play. It learns your constructs.
 
 ### Act 3: Blood Oath
-*End it at the source.*
-10. **Into Red Space** (space, the border of Sector 666): fight through Red patrols.
-11. **Dex-Starr** (planet, ruined world): mini-boss hunt.
-12. **Ysmault** (planet, the Red Lantern stronghold): everything Red at full strength.
-13. **Final boss: Atrocitus**. After the fight, a choice of words: Hal and John don't just beat him,
-    they show the Guardians' past was wrong without excusing what he did.
+*Into Sector 666, to end it at the source.* Red space, Dex-Starr, Ysmault, Atrocitus. To plan.
+
+### Act 4
+To be revealed.
 
 ---
 

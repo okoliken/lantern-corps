@@ -7,6 +7,7 @@
 	import { preloadFonts } from '$lib/engine/draw/fonts';
 	import { startLoop, type LoopStats } from '$lib/engine/loop';
 	import type { Game } from '$lib/engine/game';
+	import { Autopilot } from '$lib/engine/autopilot';
 
 	interface Props {
 		game: Game;
@@ -38,6 +39,11 @@
 				step(seconds: number) {
 					for (let i = 0; i < Math.round(seconds * 60); i++) game.update(1 / 60);
 					game.render(ctx, 1);
+				},
+				// Let the computer play the first Lantern (for recording footage)
+				autopilot() {
+					const me = game.players[0];
+					me.input = new Autopilot(game, me);
 				}
 			};
 		}

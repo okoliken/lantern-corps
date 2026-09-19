@@ -278,7 +278,7 @@ night, the ring chooses John Stewart. Story scenes share `scenes/scene.ts` (`Dia
 back up at the battery). ★ done, ★ no lives lost, ★ under 5 minutes. Bots: the AI-Hal and a sloppy
 "human" bot both win in ~100s of fighting; the sloppy one sometimes loses a life or ends near-dead.
 
-**Mission 3: Colony Under Fire** (John Stewart solo, planet, Mirrow Colony; `missions/colonyUnderFire.ts`,
+**Colony Under Fire** (now Act 2 · First Patrol; John Stewart solo, planet, Mirrow Colony; `missions/colonyUnderFire.ts`,
 art in `draw/colony.ts`). John's first mission. Three groups of 4 colonists hide in shelters; reaching
 one brings them out to follow John (sliding around solids) to the evacuation shuttles, and draws a wave.
 While colonists are out, Zilius Zox's fire barrage lands on them (red meteor strikes with warning
@@ -314,6 +314,18 @@ wins). Before, a brawling Kilowog next to the Interceptor always outscored it.
 a partner (`Backup(who, uses, seconds)`): they fly in (`Game.addPartner`, AI) and leave when their
 time's up (`Game.removePartner`). Mission 3: Hal, twice, 40s each. The panel tally shows the status.
 Footprint-only obstacles (`Obstacle.hidden`) make mission-drawn props solid without drawing a block.
+
+**Acts** (`ACTS` in `story/missions.ts`, 2026-09-19): the mission list is grouped by act; each act
+lists its missions in order (built ones by id, planned ones as title + teaser, shown locked).
+`placeOf(id)` gives a mission's act and number within it (briefing: "Act 1 · ... / Mission 3:",
+HUD: "1-3."). A test checks every built mission is in exactly one act.
+
+**Recording footage (dev only):** `?zoom=2` on a mission page brings the camera closer
+(`GameOptions.zoom`); `lc.autopilot()` in the console lets the computer play the first Lantern
+(`engine/autopilot.ts`: fights like an AI partner, heads for `director.goal()` when nothing's near,
+shields what the mission protects). The X demo was recorded frame by frame with Playwright driving
+Chrome with a paused fake clock (`page.clock.pauseAt`, then `runFor(1000/60)` + a screenshot per
+frame) and joined with ffmpeg; the clock must be paused, or real time leaks in and it plays fast.
 
 **One mission page for all** (`routes/mission/[id]`, built by `$lib/missions.ts`): every director
 implements `MissionDirector` (`missions/mission.ts`): objective line, meters, tally, warning, stars,

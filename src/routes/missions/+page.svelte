@@ -1,53 +1,83 @@
 <script lang="ts">
-	// The mission list. For now there's one; the rest of the story arrives mission by mission.
-	import { MISSIONS } from '$lib/story/missions';
+	// The mission list, act by act. Built missions open; ones still to come
+	// show locked with a teaser, so it's clear where the story is going.
+	import { ACTS, missionById } from '$lib/story/missions';
 	import { LANTERNS } from '$lib/engine/lanterns';
 	import { settings } from '$lib/settings.svelte';
 </script>
 
 <main>
 	<h1>Missions</h1>
-	<ol>
-		<li>
-			<a class="mission" href="/training">
-				<span class="number">{settings.current.trained ? '✓' : '★'}</span>
-				<span class="text">
-					<strong>Training</strong>
-					<small>Oa · with Kilowog · about 3 minutes</small>
-					<span>New to the ring? Learn everything a Lantern can do, one thing at a time.</span>
-				</span>
-			</a>
-		</li>
-		<li>
-			<a class="mission" href="/spar">
-				<span class="number">⚔</span>
-				<span class="text">
-					<strong>Spar with Kilowog & Sinestro</strong>
-					<small>Oa · two on one</small>
-					<span>Think you learned something? Prove it against the Corps' drill sergeant and its greatest Lantern.</span>
-				</span>
-			</a>
-		</li>
-		{#each MISSIONS as m (m.id)}
+
+	<section>
+		<header class="act">
+			<small>On Oa</small>
+			<h2>Corps training</h2>
+		</header>
+		<ol>
 			<li>
-				<a class="mission" href="/mission/{m.id}">
-					<span class="number">{m.number}</span>
+				<a class="mission" href="/training">
+					<span class="number">{settings.current.trained ? '✓' : '★'}</span>
 					<span class="text">
-						<strong>{m.title}</strong>
-						<small>{m.place} · as {LANTERNS[m.lantern].name}</small>
-						<span>{m.tagline}</span>
+						<strong>Training</strong>
+						<small>Oa · with Kilowog · about 3 minutes</small>
+						<span>New to the ring? Learn everything a Lantern can do, one thing at a time.</span>
 					</span>
 				</a>
 			</li>
-		{/each}
-		<li class="locked">
-			<span class="number">{MISSIONS.length + 1}</span>
-			<span class="text">
-				<strong>Coming soon</strong>
-				<span>The story continues…</span>
-			</span>
-		</li>
-	</ol>
+			<li>
+				<a class="mission" href="/spar">
+					<span class="number">⚔</span>
+					<span class="text">
+						<strong>Spar with Kilowog & Sinestro</strong>
+						<small>Oa · two on one</small>
+						<span>Think you learned something? Prove it against the Corps' drill sergeant and its greatest Lantern.</span>
+					</span>
+				</a>
+			</li>
+		</ol>
+	</section>
+
+	{#each ACTS as act (act.number)}
+		<section class:later={act.lineup.length === 0}>
+			<header class="act">
+				<small>Act {act.number}</small>
+				<h2>{act.title}</h2>
+				{#if act.tagline}<p>{act.tagline}</p>{/if}
+			</header>
+			{#if act.lineup.length > 0}
+				<ol>
+					{#each act.lineup as entry, i (i)}
+						{@const m = typeof entry === 'string' ? missionById(entry) : undefined}
+						<li>
+							{#if m}
+								<a class="mission" href="/mission/{m.id}">
+									<span class="number">{i + 1}</span>
+									<span class="text">
+										<strong>{m.title}</strong>
+										<small>{m.place} · as {LANTERNS[m.lantern].name}</small>
+										<span>{m.tagline}</span>
+									</span>
+								</a>
+							{:else if typeof entry !== 'string'}
+								<div class="locked">
+									<span class="number">{i + 1}</span>
+									<span class="text">
+										<strong>{entry.title}</strong>
+										<small>Coming soon</small>
+										<span>{entry.tagline}</span>
+									</span>
+								</div>
+							{/if}
+						</li>
+					{/each}
+				</ol>
+			{:else}
+				<div class="locked"><span class="text"><small>Coming later</small></span></div>
+			{/if}
+		</section>
+	{/each}
+
 	<a class="back" href="/">← Menu</a>
 </main>
 
@@ -56,10 +86,41 @@
 		min-height: 100%;
 		box-sizing: border-box;
 		display: grid;
-		place-content: center;
+		justify-content: center;
+		align-content: start;
 		justify-items: center;
-		gap: 1.5rem;
-		padding: 2rem 1rem;
+		gap: 2rem;
+		padding: 2.5rem 1rem;
+	}
+	section {
+		display: grid;
+		gap: 0.8rem;
+		width: min(34rem, 100%);
+	}
+	section.later {
+		opacity: 0.55;
+	}
+	.act {
+		display: grid;
+		gap: 0.15rem;
+		border-left: 3px solid var(--green);
+		padding-left: 0.8rem;
+	}
+	.act small {
+		color: var(--green);
+		opacity: 0.8;
+	}
+	.act h2 {
+		margin: 0;
+		font-family: var(--font-display);
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		font-size: 1.25rem;
+	}
+	.act p {
+		margin: 0;
+		opacity: 0.75;
+		font-size: 0.9rem;
 	}
 	h1 {
 		margin: 0;
@@ -74,7 +135,7 @@
 		padding: 0;
 		display: grid;
 		gap: 0.8rem;
-		width: min(34rem, 100%);
+		width: 100%;
 	}
 	.mission,
 	.locked {

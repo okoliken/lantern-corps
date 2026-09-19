@@ -20,7 +20,7 @@ export interface MissionRun {
 	outro: (() => DialogueScene) | null;
 }
 
-type Options = Pick<GameOptions, 'settings' | 'profiles' | 'onProgress'>;
+type Options = Pick<GameOptions, 'settings' | 'profiles' | 'onProgress' | 'zoom'>;
 
 export function buildMission(id: string, options: Options): MissionRun {
 	switch (id) {
