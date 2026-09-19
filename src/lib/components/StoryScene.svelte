@@ -94,9 +94,9 @@
 		min-height: 96px;
 		padding: 14px 20px 16px;
 		background: rgba(3, 12, 8, 0.86);
-		border: 1px solid rgba(61, 255, 110, 0.45);
+		border: 1px solid color-mix(in srgb, var(--green) 45%, transparent);
 		border-radius: 10px;
-		box-shadow: 0 0 24px rgba(61, 255, 110, 0.15);
+		box-shadow: 0 0 24px color-mix(in srgb, var(--green) 15%, transparent);
 	}
 	.name {
 		font-family: var(--font-display);
@@ -115,7 +115,7 @@
 		position: absolute;
 		right: 14px;
 		bottom: 8px;
-		color: #3dff6e;
+		color: var(--green);
 		font-size: 12px;
 		animation: bob 0.9s ease-in-out infinite;
 	}
@@ -131,9 +131,9 @@
 		padding: 6px 12px;
 		font: inherit;
 		font-size: 13px;
-		color: #cfeedd;
+		color: var(--text);
 		background: rgba(0, 0, 0, 0.5);
-		border: 1px solid rgba(61, 255, 110, 0.35);
+		border: 1px solid color-mix(in srgb, var(--green) 35%, transparent);
 		border-radius: 6px;
 		cursor: pointer;
 	}

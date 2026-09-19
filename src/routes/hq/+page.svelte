@@ -149,7 +149,7 @@
 		cursor: default;
 	}
 	.tabs button.on {
-		background: rgba(61, 255, 110, 0.15);
+		background: color-mix(in srgb, var(--green) 15%, transparent);
 		border-color: var(--green);
 	}
 	.lv {
@@ -165,7 +165,7 @@
 		padding: 1rem 1.25rem;
 		border: 2px solid var(--green-dim);
 		border-radius: 12px;
-		background: rgba(61, 255, 110, 0.03);
+		background: color-mix(in srgb, var(--green) 3%, transparent);
 	}
 	.info {
 		flex: 1;
@@ -193,7 +193,7 @@
 	.xp {
 		height: 8px;
 		border-radius: 4px;
-		background: rgba(61, 255, 110, 0.12);
+		background: color-mix(in srgb, var(--green) 12%, transparent);
 		overflow: hidden;
 	}
 	.xp span {
@@ -223,7 +223,7 @@
 	.points.has {
 		opacity: 1;
 		color: var(--green);
-		box-shadow: 0 0 20px rgba(61, 255, 110, 0.25);
+		box-shadow: 0 0 20px color-mix(in srgb, var(--green) 25%, transparent);
 		border: 1px solid var(--green);
 	}
 	.big {
@@ -265,7 +265,7 @@
 		width: 1.2rem;
 		height: 0.45rem;
 		border-radius: 3px;
-		background: rgba(61, 255, 110, 0.15);
+		background: color-mix(in srgb, var(--green) 15%, transparent);
 	}
 	.pips span.filled {
 		background: var(--green);

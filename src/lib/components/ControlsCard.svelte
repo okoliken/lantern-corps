@@ -71,7 +71,7 @@
 		border: 2px solid var(--green);
 		border-radius: 12px;
 		background: #06100b;
-		box-shadow: 0 0 40px rgba(61, 255, 110, 0.2);
+		box-shadow: 0 0 40px color-mix(in srgb, var(--green) 20%, transparent);
 	}
 	h2 {
 		margin: 0;

@@ -15,8 +15,9 @@ import type { Target } from '../targeting';
 import { GREEN } from './lantern';
 import { uiFont } from './fonts';
 import { drawAnvilDrop, drawCutter, drawGirder, drawGrenade, drawMarine, drawSpring, drawTrain, drawWreckingBall, glovePath, ironFistDetail, ironFistPath, riflePath } from './kits';
+import { green, greenCore, GREEN_LIGHT, GREEN_CORE } from '../../theme';
 
-const CORE = '#eafff0';
+const CORE = GREEN_CORE;
 const TAU = Math.PI * 2;
 
 // --------------------------------------------------------------- material
@@ -41,13 +42,13 @@ export function energy(ctx: CanvasRenderingContext2D, path: Path2D, { edge = 2, 
 	// 1. Soft outer glow
 	ctx.shadowColor = GREEN;
 	ctx.shadowBlur = 18;
-	ctx.strokeStyle = 'rgba(61, 255, 110, 0.35)';
+	ctx.strokeStyle = green(0.35);
 	ctx.lineWidth = edge * 3.5;
 	ctx.stroke(path);
 
 	// 2. See-through body
 	ctx.shadowBlur = 0;
-	ctx.fillStyle = `rgba(61, 255, 110, ${0.2 * body})`;
+	ctx.fillStyle = green(0.2 * body);
 	ctx.fill(path);
 
 	// 3. Shimmer: a bright diagonal band sliding across, clipped to the shape
@@ -55,9 +56,9 @@ export function energy(ctx: CanvasRenderingContext2D, path: Path2D, { edge = 2, 
 	ctx.clip(path);
 	const sweep = ((time * 90) % 260) - 130;
 	const band = ctx.createLinearGradient(sweep - 30, -60, sweep + 30, 60);
-	band.addColorStop(0, 'rgba(234, 255, 240, 0)');
-	band.addColorStop(0.5, `rgba(234, 255, 240, ${0.28 * body})`);
-	band.addColorStop(1, 'rgba(234, 255, 240, 0)');
+	band.addColorStop(0, greenCore(0));
+	band.addColorStop(0.5, greenCore(0.28 * body));
+	band.addColorStop(1, greenCore(0));
 	ctx.fillStyle = band;
 	ctx.fillRect(-400, -400, 800, 800);
 	ctx.restore();
@@ -69,7 +70,7 @@ export function energy(ctx: CanvasRenderingContext2D, path: Path2D, { edge = 2, 
 	ctx.lineWidth = edge;
 	ctx.stroke(path);
 	ctx.shadowBlur = 0;
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.55)';
+	ctx.strokeStyle = greenCore(0.55);
 	ctx.lineWidth = edge * 0.4;
 	ctx.stroke(path);
 	ctx.restore();
@@ -323,7 +324,7 @@ export function drawLaserSight(
 	ctx.lineCap = 'round';
 	const full = charge >= 1;
 	const flicker = full ? 1 : 0.6 + 0.4 * Math.sin(time * 30);
-	ctx.strokeStyle = `rgba(61, 255, 110, ${(0.15 + 0.5 * charge) * flicker})`;
+	ctx.strokeStyle = green((0.15 + 0.5 * charge) * flicker);
 	ctx.lineWidth = 1 + charge * 1.5;
 	ctx.setLineDash(full ? [] : [8, 6]);
 	ctx.lineDashOffset = -time * 60;
@@ -360,7 +361,7 @@ export function drawAutoTurret(ctx: CanvasRenderingContext2D, t: Turret, time: n
 	ctx.translate(t.x, t.y);
 
 	// Glow on the ground
-	ctx.fillStyle = 'rgba(61, 255, 110, 0.15)';
+	ctx.fillStyle = green(0.15);
 	ctx.beginPath();
 	ctx.ellipse(0, 0, 18, 6, 0, 0, TAU);
 	ctx.fill();
@@ -400,7 +401,7 @@ export function drawAutoTurret(ctx: CanvasRenderingContext2D, t: Turret, time: n
 	// Time left, as a small arc under it
 	ctx.save();
 	ctx.globalAlpha = alpha;
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.6)';
+	ctx.strokeStyle = greenCore(0.6);
 	ctx.lineWidth = 2;
 	ctx.beginPath();
 	ctx.ellipse(t.x, t.y, 20, 7, 0, Math.PI * 0.15, Math.PI * 0.15 + Math.PI * 0.7 * (t.life / t.maxLife));
@@ -444,8 +445,8 @@ export function drawProjectile(ctx: CanvasRenderingContext2D, pr: Projectile, x:
 		ctx.translate(x, dy);
 		ctx.rotate(angle);
 		const wake = ctx.createLinearGradient(-26, 0, 0, 0);
-		wake.addColorStop(0, 'rgba(61, 255, 110, 0)');
-		wake.addColorStop(1, 'rgba(61, 255, 110, 0.55)');
+		wake.addColorStop(0, green(0));
+		wake.addColorStop(1, green(0.55));
 		ctx.fillStyle = wake;
 		ctx.beginPath();
 		ctx.moveTo(-26, 0);
@@ -466,8 +467,8 @@ export function drawProjectile(ctx: CanvasRenderingContext2D, pr: Projectile, x:
 	} else if (pr.kind === 'bullet') {
 		// Tracer: fading tail, hot head
 		const tail = ctx.createLinearGradient(x - ux * 22, dy - uy * 22, x, dy);
-		tail.addColorStop(0, 'rgba(61, 255, 110, 0)');
-		tail.addColorStop(1, 'rgba(61, 255, 110, 0.9)');
+		tail.addColorStop(0, green(0));
+		tail.addColorStop(1, green(0.9));
 		ctx.strokeStyle = tail;
 		ctx.lineWidth = 4;
 		ctx.beginPath();
@@ -485,7 +486,7 @@ export function drawProjectile(ctx: CanvasRenderingContext2D, pr: Projectile, x:
 		ctx.translate(x, dy);
 		ctx.rotate(Math.atan2(uy, ux));
 		const exhaust = ctx.createLinearGradient(-22, 0, -6, 0);
-		exhaust.addColorStop(0, 'rgba(61, 255, 110, 0)');
+		exhaust.addColorStop(0, green(0));
 		exhaust.addColorStop(1, CORE);
 		ctx.fillStyle = exhaust;
 		ctx.beginPath();
@@ -516,8 +517,8 @@ export function drawProjectile(ctx: CanvasRenderingContext2D, pr: Projectile, x:
 		ctx.globalAlpha = 1;
 		const orb = ctx.createRadialGradient(x, dy, 1, x, dy, 12);
 		orb.addColorStop(0, CORE);
-		orb.addColorStop(0.45, 'rgba(61, 255, 110, 0.9)');
-		orb.addColorStop(1, 'rgba(61, 255, 110, 0)');
+		orb.addColorStop(0.45, green(0.9));
+		orb.addColorStop(1, green(0));
 		ctx.fillStyle = orb;
 		ctx.beginPath();
 		ctx.arc(x, dy, 12, 0, TAU);
@@ -598,7 +599,7 @@ export function drawTrap(ctx: CanvasRenderingContext2D, t: Trap, time: number) {
 	ctx.scale(1, 0.45); // lie flat on the ground
 	ctx.shadowColor = GREEN;
 	ctx.shadowBlur = 10;
-	ctx.strokeStyle = `rgba(61, 255, 110, ${0.5 + 0.4 * pulse})`;
+	ctx.strokeStyle = green(0.5 + 0.4 * pulse);
 
 	ctx.lineWidth = 2.5;
 	ctx.beginPath();
@@ -623,7 +624,7 @@ export function drawTrap(ctx: CanvasRenderingContext2D, t: Trap, time: number) {
 
 	// Four diamonds in the middle, turning the other way
 	ctx.rotate(-time * 1.2);
-	ctx.fillStyle = `rgba(234, 255, 240, ${0.4 + 0.4 * pulse})`;
+	ctx.fillStyle = greenCore(0.4 + 0.4 * pulse);
 	for (let i = 0; i < 4; i++) {
 		const a = (i / 4) * TAU;
 		ctx.save();
@@ -664,7 +665,7 @@ function drawMine(ctx: CanvasRenderingContext2D, t: Trap, time: number) {
 	ctx.save();
 	ctx.translate(t.x, t.y);
 	ctx.scale(1, 0.45);
-	ctx.strokeStyle = 'rgba(61, 255, 110, 0.18)';
+	ctx.strokeStyle = green(0.18);
 	ctx.setLineDash([4, 5]);
 	ctx.lineDashOffset = -time * 10;
 	ctx.lineWidth = 1.5;
@@ -702,13 +703,13 @@ export function drawAidStation(ctx: CanvasRenderingContext2D, a: AidStation, tim
 	ctx.translate(a.x, a.y);
 	ctx.scale(1, 0.5);
 	const g = ctx.createRadialGradient(0, 0, 4, 0, 0, a.radius);
-	g.addColorStop(0, 'rgba(61, 255, 110, 0.18)');
-	g.addColorStop(1, 'rgba(61, 255, 110, 0.04)');
+	g.addColorStop(0, green(0.18));
+	g.addColorStop(1, green(0.04));
 	ctx.fillStyle = g;
 	ctx.beginPath();
 	ctx.arc(0, 0, a.radius, 0, TAU);
 	ctx.fill();
-	ctx.strokeStyle = `rgba(61, 255, 110, ${0.4 + 0.3 * pulse})`;
+	ctx.strokeStyle = green(0.4 + 0.3 * pulse);
 	ctx.lineWidth = 2;
 	ctx.beginPath();
 	ctx.arc(0, 0, a.radius, 0, TAU);
@@ -804,9 +805,9 @@ export function drawShield(
 
 	// Sphere body: clear in the middle, greener at the rim
 	const body = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.1, cx, cy, r);
-	body.addColorStop(0, 'rgba(234, 255, 240, 0.10)');
-	body.addColorStop(0.7, `rgba(61, 255, 110, ${0.08 + 0.06 * health})`);
-	body.addColorStop(1, `rgba(61, 255, 110, ${0.3 + 0.25 * health + hitRipple * 0.3})`);
+	body.addColorStop(0, greenCore(0.10));
+	body.addColorStop(0.7, green(0.08 + 0.06 * health));
+	body.addColorStop(1, green(0.3 + 0.25 * health + hitRipple * 0.3));
 	ctx.fillStyle = body;
 	ctx.beginPath();
 	ctx.arc(cx, cy, r, 0, TAU);
@@ -817,7 +818,7 @@ export function drawShield(
 	ctx.beginPath();
 	ctx.arc(cx, cy, r, 0, TAU);
 	ctx.clip();
-	ctx.strokeStyle = `rgba(234, 255, 240, ${0.12 + 0.1 * health})`;
+	ctx.strokeStyle = greenCore(0.12 + 0.1 * health);
 	ctx.lineWidth = 1;
 	const hex = 10;
 	const drift = (time * 6) % (hex * 3);
@@ -847,7 +848,7 @@ export function drawShield(
 
 	// Highlight glint turning around the top-left
 	ctx.shadowBlur = 0;
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.7)';
+	ctx.strokeStyle = greenCore(0.7);
 	ctx.lineWidth = 2.5;
 	const g = -2.3 + Math.sin(time * 0.8) * 0.3;
 	ctx.beginPath();
@@ -855,7 +856,7 @@ export function drawShield(
 	ctx.stroke();
 
 	// Remaining time as a thin arc under the bubble
-	ctx.strokeStyle = 'rgba(61, 255, 110, 0.6)';
+	ctx.strokeStyle = green(0.6);
 	ctx.lineWidth = 2;
 	ctx.beginPath();
 	ctx.arc(cx, cy, r + 5, Math.PI * 0.25, Math.PI * 0.25 + Math.PI * 0.5 * (s.life / s.maxLife));
@@ -885,7 +886,7 @@ export function drawReticle(ctx: CanvasRenderingContext2D, t: Target, x: number,
 		ctx.ellipse(0, 0, 26, 10, 0, 0, TAU);
 		ctx.stroke();
 		ctx.setLineDash([]);
-		ctx.strokeStyle = 'rgba(234, 255, 240, 0.6)';
+		ctx.strokeStyle = greenCore(0.6);
 		ctx.beginPath();
 		ctx.ellipse(0, 0, 32, 13, 0, 0, TAU);
 		ctx.stroke();
@@ -1033,9 +1034,9 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			trail.arc(e.x, hy, reach, start, current);
 			trail.arc(e.x, hy, reach * 0.55, current, start, true);
 			trail.closePath();
-			ctx.fillStyle = 'rgba(61, 255, 110, 0.28)';
+			ctx.fillStyle = green(0.28);
 			ctx.fill(trail);
-			ctx.strokeStyle = 'rgba(234, 255, 240, 0.6)';
+			ctx.strokeStyle = greenCore(0.6);
 			ctx.lineWidth = 2;
 			ctx.beginPath();
 			ctx.arc(e.x, hy, reach, start, current);
@@ -1072,7 +1073,7 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			ctx.globalAlpha = Math.max(0, fade);
 
 			if (punching) {
-				ctx.strokeStyle = 'rgba(234, 255, 240, 0.6)';
+				ctx.strokeStyle = greenCore(0.6);
 				ctx.lineWidth = 2;
 				for (let i = -2; i <= 2; i++) {
 					ctx.beginPath();
@@ -1138,7 +1139,7 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			ctx.restore();
 			// Swoosh arc while it comes down
 			if (swinging && k < 1) {
-				ctx.strokeStyle = 'rgba(234, 255, 240, 0.5)';
+				ctx.strokeStyle = greenCore(0.5);
 				ctx.lineWidth = 3;
 				ctx.beginPath();
 				ctx.moveTo(upX, upY);
@@ -1183,7 +1184,7 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 				ctx.stroke();
 			}
 			ctx.globalAlpha = 1 - t;
-			ctx.strokeStyle = 'rgba(61, 255, 110, 0.7)';
+			ctx.strokeStyle = green(0.7);
 			ctx.lineWidth = 2;
 			for (let i = 0; i < 16; i++) {
 				const a = (i / 16) * TAU;
@@ -1201,9 +1202,9 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			const hy = e.y - lift;
 			ctx.globalAlpha = 1 - t;
 			const flash = ctx.createRadialGradient(e.x, hy, 0, e.x, hy, r);
-			flash.addColorStop(0, `rgba(234, 255, 240, ${0.9 * (1 - t)})`);
-			flash.addColorStop(0.5, `rgba(61, 255, 110, ${0.5 * (1 - t)})`);
-			flash.addColorStop(1, 'rgba(61, 255, 110, 0)');
+			flash.addColorStop(0, greenCore(0.9 * (1 - t)));
+			flash.addColorStop(0.5, green(0.5 * (1 - t)));
+			flash.addColorStop(1, green(0));
 			ctx.fillStyle = flash;
 			ctx.beginPath();
 			ctx.arc(e.x, hy, r * (0.4 + t * 0.8), 0, TAU);
@@ -1349,7 +1350,7 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			ctx.lineTo(ex, ey);
 			ctx.stroke();
 			// Rings rippling out along the line
-			ctx.strokeStyle = `rgba(234, 255, 240, ${0.5 * (1 - t)})`;
+			ctx.strokeStyle = greenCore(0.5 * (1 - t));
 			ctx.lineWidth = 1.5;
 			for (let i = 1; i <= 5; i++) {
 				const k = i / 6;
@@ -1410,7 +1411,7 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			ctx.textAlign = 'center';
 			ctx.lineWidth = 3;
 			ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-			ctx.fillStyle = '#b8ffcf';
+			ctx.fillStyle = GREEN_LIGHT;
 			const ty = e.y - lift - easeOut(t) * 26;
 			ctx.strokeText(e.text ?? '', e.x, ty);
 			ctx.fillText(e.text ?? '', e.x, ty);
@@ -1458,7 +1459,7 @@ function drawSentryDrone(ctx: CanvasRenderingContext2D, t: Turret, time: number)
 
 	// Thrusters
 	const flame = 4 + Math.sin(time * 40) * 1.5;
-	ctx.fillStyle = 'rgba(61, 255, 110, 0.6)';
+	ctx.fillStyle = green(0.6);
 	for (const side of [-1, 1]) {
 		ctx.beginPath();
 		ctx.moveTo(side * 7 - 2, 6);
@@ -1503,7 +1504,7 @@ function drawSentryDrone(ctx: CanvasRenderingContext2D, t: Turret, time: number)
 	// Time left
 	ctx.save();
 	ctx.globalAlpha = alpha * 0.8;
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.6)';
+	ctx.strokeStyle = greenCore(0.6);
 	ctx.lineWidth = 2;
 	ctx.beginPath();
 	ctx.arc(t.x, t.y - SENTRY_DRONE_HOVER + bob, 22, Math.PI * 0.2, Math.PI * 0.2 + Math.PI * 0.6 * (t.life / t.maxLife));
@@ -1529,7 +1530,7 @@ function drawViceCrush(ctx: CanvasRenderingContext2D, e: Effect, time: number) {
 		ctx.translate(e.x, cy);
 		ctx.shadowColor = GREEN;
 		ctx.shadowBlur = 10;
-		ctx.strokeStyle = `rgba(61, 255, 110, ${0.6 + 0.4 * Math.sin(time * 20)})`;
+		ctx.strokeStyle = green(0.6 + 0.4 * Math.sin(time * 20));
 		ctx.lineWidth = 2;
 		// Brackets closing in on the target
 		const gap = r * (1.3 - 0.5 * k);
@@ -1633,7 +1634,7 @@ function drawPillarDrop(ctx: CanvasRenderingContext2D, e: Effect, time: number) 
 		const k = e.age / warning;
 		ctx.shadowColor = GREEN;
 		ctx.shadowBlur = 10;
-		ctx.strokeStyle = `rgba(61, 255, 110, ${0.5 + 0.5 * Math.sin(time * 20)})`;
+		ctx.strokeStyle = green(0.5 + 0.5 * Math.sin(time * 20));
 		ctx.lineWidth = 2;
 		ctx.setLineDash([10, 6]);
 		ctx.lineDashOffset = -time * 40;
@@ -1641,7 +1642,7 @@ function drawPillarDrop(ctx: CanvasRenderingContext2D, e: Effect, time: number) 
 		ctx.ellipse(e.x, e.y, r, r * 0.5, 0, 0, TAU);
 		ctx.stroke();
 		ctx.setLineDash([]);
-		ctx.fillStyle = `rgba(61, 255, 110, ${0.08 + 0.18 * k})`;
+		ctx.fillStyle = green(0.08 + 0.18 * k);
 		ctx.beginPath();
 		ctx.ellipse(e.x, e.y, r * k, r * 0.5 * k, 0, 0, TAU);
 		ctx.fill();

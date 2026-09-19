@@ -203,7 +203,7 @@
 	}
 	.end.won {
 		border-color: var(--green);
-		box-shadow: 0 0 40px rgba(61, 255, 110, 0.2);
+		box-shadow: 0 0 40px color-mix(in srgb, var(--green) 20%, transparent);
 	}
 	.end h2 {
 		margin: 0 0 0.5rem;

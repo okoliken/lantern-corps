@@ -4,6 +4,7 @@
 import { BATTERY_MAX_CHARGE, RESTART_THRESHOLD, type Battery } from '../willpower';
 import { GREEN } from './lantern';
 import { displayFont, uiFont } from './fonts';
+import { green, greenCore, GREEN_LIGHT, GREEN_CORE } from '../../theme';
 
 const BOTTLE_GREEN = '#0F4F34';
 
@@ -30,7 +31,7 @@ export function drawBeam(
 
 	// Outer glow
 	ctx.shadowBlur = 18;
-	ctx.strokeStyle = `rgba(61, 255, 110, ${0.35 * flicker})`;
+	ctx.strokeStyle = green(0.35 * flicker);
 	ctx.lineWidth = 11;
 	line(ctx, x, y, ex, ey);
 
@@ -42,7 +43,7 @@ export function drawBeam(
 
 	// Core
 	ctx.shadowBlur = 0;
-	ctx.strokeStyle = '#eafff0';
+	ctx.strokeStyle = GREEN_CORE;
 	ctx.lineWidth = 1.6;
 	line(ctx, x, y, ex, ey);
 
@@ -50,7 +51,7 @@ export function drawBeam(
 	if (length > 10) {
 		const nx = -dy;
 		const ny = dx;
-		ctx.strokeStyle = 'rgba(234, 255, 240, 0.55)';
+		ctx.strokeStyle = greenCore(0.55);
 		ctx.lineWidth = 1.2;
 		for (const phase of [0, Math.PI]) {
 			ctx.beginPath();
@@ -68,7 +69,7 @@ export function drawBeam(
 	// Bloom where it leaves the ring
 	ctx.shadowColor = GREEN;
 	ctx.shadowBlur = 18;
-	ctx.fillStyle = '#eafff0';
+	ctx.fillStyle = GREEN_CORE;
 	ctx.beginPath();
 	ctx.arc(x, y, 4 + Math.sin(time * 50) * 1, 0, Math.PI * 2);
 	ctx.fill();
@@ -76,7 +77,7 @@ export function drawBeam(
 	// Impact: a flaring spark where it hits
 	if (hitSomething) {
 		ctx.shadowBlur = 20;
-		ctx.fillStyle = '#d9ffe3';
+		ctx.fillStyle = GREEN_CORE;
 		const r = 5 + Math.sin(time * 40) * 2;
 		ctx.beginPath();
 		ctx.arc(ex, ey, r, 0, Math.PI * 2);
@@ -124,8 +125,8 @@ export function drawBattery(ctx: CanvasRenderingContext2D, b: Battery, onGround:
 
 	// Glow around it, scaled by charge
 	const glow = ctx.createRadialGradient(0, -30, 4, 0, -30, 70);
-	glow.addColorStop(0, `rgba(61, 255, 110, ${0.45 * fill * pulse})`);
-	glow.addColorStop(1, 'rgba(61, 255, 110, 0)');
+	glow.addColorStop(0, green(0.45 * fill * pulse));
+	glow.addColorStop(1, green(0));
 	ctx.fillStyle = glow;
 	ctx.beginPath();
 	ctx.arc(0, -30, 70, 0, Math.PI * 2);
@@ -142,9 +143,9 @@ export function drawBattery(ctx: CanvasRenderingContext2D, b: Battery, onGround:
 	ctx.fill();
 
 	// Glass body with the energy inside
-	ctx.fillStyle = `rgba(61, 255, 110, ${0.25 + 0.6 * fill * pulse})`;
+	ctx.fillStyle = green(0.25 + 0.6 * fill * pulse);
 	ctx.fillRect(-11, -46, 22, 38);
-	ctx.fillStyle = `rgba(234, 255, 240, ${0.5 * fill})`;
+	ctx.fillStyle = greenCore(0.5 * fill);
 	ctx.fillRect(-4, -42, 8, 30);
 
 	// Frame bars
@@ -193,7 +194,7 @@ export function drawChargeLink(
 	const ny = (tx - sx) / len;
 
 	ctx.save();
-	ctx.strokeStyle = 'rgba(61, 255, 110, 0.7)';
+	ctx.strokeStyle = green(0.7);
 	ctx.shadowColor = GREEN;
 	ctx.shadowBlur = 10;
 	ctx.lineWidth = 2;
@@ -354,8 +355,8 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
 		ctx.fillRect(x - 1, surgeY - 1, barW + 2, 7);
 		const surgeGrad = ctx.createLinearGradient(x, 0, x + barW, 0);
-		surgeGrad.addColorStop(0, '#9cffb8');
-		surgeGrad.addColorStop(1, '#eafff0');
+		surgeGrad.addColorStop(0, GREEN_LIGHT);
+		surgeGrad.addColorStop(1, GREEN_CORE);
 		ctx.fillStyle = surgeGrad;
 		if (ready) {
 			ctx.shadowColor = GREEN;
@@ -390,7 +391,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 				ctx.fillRect(sx, slotsY + box * (1 - s.cooldown), box, box * s.cooldown);
 			}
 
-			ctx.strokeStyle = selected ? GREEN : 'rgba(61, 255, 110, 0.25)';
+			ctx.strokeStyle = selected ? GREEN : green(0.25);
 			ctx.lineWidth = selected ? 2 : 1;
 			if (selected) {
 				ctx.shadowColor = GREEN;
@@ -422,7 +423,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 			ctx.fillRect(shx, slotsY + box * (1 - p.shield.cooldown), box, box * p.shield.cooldown);
 		}
 		// Bubble icon, bright while a shield is up on you
-		ctx.strokeStyle = p.shield.active ? GREEN : p.shield.affordable ? 'rgba(61, 255, 110, 0.7)' : 'rgba(61, 255, 110, 0.25)';
+		ctx.strokeStyle = p.shield.active ? GREEN : p.shield.affordable ? green(0.7) : green(0.25);
 		ctx.lineWidth = 2;
 		if (p.shield.active) {
 			ctx.shadowColor = GREEN;
@@ -432,7 +433,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		ctx.arc(shx + box / 2, slotsY + box / 2 + 2, 11, 0, Math.PI * 2);
 		ctx.stroke();
 		ctx.shadowBlur = 0;
-		ctx.strokeStyle = 'rgba(61, 255, 110, 0.4)';
+		ctx.strokeStyle = green(0.4);
 		ctx.lineWidth = 1;
 		ctx.strokeRect(shx + 0.5, slotsY + 0.5, box - 1, box - 1);
 		ctx.textAlign = 'left';
@@ -489,7 +490,7 @@ export function drawCrosshair(ctx: CanvasRenderingContext2D, x: number, y: numbe
 		}
 		ctx.stroke();
 	}
-	ctx.fillStyle = '#eafff0';
+	ctx.fillStyle = GREEN_CORE;
 	ctx.beginPath();
 	ctx.arc(x, y, 1.8, 0, Math.PI * 2);
 	ctx.fill();

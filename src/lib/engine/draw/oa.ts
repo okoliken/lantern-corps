@@ -6,6 +6,7 @@
 // the screen.
 
 import { GREEN } from './lantern';
+import { green, greenLight, greenCore, greenShade } from '../../theme';
 
 export const OA_W = 1400;
 export const OA_H = 784;
@@ -34,17 +35,17 @@ export function drawOaBackdrop(ctx: CanvasRenderingContext2D, time: number, alar
 	const sky = ctx.createLinearGradient(0, 0, 0, OA_GROUND);
 	sky.addColorStop(0, '#03100c');
 	sky.addColorStop(0.55, '#08261b');
-	sky.addColorStop(1, '#1f5a3b');
+	sky.addColorStop(1, greenShade(0.65));
 	ctx.fillStyle = sky;
 	ctx.fillRect(0, 0, OA_W, OA_GROUND);
 
 	for (const [x, y, r, phase] of STARS) {
-		ctx.fillStyle = `rgba(234, 255, 240, ${0.35 + 0.3 * Math.sin(time * 1.5 + phase)})`;
+		ctx.fillStyle = greenCore(0.35 + 0.3 * Math.sin(time * 1.5 + phase));
 		ctx.fillRect(x, y, r, r);
 	}
 
 	// A huge pale moon low in the sky
-	ctx.fillStyle = 'rgba(200, 240, 215, 0.12)';
+	ctx.fillStyle = greenLight(0.12);
 	ctx.beginPath();
 	ctx.arc(1150, 170, 80, 0, TAU);
 	ctx.fill();
@@ -70,7 +71,7 @@ export function drawOaBackdrop(ctx: CanvasRenderingContext2D, time: number, alar
 	ctx.fillStyle = ground;
 	// Runs on past the stage so a tall screen never shows a gap under it
 	ctx.fillRect(0, OA_GROUND, OA_W, OA_H - OA_GROUND + 400);
-	ctx.strokeStyle = 'rgba(61, 255, 110, 0.25)';
+	ctx.strokeStyle = green(0.25);
 	ctx.lineWidth = 1;
 	for (let i = -8; i <= 8; i++) {
 		ctx.beginPath();
@@ -78,7 +79,7 @@ export function drawOaBackdrop(ctx: CanvasRenderingContext2D, time: number, alar
 		ctx.lineTo(OA_W / 2 + i * 160, OA_H);
 		ctx.stroke();
 	}
-	ctx.strokeStyle = 'rgba(61, 255, 110, 0.5)';
+	ctx.strokeStyle = green(0.5);
 	ctx.beginPath();
 	ctx.moveTo(0, OA_GROUND + 0.5);
 	ctx.lineTo(OA_W, OA_GROUND + 0.5);
@@ -93,7 +94,7 @@ export function drawOaBackdrop(ctx: CanvasRenderingContext2D, time: number, alar
 		[140, 0.35],
 		[90, 0.25]
 	]) {
-		ctx.strokeStyle = `rgba(61, 255, 110, ${a})`;
+		ctx.strokeStyle = green(a);
 		ctx.lineWidth = 2;
 		ctx.beginPath();
 		ctx.ellipse(OA_PAD_X, OA_GROUND + 30, rx, rx * 0.12, 0, 0, TAU);
@@ -120,7 +121,7 @@ function drawTowers(ctx: CanvasRenderingContext2D, near: number, far: number, co
 		ctx.closePath();
 		ctx.fill();
 		// Windows
-		ctx.fillStyle = 'rgba(61, 255, 110, 0.35)';
+		ctx.fillStyle = green(0.35);
 		for (let k = 1; k < 5; k++) ctx.fillRect(x - 1, base - th * (k / 6), 2, 3);
 		ctx.fillStyle = color;
 	}
@@ -130,14 +131,14 @@ function drawTowers(ctx: CanvasRenderingContext2D, near: number, far: number, co
 function drawBattery(ctx: CanvasRenderingContext2D, x: number, base: number, time: number) {
 	const pulse = 0.8 + 0.2 * Math.sin(time * 1.3);
 	const glow = ctx.createRadialGradient(x, base - 170, 10, x, base - 170, 220);
-	glow.addColorStop(0, `rgba(61, 255, 110, ${0.35 * pulse})`);
-	glow.addColorStop(1, 'rgba(61, 255, 110, 0)');
+	glow.addColorStop(0, green(0.35 * pulse));
+	glow.addColorStop(1, green(0));
 	ctx.fillStyle = glow;
 	ctx.fillRect(x - 230, base - 400, 460, 420);
 
 	ctx.save();
 	ctx.fillStyle = '#0c2a1d';
-	ctx.strokeStyle = `rgba(61, 255, 110, ${0.7 * pulse})`;
+	ctx.strokeStyle = green(0.7 * pulse);
 	ctx.lineWidth = 2;
 	ctx.shadowColor = GREEN;
 	ctx.shadowBlur = 18 * pulse;
@@ -154,7 +155,7 @@ function drawBattery(ctx: CanvasRenderingContext2D, x: number, base: number, tim
 	ctx.roundRect(x - 55, base - 250, 110, 210, 16);
 	ctx.fill();
 	ctx.stroke();
-	ctx.fillStyle = `rgba(160, 255, 190, ${0.55 * pulse})`;
+	ctx.fillStyle = greenLight(0.55 * pulse);
 	ctx.beginPath();
 	ctx.roundRect(x - 38, base - 230, 76, 170, 12);
 	ctx.fill();
@@ -177,7 +178,7 @@ export function drawLandingDust(ctx: CanvasRenderingContext2D, x: number, t: num
 	for (let i = 0; i < 16; i++) {
 		const side = i % 2 ? 1 : -1;
 		const d = 40 + t * (120 + (i % 5) * 30);
-		ctx.fillStyle = `rgba(160, 200, 180, ${0.35 * (1 - t)})`;
+		ctx.fillStyle = greenLight(0.35 * (1 - t));
 		ctx.beginPath();
 		ctx.arc(x + side * d, OA_GROUND - 4 - (i % 4) * 5 * t, 8 + t * 14, 0, TAU);
 		ctx.fill();

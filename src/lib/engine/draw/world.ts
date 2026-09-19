@@ -7,6 +7,7 @@
 
 import { drawRageWall } from './redConstructs';
 import type { Obstacle } from '../map';
+import { green, greenLight, greenCore, GREEN_CORE, THEME_GREEN } from '../../theme';
 
 /** The part of the world currently on screen, in world coordinates. */
 export interface WorldRect {
@@ -86,7 +87,7 @@ const GROUNDS: Record<GroundStyle, { void: string; base: string; dark: string; l
 	ash: { void: '#0e0b0b', base: '#2f2a2a', dark: 'rgba(12, 6, 5, 0.4)', light: 'rgba(150, 120, 110, 0.22)' },
 	// The Red Lanterns' prison moon: dark rust rock under a red sky
 	bloodMoon: { void: '#0d0506', base: '#33191a', dark: 'rgba(20, 4, 4, 0.42)', light: 'rgba(170, 90, 80, 0.2)' },
-	oa: { void: '#060d0a', base: '#1d2a25', dark: 'rgba(5, 12, 9, 0.4)', light: 'rgba(110, 150, 130, 0.18)', inlay: 'rgba(61, 255, 110, 0.12)' }
+	oa: { void: '#060d0a', base: '#1d2a25', dark: 'rgba(5, 12, 9, 0.4)', light: greenLight(0.12), inlay: green(0.12) }
 };
 /** Size of Oa's paving slabs. */
 const INLAY = 160;
@@ -233,13 +234,13 @@ function drawForceField(ctx: CanvasRenderingContext2D, o: Obstacle, time: number
 	ctx.save();
 	ctx.globalAlpha = flicker;
 
-	ctx.fillStyle = `rgba(61, 255, 110, ${0.12 + 0.14 * health})`;
+	ctx.fillStyle = green(0.12 + 0.14 * health);
 	ctx.fill(sheet);
 
 	// Hex lattice inside the sheet
 	ctx.save();
 	ctx.clip(sheet);
-	ctx.strokeStyle = `rgba(234, 255, 240, ${0.15 + 0.15 * health})`;
+	ctx.strokeStyle = greenCore(0.15 + 0.15 * health);
 	ctx.lineWidth = 1;
 	const hex = 7;
 	const minX = Math.min(ends[0][0], ends[1][0]) - tall;
@@ -261,15 +262,15 @@ function drawForceField(ctx: CanvasRenderingContext2D, o: Obstacle, time: number
 	}
 	ctx.restore();
 
-	ctx.shadowColor = '#3dff6e';
+	ctx.shadowColor = THEME_GREEN;
 	ctx.shadowBlur = 14;
-	ctx.strokeStyle = '#3dff6e';
+	ctx.strokeStyle = THEME_GREEN;
 	ctx.lineWidth = 2;
 	ctx.stroke(sheet);
 
 	// Emitter nodes at both ends
 	for (const [nx, ny] of ends) {
-		ctx.fillStyle = '#eafff0';
+		ctx.fillStyle = GREEN_CORE;
 		ctx.beginPath();
 		ctx.arc(nx, ny - tall / 2, 3.5, 0, Math.PI * 2);
 		ctx.arc(nx, ny + tall / 2, 3.5, 0, Math.PI * 2);
@@ -297,7 +298,7 @@ function drawEnergyWall(ctx: CanvasRenderingContext2D, o: Obstacle, time: number
 	ctx.globalAlpha = flicker;
 
 	// Glow on the ground where it stands
-	ctx.fillStyle = 'rgba(61, 255, 110, 0.18)';
+	ctx.fillStyle = green(0.18);
 	ctx.beginPath();
 	ctx.ellipse(x + w / 2, y + h, w / 2 + 10, 8, 0, 0, Math.PI * 2);
 	ctx.fill();
@@ -307,13 +308,13 @@ function drawEnergyWall(ctx: CanvasRenderingContext2D, o: Obstacle, time: number
 	slab.rect(x, faceTop, w, height);
 	slab.rect(x, y - height, w, h);
 
-	ctx.fillStyle = `rgba(61, 255, 110, ${0.16 + 0.12 * health})`;
+	ctx.fillStyle = green(0.16 + 0.12 * health);
 	ctx.fill(slab);
 
 	// Hex lattice + shimmer, clipped inside
 	ctx.save();
 	ctx.clip(slab);
-	ctx.strokeStyle = `rgba(234, 255, 240, ${0.18 + 0.12 * health})`;
+	ctx.strokeStyle = greenCore(0.18 + 0.12 * health);
 	ctx.lineWidth = 1;
 	const r = 7;
 	for (let hx = x - r; hx < x + w + r; hx += r * 1.5) {
@@ -331,20 +332,20 @@ function drawEnergyWall(ctx: CanvasRenderingContext2D, o: Obstacle, time: number
 	}
 	const sweep = y + h - ((time * 60) % (height + h + 40));
 	const band = ctx.createLinearGradient(0, sweep - 14, 0, sweep + 14);
-	band.addColorStop(0, 'rgba(234, 255, 240, 0)');
-	band.addColorStop(0.5, 'rgba(234, 255, 240, 0.35)');
-	band.addColorStop(1, 'rgba(234, 255, 240, 0)');
+	band.addColorStop(0, greenCore(0));
+	band.addColorStop(0.5, greenCore(0.35));
+	band.addColorStop(1, greenCore(0));
 	ctx.fillStyle = band;
 	ctx.fillRect(x, y - height, w, height + h);
 	ctx.restore();
 
 	// Edges: glowing outline, brighter top rail
-	ctx.shadowColor = '#3dff6e';
+	ctx.shadowColor = THEME_GREEN;
 	ctx.shadowBlur = 14;
-	ctx.strokeStyle = '#3dff6e';
+	ctx.strokeStyle = THEME_GREEN;
 	ctx.lineWidth = 2;
 	ctx.stroke(slab);
-	ctx.strokeStyle = '#eafff0';
+	ctx.strokeStyle = GREEN_CORE;
 	ctx.lineWidth = 1.5;
 	ctx.beginPath();
 	ctx.moveTo(x, y - height);

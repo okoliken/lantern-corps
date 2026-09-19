@@ -2,6 +2,7 @@
 // protect, and Kilowog's practice drones and their harmless bolts.
 
 import { GREEN } from './lantern';
+import { green } from '../../theme';
 
 const TAU = Math.PI * 2;
 const PRACTICE = '#ffb347';
@@ -11,8 +12,8 @@ export function drawMarker(ctx: CanvasRenderingContext2D, x: number, y: number, 
 	const pulse = 0.6 + 0.4 * Math.sin(time * 4);
 	ctx.save();
 	const beam = ctx.createLinearGradient(0, y - 160, 0, y);
-	beam.addColorStop(0, 'rgba(61, 255, 110, 0)');
-	beam.addColorStop(1, `rgba(61, 255, 110, ${0.25 * pulse})`);
+	beam.addColorStop(0, green(0));
+	beam.addColorStop(1, green(0.25 * pulse));
 	ctx.fillStyle = beam;
 	ctx.fillRect(x - radius * 0.6, y - 160, radius * 1.2, 160);
 	ctx.shadowColor = GREEN;

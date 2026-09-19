@@ -145,14 +145,14 @@
 		padding: 1rem 1.25rem;
 		border: 2px solid var(--green-dim);
 		border-radius: 10px;
-		background: rgba(61, 255, 110, 0.03);
+		background: color-mix(in srgb, var(--green) 3%, transparent);
 		text-decoration: none;
 		color: var(--text);
 	}
 	.mission:hover,
 	.mission:focus-visible {
 		border-color: var(--green);
-		box-shadow: 0 0 24px rgba(61, 255, 110, 0.25);
+		box-shadow: 0 0 24px color-mix(in srgb, var(--green) 25%, transparent);
 	}
 	.locked {
 		opacity: 0.4;

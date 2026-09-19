@@ -4,6 +4,7 @@
 
 import type { Dummy } from '../dummy';
 import { GREEN } from './lantern';
+import { green, greenCore, greenShade } from '../../theme';
 
 const TAU = Math.PI * 2;
 const HULL = '#2a3137';
@@ -53,9 +54,9 @@ export function drawInterceptor(ctx: CanvasRenderingContext2D, x: number, y: num
 		for (const ey of [-10, 8]) {
 			const len = (34 + Math.sin(time * 38 + ey) * 5) * sputter * power * (1 + spool * 2.5);
 			const g = ctx.createLinearGradient(-110, ey, -110 - len, ey);
-			g.addColorStop(0, 'rgba(234, 255, 240, 0.95)');
-			g.addColorStop(0.35, 'rgba(61, 255, 110, 0.75)');
-			g.addColorStop(1, 'rgba(61, 255, 110, 0)');
+			g.addColorStop(0, greenCore(0.95));
+			g.addColorStop(0.35, green(0.75));
+			g.addColorStop(1, green(0));
 			ctx.fillStyle = g;
 			ctx.beginPath();
 			ctx.moveTo(-108, ey - 6);
@@ -88,7 +89,7 @@ export function drawInterceptor(ctx: CanvasRenderingContext2D, x: number, y: num
 		ctx.roundRect(-110, ey - 7, 46, 14, 5);
 		ctx.fill();
 		ctx.stroke();
-		ctx.fillStyle = power > 0.05 ? `rgba(61, 255, 110, ${0.4 + power * 0.5})` : '#20302a';
+		ctx.fillStyle = power > 0.05 ? green(0.4 + power * 0.5) : '#20302a';
 		ctx.fillRect(-112, ey - 4, 4, 8);
 	}
 
@@ -142,7 +143,7 @@ export function drawInterceptor(ctx: CanvasRenderingContext2D, x: number, y: num
 	ctx.save();
 	ctx.shadowColor = GREEN;
 	ctx.shadowBlur = 10 * lit;
-	ctx.strokeStyle = lit > 0 ? `rgba(61, 255, 110, ${0.35 + lit * 0.6})` : '#1d2a24';
+	ctx.strokeStyle = lit > 0 ? green(0.35 + lit * 0.6) : '#1d2a24';
 	ctx.lineWidth = 2.5;
 	ctx.beginPath();
 	ctx.moveTo(8, 12);
@@ -158,7 +159,7 @@ export function drawInterceptor(ctx: CanvasRenderingContext2D, x: number, y: num
 	// Corps emblem on the flank
 	ctx.save();
 	ctx.translate(-22, -2);
-	ctx.strokeStyle = lit > 0 ? GREEN : '#3a5a48';
+	ctx.strokeStyle = lit > 0 ? GREEN : greenShade(0.65);
 	ctx.lineWidth = 2;
 	ctx.beginPath();
 	ctx.arc(0, 0, 7, 0, TAU);
@@ -186,7 +187,7 @@ export function drawInterceptor(ctx: CanvasRenderingContext2D, x: number, y: num
 		ctx.save();
 		ctx.shadowColor = GREEN;
 		ctx.shadowBlur = 14 * aya;
-		ctx.fillStyle = `rgba(61, 255, 110, ${0.25 + aya * 0.6})`;
+		ctx.fillStyle = green(0.25 + aya * 0.6);
 		ctx.beginPath();
 		ctx.moveTo(80, -9);
 		ctx.quadraticCurveTo(58, -21, 34, -16);
@@ -283,7 +284,7 @@ export function drawCannonShot(ctx: CanvasRenderingContext2D, x1: number, y1: nu
 	ctx.lineTo(x2, y2);
 	ctx.stroke();
 	ctx.shadowBlur = 0;
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.9)';
+	ctx.strokeStyle = greenCore(0.9);
 	ctx.lineWidth = 2;
 	ctx.stroke();
 	ctx.restore();
@@ -299,9 +300,9 @@ export function drawWarpStreak(ctx: CanvasRenderingContext2D, x: number, y: numb
 	ctx.save();
 	ctx.globalAlpha = Math.max(0, 1 - t * 0.6);
 	const g = ctx.createLinearGradient(x, y, x - length, y);
-	g.addColorStop(0, 'rgba(234, 255, 240, 0.95)');
-	g.addColorStop(0.2, 'rgba(61, 255, 110, 0.7)');
-	g.addColorStop(1, 'rgba(61, 255, 110, 0)');
+	g.addColorStop(0, greenCore(0.95));
+	g.addColorStop(0.2, green(0.7));
+	g.addColorStop(1, green(0));
 	ctx.fillStyle = g;
 	ctx.shadowColor = GREEN;
 	ctx.shadowBlur = 20;

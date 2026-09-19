@@ -376,7 +376,7 @@
 		padding: 1.25rem;
 		border: 2px solid var(--green-dim);
 		border-radius: 10px;
-		background: rgba(61, 255, 110, 0.03);
+		background: color-mix(in srgb, var(--green) 3%, transparent);
 	}
 	.card h2 {
 		margin: 0.5rem 0 0;

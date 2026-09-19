@@ -3,6 +3,7 @@
 
 import type { LanternPose } from '../animation';
 import { HOVER_PLANET, drawLantern, type Figure } from './lantern';
+import { green, THEME_GREEN, THEME_GREEN_RGB } from '../../theme';
 
 const TAU = Math.PI * 2;
 const RED = '#ff2a2a';
@@ -54,8 +55,8 @@ export function drawCage(
 	time: number,
 	seed: number
 ) {
-	const [r, g, b] = color === 'red' ? [255, 60, 50] : [61, 255, 110];
-	const glow = color === 'red' ? RED : '#3dff6e';
+	const [r, g, b] = color === 'red' ? [255, 60, 50] : THEME_GREEN_RGB;
+	const glow = color === 'red' ? RED : THEME_GREEN;
 	ctx.save();
 	// Scorched floor plate
 	ctx.fillStyle = color === 'red' ? 'rgba(60, 8, 8, 0.8)' : 'rgba(6, 40, 20, 0.7)';

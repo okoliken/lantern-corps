@@ -7,8 +7,9 @@ import type { LanternDef } from '../lanterns';
 import { FORTRESS_DRONE_HOVER, TURRET_HEAD_HEIGHT, turretPosition } from '../constructs/signature';
 import { GREEN } from './lantern';
 import { displayFont } from './fonts';
+import { green, greenCore, GREEN_CORE } from '../../theme';
 
-const CORE = '#eafff0';
+const CORE = GREEN_CORE;
 const TAU = Math.PI * 2;
 
 // -------------------------------------------------------------------- jet
@@ -36,8 +37,8 @@ export function drawJet(
 	// Afterburner flames and a light trail behind
 	const flicker = 0.8 + 0.2 * Math.sin(time * 60);
 	const flame = ctx.createLinearGradient(-110, 0, -38, 0);
-	flame.addColorStop(0, 'rgba(61, 255, 110, 0)');
-	flame.addColorStop(0.6, `rgba(61, 255, 110, ${0.5 * flicker})`);
+	flame.addColorStop(0, green(0));
+	flame.addColorStop(0.6, green(0.5 * flicker));
 	flame.addColorStop(1, CORE);
 	ctx.fillStyle = flame;
 	ctx.beginPath();
@@ -48,7 +49,7 @@ export function drawJet(
 	ctx.fill();
 
 	// Speed lines
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.35)';
+	ctx.strokeStyle = greenCore(0.35);
 	ctx.lineWidth = 1.5;
 	for (let i = 0; i < 5; i++) {
 		const off = ((time * 900 + i * 53) % 160) - 80;
@@ -83,18 +84,18 @@ export function drawJet(
 
 	ctx.shadowColor = GREEN;
 	ctx.shadowBlur = 24;
-	ctx.fillStyle = 'rgba(61, 255, 110, 0.16)';
+	ctx.fillStyle = green(0.16);
 	ctx.fill(hull);
 	ctx.strokeStyle = GREEN;
 	ctx.lineWidth = 2.5;
 	ctx.stroke(hull);
 	ctx.shadowBlur = 0;
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.6)';
+	ctx.strokeStyle = greenCore(0.6);
 	ctx.lineWidth = 1;
 	ctx.stroke(hull);
 
 	// Panel lines and the canopy around Hal
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.35)';
+	ctx.strokeStyle = greenCore(0.35);
 	ctx.beginPath();
 	ctx.moveTo(-34, 0);
 	ctx.lineTo(50, 0);
@@ -122,7 +123,7 @@ export function drawJet(
 
 	ctx.strokeStyle = CORE;
 	ctx.lineWidth = 1.5;
-	ctx.fillStyle = 'rgba(234, 255, 240, 0.12)';
+	ctx.fillStyle = greenCore(0.12);
 	ctx.beginPath();
 	ctx.ellipse(18, 0, 18, 7, 0, 0, TAU);
 	ctx.fill();
@@ -150,14 +151,14 @@ export function drawFortressBack(ctx: CanvasRenderingContext2D, f: Fortress, tim
 	if (space) {
 		const cy = f.y - SPHERE_LIFT;
 		const back = ctx.createRadialGradient(f.x, cy, r * 0.3, f.x, cy, r);
-		back.addColorStop(0, 'rgba(61, 255, 110, 0.03)');
-		back.addColorStop(1, 'rgba(61, 255, 110, 0.14)');
+		back.addColorStop(0, green(0.03));
+		back.addColorStop(1, green(0.14));
 		ctx.fillStyle = back;
 		ctx.beginPath();
 		ctx.arc(f.x, cy, r, 0, TAU);
 		ctx.fill();
 		// Back half of the equator ring, turning
-		ctx.strokeStyle = 'rgba(234, 255, 240, 0.25)';
+		ctx.strokeStyle = greenCore(0.25);
 		ctx.lineWidth = 1.5;
 		ctx.setLineDash([6, 8]);
 		ctx.lineDashOffset = time * 20;
@@ -177,7 +178,7 @@ export function drawFortressBack(ctx: CanvasRenderingContext2D, f: Fortress, tim
 	ctx.ellipse(f.x, f.y, r, r * 0.5, 0, 0, TAU);
 	ctx.stroke();
 	ctx.shadowBlur = 0;
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.35)';
+	ctx.strokeStyle = greenCore(0.35);
 	ctx.lineWidth = 1.5;
 	for (let i = 0; i < 24; i++) {
 		const a = (i / 24) * TAU + time * 0.4;
@@ -188,7 +189,7 @@ export function drawFortressBack(ctx: CanvasRenderingContext2D, f: Fortress, tim
 	}
 
 	// Back of the dome: a faint arc behind John
-	ctx.fillStyle = 'rgba(61, 255, 110, 0.06)';
+	ctx.fillStyle = green(0.06);
 	ctx.beginPath();
 	ctx.ellipse(f.x, f.y, r, r * 0.95, 0, Math.PI, TAU);
 	ctx.fill();
@@ -215,15 +216,15 @@ export function drawFortressFront(ctx: CanvasRenderingContext2D, f: Fortress, ti
 	dome.ellipse(f.x, f.y, r, r * 0.95, 0, Math.PI, TAU);
 	dome.ellipse(f.x, f.y, r, r * 0.5, 0, 0, Math.PI);
 	const shell = ctx.createLinearGradient(f.x, f.y - r, f.x, f.y);
-	shell.addColorStop(0, 'rgba(61, 255, 110, 0.22)');
-	shell.addColorStop(1, 'rgba(61, 255, 110, 0.06)');
+	shell.addColorStop(0, green(0.22));
+	shell.addColorStop(1, green(0.06));
 	ctx.fillStyle = shell;
 	ctx.fill(dome);
 
 	// Lattice: latitude and longitude lines, the longitudes turning slowly
 	ctx.save();
 	ctx.clip(dome);
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.22)';
+	ctx.strokeStyle = greenCore(0.22);
 	ctx.lineWidth = 1.2;
 	for (let i = 1; i <= 3; i++) {
 		const k = i / 4;
@@ -241,9 +242,9 @@ export function drawFortressFront(ctx: CanvasRenderingContext2D, f: Fortress, ti
 	// Shimmer sweeping over the top
 	const sweep = f.x - r + ((time * 120) % (r * 2 + 80)) - 40;
 	const band = ctx.createLinearGradient(sweep - 30, 0, sweep + 30, 0);
-	band.addColorStop(0, 'rgba(234, 255, 240, 0)');
-	band.addColorStop(0.5, 'rgba(234, 255, 240, 0.25)');
-	band.addColorStop(1, 'rgba(234, 255, 240, 0)');
+	band.addColorStop(0, greenCore(0));
+	band.addColorStop(0.5, greenCore(0.25));
+	band.addColorStop(1, greenCore(0));
 	ctx.fillStyle = band;
 	ctx.fillRect(f.x - r, f.y - r, r * 2, r * 1.5);
 	ctx.restore();
@@ -267,7 +268,7 @@ export function drawFortressFront(ctx: CanvasRenderingContext2D, f: Fortress, ti
 	}
 
 	// Time left, as an arc along the ground ring
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.7)';
+	ctx.strokeStyle = greenCore(0.7);
 	ctx.lineWidth = 3;
 	ctx.beginPath();
 	ctx.ellipse(f.x, f.y, r + 8, (r + 8) * 0.5, 0, Math.PI * 0.2, Math.PI * 0.2 + Math.PI * 0.6 * (f.life / f.maxLife));
@@ -282,16 +283,16 @@ function drawFortressSphere(ctx: CanvasRenderingContext2D, f: Fortress, r: numbe
 	sphere.arc(f.x, cy, r, 0, TAU);
 
 	const shell = ctx.createRadialGradient(f.x - r * 0.35, cy - r * 0.4, r * 0.1, f.x, cy, r);
-	shell.addColorStop(0, 'rgba(234, 255, 240, 0.12)');
-	shell.addColorStop(0.7, 'rgba(61, 255, 110, 0.06)');
-	shell.addColorStop(1, 'rgba(61, 255, 110, 0.22)');
+	shell.addColorStop(0, greenCore(0.12));
+	shell.addColorStop(0.7, green(0.06));
+	shell.addColorStop(1, green(0.22));
 	ctx.fillStyle = shell;
 	ctx.fill(sphere);
 
 	// Lattice: latitude rings and turning longitude rings
 	ctx.save();
 	ctx.clip(sphere);
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.2)';
+	ctx.strokeStyle = greenCore(0.2);
 	ctx.lineWidth = 1.2;
 	for (let i = -2; i <= 2; i++) {
 		const k = i / 3;
@@ -315,14 +316,14 @@ function drawFortressSphere(ctx: CanvasRenderingContext2D, f: Fortress, r: numbe
 	ctx.lineWidth = 2.5;
 	ctx.stroke(sphere);
 	ctx.shadowBlur = 0;
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.6)';
+	ctx.strokeStyle = greenCore(0.6);
 	ctx.lineWidth = 2;
 	ctx.beginPath();
 	ctx.arc(f.x, cy, r * 0.85, -2.4, -1.7);
 	ctx.stroke();
 
 	// Front half of the equator ring
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.5)';
+	ctx.strokeStyle = greenCore(0.5);
 	ctx.lineWidth = 1.5;
 	ctx.beginPath();
 	ctx.ellipse(f.x, cy, r, r * 0.3, 0, 0, Math.PI);
@@ -336,7 +337,7 @@ function drawFortressSphere(ctx: CanvasRenderingContext2D, f: Fortress, r: numbe
 	}
 
 	// Time left, as an arc under the sphere
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.7)';
+	ctx.strokeStyle = greenCore(0.7);
 	ctx.lineWidth = 3;
 	ctx.beginPath();
 	ctx.arc(f.x, cy, r + 8, Math.PI * 0.3, Math.PI * 0.3 + Math.PI * 0.4 * (f.life / f.maxLife));
@@ -350,7 +351,7 @@ function drawTurretDrone(ctx: CanvasRenderingContext2D, x: number, y: number, ai
 	ctx.shadowColor = GREEN;
 	ctx.shadowBlur = 10;
 	ctx.strokeStyle = GREEN;
-	ctx.fillStyle = 'rgba(61, 255, 110, 0.3)';
+	ctx.fillStyle = green(0.3);
 	ctx.lineWidth = 2;
 	// Stabiliser ring
 	ctx.beginPath();
@@ -388,7 +389,7 @@ function drawTurret(ctx: CanvasRenderingContext2D, x: number, y: number, aim: nu
 	ctx.rotate(aim);
 	ctx.shadowColor = GREEN;
 	ctx.shadowBlur = 10;
-	ctx.fillStyle = 'rgba(61, 255, 110, 0.3)';
+	ctx.fillStyle = green(0.3);
 	ctx.strokeStyle = GREEN;
 	ctx.lineWidth = 2;
 	ctx.beginPath();

@@ -373,7 +373,7 @@
 		box-shadow: 0 0 8px #ff5a3a;
 	}
 	.fill.progress {
-		background: rgba(61, 255, 110, 0.35);
+		background: color-mix(in srgb, var(--green) 35%, transparent);
 	}
 	.ship {
 		position: absolute;
@@ -447,7 +447,7 @@
 		border-radius: 12px;
 		background: rgba(3, 10, 6, 0.92);
 		border: 2px solid var(--green);
-		box-shadow: 0 0 40px rgba(61, 255, 110, 0.2);
+		box-shadow: 0 0 40px color-mix(in srgb, var(--green) 20%, transparent);
 	}
 	.briefing h1 {
 		margin: 0.2rem 0 0.4rem;

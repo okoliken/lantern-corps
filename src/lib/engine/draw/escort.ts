@@ -4,6 +4,7 @@
 import type { Effect, Shield } from '../constructs/system';
 import type { Dummy } from '../dummy';
 import { GREEN } from './lantern';
+import { green, greenLight, greenCore } from '../../theme';
 
 const TAU = Math.PI * 2;
 const HULL = '#dfe8e2';
@@ -47,9 +48,9 @@ export function drawEscortShip(
 		for (const ey of [-8, 9]) {
 			const len = (26 + Math.sin(time * 40 + ey) * 4) * sputter;
 			const g = ctx.createLinearGradient(-92, ey, -92 - len, ey);
-			g.addColorStop(0, 'rgba(234, 255, 240, 0.95)');
-			g.addColorStop(0.4, 'rgba(61, 255, 110, 0.7)');
-			g.addColorStop(1, 'rgba(61, 255, 110, 0)');
+			g.addColorStop(0, greenCore(0.95));
+			g.addColorStop(0.4, green(0.7));
+			g.addColorStop(1, green(0));
 			ctx.fillStyle = g;
 			ctx.beginPath();
 			ctx.moveTo(-90, ey - 5);
@@ -151,7 +152,7 @@ export function drawEscortShip(
 
 	// Side hatch, glowing as it opens
 	if (scene.hatch) {
-		ctx.fillStyle = `rgba(234, 255, 240, ${0.3 + 0.6 * scene.hatch})`;
+		ctx.fillStyle = greenCore(0.3 + 0.6 * scene.hatch);
 		ctx.shadowColor = GREEN;
 		ctx.shadowBlur = 14 * scene.hatch;
 		ctx.fillRect(4, 14 - 22 * scene.hatch, 16, 22 * scene.hatch);
@@ -167,7 +168,7 @@ export function drawEscortShip(
 	canopy.moveTo(64, -12);
 	canopy.quadraticCurveTo(46, -34, 22, -19);
 	canopy.closePath();
-	ctx.fillStyle = 'rgba(120, 255, 180, 0.28)';
+	ctx.fillStyle = greenLight(0.28);
 	ctx.fill(canopy);
 	ctx.clip(canopy);
 	if (scene.empty) ctx.globalAlpha = 0;
@@ -190,7 +191,7 @@ export function drawEscortShip(
 	ctx.closePath();
 	ctx.fill();
 	ctx.restore();
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.7)';
+	ctx.strokeStyle = greenCore(0.7);
 	ctx.lineWidth = 1;
 	ctx.stroke(canopy);
 
@@ -261,9 +262,9 @@ export function drawShipShield(ctx: CanvasRenderingContext2D, s: Shield, x: numb
 	ctx.save();
 	ctx.globalAlpha = blink;
 	const body = ctx.createRadialGradient(x - rx * 0.3, cy - ry * 0.4, 4, x, cy, rx);
-	body.addColorStop(0, 'rgba(234, 255, 240, 0.06)');
-	body.addColorStop(0.75, `rgba(61, 255, 110, ${0.06 + 0.06 * health})`);
-	body.addColorStop(1, `rgba(61, 255, 110, ${0.28 + 0.22 * health + ripple * 0.3})`);
+	body.addColorStop(0, greenCore(0.06));
+	body.addColorStop(0.75, green(0.06 + 0.06 * health));
+	body.addColorStop(1, green(0.28 + 0.22 * health + ripple * 0.3));
 	ctx.fillStyle = body;
 	ctx.beginPath();
 	ctx.ellipse(x, cy, rx, ry, 0, 0, TAU);
@@ -277,7 +278,7 @@ export function drawShipShield(ctx: CanvasRenderingContext2D, s: Shield, x: numb
 
 	// Glint sliding over the top
 	ctx.shadowBlur = 0;
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.6)';
+	ctx.strokeStyle = greenCore(0.6);
 	ctx.lineWidth = 2.5;
 	const g = -2.2 + Math.sin(time * 0.8) * 0.3;
 	ctx.beginPath();
@@ -285,7 +286,7 @@ export function drawShipShield(ctx: CanvasRenderingContext2D, s: Shield, x: numb
 	ctx.stroke();
 
 	// Time left along the bottom
-	ctx.strokeStyle = 'rgba(61, 255, 110, 0.6)';
+	ctx.strokeStyle = green(0.6);
 	ctx.lineWidth = 2;
 	ctx.beginPath();
 	ctx.ellipse(x, cy, rx + 6, ry + 6, 0, Math.PI * 0.3, Math.PI * 0.3 + Math.PI * 0.4 * (s.life / s.maxLife));

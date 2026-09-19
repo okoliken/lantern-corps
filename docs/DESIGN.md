@@ -342,6 +342,13 @@ sigil `drawBrand` over the head), Rage Plasma (`vomit`); 3 (below 30%) berserk (
 drawn in a green `drawCage`), names Atrocitus, win. ★ captured ★ no lives lost ★ under 5 min.
 Bots: win ~7/8, usually losing 1-2 lives; duel ~2.5-3.5 min.
 
+**Theme green** (`src/lib/theme.ts`, 2026-09-19): one green for the whole game. `THEME_GREEN`
+(#3dff6e) with shades mixed from it: `GREEN_LIGHT` (glows, highlights), `GREEN_DIM` (unlit/off
+states, borders), `GREEN_CORE` (the white-hot centre of ring energy), `greenShade(t)`; with alpha:
+`green(a)`, `greenLight(a)`, `greenCore(a)`. The canvas code uses these (no hand-typed greens), the
+layout sets `--green`/`--green-dim` from them, and component CSS derives its glows with
+`color-mix(in srgb, var(--green) N%, transparent)`. Not theme: suit bottle green, scenery colours.
+
 **Acts** (`ACTS` in `story/missions.ts`, 2026-09-19): the mission list is grouped by act; each act
 lists its missions in order (built ones by id, planned ones as title + teaser, shown locked).
 `placeOf(id)` gives a mission's act and number within it (briefing: "Act 1 · ... / Mission 3:",

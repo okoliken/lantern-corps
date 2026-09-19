@@ -176,7 +176,7 @@
 		border-radius: 12px;
 		background: rgba(3, 10, 6, 0.88);
 		border: 1px solid var(--green-dim);
-		box-shadow: 0 0 24px rgba(61, 255, 110, 0.12);
+		box-shadow: 0 0 24px color-mix(in srgb, var(--green) 12%, transparent);
 		pointer-events: none;
 		transition: border-color 0.2s;
 	}
@@ -237,7 +237,7 @@
 		color: var(--bg);
 		background: var(--green);
 		border-radius: 5px;
-		box-shadow: 0 0 10px rgba(61, 255, 110, 0.4);
+		box-shadow: 0 0 10px color-mix(in srgb, var(--green) 40%, transparent);
 	}
 	.count {
 		margin-left: 0.6rem;
@@ -273,7 +273,7 @@
 		text-align: center;
 		background: rgba(3, 10, 6, 0.92);
 		border: 2px solid var(--green);
-		box-shadow: 0 0 40px rgba(61, 255, 110, 0.2);
+		box-shadow: 0 0 40px color-mix(in srgb, var(--green) 20%, transparent);
 	}
 	.end h2 {
 		margin: 0 0 0.5rem;

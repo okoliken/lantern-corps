@@ -181,7 +181,7 @@
 		border: 2px solid var(--green-dim);
 		border-radius: 12px;
 		background: #06100b;
-		box-shadow: 0 0 40px rgba(61, 255, 110, 0.12);
+		box-shadow: 0 0 40px color-mix(in srgb, var(--green) 12%, transparent);
 	}
 	header {
 		display: flex;
@@ -227,7 +227,7 @@
 		margin: 1rem 0 0.75rem;
 	}
 	.tabs button.on {
-		background: rgba(61, 255, 110, 0.15);
+		background: color-mix(in srgb, var(--green) 15%, transparent);
 		border-color: var(--green);
 	}
 	.help {
@@ -261,7 +261,7 @@
 	}
 	@keyframes pulse {
 		to {
-			box-shadow: 0 0 12px rgba(61, 255, 110, 0.5);
+			box-shadow: 0 0 12px color-mix(in srgb, var(--green) 50%, transparent);
 		}
 	}
 	.reset {
@@ -298,7 +298,7 @@
 		gap: 1rem;
 		margin-top: 1.25rem;
 		padding-top: 1rem;
-		border-top: 1px solid rgba(61, 255, 110, 0.15);
+		border-top: 1px solid color-mix(in srgb, var(--green) 15%, transparent);
 	}
 	footer a {
 		text-decoration: none;

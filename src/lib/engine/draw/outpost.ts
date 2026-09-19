@@ -4,6 +4,7 @@
 
 import type { LanternPose } from '../animation';
 import { drawLantern, GREEN, HOVER_PLANET, type Figure } from './lantern';
+import { green, greenShade, GREEN_CORE } from '../../theme';
 
 const TAU = Math.PI * 2;
 
@@ -115,7 +116,7 @@ export function drawSurvivor(ctx: CanvasRenderingContext2D, x: number, y: number
 	// A distress beacon blinking in their hands until they're found
 	if (found === 0) {
 		const on = Math.sin(time * 6 + seed * 5) > 0;
-		ctx.fillStyle = on ? GREEN : '#1a4a2a';
+		ctx.fillStyle = on ? GREEN : greenShade(0.7);
 		ctx.shadowColor = GREEN;
 		ctx.shadowBlur = on ? 10 : 0;
 		ctx.beginPath();
@@ -128,7 +129,7 @@ export function drawSurvivor(ctx: CanvasRenderingContext2D, x: number, y: number
 		ctx.shadowColor = GREEN;
 		ctx.shadowBlur = 12;
 		ctx.lineWidth = 2;
-		ctx.fillStyle = 'rgba(61, 255, 110, 0.12)';
+		ctx.fillStyle = green(0.12);
 		ctx.beginPath();
 		ctx.arc(0, -20, 26, 0, TAU);
 		ctx.fill();
@@ -167,21 +168,21 @@ export function drawRingLeaving(ctx: CanvasRenderingContext2D, x: number, y: num
 	ctx.save();
 	ctx.shadowColor = GREEN;
 	ctx.shadowBlur = 24;
-	ctx.strokeStyle = '#eafff0';
+	ctx.strokeStyle = GREEN_CORE;
 	ctx.lineWidth = 3;
 	ctx.beginPath();
 	ctx.ellipse(rx, ry, 7, 5, Math.sin(time * 5) * 0.4, 0, TAU);
 	ctx.stroke();
 	// Glow around it, and a trail once it goes
 	const glow = ctx.createRadialGradient(rx, ry, 2, rx, ry, 40);
-	glow.addColorStop(0, 'rgba(61, 255, 110, 0.6)');
-	glow.addColorStop(1, 'rgba(61, 255, 110, 0)');
+	glow.addColorStop(0, green(0.6));
+	glow.addColorStop(1, green(0));
 	ctx.fillStyle = glow;
 	ctx.beginPath();
 	ctx.arc(rx, ry, 40, 0, TAU);
 	ctx.fill();
 	if (away > 0) {
-		ctx.strokeStyle = 'rgba(61, 255, 110, 0.5)';
+		ctx.strokeStyle = green(0.5);
 		ctx.lineWidth = 4;
 		ctx.beginPath();
 		ctx.moveTo(x, y - 90);

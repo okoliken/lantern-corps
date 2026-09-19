@@ -1,6 +1,8 @@
 // Story scenes: what the characters say, as data. The scene code (in
 // src/lib/engine/scenes/) plays the animation and shows these lines.
 
+import { GREEN_LIGHT, THEME_GREEN } from '../theme';
+
 export type Speaker = 'tomar' | 'hal' | 'john' | 'ring';
 
 export interface SceneLine {
@@ -12,9 +14,9 @@ export interface SceneLine {
 
 export const SPEAKERS: Record<Speaker, { name: string; color: string }> = {
 	tomar: { name: 'Tomar-Re', color: '#ffb36b' },
-	hal: { name: 'Hal Jordan', color: '#8dffb0' },
+	hal: { name: 'Hal Jordan', color: GREEN_LIGHT },
 	john: { name: 'John Stewart', color: '#9ad8ff' },
-	ring: { name: 'The ring', color: '#3dff6e' }
+	ring: { name: 'The ring', color: THEME_GREEN }
 };
 
 /**

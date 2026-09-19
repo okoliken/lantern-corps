@@ -182,7 +182,7 @@
 		border-radius: 10px;
 		text-decoration: none;
 		color: var(--text);
-		background: rgba(61, 255, 110, 0.03);
+		background: color-mix(in srgb, var(--green) 3%, transparent);
 		transition:
 			border-color 0.15s,
 			box-shadow 0.15s,
@@ -191,7 +191,7 @@
 	.card:hover,
 	.card:focus-visible {
 		border-color: var(--green);
-		box-shadow: 0 0 24px rgba(61, 255, 110, 0.25);
+		box-shadow: 0 0 24px color-mix(in srgb, var(--green) 25%, transparent);
 		translate: 0 -3px;
 	}
 	h2 {
@@ -230,7 +230,7 @@
 		margin: 0;
 		height: 6px;
 		border-radius: 3px;
-		background: rgba(61, 255, 110, 0.12);
+		background: color-mix(in srgb, var(--green) 12%, transparent);
 		overflow: hidden;
 	}
 	dd span {

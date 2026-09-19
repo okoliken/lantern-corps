@@ -9,9 +9,10 @@ import type { Effect, Projectile, Turret } from '../constructs/system';
 import { computeSkeleton, turnScale, HEAD_R, type LanternPose } from '../animation';
 import { energy, sparks } from './constructs';
 import { GREEN } from './lantern';
+import { green, greenCore, GREEN_CORE } from '../../theme';
 
 const TAU = Math.PI * 2;
-const CORE = '#eafff0';
+const CORE = GREEN_CORE;
 /** The Lantern figure's drawing scale (matches draw/lantern.ts). */
 const FIGURE_SCALE = 1.35;
 
@@ -53,7 +54,7 @@ export function ironFistPath(s: number): Path2D {
 /** Inner struts and rivets over the Reinforced Fist, so it reads as built, not blown up. */
 export function ironFistDetail(ctx: CanvasRenderingContext2D, s: number) {
 	ctx.save();
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.7)';
+	ctx.strokeStyle = greenCore(0.7);
 	ctx.lineWidth = 1.2;
 	ctx.beginPath();
 	// A cross-brace through the back of the hand
@@ -130,7 +131,7 @@ export function drawWreckingBall(ctx: CanvasRenderingContext2D, e: Effect, lift:
 	const ball = new Path2D();
 	ball.arc(0, 0, r, 0, TAU);
 	energy(ctx, ball, { time, edge: 2.6, body: 1.4 });
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.7)';
+	ctx.strokeStyle = greenCore(0.7);
 	ctx.lineWidth = 2;
 	ctx.beginPath();
 	ctx.ellipse(0, 0, r, r * 0.3, 0.4, 0, TAU);
@@ -146,7 +147,7 @@ export function drawWreckingBall(ctx: CanvasRenderingContext2D, e: Effect, lift:
 
 	// Swoosh while it swings, and a shockwave where it lands
 	if (swinging && k < 1) {
-		ctx.strokeStyle = 'rgba(61, 255, 110, 0.28)';
+		ctx.strokeStyle = green(0.28);
 		ctx.lineWidth = r * 0.3;
 		ctx.lineCap = 'round';
 		ctx.beginPath();
@@ -205,7 +206,7 @@ export function drawAnvilDrop(ctx: CanvasRenderingContext2D, e: Effect, time: nu
 		ctx.fill();
 		ctx.shadowColor = GREEN;
 		ctx.shadowBlur = 10;
-		ctx.strokeStyle = `rgba(61, 255, 110, ${0.5 + 0.5 * Math.sin(time * 20)})`;
+		ctx.strokeStyle = green(0.5 + 0.5 * Math.sin(time * 20));
 		ctx.lineWidth = 2;
 		ctx.setLineDash([10, 6]);
 		ctx.lineDashOffset = -time * 40;
@@ -254,13 +255,13 @@ export function drawTrain(ctx: CanvasRenderingContext2D, pr: Projectile, x: numb
 	// Steam puffs streaming back
 	for (let i = 0; i < 5; i++) {
 		const t = (time * 3 + i / 5) % 1;
-		ctx.fillStyle = `rgba(234, 255, 240, ${0.35 * (1 - t)})`;
+		ctx.fillStyle = greenCore(0.35 * (1 - t));
 		ctx.beginPath();
 		ctx.arc(10 - t * 110, -58 - t * 18, 7 + t * 12, 0, TAU);
 		ctx.fill();
 	}
 	// Speed lines
-	ctx.strokeStyle = 'rgba(61, 255, 110, 0.35)';
+	ctx.strokeStyle = green(0.35);
 	ctx.lineWidth = 2;
 	for (const ly of [-40, -22, -4]) {
 		ctx.beginPath();
@@ -313,7 +314,7 @@ export function drawTrain(ctx: CanvasRenderingContext2D, pr: Projectile, x: numb
 		const wheel = new Path2D();
 		wheel.arc(wx, 0, wr, 0, TAU);
 		energy(ctx, wheel, { time, edge: 1.8, body: 0.5 });
-		ctx.strokeStyle = 'rgba(234, 255, 240, 0.7)';
+		ctx.strokeStyle = greenCore(0.7);
 		ctx.lineWidth = 1.2;
 		for (let i = 0; i < 4; i++) {
 			const a = spin + (i * Math.PI) / 4;
@@ -340,8 +341,8 @@ export function drawGirder(ctx: CanvasRenderingContext2D, pr: Projectile, x: num
 	ctx.rotate(angle);
 	// Wake
 	const wake = ctx.createLinearGradient(-60, 0, -20, 0);
-	wake.addColorStop(0, 'rgba(61, 255, 110, 0)');
-	wake.addColorStop(1, 'rgba(61, 255, 110, 0.45)');
+	wake.addColorStop(0, green(0));
+	wake.addColorStop(1, green(0.45));
 	ctx.fillStyle = wake;
 	ctx.fillRect(-60, -5, 40, 10);
 	// Top flange, web, bottom flange
@@ -380,7 +381,7 @@ export function drawGrenade(ctx: CanvasRenderingContext2D, pr: Projectile, x: nu
 	body.arc(0, 0, 7, 0, TAU);
 	body.rect(-3, -10, 6, 3);
 	energy(ctx, body, { time, edge: 1.4, body: 1.4 });
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.7)';
+	ctx.strokeStyle = greenCore(0.7);
 	ctx.lineWidth = 1;
 	ctx.beginPath();
 	ctx.moveTo(-7, 0);
@@ -526,7 +527,7 @@ export function drawArmorSuit(ctx: CanvasRenderingContext2D, x: number, y: numbe
 	gun.roundRect(-2, -4, len + 4, 8, 2);
 	gun.rect(len + 2, -3, 9, 6);
 	energy(ctx, gun, { time, edge: 1.1, body: 1.3 });
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.7)';
+	ctx.strokeStyle = greenCore(0.7);
 	ctx.lineWidth = 0.8;
 	for (let i = 1; i < 4; i++) {
 		ctx.beginPath();

@@ -5,6 +5,7 @@
 
 import type { LanternPose } from '../animation';
 import { GREEN, HOVER_PLANET, drawLantern, type Figure } from './lantern';
+import { green } from '../../theme';
 
 const TAU = Math.PI * 2;
 
@@ -166,7 +167,7 @@ export function drawColonist(ctx: CanvasRenderingContext2D, fig: Figure, x: numb
 export function drawGroupBubble(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, health: number, time: number) {
 	ctx.save();
 	const cy = y - 30;
-	ctx.fillStyle = `rgba(61, 255, 110, ${0.06 + 0.08 * health})`;
+	ctx.fillStyle = green(0.06 + 0.08 * health);
 	ctx.strokeStyle = GREEN;
 	ctx.shadowColor = GREEN;
 	ctx.shadowBlur = 14;

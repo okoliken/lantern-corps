@@ -60,7 +60,7 @@
 	.btn.primary {
 		background: var(--green);
 		color: var(--bg);
-		box-shadow: 0 0 18px rgba(61, 255, 110, 0.35);
+		box-shadow: 0 0 18px color-mix(in srgb, var(--green) 35%, transparent);
 	}
 	.btn.lab {
 		border-style: dashed;

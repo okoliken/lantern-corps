@@ -7,6 +7,7 @@ import type { Enemy } from '../enemies/enemies';
 import { ABILITIES, type RedShot, type RedStrike } from '../enemies/redConstructs';
 import { energy, fistPath, sparks, swordPath } from './constructs';
 import { GREEN } from './lantern';
+import { green, greenLight, greenCore } from '../../theme';
 
 const TAU = Math.PI * 2;
 const easeOut = (k: number) => 1 - (1 - k) ** 3;
@@ -119,8 +120,8 @@ export function drawCorpsShot(ctx: CanvasRenderingContext2D, s: RedShot, x: numb
 		ctx.translate(x, dy);
 		ctx.rotate(angle);
 		const trail = ctx.createLinearGradient(-90, 0, 0, 0);
-		trail.addColorStop(0, 'rgba(61, 255, 110, 0)');
-		trail.addColorStop(1, 'rgba(61, 255, 110, 0.45)');
+		trail.addColorStop(0, green(0));
+		trail.addColorStop(1, green(0.45));
 		ctx.fillStyle = trail;
 		ctx.fillRect(-90, -12, 90, 24);
 		energy(ctx, fistPath(48), { time, edge: 2.6 });
@@ -147,7 +148,7 @@ export function drawHammerWarning(ctx: CanvasRenderingContext2D, s: RedStrike, t
 	ctx.ellipse(s.x, s.y, s.radius, s.radius * 0.55, 0, 0, TAU);
 	ctx.stroke();
 	ctx.setLineDash([]);
-	ctx.fillStyle = `rgba(61, 255, 110, ${0.08 + 0.25 * k})`;
+	ctx.fillStyle = green(0.08 + 0.25 * k);
 	ctx.beginPath();
 	ctx.ellipse(s.x, s.y, s.radius * k, s.radius * 0.55 * k, 0, 0, TAU);
 	ctx.fill();
@@ -194,7 +195,7 @@ export function drawCorpsEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: 
 			// Two hammers whirling around him on long handles, with a blur of the circle
 			const a = e.angle ?? 0;
 			const cy = e.y - lift;
-			ctx.strokeStyle = 'rgba(61, 255, 110, 0.25)';
+			ctx.strokeStyle = green(0.25);
 			ctx.lineWidth = 10;
 			ctx.beginPath();
 			ctx.ellipse(e.x, cy, r, r * 0.45, 0, 0, TAU);
@@ -221,7 +222,7 @@ export function drawCorpsEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: 
 			ctx.globalAlpha = 1 - t;
 			ctx.shadowColor = GREEN;
 			ctx.shadowBlur = 16;
-			ctx.strokeStyle = 'rgba(234, 255, 240, 0.9)';
+			ctx.strokeStyle = greenCore(0.9);
 			ctx.lineWidth = 5 * (1 - t) + 1;
 			ctx.beginPath();
 			if (full) ctx.ellipse(e.x, cy, r * (0.6 + t * 0.8), r * 0.45 * (0.6 + t * 0.8), 0, 0, TAU);
@@ -255,7 +256,7 @@ function shockwave(ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
 function cracks(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, k: number, seed: number) {
 	ctx.save();
 	ctx.globalAlpha = Math.max(0, 1 - k);
-	ctx.strokeStyle = 'rgba(160, 255, 190, 0.8)';
+	ctx.strokeStyle = greenLight(0.8);
 	ctx.lineWidth = 2;
 	ctx.shadowColor = GREEN;
 	ctx.shadowBlur = 8;

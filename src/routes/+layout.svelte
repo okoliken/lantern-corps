@@ -5,20 +5,23 @@
 	import '@fontsource-variable/exo-2/wght.css';
 	import '@fontsource-variable/exo-2/wght-italic.css';
 
+	import { GREEN_DIM, THEME_GREEN } from '$lib/theme';
+
 	let { children } = $props();
+	// The theme green (and its dim shade) for the whole UI, from the same file the game draws with
+	const themeVars = `:root { --green: ${THEME_GREEN}; --green-dim: ${GREEN_DIM}; }`;
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
 	<title>Lantern Corps</title>
+	{@html `<style>${themeVars}</style>`}
 </svelte:head>
 
 {@render children()}
 
 <style>
 	:global(:root) {
-		--green: #3dff6e;
-		--green-dim: #1f7a3a;
 		--bg: #03060a;
 		--text: #d8f5e0;
 		--font-display: 'Orbitron Variable', 'Exo 2 Variable', system-ui, sans-serif;

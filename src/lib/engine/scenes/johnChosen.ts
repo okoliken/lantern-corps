@@ -11,6 +11,7 @@ import { EARTH_H, EARTH_W, ROOF, drawDetroit } from '../draw/earth';
 import { GREEN, HOVER_PLANET, drawLantern, ringPosition, type Figure } from '../draw/lantern';
 import { LANTERNS } from '../lanterns';
 import { DialogueScene, type Line } from './scene';
+import { green, greenCore, GREEN_CORE } from '../../theme';
 
 const TAU = Math.PI * 2;
 // ---- The timeline, in seconds ----
@@ -109,22 +110,22 @@ export class JohnChosen extends DialogueScene {
 		const size = 3 + 5 * k;
 		ctx.save();
 		const glow = ctx.createRadialGradient(x, y, 1, x, y, 60 * (0.4 + k));
-		glow.addColorStop(0, 'rgba(61, 255, 110, 0.7)');
-		glow.addColorStop(1, 'rgba(61, 255, 110, 0)');
+		glow.addColorStop(0, green(0.7));
+		glow.addColorStop(1, green(0));
 		ctx.fillStyle = glow;
 		ctx.beginPath();
 		ctx.arc(x, y, 60 * (0.4 + k), 0, TAU);
 		ctx.fill();
 		ctx.shadowColor = GREEN;
 		ctx.shadowBlur = 20;
-		ctx.strokeStyle = '#eafff0';
+		ctx.strokeStyle = GREEN_CORE;
 		ctx.lineWidth = 2.5;
 		ctx.beginPath();
 		ctx.ellipse(x, y, size, size * 0.7, Math.sin(t * 3) * 0.5, 0, TAU);
 		ctx.stroke();
 		// A streak behind it while it falls
 		if (arriving < 1) {
-			ctx.strokeStyle = `rgba(61, 255, 110, ${0.5 * (1 - arriving)})`;
+			ctx.strokeStyle = green(0.5 * (1 - arriving));
 			ctx.lineWidth = 3;
 			ctx.beginPath();
 			ctx.moveTo(x - 90, y - 50);
@@ -142,9 +143,9 @@ export class JohnChosen extends DialogueScene {
 		const a = k < 0.3 ? k / 0.3 : 1 - (k - 0.3) / 0.7;
 		ctx.save();
 		const g = ctx.createRadialGradient(JOHN.x, JOHN.y - 90, 10, JOHN.x, JOHN.y - 90, 700);
-		g.addColorStop(0, `rgba(234, 255, 240, ${a})`);
-		g.addColorStop(0.3, `rgba(61, 255, 110, ${0.7 * a})`);
-		g.addColorStop(1, 'rgba(61, 255, 110, 0)');
+		g.addColorStop(0, greenCore(a));
+		g.addColorStop(0.3, green(0.7 * a));
+		g.addColorStop(1, green(0));
 		ctx.fillStyle = g;
 		ctx.fillRect(0, 0, EARTH_W, EARTH_H + 400);
 		ctx.restore();

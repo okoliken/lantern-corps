@@ -13,6 +13,7 @@
 import { HEAD_R, STANDING_HEIGHT, TORSO, computeSkeleton, turnScale, type LanternPose, type Point, type Skeleton } from '../animation';
 import type { Look } from '../lanterns';
 import { uiFont } from './fonts';
+import { green, greenCore, GREEN_LIGHT, GREEN_CORE, THEME_GREEN } from '../../theme';
 
 export type { LanternPose } from '../animation';
 
@@ -36,7 +37,7 @@ export interface Outfit {
 	hardHat?: string;
 }
 
-export const GREEN = '#3dff6e';
+export const GREEN = THEME_GREEN;
 
 /** Size multiplier for the whole figure. */
 const FIGURE_SCALE = 1.35;
@@ -56,7 +57,7 @@ const SUIT_GREEN = '#0F4F34';
 const SUIT_GREEN_LIT = '#1d7a50';
 const SUIT_GREEN_DARK = '#0b3a27';
 const OUTLINE = '#030504';
-const WHITE = '#eafff0';
+const WHITE = GREEN_CORE;
 
 /** Where the ring is in WORLD coordinates. Beams and bolts start here. */
 export function ringPosition(x: number, y: number, pose: LanternPose, time: number, scale = 1): Point {
@@ -102,8 +103,8 @@ export function drawLantern(
 	if (pose.glow && air > 0 && !pose.downed) {
 		const [cx, cy] = mid(sk.hip, sk.neck);
 		const aura = ctx.createRadialGradient(cx, cy, 4, cx, cy, 40);
-		aura.addColorStop(0, `rgba(61, 255, 110, ${0.26 * pulse * air})`);
-		aura.addColorStop(1, 'rgba(61, 255, 110, 0)');
+		aura.addColorStop(0, green(0.26 * pulse * air));
+		aura.addColorStop(1, green(0));
 		ctx.fillStyle = aura;
 		ctx.beginPath();
 		ctx.arc(cx, cy, 40, 0, Math.PI * 2);
@@ -407,7 +408,7 @@ function drawHead(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, ring
 			ctx.save();
 			ctx.shadowColor = GREEN;
 			ctx.shadowBlur = 6 * pulse;
-			ctx.fillStyle = '#b8ffcf';
+			ctx.fillStyle = GREEN_LIGHT;
 			ctx.beginPath();
 			ctx.ellipse(R - 0.9, -0.2, 1.2, 0.7, 0, 0, Math.PI * 2);
 			ctx.fill();
@@ -520,7 +521,7 @@ function drawAvianHead(ctx: CanvasRenderingContext2D, skin: string, avian: { bea
 	ctx.beginPath();
 	ctx.ellipse(R - 2.8, -1.4, 1.35, 1.5, 0, 0, Math.PI * 2);
 	ctx.fill();
-	ctx.fillStyle = '#eafff0';
+	ctx.fillStyle = GREEN_CORE;
 	ctx.beginPath();
 	ctx.arc(R - 2.4, -1.9, 0.45, 0, Math.PI * 2);
 	ctx.fill();
@@ -697,7 +698,7 @@ function drawRing(ctx: CanvasRenderingContext2D, hand: Point, active: boolean, p
 		ctx.shadowColor = GREEN;
 		ctx.shadowBlur = 10 * pulse;
 	}
-	ctx.fillStyle = active ? '#d9ffe3' : '#8fdca8';
+	ctx.fillStyle = active ? GREEN_CORE : GREEN_LIGHT;
 	ctx.beginPath();
 	ctx.arc(hand[0] + 0.6, hand[1] - 0.4, active ? 1.9 : 1.3, 0, Math.PI * 2);
 	ctx.fill();
@@ -705,7 +706,7 @@ function drawRing(ctx: CanvasRenderingContext2D, hand: Point, active: boolean, p
 	// Casting a construct: rays of light burst from the ring
 	if (cast > 0) {
 		ctx.shadowBlur = 16;
-		ctx.strokeStyle = `rgba(234, 255, 240, ${0.8 * cast})`;
+		ctx.strokeStyle = greenCore(0.8 * cast);
 		ctx.lineWidth = 1;
 		for (let i = 0; i < 8; i++) {
 			const a = (i / 8) * Math.PI * 2;

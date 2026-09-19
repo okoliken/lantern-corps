@@ -2,6 +2,8 @@
 // going up, where John Stewart works. Drawn on a fixed stage EARTH_W x
 // EARTH_H; the scene scales it to the screen.
 
+import { green, greenCore } from '../../theme';
+
 export const EARTH_W = 1400;
 export const EARTH_H = 784;
 /** The roof John stands on. */
@@ -94,7 +96,7 @@ export function drawDetroit(ctx: CanvasRenderingContext2D, time: number, glow: n
 	ctx.moveTo(500, ROOF - 120);
 	ctx.lineTo(1080, ROOF - 120);
 	ctx.stroke();
-	ctx.strokeStyle = 'rgba(234, 255, 240, 0.08)';
+	ctx.strokeStyle = greenCore(0.08);
 	ctx.lineWidth = 1;
 	ctx.beginPath();
 	ctx.moveTo(0, ROOF + 0.5);
@@ -103,7 +105,7 @@ export function drawDetroit(ctx: CanvasRenderingContext2D, time: number, glow: n
 
 	// The ring's light washing over everything as it arrives
 	if (glow > 0) {
-		ctx.fillStyle = `rgba(61, 255, 110, ${0.12 * glow})`;
+		ctx.fillStyle = green(0.12 * glow);
 		ctx.fillRect(0, 0, EARTH_W, EARTH_H + 400);
 	}
 }
