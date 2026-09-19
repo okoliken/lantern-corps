@@ -46,12 +46,16 @@ export const AIM_FIRE = 0.35;
 const AIM_REACH = 260;
 /** No word from the pad's sticks for this long (ms): they're let go (a lost "released" never leaves you running). */
 export const STICK_TIMEOUT = 500;
+/** Used the pad within this long (ms): the laptop's mouse doesn't aim for you. */
+const PAD_IN_USE_MS = 3000;
 
 /** The pad's latest state, from its messages. */
 export class PadState {
 	constructor(private now: () => number = () => performance.now()) {}
 	/** When the pad was last heard from (anything it sends). */
 	private heardAt = -Infinity;
+	/** When a stick was last pushed or a button pressed. */
+	usedAt = -Infinity;
 	/** Pads connected to this game (from the relay). */
 	connected = 0;
 	lx = 0;
@@ -70,6 +74,7 @@ export class PadState {
 				if (msg.n === 0) this.release();
 				break;
 			case 'sticks':
+				if (Math.hypot(msg.lx, msg.ly) > DEAD_ZONE || Math.hypot(msg.rx, msg.ry) > DEAD_ZONE || msg.held?.length) this.usedAt = this.now();
 				this.lx = clampUnit(msg.lx);
 				this.ly = clampUnit(msg.ly);
 				this.rx = clampUnit(msg.rx);
@@ -81,6 +86,7 @@ export class PadState {
 				}
 				break;
 			case 'down':
+				this.usedAt = this.now();
 				this.held.add(msg.b);
 				this.presses.add(msg.b);
 				break;
@@ -95,6 +101,11 @@ export class PadState {
 		if (this.now() - this.heardAt <= STICK_TIMEOUT) return;
 		this.lx = this.ly = this.rx = this.ry = 0;
 		this.held.clear();
+	}
+
+	/** Playing with the pad right now (so the mouse shouldn't aim). */
+	inUse(): boolean {
+		return this.connected > 0 && this.now() - this.usedAt < PAD_IN_USE_MS;
 	}
 
 	/** Was this pressed since the last check? (Clears it.) */
@@ -129,6 +140,8 @@ export class PadInput implements InputSource {
 		const pad = this.pad;
 		pad.checkStale();
 		const intent: Intent = { ...k };
+		// Playing on the pad: a mouse resting on the laptop doesn't aim; the ring's auto-aim does
+		if (pad.inUse()) intent.pointer = null;
 
 		const move = Math.hypot(pad.lx, pad.ly);
 		if (move > DEAD_ZONE) {

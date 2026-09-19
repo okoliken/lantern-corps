@@ -876,7 +876,8 @@ export class Game {
 			drawGoalArrow(ctx, (goal.x - this.camera.x) * zoom + width / 2, (goal.y - this.camera.y) * zoom + height / 2, width, height, this.time);
 		}
 
-		if (this.usesMouse && this.pointer.active && !this.paused) drawCrosshair(ctx, this.pointer.x, this.pointer.y, this.time);
+		// Only while the mouse is what you're aiming with (otherwise the ring auto-aims)
+		if (this.usesMouse && this.pointer.inUse() && !this.paused) drawCrosshair(ctx, this.pointer.x, this.pointer.y, this.time);
 	}
 
 	/** An enemy's hand (or eye, or gun), where its chains and beams start. */

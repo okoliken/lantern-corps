@@ -87,6 +87,13 @@ describe('the phone pad', () => {
 		expect(input.read().stickAim).toBe(true);
 	});
 
+	it("playing on the pad, a mouse resting on the laptop doesn't aim: the ring's auto-aim does", () => {
+		const { pad, input } = setup({ pointer: { x: 999, y: 999 } });
+		expect(input.read().pointer).toEqual({ x: 999, y: 999 });
+		pad.apply({ t: 'sticks', lx: 1, ly: 0, rx: 0, ry: 0 });
+		expect(input.read().pointer).toBeNull();
+	});
+
 	it('when the phone disconnects, everything is let go', () => {
 		const { pad, input } = setup();
 		pad.apply({ t: 'down', b: 'square' });

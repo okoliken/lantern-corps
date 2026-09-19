@@ -4,6 +4,7 @@ import {
 	ButtonState,
 	DEFAULT_BINDINGS,
 	PointerState,
+	MOUSE_IDLE_MS,
 	buttonLabel,
 	moveFromButtons,
 	shortLabel,
@@ -140,15 +141,29 @@ describe('toggle ring shot (accessibility)', () => {
 describe('pointer', () => {
 	it('reports the mouse in world coordinates once it has moved', () => {
 		const buttons = new ButtonState();
-		const state = new PointerState();
+		const clock = { t: 1000 };
+		const state = new PointerState(() => clock.t);
 		const input = new BindingInput(buttons, DEFAULT_BINDINGS.solo, {
 			pointer: { state, toWorld: (sx, sy) => ({ x: sx * 2, y: sy * 2 }) }
 		});
 		expect(input.read().pointer).toBeNull();
-		state.active = true;
-		state.x = 10;
-		state.y = 20;
+		Object.assign(state, { active: true, x: 10, y: 20, movedAt: clock.t });
 		expect(input.read().pointer).toEqual({ x: 20, y: 40 });
+	});
+
+	it("a mouse left alone stops aiming (the ring auto-aims), unless a mouse button is held", () => {
+		const buttons = new ButtonState();
+		const clock = { t: 1000 };
+		const state = new PointerState(() => clock.t);
+		const input = new BindingInput(buttons, DEFAULT_BINDINGS.solo, {
+			pointer: { state, toWorld: (sx, sy) => ({ x: sx, y: sy }) }
+		});
+		Object.assign(state, { active: true, x: 10, y: 20, movedAt: clock.t });
+		clock.t += MOUSE_IDLE_MS + 100;
+		expect(input.read().pointer).toBeNull();
+		// Holding the mouse button to shoot: it's aiming again
+		buttons.press('Mouse0');
+		expect(input.read().pointer).toEqual({ x: 10, y: 20 });
 	});
 
 	it('only mouse layouts aim with the mouse', () => {

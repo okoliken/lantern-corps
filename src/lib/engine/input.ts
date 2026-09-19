@@ -350,11 +350,27 @@ export class ButtonState {
 }
 
 /** Where the mouse is over the game, in screen (CSS) pixels. */
+/**
+ * The mouse aims only while you're using it: moved in the last this-many ms
+ * (or a mouse button held). Left alone, the ring's own auto-aim takes over,
+ * so a mouse resting on the game doesn't steal your aim from the keyboard or pad.
+ */
+export const MOUSE_IDLE_MS = 2000;
+
 export class PointerState {
 	x = 0;
 	y = 0;
 	/** Becomes true once the mouse has moved over the game. */
 	active = false;
+	/** When it last moved (performance.now() ms). */
+	movedAt = -Infinity;
+
+	constructor(private now: () => number = () => performance.now()) {}
+
+	/** Moved over the game recently enough that it's what you're aiming with. */
+	inUse(): boolean {
+		return this.active && this.now() - this.movedAt < MOUSE_IDLE_MS;
+	}
 
 	attach(surface: HTMLElement): () => void {
 		const move = (e: MouseEvent) => {
@@ -362,6 +378,7 @@ export class PointerState {
 			this.x = e.clientX - rect.left;
 			this.y = e.clientY - rect.top;
 			this.active = true;
+			this.movedAt = this.now();
 		};
 		surface.addEventListener('mousemove', move);
 		return () => surface.removeEventListener('mousemove', move);
@@ -420,6 +437,8 @@ export class BindingInput implements InputSource {
 		const prev = btn.consumePress(b.prevConstruct);
 		const next = btn.consumePress(b.nextConstruct);
 		const p = options.pointer;
+		// The mouse aims while it's being used: just moved, or a mouse button held
+		const mouseAiming = p !== undefined && p.state.active && (p.state.inUse() || btn.anyHeld(['Mouse0', 'Mouse1', 'Mouse2']));
 
 		// Slot keys pick a construct. With quick cast they also use it: a press
 		// fires it, and holding keeps a beam or minigun going (or a sniper charging).
@@ -439,7 +458,7 @@ export class BindingInput implements InputSource {
 			shield: btn.consumePress(b.shield),
 			signature: btn.consumePress(b.signature),
 			backup: btn.consumePress(b.backup),
-			pointer: p && p.state.active ? p.toWorld(p.state.x, p.state.y) : null
+			pointer: p && mouseAiming ? p.toWorld(p.state.x, p.state.y) : null
 		};
 	}
 }

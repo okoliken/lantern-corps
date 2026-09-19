@@ -119,6 +119,13 @@ picks the best visible enemy ALL AROUND (`findAutoTarget` without a cone), score
 Breakable objects are still only auto-targeted in the 30-degree cone ahead. Ring shots look out to
 `AUTO_RANGE` whatever construct is in hand. Mouse aim (and its 12-degree assist) and the pad's right
 stick are unchanged: they aim exactly where you point.
+**The mouse aims only while it's in use** (user: "this rule needs to apply to all game modes"): once
+the mouse had moved over the canvas it aimed every shot forever, which skipped all-around auto-aim
+in every mode. Now `PointerState.inUse()` = moved in the last `MOUSE_IDLE_MS` 2 s (or a mouse button
+held); otherwise `BindingInput` reports no pointer and the ring auto-aims (the crosshair hides). While
+the phone pad is being used (`PadState.inUse`, 3 s), the laptop mouse is ignored for aiming. Every
+mode (missions, spar, training, skirmish, play, labs) goes through `GameCanvas` and `updateTargeting`,
+so this applies everywhere.
 
 ## Signature abilities
 The **surge meter** (thin bar under willpower) fills from damage you deal (0.16 per point), constructs
