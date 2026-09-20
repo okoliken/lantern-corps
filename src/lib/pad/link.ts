@@ -4,6 +4,7 @@
 // so the pages don't need to know about the pad at all.
 
 import { PadState, type PadMessage } from '$lib/engine/pad';
+import { padSocketUrl } from './relay';
 
 /** Letters that can't be mistaken for each other (no 0/O, 1/I). */
 const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -40,10 +41,9 @@ class PadLink {
 	}
 
 	private connect() {
-		const proto = location.protocol === 'https:' ? 'wss' : 'ws';
 		let ws: WebSocket;
 		try {
-			ws = new WebSocket(`${proto}://${location.host}/pad-ws?role=game&room=${this.room}`);
+			ws = new WebSocket(padSocketUrl('game', this.room));
 		} catch {
 			return;
 		}

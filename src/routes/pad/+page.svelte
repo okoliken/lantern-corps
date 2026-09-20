@@ -8,6 +8,7 @@
 	// shoulders, Select and Start. See $lib/engine/pad.ts for what each does.
 	import { onMount } from 'svelte';
 	import { PAD_LABELS, type PadButton } from '$lib/engine/pad';
+	import { padSocketUrl, roomsUrl } from '$lib/pad/relay';
 
 	// A 4-letter room code; anything else (a missing or placeholder code) and it finds the game itself
 	const given = (new URLSearchParams(location.search).get('room') ?? '').toUpperCase();
@@ -34,7 +35,7 @@
 	/** No code: join the game that's open on the computer (or let the player choose). */
 	async function findGame() {
 		try {
-			const open: string[] = await (await fetch('/pad-rooms')).json();
+			const open: string[] = await (await fetch(roomsUrl())).json();
 			if (open.length === 1) join(open[0]);
 			else if (open.length > 1) {
 				choices = open;
@@ -71,8 +72,7 @@
 
 	function connect() {
 		if (!room) return;
-		const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-		const ws = new WebSocket(`${proto}://${location.host}/pad-ws?role=pad&room=${room}`);
+		const ws = new WebSocket(padSocketUrl('pad', room));
 		socket = ws;
 		ws.onopen = () => {
 			status = 'connected';

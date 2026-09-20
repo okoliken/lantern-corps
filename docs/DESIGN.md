@@ -37,6 +37,15 @@ scroll wheel. Settings are saved in the browser.
 | Lock target | Tab | Tab | , |
 | Pause, controls, options | Esc | Esc | Esc |
 
+**Published (Cloudflare, 2026-09-20):** the game builds to a static site (`@sveltejs/adapter-static`,
+SPA fallback `index.html` + `static/_redirects`; `src/routes/+layout.ts` turns off SSR and
+prerendering) and goes on **Cloudflare Pages** from the GitHub repo (`okoliken/lantern-corps`,
+private), so every push to `main` deploys. 1.1 MB in 43 files, against 5.9 MB in 246 for the dev
+build. The phone pad's relay can't live in a static site, so it's a small **Worker + Durable Object**
+(`pad-relay-worker/`: one object holds every room, hibernating sockets, `/ws?role=&room=` and
+`/rooms`); the client picks it up from `VITE_PAD_RELAY` at build time (`$lib/pad/relay.ts`), falling
+back to the dev server's own relay when that's empty.
+
 **Phone pad** (2026-09-19, user: "a virtual pad on my phone like PPSSPP; the keyboard is the
 alternative"): `/pad` is a PS-style controller page for a phone (landscape; floating left stick =
 move, right stick = aim and auto-fire, □ shot, ✕ construct (smart ring), ○ shield, △ fly, L1/R1
