@@ -42,7 +42,7 @@ export class Autopilot implements InputSource {
 		// Nothing to fight nearby: go where the mission wants you
 		const goal = game.director?.goal?.();
 		const fighting = game.enemies.some((e) => dist(e, me) < ENGAGE_RANGE);
-		if (goal && !fighting) {
+		if (goal && (!fighting || game.director?.goalFirst)) {
 			const d = dist(goal, me);
 			if (d > ARRIVED) {
 				const k = Math.min(1, d / 80) / d;

@@ -10,7 +10,9 @@ import { HEAD_R, TORSO, computeSkeleton, turnScale, type LanternPose, type Point
 import type { HeroFx } from '../heroes';
 import type { HeroId, Look } from '../lanterns';
 import { isStanding } from '../dummy';
-import type { Enemy } from '../enemies/enemies';
+import { createEnemy, type Enemy } from '../enemies/enemies';
+import type { Player } from '../player';
+import { drawLieutenant } from './lieutenants';
 import { enemyPose } from './enemies';
 import { FIGURE_HEIGHT, lerpP, poly, segment, shadeColor } from './lantern';
 
@@ -702,6 +704,63 @@ export function drawHeroFx(ctx: CanvasRenderingContext2D, list: readonly HeroFx[
 				}
 				break;
 			}
+			case 'cut': {
+				// A rage blade's arc
+				const r = f.radius ?? 70;
+				const a = f.angle ?? 0;
+				ctx.strokeStyle = `rgba(255, 60, 60, ${0.9 * fade})`;
+				ctx.shadowColor = '#ff2a2a';
+				ctx.shadowBlur = 10;
+				ctx.lineWidth = 6 * fade + 1;
+				ctx.beginPath();
+				ctx.ellipse(f.x, f.y - (f.lift ?? 60), r, r * 0.6, 0, a - 0.9, a + 0.9);
+				ctx.stroke();
+				break;
+			}
+			case 'chakram': {
+				// A crescent of rage, spinning along a curve to its target
+				const lift = f.lift ?? 60;
+				const t = Math.min(1, k * 1.4);
+				const mx = (f.x + f.x2!) / 2 + (f.y2! - f.y) * 0.25;
+				const my = (f.y + f.y2!) / 2 - (f.x2! - f.x) * 0.25 - lift;
+				const bx = (1 - t) ** 2 * f.x + 2 * (1 - t) * t * mx + t * t * f.x2!;
+				const by = (1 - t) ** 2 * (f.y - lift) + 2 * (1 - t) * t * my + t * t * (f.y2! - 40);
+				ctx.strokeStyle = `rgba(255, 70, 70, ${0.4 * fade})`;
+				ctx.lineWidth = 3;
+				ctx.beginPath();
+				ctx.moveTo(f.x, f.y - lift);
+				ctx.quadraticCurveTo(mx, my, bx, by);
+				ctx.stroke();
+				ctx.translate(bx, by);
+				ctx.rotate(time * 30);
+				ctx.shadowColor = '#ff2a2a';
+				ctx.shadowBlur = 12;
+				ctx.strokeStyle = `rgba(255, 120, 120, ${fade})`;
+				ctx.lineWidth = 4;
+				ctx.beginPath();
+				ctx.arc(0, 0, 12, 0.4, Math.PI + 0.9);
+				ctx.stroke();
+				break;
+			}
+			case 'nova': {
+				// A ring of rage bursting out from him
+				const r = (f.radius ?? 170) * (0.2 + 0.8 * Math.min(1, k * 2));
+				const glow = ctx.createRadialGradient(f.x, f.y - 30, r * 0.2, f.x, f.y - 30, r);
+				glow.addColorStop(0, `rgba(255, 40, 40, ${0.35 * fade})`);
+				glow.addColorStop(1, 'rgba(255, 40, 40, 0)');
+				ctx.fillStyle = glow;
+				ctx.beginPath();
+				ctx.ellipse(f.x, f.y - 30, r, r * 0.6, 0, 0, TAU);
+				ctx.fill();
+				ctx.strokeStyle = `rgba(255, 90, 90, ${0.9 * fade})`;
+				ctx.shadowColor = '#ff2a2a';
+				ctx.shadowBlur = 14;
+				ctx.lineWidth = 5 * fade + 1;
+				ctx.beginPath();
+				ctx.ellipse(f.x, f.y, r, r * 0.45, 0, 0, TAU);
+				ctx.stroke();
+				break;
+			}
 			case 'mace': {
 				// The swing's arc, crackling
 				const r = f.radius ?? 80;
@@ -772,3 +831,41 @@ export function reverseFlashHand(e: Enemy, x: number, y: number): [number, numbe
 	return [x + e.dir * 16, y - 52];
 }
 export const reverseFlashTop = (y: number) => y - FIGURE_HEIGHT - 6;
+
+// ---------------------------------------------------------------------- Razer
+
+const RAZER_FIGURES = new WeakMap<Player, Enemy>();
+
+/**
+ * Razer fighting on your side: the same figure as the boss (drawLieutenant),
+ * posed from the player he is now. His blades flare while he's cutting.
+ */
+export function drawRazerAlly(ctx: CanvasRenderingContext2D, p: Player, x: number, y: number, hasGround: boolean, time: number) {
+	let e = RAZER_FIGURES.get(p);
+	if (!e) RAZER_FIGURES.set(p, (e = createEnemy('razer', x, y)));
+	const move = p.hero?.move?.power;
+	e.x = x;
+	e.y = y;
+	e.dir = p.dir;
+	e.vx = p.vx;
+	e.vy = p.vy;
+	e.flash = p.hurtTimer > 0.2 ? 0.1 : 0;
+	e.hp = p.downed ? 0 : e.maxHp;
+	e.down = p.downed ? 0.45 : 0;
+	e.brain.aimX = p.aimX;
+	e.brain.aimY = p.aimY;
+	e.brain.rage = 0.4;
+	// The blades blaze while he cuts; an orb gathers for a chakram or the nova
+	e.brain.state = move === 'blades' ? 'act' : move === 'chakram' || move === 'nova' ? 'windup' : 'move';
+	e.brain.ability = move === 'blades' ? 'twinBlades' : move === 'chakram' ? 'chakram' : move === 'nova' ? 'crimsonNova' : null;
+	e.brain.timer = 0.2;
+	// Enemies hover low; he flies at a Lantern's height, where his hitbox is
+	const lift = Math.max(0, p.bodyBottom - 16);
+	if (hasGround && lift > 0) {
+		ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+		ctx.beginPath();
+		ctx.ellipse(x, y, 13, 4, 0, 0, TAU);
+		ctx.fill();
+	}
+	drawLieutenant(ctx, e, x, y - lift, hasGround && lift === 0, time);
+}

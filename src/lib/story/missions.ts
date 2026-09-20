@@ -187,6 +187,27 @@ MISSIONS.push({
 	partner: 'hal'
 });
 
+MISSIONS.push({
+	id: 'the-guardians-shame',
+	title: "The Guardians' Shame",
+	tagline: 'The Guardians built the Manhunters, and buried them. The Red Lanterns are digging them up. Hal, Kilowog and Razer go to the vault.',
+	lantern: 'hal',
+	environment: 'planet',
+	place: 'Sector 666 · The Vault',
+	briefing: [
+		'John Stewart said one word on Oa and the Guardians ended the session. Hal Jordan went back in and did not leave until they told him why.',
+		'The Manhunters were theirs. When the machines turned butcher in Sector 666, the Guardians shut them down, sealed them in a vault on a dead world, and told no one. Atrocitus knows. His Red Lanterns are already cutting at the seal.',
+		'Razer knows the way. He is out of his cell, he is not doing this for the Corps, and he is the best chance you have.'
+	],
+	objectives: [
+		'Stop the Red Lanterns cutting the seal',
+		'When the Manhunters come out, they attack everyone: let them and the Reds fight each other',
+		'A broken Manhunter rebuilds: smash its core',
+		'Reseal the vault: stand by each of the three pylons to charge it'
+	],
+	partner: 'kilowog'
+});
+
 export function missionById(id: string): MissionInfo | undefined {
 	return MISSIONS.find((m) => m.id === id);
 }
@@ -227,7 +248,7 @@ export const ACTS: ActInfo[] = [
 			'call-to-arms',
 			'summoned',
 			'colony-under-fire',
-			{ title: "The Guardians' Shame", tagline: 'The Guardians built the Manhunters. Now Atrocitus wants them.' },
+			'the-guardians-shame',
 			{ title: 'Sleepers', tagline: 'Manhunters wake up all over Earth. John stands with the Justice League.' },
 			{ title: 'Manhunter Prime', tagline: 'Hal and John, together, at the heart of the vault.' }
 		]

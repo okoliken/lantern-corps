@@ -424,6 +424,28 @@ Kilowog", "the boss should be fierce... we're bullying him").**
   (Rage Slam away) or shatters. Health x3.2, might 2.25. Bots: win ~2/6; losses get him to 7-24%;
   2-3 minute duels; ~15 target switches.
 
+**Act 2 · Mission 4: The Guardians' Shame** (Hal + Kilowog and Razer as AI allies; a dead world;
+`missions/guardiansShame.ts`, map `buildVaultMap` (`ground: 'vault'`), art `draw/vault.ts`
+(`drawVaultDoor`, `drawCliff`, `drawPylon`, `drawSealBeam`), intro scene `scenes/confession.ts` with
+`CONFESSION` lines). **Razer as an ally** is a hero like the Flash and Hawkgirl (`HeroId 'razer'`,
+`engine/heroes.ts`): Rage Blades (melee), Chakram (thrown), Rage Nova (when crowded); drawn with his
+boss figure via `drawRazerAlly`, his fx flagged `red`. The vault door is set into a cliff along the
+top of the map (`CLIFF` 470, one hidden obstacle), the three pylons in an arc in front of it.
+Phases: **reds** (8 Red Lanterns cutting the seal; it drains 0.4%/s per cutter, and gives when they're
+beaten or it runs out) → **breakout** (the door opens; the first 3 Manhunters fly straight off,
+`FIRST_ESCAPES`) → **reseal** (stand within 130px of each pylon for 10s; a Manhunter comes out every
+16s, 3 up at once; each pylon lit brings 3 Reds down on it and another Manhunter out; Red
+reinforcements from the sides) → **bleez** (health x6.5, might 3.2, with 5 guards, from the far end)
+→ **sealed**. **The feud** (`feud()`): Reds and Manhunters within 460px shoot each other every 1.1s
+for 22, so the third side is real, and you can let them thin each other out. **Cores**: a broken
+Manhunter leaves a core (320 hp) that rebuilds it in 7s at 45% health; each rebuild wears the core to
+75%. **Escapes**: when one is due out of the vault and 3 are already up, it flies straight off
+instead (at most 9), so clearing them slowly costs you; the count is in the results and in Hal's
+last line, and leads into Sleepers. Breakout also brings 3 Manhunter Drones. `Director.goalFirst` (true once no cores are
+left in reseal) tells the autopilot to go to the pylon even with a fight on. Reds health x3.6, might
+3.2; Manhunters health x0.7 (there are many), might 2.8; `maxHit` 36. ★ sealed ★ no lives lost ★
+under 8 min. Bots: win 6/6 in ~3:10, a life lost in 5 of 6, 3-5 escape.
+
 **Act 2 · Mission 2: Summoned** (John, then Hal as AI partner; Oa; `missions/summoned.ts`, intro
 scene `scenes/summoned.ts` with `SUMMONED` lines: the flight from Earth, the jump, the landing before
 the Guardians' dais (`drawGuardian`), Tomar-Re, Kilowog, Hal). Phases: **kilowog** (one on one) → at

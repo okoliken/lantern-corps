@@ -205,8 +205,18 @@ Atrocitus wants them.
    Earth; the Guardians go cold ("That is not possible. This session is ended"), which sets up The
    Guardians' Shame. Kilowog sends John on his first patrol.
 3. **First Patrol** (built; was Colony Under Fire): John's first off-world call, Hal on backup.
-4. **The Guardians' Shame** (Hal): the Guardians admit they built the Manhunters; Hal, Kilowog and a
-   reluctant Razer race to the vault. First three-way fight.
+4. **The Guardians' Shame** (built 2026-09-20; Hal, with Kilowog and Razer as AI allies). Opening
+   scene, **the Confession**: the Guardians admit they built the Manhunters, that the Manhunters
+   decided life itself was the fault and burned Sector 666, and that they were sealed in a vault, not
+   destroyed. Razer, freed from the prison moon, comes along on his own terms ("I am not yours. I am
+   going because of what is behind that door"). At the vault, set into a cliff on a dead world, **Red
+   Lanterns are already cutting the seal**: Atrocitus wants the machines that made him. The seal
+   gives; Manhunters pour out, and the **first three-way fight** starts: Reds and Manhunters shoot
+   each other as well as you, and the first Manhunters out don't stop to fight, they fly off
+   ("They weren't running from us. They were going somewhere"). The Lanterns charge the three seal
+   pylons to close the vault, smashing cores so the broken ones stay down, then **Bleez** arrives for
+   Razer ("Atrocitus said you were dead. I told him you were worse: you were theirs"). The vault
+   holds, but some got out, heading for Earth: that sets up Sleepers.
 5. **Sleepers** (Earth): Manhunters wake up across Earth; John stands with the Justice League, who
    offer him a place on the team.
 6. **Boss: Manhunter Prime**: Hal and John together; choose who to play. It learns your constructs.

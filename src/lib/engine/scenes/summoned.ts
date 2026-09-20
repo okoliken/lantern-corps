@@ -176,28 +176,9 @@ export class Summoned extends DialogueScene {
 
 	// ------------------------------------------------------------------- Oa
 
-	/** The Guardians on their dais at the back of the plaza: small, blue, in red robes, watching. */
+	/** The Guardians on their dais at the back of the plaza, watching. */
 	private drawDais(ctx: CanvasRenderingContext2D, t: number) {
-		const { x, y } = DAIS;
-		// The dais: a stepped platform with light in its seams
-		ctx.fillStyle = '#13201b';
-		ctx.strokeStyle = green(0.35);
-		ctx.lineWidth = 2;
-		for (const [w, h, dy] of [
-			[330, 26, 40],
-			[260, 22, 18],
-			[190, 20, -2]
-		]) {
-			ctx.beginPath();
-			ctx.rect(x - w / 2, y + dy, w, h);
-			ctx.fill();
-			ctx.stroke();
-		}
-		const speaking = this.current?.who === 'guardian';
-		[-62, 0, 62].forEach((dx, i) => {
-			const bob = Math.sin(t * 1.3 + i * 2) * 3;
-			drawGuardian(ctx, x + dx, y - 6 + bob - (i === 1 ? 10 : 0), i === 1 && speaking ? 1 : 0, this.chill, t + i);
-		});
+		drawGuardianDais(ctx, DAIS.x, DAIS.y, t, this.current?.who === 'guardian', this.chill);
 	}
 
 	/** Hal, Kilowog and Tomar-Re, waiting on the plaza. */
@@ -240,8 +221,29 @@ export class Summoned extends DialogueScene {
 	}
 }
 
+/** The Guardians' dais: a stepped platform with light in its seams, and three of them floating over it. */
+export function drawGuardianDais(ctx: CanvasRenderingContext2D, x: number, y: number, t: number, speaking: boolean, chill: number) {
+	ctx.fillStyle = '#13201b';
+	ctx.strokeStyle = green(0.35);
+	ctx.lineWidth = 2;
+	for (const [w, h, dy] of [
+		[330, 26, 40],
+		[260, 22, 18],
+		[190, 20, -2]
+	]) {
+		ctx.beginPath();
+		ctx.rect(x - w / 2, y + dy, w, h);
+		ctx.fill();
+		ctx.stroke();
+	}
+	[-62, 0, 62].forEach((dx, i) => {
+		const bob = Math.sin(t * 1.3 + i * 2) * 3;
+		drawGuardian(ctx, x + dx, y - 6 + bob - (i === 1 ? 10 : 0), i === 1 && speaking ? 1 : 0, chill, t + i);
+	});
+}
+
 /** A Guardian of the Universe: small, blue, white-haired, in a red robe with the Corps' symbol, floating. */
-function drawGuardian(ctx: CanvasRenderingContext2D, x: number, y: number, speaking: number, chill: number, time: number) {
+export function drawGuardian(ctx: CanvasRenderingContext2D, x: number, y: number, speaking: number, chill: number, time: number) {
 	ctx.save();
 	ctx.translate(x, y);
 	// The glow they float in: warm normally, cold white when they close ranks

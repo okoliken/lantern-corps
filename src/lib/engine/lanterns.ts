@@ -7,7 +7,7 @@ export type CrewId = LanternId | 'kilowog' | PrisonerId | HeroId;
 /** Everyone who fights with a Green Lantern ring (heroes have their own powers). */
 export type RingBearerId = Exclude<CrewId, HeroId>;
 /** Earth's heroes who fight beside John in Act 2 (heroes.ts): their own powers, no ring. */
-export type HeroId = 'flash' | 'hawkgirl';
+export type HeroId = 'flash' | 'hawkgirl' | 'razer';
 /** Green Lanterns the Red Lanterns took prisoner (Act 1, Prison Moon): freed, they fight beside you. */
 export type PrisonerId = 'arisia' | 'katma' | 'boodikka';
 /** The Lanterns you can pick. */
@@ -150,6 +150,19 @@ export const LANTERNS: Record<CrewId, LanternDef> = {
 		traits: { power: 1, durability: 1, cooldown: 1, structureCost: 1 },
 		look: { skin: '#e8b996', hair: '#b8331f', hairStyle: 'cropped', mask: false },
 		hero: 'flash'
+	},
+	// A Red Lantern fighting on your side (Act 2): Razer, out of his cell and not happy about it
+	razer: {
+		id: 'razer',
+		name: 'Razer',
+		title: 'The Reluctant Ally',
+		blurb: 'A Red Lantern with nothing left to lose: twin rage blades, curving chakrams, and a nova of rage when he is surrounded.',
+		maxSpeed: 330,
+		accel: 2800,
+		decel: 2400,
+		traits: { power: 1, durability: 1, cooldown: 1, structureCost: 1 },
+		look: { skin: '#8e97ab', hair: '#0d0a10', hairStyle: 'peak', mask: false },
+		hero: 'razer'
 	},
 	hawkgirl: {
 		id: 'hawkgirl',

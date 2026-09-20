@@ -376,7 +376,8 @@ export const LOADOUTS: Record<CrewId, ConstructId[]> = {
 	boodikka: ['hammer', 'fist', 'minigun', 'cannon', 'shotgun', 'rockets', 'shockwave', 'sword', 'beam', 'wreckingBall'],
 	// Heroes don't use a ring (heroes.ts has their powers); this only sets how far they look for a target
 	flash: ['beam'],
-	hawkgirl: ['beam']
+	hawkgirl: ['beam'],
+	razer: ['beam']
 };
 
 /** How many traps a single Lantern can have out at once. */

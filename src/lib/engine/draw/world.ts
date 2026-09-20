@@ -78,7 +78,7 @@ export function drawStarfield(
 const GROUND_TILE = 64;
 
 /** How a planet's surface looks: 'dust' (Coast City's outskirts), 'oa' (the Corps' home), 'ash' (a burnt outpost). */
-export type GroundStyle = 'dust' | 'oa' | 'ash' | 'meadow' | 'bloodMoon' | 'street';
+export type GroundStyle = 'dust' | 'oa' | 'ash' | 'meadow' | 'bloodMoon' | 'street' | 'vault';
 
 const GROUNDS: Record<GroundStyle, { void: string; base: string; dark: string; light: string; inlay?: string }> = {
 	dust: { void: '#15150f', base: '#3b3a2e', dark: 'rgba(20, 18, 12, 0.35)', light: 'rgba(120, 112, 88, 0.3)' },
@@ -89,6 +89,8 @@ const GROUNDS: Record<GroundStyle, { void: string; base: string; dark: string; l
 	// The Red Lanterns' prison moon: dark rust rock under a red sky
 	bloodMoon: { void: '#0d0506', base: '#33191a', dark: 'rgba(20, 4, 4, 0.42)', light: 'rgba(170, 90, 80, 0.2)' },
 	oa: { void: '#060d0a', base: '#1d2a25', dark: 'rgba(5, 12, 9, 0.4)', light: greenLight(0.12), inlay: green(0.12) },
+	// The Manhunters' vault world: dead blue-grey rock, nothing growing, nothing moving
+	vault: { void: '#05070b', base: '#232a36', dark: 'rgba(6, 9, 16, 0.45)', light: 'rgba(130, 150, 185, 0.16)' },
 	// A city on Earth: concrete sidewalks between asphalt roads (see drawStreets)
 	street: { void: '#0b0c0e', base: '#4a4a4c', dark: 'rgba(20, 20, 22, 0.3)', light: 'rgba(150, 150, 155, 0.18)' }
 };

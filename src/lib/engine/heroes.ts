@@ -18,6 +18,10 @@
 //    Wing Rush      wings first through a line of enemies
 //    Thunderclap    the mace into the ground, lightning all around
 //    Wing Guard     wings wrapped round her against a big hit
+//  RAZER (a Red Lantern on your side, in the air)
+//    Twin Blades    a lunge and three quick cuts with the blades on his arms
+//    Chakram        a crescent of rage thrown at someone out of reach
+//    Rage Nova      surrounded, he lets it all out: a ring of rage around him
 
 import { hitDummyWithFx, type ConstructWorld } from './constructs/system';
 import { isStanding, type Dummy } from './dummy';
@@ -27,7 +31,7 @@ import type { HeroId } from './lanterns';
 import { moveBody, type Solid } from './physics';
 import { FEET_HALF_H, FEET_HALF_W, type Player } from './player';
 
-export type HeroPower = 'blitz' | 'barrage' | 'tornado' | 'lightning' | 'dodge' | 'mace' | 'dive' | 'rush' | 'thunder' | 'guard';
+export type HeroPower = 'blitz' | 'barrage' | 'tornado' | 'lightning' | 'dodge' | 'mace' | 'dive' | 'rush' | 'thunder' | 'guard' | 'blades' | 'chakram' | 'nova';
 
 interface Move {
 	power: HeroPower;
@@ -65,7 +69,7 @@ export interface HeroState {
 
 /** A flash of lightning, a tornado, a shockwave: drawn by draw/heroes.ts. */
 export interface HeroFx {
-	kind: 'bolt' | 'tornado' | 'thunder' | 'quake' | 'mace' | 'zip';
+	kind: 'bolt' | 'tornado' | 'thunder' | 'quake' | 'mace' | 'zip' | 'chakram' | 'nova' | 'cut';
 	x: number;
 	y: number;
 	/** Bolts and zips: the other end. */
@@ -91,7 +95,10 @@ const COOLDOWNS: Record<HeroPower, number> = {
 	dive: 7,
 	rush: 5,
 	thunder: 10,
-	guard: 5
+	guard: 5,
+	blades: 1.8,
+	chakram: 3.2,
+	nova: 11
 };
 
 // ---- The Flash ----
@@ -114,6 +121,12 @@ const RUSH = { length: 320, time: 0.26, width: 42, damage: 16, knockback: 320 };
 export const THUNDER = { radius: 160, damage: 22, knockback: 380, stun: 0.7 };
 /** Wing Guard: how long, and the share of any hit that gets through. */
 export const GUARD = { time: 1.1, takes: 0.25 };
+
+// ---- Razer ----
+/** Twin Blades: how far he lunges from, the cuts (seconds into the move), and what each does. */
+export const BLADES = { range: 330, speed: 900, reach: 70, cuts: [0.12, 0.28, 0.44], damage: 17, knockback: 240 };
+export const CHAKRAM = { minRange: 170, range: 620, damage: 30, knockback: 260 };
+export const NOVA = { radius: 170, damage: 40, knockback: 520, stun: 0.6, windup: 0.4 };
 
 const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -146,7 +159,7 @@ export function createHeroState(id: HeroId): HeroState {
 export function heroMoving(p: Player): boolean {
 	const m = p.hero?.move;
 	if (!m) return false;
-	return m.power !== 'mace' && m.power !== 'thunder' && m.power !== 'lightning' && !(m.power === 'blitz' && m.step === 'hits');
+	return m.power !== 'mace' && m.power !== 'thunder' && m.power !== 'lightning' && m.power !== 'chakram' && m.power !== 'nova' && !(m.power === 'blitz' && m.step === 'hits');
 }
 
 const enemiesOf = (w: ConstructWorld) => w.dummies.filter((d): d is Enemy => isEnemy(d) && isStanding(d));
@@ -253,6 +266,23 @@ function choose(p: Player, h: HeroState, w: ConstructWorld) {
 			m.step = 'in';
 			p.invuln = Math.max(p.invuln, 0.1);
 		}
+		return;
+	}
+
+	if (h.id === 'razer') {
+		if (!t) return;
+		const d = dist(t, p);
+		if (ready('nova') && around(p.x, p.y, NOVA.radius).length >= 2) {
+			begin(h, 'nova', t);
+			w.effects.push({ kind: 'callout', x: p.x, y: p.y, age: 0, life: 1.2, text: 'RAGE NOVA', owner: p, hurt: true });
+			return;
+		}
+		if (ready('blades') && d <= BLADES.range) {
+			const m = begin(h, 'blades', t);
+			m.step = 'in';
+			return;
+		}
+		if (ready('chakram') && d >= CHAKRAM.minRange && d <= CHAKRAM.range) begin(h, 'chakram', t);
 		return;
 	}
 
@@ -547,6 +577,71 @@ function run(p: Player, h: HeroState, m: Move, dt: number, w: ConstructWorld, so
 			return;
 		}
 
+		case 'blades': {
+			const t = m.target;
+			if (!t || !isStanding(t)) {
+				done();
+				return;
+			}
+			if (m.step === 'in') {
+				// The lunge
+				if (runTo(t.x - (t.x > p.x ? 30 : -30), t.y, BLADES.speed) || m.elapsed > 0.5) {
+					m.step = 'cuts';
+					m.elapsed = 0;
+				}
+				return;
+			}
+			// Three quick cuts: everything in reach in front of him
+			face(p, t.x);
+			p.vx *= 0.8;
+			p.vy *= 0.8;
+			p.actionTimer = 0.2;
+			const next = BLADES.cuts[m.count];
+			if (next !== undefined && m.elapsed >= next) {
+				m.count++;
+				const ang = Math.atan2(t.y - p.y, t.x - p.x);
+				for (const e of foesOf(w)) {
+					const dx = e.x - p.x;
+					const dy = e.y - p.y;
+					const d = Math.hypot(dx, dy);
+					if (d > BLADES.reach + 14) continue;
+					if (d > 20 && (dx * Math.cos(ang) + dy * Math.sin(ang)) / d < 0) continue;
+					hit(w, p, e, BLADES.damage, m.count === BLADES.cuts.length ? BLADES.knockback : 40, p.x, p.y);
+				}
+				fx.push({ kind: 'cut', x: p.x, y: p.y, age: 0, life: 0.22, angle: ang + (m.count % 2 ? 0.4 : -0.4), radius: BLADES.reach, lift: p.bodyBottom + 40, red: true });
+			}
+			if (m.count >= BLADES.cuts.length && m.elapsed > 0.6) done();
+			return;
+		}
+
+		case 'chakram': {
+			const t = m.target;
+			p.shotTimer = 0.25;
+			if (t) face(p, t.x);
+			if (m.elapsed < 0.18) return;
+			if (t && isStanding(t)) {
+				hit(w, p, t, CHAKRAM.damage, CHAKRAM.knockback, p.x, p.y);
+				fx.push({ kind: 'chakram', x: p.x + p.dir * 12, y: p.y, x2: t.x, y2: t.y, age: 0, life: 0.32, lift: p.bodyBottom + 36, red: true });
+			}
+			done();
+			return;
+		}
+
+		case 'nova': {
+			p.actionTimer = 0.5;
+			p.vx *= 0.85;
+			p.vy *= 0.85;
+			if (m.elapsed < NOVA.windup) return;
+			for (const e of foesOf(w)) {
+				if (dist(e, p) > NOVA.radius) continue;
+				hit(w, p, e, NOVA.damage, NOVA.knockback, p.x, p.y);
+				e.stun = Math.max(e.stun, NOVA.stun);
+			}
+			fx.push({ kind: 'nova', x: p.x, y: p.y, age: 0, life: 0.6, radius: NOVA.radius, red: true });
+			done();
+			return;
+		}
+
 		default:
 			done();
 	}
@@ -600,7 +695,8 @@ export class HeroInput implements InputSource {
 		h.target = core ?? rival ?? this.pickTarget(me, lead, enemies);
 		const t = h.target;
 		const intent: Intent = { ...IDLE };
-		if (h.id === 'hawkgirl' && !me.flying) intent.toggleFly = true;
+		// Only the Flash stays on the ground
+		if (h.id !== 'flash' && !me.flying) intent.toggleFly = true;
 
 		if (!this.retreating && me.health < me.maxHealth * RETREAT_BELOW) this.retreating = true;
 		else if (this.retreating && me.health > me.maxHealth * RETURN_ABOVE) this.retreating = false;

@@ -3,7 +3,7 @@
 
 import { GREEN_LIGHT, THEME_GREEN } from '../theme';
 
-export type Speaker = 'tomar' | 'hal' | 'john' | 'ring' | 'guardian' | 'kilowog';
+export type Speaker = 'tomar' | 'hal' | 'john' | 'ring' | 'guardian' | 'kilowog' | 'razer';
 
 export interface SceneLine {
 	who: Speaker;
@@ -18,7 +18,8 @@ export const SPEAKERS: Record<Speaker, { name: string; color: string }> = {
 	john: { name: 'John Stewart', color: '#9ad8ff' },
 	ring: { name: 'The ring', color: THEME_GREEN },
 	guardian: { name: 'The Guardians', color: '#7fb4ff' },
-	kilowog: { name: 'Kilowog', color: '#e8b0b6' }
+	kilowog: { name: 'Kilowog', color: '#e8b0b6' },
+	razer: { name: 'Razer', color: '#ff6b6b' }
 };
 
 /**
@@ -61,6 +62,23 @@ export const SUMMONED: SceneLine[] = [
 	{ who: 'kilowog', text: "Kilowog. I train the rookies. A ring don't make you a Lantern, poozer. I do." },
 	{ who: 'john', text: 'Marine Corps, two tours. Try me.' },
 	{ who: 'kilowog', text: "Heh. I like this one. Training ground. Now." }
+];
+
+/**
+ * Start of Act 2, Mission 4: after John's report, Hal makes the Guardians
+ * say it. Razer hears it from his cell.
+ */
+export const CONFESSION: SceneLine[] = [
+	{ who: 'hal', text: "A machine on Earth that rebuilds itself, and my ring has a name for it. You knew that name. I saw your faces. So let's hear it.", mood: 'alarm' },
+	{ who: 'guardian', text: 'Before the Corps, there were the Manhunters. Our first peacekeepers. Machines: incorruptible, tireless, without fear.' },
+	{ who: 'guardian', text: 'There was a flaw. They concluded that the surest way to end evil was to end life. In Sector 666, they did.', mood: 'alarm' },
+	{ who: 'kilowog', text: 'A whole sector. And you never told the Corps. You never told ANYBODY.', mood: 'alarm' },
+	{ who: 'guardian', text: 'We shut them down and sealed them in a vault on a dead world. We built the Corps so it could never happen again. We judged that enough.' },
+	{ who: 'razer', text: 'Enough. ENOUGH? My world was in Sector 666. My wife was in Sector 666. You made Atrocitus. You made ME.', mood: 'alarm' },
+	{ who: 'razer', text: 'And you are too late. Atrocitus knows about your vault. He sent Bleez for it days ago: an army that cannot die, turned on Oa.' },
+	{ who: 'hal', text: "Then you're going to show us where it is." },
+	{ who: 'razer', text: 'I will take you. Not for them. Never for them. For what is behind that door, and what it did.' },
+	{ who: 'kilowog', text: "Good enough for me. Open the cell, Jordan. We're going." }
 ];
 
 /** End of Mission 1: Tomar-Re's ship sets down on Oa. */

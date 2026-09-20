@@ -39,7 +39,7 @@ import { drawArmorSuit } from './draw/kits';
 import { drawFallingMeteors, drawRedBeam, drawRedCage, drawRedChain, drawRedEffect, drawRedGround, drawRedShot, drawBrand } from './draw/redConstructs';
 import { AllyInput } from './ally';
 import { HeroInput, heroFx, heroMoving, updateHero, updateHeroFx } from './heroes';
-import { drawHero, drawHeroFx, drawSpeedTrail } from './draw/heroes';
+import { drawHero, drawHeroFx, drawRazerAlly, drawSpeedTrail } from './draw/heroes';
 import { drawManhunterCore, drawMindLock, drawPsychicFx, drawThrownDebris } from './draw/gorillas';
 import { psychicFx } from './enemies/grodd';
 import { RED_HAND_LIFT, type RedShot } from './enemies/redConstructs';
@@ -132,6 +132,8 @@ export interface Director {
 	cameraPoints?(): [number, number][];
 	/** Where to go next: an arrow at the edge of the screen points there when it's out of view. */
 	goal?(): { x: number; y: number } | null;
+	/** The goal matters more than the fight right now (a pylon to charge): go there even with enemies about. */
+	goalFirst?: boolean;
 	/** A player pressed Call for backup (missions where a partner can be called in). */
 	callBackup?(game: Game, caller: Player): void;
 }
@@ -662,7 +664,8 @@ export class Game {
 			const hero = p.hero;
 			if (hero) {
 				if (hero.trail.length > 1) ground.push({ baseY: y - 0.01, draw: () => drawSpeedTrail(ctx, hero.trail, FIGURE_HEIGHT) });
-				list.push({ baseY: y, draw: () => drawHero(ctx, hero.id, p.def.look, x, y, pose, this.time, sizeOf(p), { guard: hero.guard }) });
+				if (hero.id === 'razer') list.push({ baseY: y, draw: () => drawRazerAlly(ctx, p, x, y, env.hasGround, this.time) });
+				else list.push({ baseY: y, draw: () => drawHero(ctx, hero.id, p.def.look, x, y, pose, this.time, sizeOf(p), { guard: hero.guard }) });
 			} else if (!inJet) list.push({ baseY: y, draw: () => drawLantern(ctx, p.def, x, y, pose, this.time, sizeOf(p)) });
 			// Power Armor goes on over the figure
 			const suit = p.armor;
