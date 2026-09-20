@@ -3,7 +3,7 @@
 
 import { GREEN_LIGHT, THEME_GREEN } from '../theme';
 
-export type Speaker = 'tomar' | 'hal' | 'john' | 'ring';
+export type Speaker = 'tomar' | 'hal' | 'john' | 'ring' | 'guardian' | 'kilowog';
 
 export interface SceneLine {
 	who: Speaker;
@@ -16,7 +16,9 @@ export const SPEAKERS: Record<Speaker, { name: string; color: string }> = {
 	tomar: { name: 'Tomar-Re', color: '#ffb36b' },
 	hal: { name: 'Hal Jordan', color: GREEN_LIGHT },
 	john: { name: 'John Stewart', color: '#9ad8ff' },
-	ring: { name: 'The ring', color: THEME_GREEN }
+	ring: { name: 'The ring', color: THEME_GREEN },
+	guardian: { name: 'The Guardians', color: '#7fb4ff' },
+	kilowog: { name: 'Kilowog', color: '#e8b0b6' }
 };
 
 /**
@@ -44,6 +46,21 @@ export const JOHN_CALLED: SceneLine[] = [
 	{ who: 'ring', text: 'You were a Marine. You know how to stand between people and harm. I will do the rest.' },
 	{ who: 'john', text: "...Alright. Let's go.", mood: 'chosen' },
 	{ who: 'ring', text: 'Welcome to the Green Lantern Corps, John Stewart.' }
+];
+
+/**
+ * Start of Act 2, Mission 2: the ring has carried John across the galaxy to
+ * Oa. The Guardians, Tomar-Re, Kilowog and Hal are waiting for him.
+ */
+export const SUMMONED: SceneLine[] = [
+	{ who: 'ring', text: 'Destination reached. Oa: home of the Green Lantern Corps.' },
+	{ who: 'john', text: 'Ten minutes ago I was fighting a gorilla in Central City. I have questions.' },
+	{ who: 'guardian', text: 'John Stewart of Earth. The ring of Tolen Vex chose you. We wished to see its choice for ourselves.' },
+	{ who: 'hal', text: "Hal Jordan. The other guy from Earth. Don't mind them, they do that to everybody.", mood: 'grin' },
+	{ who: 'tomar', text: 'Tomar-Re, Sector 2813. Any Lantern of Earth is a friend of mine. Your people fly well.', mood: 'salute' },
+	{ who: 'kilowog', text: "Kilowog. I train the rookies. A ring don't make you a Lantern, poozer. I do." },
+	{ who: 'john', text: 'Marine Corps, two tours. Try me.' },
+	{ who: 'kilowog', text: "Heh. I like this one. Training ground. Now." }
 ];
 
 /** End of Mission 1: Tomar-Re's ship sets down on Oa. */

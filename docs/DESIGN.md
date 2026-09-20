@@ -424,6 +424,16 @@ Kilowog", "the boss should be fierce... we're bullying him").**
   (Rage Slam away) or shatters. Health x3.2, might 2.25. Bots: win ~2/6; losses get him to 7-24%;
   2-3 minute duels; ~15 target switches.
 
+**Act 2 · Mission 2: Summoned** (John, then Hal as AI partner; Oa; `missions/summoned.ts`, intro
+scene `scenes/summoned.ts` with `SUMMONED` lines: the flight from Earth, the jump, the landing before
+the Guardians' dais (`drawGuardian`), Tomar-Re, Kilowog, Hal). Phases: **kilowog** (one on one) → at
+60% **sinestro** steps in (two on one) → after 22s, or once John is under 45% (never before 8s),
+**together**: `game.addPartner('hal')`, John topped up to 70% → both down = **verdict** (the Manhunter
+report, the Guardians go quiet) → won. Kilowog health x4 might 2.4, Sinestro health x4 might 3,
+`maxHit` 36. Yields are shouted over their heads (callouts), so they don't cut the radio
+conversation. ★ passed ★ no lives lost ★ under 5 min. Bots: win 8/8, ~2.5 min of fighting, John
+down to 6-38%, a life lost in 2 of 8.
+
 **Act 2 · Mission 1: Call to Arms** (John + the Flash and Hawkgirl as AI heroes, Earth, Central City;
 `missions/callToArms.ts`, map `buildCentralCityMap` (`ground: 'street'`, `noBattery`), Grodd's powers
 `enemies/grodd.ts`, art `draw/gorillas.ts`, dig site/lamps/trees in `draw/earth.ts`). Before the fight,

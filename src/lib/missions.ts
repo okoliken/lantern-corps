@@ -12,9 +12,11 @@ import { PrisonMoon, buildPrisonMap } from '$lib/engine/missions/prisonMoon';
 import { RazerBoss, buildRazerMap } from '$lib/engine/missions/razerBoss';
 import { OaLanding } from '$lib/engine/scenes/oaLanding';
 import type { DialogueScene } from '$lib/engine/scenes/scene';
-import { JOHN_CALLED, JOHN_CHOSEN, OA_LANDING } from '$lib/story/scenes';
+import { JOHN_CALLED, JOHN_CHOSEN, OA_LANDING, SUMMONED } from '$lib/story/scenes';
 import { JohnChosen } from '$lib/engine/scenes/johnChosen';
 import { CallToArms, buildCentralCityMap } from '$lib/engine/missions/callToArms';
+import { SummonedTrial, buildTrialMap } from '$lib/engine/missions/summoned';
+import { Summoned } from '$lib/engine/scenes/summoned';
 
 export interface MissionRun {
 	game: Game;
@@ -29,6 +31,13 @@ type Options = Pick<GameOptions, 'settings' | 'profiles' | 'onProgress' | 'zoom'
 
 export function buildMission(id: string, options: Options): MissionRun {
 	switch (id) {
+		case 'summoned': {
+			const map = buildTrialMap();
+			const game = new Game({ ...options, players: [{ lantern: 'john', keys: 'solo' }], map });
+			const director = new SummonedTrial();
+			game.director = director;
+			return { game, director, outro: null, intro: () => new Summoned(SUMMONED) };
+		}
 		case 'call-to-arms': {
 			const map = buildCentralCityMap();
 			const game = new Game({

@@ -166,6 +166,27 @@ MISSIONS.push({
 	partner: 'hawkgirl'
 });
 
+MISSIONS.push({
+	id: 'summoned',
+	title: 'Summoned',
+	tagline: 'The ring carries John across the galaxy to Oa, where Kilowog, and then Sinestro, want to see what it chose.',
+	lantern: 'john',
+	environment: 'planet',
+	place: 'Oa · The Training Ground',
+	briefing: [
+		'The ring did not ask. One moment John Stewart was standing in a wrecked street in Central City; the next, Earth was a blue marble behind him and the stars were stretching into lines.',
+		'Oa: the planet at the center of the universe, home of the Guardians and the Green Lantern Corps. They want to see who the ring of Tolen Vex chose. So does the Corps\' drill sergeant.',
+		'"A ring don\'t make you a Lantern, poozer. I do."'
+	],
+	objectives: [
+		'Show Kilowog what you can do, one on one',
+		'Hold on when it stops being fair',
+		'Make them both yield',
+		'The Lantern battery at the edge of the ground recharges your willpower'
+	],
+	partner: 'hal'
+});
+
 export function missionById(id: string): MissionInfo | undefined {
 	return MISSIONS.find((m) => m.id === id);
 }
@@ -204,7 +225,7 @@ export const ACTS: ActInfo[] = [
 		tagline: 'A new Lantern on Earth, and something ancient waking up.',
 		lineup: [
 			'call-to-arms',
-			{ title: 'Summoned', tagline: 'The ring carries John Stewart across the galaxy to Oa, and to the Corps.' },
+			'summoned',
 			'colony-under-fire',
 			{ title: "The Guardians' Shame", tagline: 'The Guardians built the Manhunters. Now Atrocitus wants them.' },
 			{ title: 'Sleepers', tagline: 'Manhunters wake up all over Earth. John stands with the Justice League.' },

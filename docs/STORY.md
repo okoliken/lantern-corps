@@ -196,8 +196,14 @@ Atrocitus wants them.
    the Flash). The two tear round each other at full speed; Reverse-Flash wins the exchanges, but with
    his friends' help the Flash puts him down and runs him off to Iron Heights ("Not by me. By us."). Grodd's telekinesis grabs anyone and hurls
    them across the street.
-2. **Summoned** (Oa): the ring carries John to Oa, like the 2011 film. The Guardians, Hal, Kilowog,
-   Tomar-Re; Kilowog's training, for John.
+2. **Summoned** (built 2026-09-20; Oa, "the Trial on Oa", chosen by the user over boot-camp drills).
+   Opening scene: Earth falls away, the stars stretch into the jump, and John comes down on Oa in
+   front of the Guardians, Tomar-Re, Kilowog and Hal (their first meeting). Kilowog tests the rookie
+   one on one; **Sinestro** has seen enough ("Another Earthman. The ring makes mistakes") and steps in
+   for real, two on one; **Hal tags in** ("Two on one? Not on my watch") and Earth's two Lanterns
+   fight the Corps' best together for the first time. Both yield. John reports the Manhunter from
+   Earth; the Guardians go cold ("That is not possible. This session is ended"), which sets up The
+   Guardians' Shame. Kilowog sends John on his first patrol.
 3. **First Patrol** (built; was Colony Under Fire): John's first off-world call, Hal on backup.
 4. **The Guardians' Shame** (Hal): the Guardians admit they built the Manhunters; Hal, Kilowog and a
    reluctant Razer race to the vault. First three-way fight.
