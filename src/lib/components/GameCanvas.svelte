@@ -35,7 +35,11 @@
 		const stop = startLoop({
 			update: (dt) => game.update(dt),
 			render: (alpha) => game.render(ctx, alpha),
-			onStats: (s) => (stats = s)
+			onStats: (s) => {
+				stats = s;
+				// The pad shows this: a tab the browser has slowed down feels like lag
+				padLink().fps = s.fps;
+			}
 		});
 		// Dev only: poke the game from the browser console, and fast-forward it
 		// (background and automated tabs barely run animation frames)

@@ -27,6 +27,12 @@
 
 	let socket: WebSocket | null = null;
 	let dirty = false;
+	/** Round trip to the game, in ms, and how fast the game itself is running. */
+	let lag = $state<number | null>(null);
+	let fps = $state(0);
+	/** When the sticks last went out: they go as your thumb moves, not on a screen refresh. */
+	let sentAt = 0;
+	const SEND_EVERY = 25;
 
 	function send(msg: object) {
 		if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(msg));
@@ -82,6 +88,11 @@
 			try {
 				const msg = JSON.parse(String(event.data));
 				if (msg.t === 'buzz') navigator.vibrate?.(msg.ms ?? 30);
+				// The game answers our pings: how long the round trip takes right now
+				if (msg.t === 'pong') {
+					lag = Math.round(performance.now() - msg.at);
+					fps = msg.fps ?? 0;
+				}
 				if (msg.t === 'games') {
 					games = msg.n;
 					// The game we were paired with is gone: find the one that's open now
@@ -128,6 +139,8 @@
 		stick.x = dx;
 		stick.y = dy;
 		dirty = true;
+		// Straight out, unless we just sent (phone browsers throttle animation frames: don't wait for one)
+		if (performance.now() - sentAt >= SEND_EVERY) sendSticks();
 	}
 
 	function onDown(e: PointerEvent) {
@@ -200,6 +213,7 @@
 		const held = (Object.keys(pressed) as PadButton[]).filter((b) => pressed[b]);
 		send({ t: 'sticks', lx: r(left.x), ly: r(left.y), rx: r(right.x), ry: r(right.y), held });
 		dirty = false;
+		sentAt = performance.now();
 	}
 
 	async function goFullscreen() {
@@ -258,18 +272,19 @@
 		const allowZoom = stopZooming();
 		if (room) connect();
 		else void findGame();
-		// Stick positions go out as they change, and at least ten times a second
-		// regardless (the game lets go of anything it stops hearing about)
-		let raf = 0;
+		// Anything not already sent goes out on a plain timer, which phones throttle
+		// far less than animation frames, and a heartbeat keeps the game up to date
 		let last = 0;
-		const tick = (now: number) => {
+		const beat = setInterval(() => {
+			const now = performance.now();
 			if (dirty || now - last > 100) {
 				last = now;
 				sendSticks();
 			}
-			raf = requestAnimationFrame(tick);
-		};
-		raf = requestAnimationFrame(tick);
+		}, 30);
+		// How long the round trip to the game is taking
+		const ping = setInterval(() => send({ t: 'ping', at: performance.now() }), 1000);
+		send({ t: 'ping', at: performance.now() });
 		// Belt and braces: when the last finger leaves the glass, or the pad is hidden, let go of everything
 		const touchEnd = (e: TouchEvent) => {
 			if (e.touches.length === 0) letGoOfEverything();
@@ -287,11 +302,12 @@
 			.then((l) => (lock = l))
 			.catch(() => {});
 		return () => {
+			clearInterval(beat);
+			clearInterval(ping);
 			document.removeEventListener('touchend', touchEnd);
 			document.removeEventListener('touchcancel', touchEnd);
 			document.removeEventListener('visibilitychange', hidden);
 			allowZoom();
-			cancelAnimationFrame(raf);
 			socket?.close();
 			void lock?.release();
 		};
@@ -335,7 +351,7 @@
 		{:else if status === 'connected' && games === 0}
 			Connected · {room} · waiting for the game…
 		{:else if status === 'connected'}
-			● Connected · {room}
+			● Connected · {room}{lag === null ? '' : ` · ${lag} ms`}{fps ? ` · game ${fps} fps` : ''}
 		{:else}
 			Connecting to {room}…
 		{/if}

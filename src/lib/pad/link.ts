@@ -30,6 +30,8 @@ export function roomCode(): string {
 
 class PadLink {
 	readonly state = new PadState();
+	/** How the game is running, so the pad can show it (a slowed-down tab feels like lag). */
+	fps = 0;
 	readonly room = roomCode();
 	private socket: WebSocket | null = null;
 	private retry = 1000;
@@ -54,6 +56,11 @@ class PadLink {
 			try {
 				msg = JSON.parse(String(event.data));
 			} catch {
+				return;
+			}
+			// The pad asks how long the round trip is: answer at once
+			if ((msg as { t: string }).t === 'ping') {
+				ws.send(JSON.stringify({ t: 'pong', at: (msg as unknown as { at: number }).at, fps: this.fps }));
 				return;
 			}
 			this.state.apply(msg);
