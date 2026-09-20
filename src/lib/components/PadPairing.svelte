@@ -5,7 +5,7 @@
 	import { onMount } from 'svelte';
 	import QRCode from 'qrcode';
 	import { padLink } from '$lib/pad/link';
-	import { RELAY } from '$lib/pad/relay';
+	import { relayIsHere } from '$lib/pad/relay';
 
 	let url = $state('');
 	let qr = $state('');
@@ -17,7 +17,7 @@
 		connected = link.state.connected;
 		link.onChange = () => (connected = link.state.connected);
 		// Published: the pad page is on this same site, and the relay is Cloudflare's
-		if (RELAY) {
+		if (relayIsHere) {
 			url = `${location.origin}/pad?room=${link.room}`;
 			void QRCode.toString(url, { type: 'svg', margin: 1, color: { dark: '#d8f5e0', light: '#00000000' } }).then((svg) => (qr = svg));
 			return () => (link.onChange = null);

@@ -1,14 +1,10 @@
-// The phone pad's relay, for the published game (the dev server has its own:
+// The phone pad's relay for the published game (the dev server has its own:
 // see pad-relay.ts). Phones and game tabs open a WebSocket here and give a
 // room code; whatever a pad sends goes to the games in its room, and each
 // side is told how many of the other are connected.
 //
 // One Durable Object holds every room, so both ends always meet in the same
 // place. Sockets hibernate between messages, so an idle relay costs nothing.
-
-export interface Env {
-	RELAY: DurableObjectNamespace;
-}
 
 interface Tag {
 	role: 'game' | 'pad';
@@ -85,12 +81,3 @@ export class Relay {
 		for (const ws of this.peers('pad', room, closing)) ws.send(JSON.stringify({ t: 'games', n: games }));
 	}
 }
-
-export default {
-	fetch(request: Request, env: Env): Promise<Response> | Response {
-		const url = new URL(request.url);
-		if (url.pathname === '/') return new Response('Lantern Corps pad relay', { headers: CORS });
-		// One relay for everyone: both ends of a room always land on the same object
-		return env.RELAY.get(env.RELAY.idFromName('relay')).fetch(request);
-	}
-};

@@ -1,0 +1,12 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "lantern-corps",
+	"main": "worker/index.ts",
+	"compatibility_date": "2026-09-01",
+	// The built game (npm run build); any unknown path gets index.html, because the game does its own routing
+	"assets": { "directory": "./build", "binding": "ASSETS", "not_found_handling": "single-page-application" },
+	// The phone pad's relay: one object holds every room
+	"durable_objects": { "bindings": [{ "name": "RELAY", "class_name": "Relay" }] },
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Relay"] }],
+	"observability": { "enabled": true }
+}

@@ -6,9 +6,9 @@
 	"scripts": {
 		"dev": "vite dev",
 		"dev:pad": "vite dev --host",
-		"pad:deploy": "wrangler deploy --config pad-relay-worker/wrangler.jsonc",
+		"deploy": "npm run build && wrangler deploy",
 		"build": "vite build",
-		"preview": "vite preview",
+		"preview": "npm run build && wrangler dev",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",

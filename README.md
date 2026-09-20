@@ -21,14 +21,15 @@ tab) by scanning the QR code. Phone and computer need to be on the same network 
 or use the published game, where a small Cloudflare service passes the messages along.
 
 ## Publishing (Cloudflare)
-The game is a static site; the phone pad needs a relay that stays online.
+One Cloudflare Worker serves both: the built game (`build/`, static files) and the phone pad's relay
+(`/ws` and `/rooms`, a Durable Object in `worker/`). Settings live in `wrangler.jsonc`.
 
 ```sh
-npm run build                       # → build/ (what Cloudflare Pages serves)
-npm run pad:deploy                  # → the pad relay (pad-relay-worker/), a Cloudflare Worker
+npm run build     # → build/
+npm run deploy    # build, then deploy the Worker
+npm run preview   # run exactly what Cloudflare runs, locally (wrangler dev)
 ```
 
-**Cloudflare Pages** (connected to this repo, so every push to `main` deploys):
+Connected to this repo, Cloudflare builds and deploys on every push to `main`:
 - Build command: `npm run build`
-- Output directory: `build`
-- Variable: `VITE_PAD_RELAY` = the pad relay Worker's address (e.g. `https://lantern-corps-pad.<account>.workers.dev`)
+- Deploy command: `npx wrangler deploy`

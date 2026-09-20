@@ -1,7 +1,7 @@
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
-import { padRelay } from './pad-relay';
+import { padRelay } from './pad-relay.ts';
 
 export default defineConfig({
 	server: {
