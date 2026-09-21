@@ -169,8 +169,13 @@
 		pad.connected = 1;
 		const allowZoom = stopZooming({ allowScroll: true });
 		const sleep = keepAwake();
+		// How far the notch reaches in (only CSS knows): the HUD keeps clear of it
+		const probe = document.createElement('div');
+		probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;padding-left:env(safe-area-inset-left);pointer-events:none;visibility:hidden';
+		document.body.appendChild(probe);
 		const measure = () => {
 			size = { w: window.innerWidth, h: window.innerHeight };
+			game.safeLeft = parseFloat(getComputedStyle(probe).paddingLeft) || 0;
 		};
 		measure();
 		window.addEventListener('resize', measure);
@@ -196,6 +201,7 @@
 		document.addEventListener('visibilitychange', hidden);
 		return () => {
 			clearInterval(beat);
+			probe.remove();
 			window.removeEventListener('resize', measure);
 			document.removeEventListener('touchend', touchEnd);
 			document.removeEventListener('touchcancel', touchEnd);

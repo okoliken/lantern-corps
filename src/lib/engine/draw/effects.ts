@@ -302,8 +302,8 @@ export interface HudSlotRect {
  * left under the pause button (the thumbs have the bottom of the screen).
  * Returns where the first player's slots were drawn.
  */
-export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], width: number, height: number, time: number, touch = false, expanded = false): HudSlotRect[] {
-	if (touch) return players[0] ? drawTouchHud(ctx, players[0], time, expanded) : [];
+export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], width: number, height: number, time: number, touch = false, expanded = false, inset = 0): HudSlotRect[] {
+	if (touch) return players[0] ? drawTouchHud(ctx, players[0], time, expanded, inset) : [];
 	const rects: HudSlotRect[] = [];
 	const margin = touch ? 10 : 18;
 	const count = players[0]?.slots.length ?? 10;
@@ -504,9 +504,10 @@ export const HUD_CHIP = -2;
  * bars (health, willpower, surge), then a chip with the construct in hand and
  * the shield box. Tapping the chip opens the full hotbar under it (`expanded`).
  */
-function drawTouchHud(ctx: CanvasRenderingContext2D, p: HudPlayer, time: number, expanded: boolean): HudSlotRect[] {
+function drawTouchHud(ctx: CanvasRenderingContext2D, p: HudPlayer, time: number, expanded: boolean, inset: number): HudSlotRect[] {
 	const rects: HudSlotRect[] = [];
-	const x = 56;
+	// Beside the pause button, and clear of a notch on that side
+	const x = 56 + inset;
 	const top = 8;
 	const barW = 150;
 	const chip = 34;

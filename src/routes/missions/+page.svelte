@@ -1,13 +1,28 @@
 <script lang="ts">
-	// The mission list, act by act. Built missions open; ones still to come
-	// show locked with a teaser, so it's clear where the story is going.
+	// The mission list, act by act. The story plays in order: a mission opens
+	// once the one before it is finished (engine/campaign.ts). Ones still to
+	// come show with a teaser, so it's clear where the story is going.
+	import { onMount } from 'svelte';
 	import { ACTS, missionById } from '$lib/story/missions';
 	import { LANTERNS } from '$lib/engine/lanterns';
 	import { settings } from '$lib/settings.svelte';
+	import { campaign } from '$lib/campaign.svelte';
+
+	/** ?unlockall opens every mission (for trying a new one without playing through). */
+	let unlocked = $state(false);
+	onMount(() => {
+		if (new URLSearchParams(location.search).has('unlockall')) {
+			campaign.unlockAll();
+			unlocked = true;
+		}
+	});
+
+	const titleOf = (id: string | null) => (id ? (missionById(id)?.title ?? id) : '');
 </script>
 
 <main>
 	<h1>Missions</h1>
+	{#if unlocked}<p class="note">Every mission is unlocked.</p>{/if}
 
 	<section>
 		<header class="act">
@@ -50,15 +65,27 @@
 					{#each act.lineup as entry, i (i)}
 						{@const m = typeof entry === 'string' ? missionById(entry) : undefined}
 						<li>
-							{#if m}
-								<a class="mission" href="/mission/{m.id}">
-									<span class="number">{i + 1}</span>
+							{#if m && campaign.isOpen(m.id)}
+								{@const stars = campaign.stars(m.id)}
+								<a class="mission" class:done={stars > 0} href="/mission/{m.id}">
+									<span class="number">{stars > 0 ? '✓' : i + 1}</span>
 									<span class="text">
 										<strong>{m.title}</strong>
-										<small>{m.place} · as {LANTERNS[m.lantern].name}</small>
+										<small>{m.place} · as {m.choose ? 'Hal or John' : LANTERNS[m.lantern].name}</small>
 										<span>{m.tagline}</span>
 									</span>
+									{#if stars > 0}
+										<span class="stars" aria-label="{stars} of 3 stars">{#each [1, 2, 3] as n (n)}<span class:on={n <= stars}>★</span>{/each}</span>
+									{/if}
 								</a>
+							{:else if m}
+								<div class="locked" aria-disabled="true">
+									<span class="number">🔒</span>
+									<span class="text">
+										<strong>{m.title}</strong>
+										<small>Finish {titleOf(campaign.before(m.id))} to unlock</small>
+									</span>
+								</div>
 							{:else if typeof entry !== 'string'}
 								<div class="locked">
 									<span class="number">{i + 1}</span>
@@ -157,6 +184,26 @@
 	.locked {
 		opacity: 0.4;
 		border-style: dashed;
+	}
+	.mission.done {
+		border-color: color-mix(in srgb, var(--suit-lit) 70%, transparent);
+	}
+	.stars {
+		margin-left: auto;
+		display: flex;
+		gap: 0.1rem;
+		font-size: 1rem;
+		color: #2a3a30;
+		white-space: nowrap;
+	}
+	.stars .on {
+		color: #ffe066;
+		text-shadow: 0 0 10px rgba(255, 224, 102, 0.6);
+	}
+	.note {
+		margin: -1rem 0 0;
+		font-size: 0.85rem;
+		color: var(--green);
 	}
 	.number {
 		font-family: var(--font-display);

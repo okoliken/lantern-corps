@@ -119,7 +119,7 @@
 	.pause {
 		position: absolute;
 		top: 8px;
-		left: 10px;
+		left: max(10px, env(safe-area-inset-left));
 		font: inherit;
 		font-size: 0.85rem;
 		color: var(--green);
@@ -252,7 +252,7 @@
 		}
 		.boss {
 			left: auto;
-			right: 10px;
+			right: max(10px, env(safe-area-inset-right));
 			translate: none;
 			width: min(20rem, 40vw);
 			padding: 0.45rem 0.65rem;

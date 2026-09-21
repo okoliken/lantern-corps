@@ -187,8 +187,8 @@
 	.bar {
 		position: absolute;
 		top: 8px;
-		left: 10px;
-		right: 10px;
+		left: max(10px, env(safe-area-inset-left));
+		right: max(10px, env(safe-area-inset-right));
 		display: flex;
 		align-items: center;
 		justify-content: space-between;

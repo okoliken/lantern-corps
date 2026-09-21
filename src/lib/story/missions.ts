@@ -342,3 +342,8 @@ export function placeOf(id: string): { act: ActInfo; number: number } {
 	}
 	throw new Error(`Mission ${id} isn't in any act`);
 }
+
+/** Every built story mission, in the order the story plays them (the campaign unlocks them one by one). */
+export function storyOrder(): string[] {
+	return ACTS.flatMap((act) => act.lineup.filter((entry): entry is string => typeof entry === 'string'));
+}

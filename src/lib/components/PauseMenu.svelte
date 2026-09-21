@@ -6,6 +6,7 @@
 	import type { Game } from '$lib/engine/game';
 	import { settings } from '$lib/settings.svelte';
 	import PadPairing from './PadPairing.svelte';
+	import FullscreenButton from '$lib/touch/FullscreenButton.svelte';
 	import { TOUCH_MODES, type TouchControlsMode } from '$lib/engine/settings';
 
 	interface Props {
@@ -93,7 +94,10 @@
 	<div class="panel">
 		<header>
 			<h2>Paused</h2>
-			<button class="primary" onclick={onResume}>Resume <kbd>Esc</kbd></button>
+			<span class="head-actions">
+				<FullscreenButton compact />
+				<button class="primary" onclick={onResume}>Resume {#if !game.touch}<kbd>Esc</kbd>{/if}</button>
+			</span>
 		</header>
 
 		<nav class="tabs" aria-label="Pause menu sections">
@@ -214,6 +218,11 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 1rem;
+	}
+	.head-actions {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
 	}
 	h2 {
 		margin: 0;

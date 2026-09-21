@@ -124,7 +124,7 @@
 	.pause {
 		position: absolute;
 		top: 8px;
-		left: 10px;
+		left: max(10px, env(safe-area-inset-left));
 		font: inherit;
 		font-size: 0.85rem;
 		color: var(--green);

@@ -207,6 +207,8 @@ export class Game {
 	hudSlots: HudSlotRect[] = [];
 	/** On a phone: the full hotbar is open (a tap on the construct chip), until this game time. */
 	hotbarOpenUntil = 0;
+	/** On a phone: how far in from the left edge the notch reaches (CSS px), so the HUD keeps clear of it. */
+	safeLeft = 0;
 	/** Show the big "is down, back up in..." notice (off when being down means game over). */
 	downedNotice = true;
 	/** Draw the Lanterns' names above their heads. */
@@ -889,7 +891,8 @@ export class Game {
 			height,
 			this.time,
 			this.touch,
-			this.time < this.hotbarOpenUntil
+			this.time < this.hotbarOpenUntil,
+			this.safeLeft
 		);
 
 		// Solo: a big notice while down. (Co-op shows it per player in M7.)

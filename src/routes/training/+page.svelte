@@ -156,7 +156,7 @@
 	.pause {
 		position: absolute;
 		top: 8px;
-		left: 10px;
+		left: max(10px, env(safe-area-inset-left));
 		font: inherit;
 		font-size: 0.85rem;
 		color: var(--green);
@@ -331,7 +331,7 @@
 		.coach {
 			top: 2.4rem;
 			left: auto;
-			right: 10px;
+			right: max(10px, env(safe-area-inset-right));
 			translate: none;
 			width: min(24rem, 46vw);
 			padding: 0.5rem 0.75rem 0.6rem;

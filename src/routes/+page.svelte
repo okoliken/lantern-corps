@@ -3,10 +3,12 @@
 	// only the game routes turn SSR off.
 	import { dev } from '$app/environment';
 	import MenuPoster from '$lib/components/MenuPoster.svelte';
+	import FullscreenButton from '$lib/touch/FullscreenButton.svelte';
 </script>
 
 <main>
 	<MenuPoster />
+	<div class="corner"><FullscreenButton /></div>
 	<div class="title">
 		<h1>Lantern Corps</h1>
 		<p class="oath">In brightest day, in blackest night…</p>
@@ -31,6 +33,12 @@
 		text-align: center;
 		padding: 1rem 1rem 5vh;
 		box-sizing: border-box;
+	}
+	.corner {
+		position: absolute;
+		top: max(12px, env(safe-area-inset-top));
+		right: max(12px, env(safe-area-inset-right));
+		z-index: 2;
 	}
 	/* Over the poster, in the dark at the bottom */
 	.title {

@@ -11,7 +11,8 @@
 	import type { CommsLine, MissionMeter, MissionState, MissionStat } from '$lib/engine/missions/mission';
 	import type { DialogueScene } from '$lib/engine/scenes/scene';
 	import { buildMission } from '$lib/missions';
-	import { placeOf } from '$lib/story/missions';
+	import { missionById, placeOf } from '$lib/story/missions';
+	import { campaign } from '$lib/campaign.svelte';
 	import { profiles } from '$lib/profiles.svelte';
 	import { settings } from '$lib/settings.svelte';
 
@@ -36,6 +37,12 @@
 		});
 	});
 	const startLives = $derived(setup.director.lives);
+	/** The story is played in order: a mission before its turn shows as locked, not the briefing. */
+	const open = $derived(campaign.isOpen(mission.id));
+	const needed = $derived(missionById(campaign.before(mission.id) ?? '') ?? null);
+	const nextMission = $derived(missionById(campaign.next(mission.id) ?? '') ?? null);
+	/** This win has been saved (so it's saved once). */
+	let recorded = false;
 
 	/** Briefing first; then the controls card if it's the first time; then play. */
 	let briefing = $state(true);
@@ -118,6 +125,11 @@
 				resultText: d.resultText,
 				stats: d.stats()
 			};
+			// Won: finished, which opens the next mission
+			if (d.state === 'won' && !recorded) {
+				recorded = true;
+				campaign.complete(mission.id, d.stars);
+			} else if (d.state !== 'won') recorded = false;
 			if (d.state === 'won' && d.timer >= OUTRO_DELAY && !outroDone && !outro) {
 				if (makeOutro) {
 					outro = makeOutro();
@@ -184,7 +196,17 @@
 		{/if}
 	{/if}
 
-	{#if briefing}
+	{#if !open}
+		<div class="briefing" role="dialog" aria-label="Mission locked">
+			<small class="place">Act {place.act.number} · {place.act.title}</small>
+			<h1>🔒 {mission.title}</h1>
+			<p>This mission opens when you finish <strong>{needed?.title ?? 'the one before it'}</strong>.</p>
+			<div class="actions">
+				{#if needed}<a class="primary link" href="/mission/{needed.id}">Play {needed.title}</a>{/if}
+				<a href="/missions">← Missions</a>
+			</div>
+		</div>
+	{:else if briefing}
 		<div class="briefing" role="dialog" aria-label="Mission briefing">
 			<small class="place">Act {place.act.number} · {place.act.title} · {mission.place}</small>
 			<h1>Mission {place.number}: {mission.title}</h1>
@@ -250,7 +272,12 @@
 				<p class="hint">{status.starHint}</p>
 			{/if}
 			<div class="actions">
-				<button class="primary" onclick={retry}>{status.state === 'won' ? 'Play again' : 'Retry'}</button>
+				{#if status.state === 'won' && nextMission}
+					<a class="primary link" href="/mission/{nextMission.id}" data-sveltekit-reload>Next: {nextMission.title} →</a>
+					<button onclick={retry}>Play again</button>
+				{:else}
+					<button class="primary" onclick={retry}>{status.state === 'won' ? 'Play again' : 'Retry'}</button>
+				{/if}
 				<a href="/missions">Missions</a>
 				<a href="/">Main menu</a>
 			</div>
@@ -276,8 +303,8 @@
 	.bar {
 		position: absolute;
 		top: 8px;
-		left: 10px;
-		right: 10px;
+		left: max(10px, env(safe-area-inset-left));
+		right: max(10px, env(safe-area-inset-right));
 		display: flex;
 		align-items: flex-start;
 		justify-content: space-between;
@@ -572,6 +599,20 @@
 		cursor: pointer;
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
+	}
+	.primary.link {
+		display: inline-block;
+		text-decoration: none;
+	}
+	.actions button:not(.primary) {
+		font: inherit;
+		font-weight: 700;
+		padding: 0.5rem 1.1rem;
+		border-radius: 6px;
+		border: 1px solid var(--suit-lit);
+		background: transparent;
+		color: var(--text);
+		cursor: pointer;
 	}
 
 	.end {

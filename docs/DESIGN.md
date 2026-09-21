@@ -136,6 +136,14 @@ buttons. `$lib/touch/phone.ts` holds the shared phone helpers (no pinch or doubl
 and landscape lock where allowed, screen wake lock). `static/manifest.webmanifest` + Apple meta tags:
 added to the home screen, it opens fullscreen and sideways.
 
+**Fullscreen:** a Fullscreen button on the main menu and in the pause menu (`$lib/touch/FullscreenButton.svelte`):
+the Fullscreen API where there is one (laptops, Android; it also locks a phone to landscape). iPhones
+have no fullscreen for pages in any browser, so there it opens a card with the Add to Home Screen
+steps (Safari or Chrome wording); opened from the Home Screen (standalone) the button is hidden. The
+HUD, pause buttons and side panels keep clear of a notch (`env(safe-area-inset-*)`, `game.safeLeft`).
+A turn-your-phone screen (`RotatePrompt.svelte`, in the root layout) covers every page on a phone held
+upright.
+
 ## Targeting (context awareness)
 The ring works out what you mean to hit or protect (`src/lib/engine/targeting.ts`):
 - **Mouse aim:** shots go where the crosshair points. Aim assist nudges them onto an enemy only if
@@ -294,6 +302,14 @@ Every construct, whether preset or custom, uses one of 8 **behavior types**:
 - *Later idea:* type any word and an AI (called from a SvelteKit server route) picks the behavior type.
 
 ## Missions (`/missions`, `/mission/[id]`)
+**The campaign (locking, 2026-09-21):** the story is played in order (`engine/campaign.ts`, saved as
+`lantern-corps:campaign`, store `$lib/campaign.svelte.ts`). `storyOrder()` lists every built mission
+across the acts; the first is open, each later one opens when the one before it is won. A win saves
+the best stars (at least 1). The missions list shows finished ones with ✓ and stars, locked ones with
+🔒 and "Finish X to unlock"; a locked mission's page shows a locked card (with a link to the mission it
+needs) instead of the briefing; a win shows "Next: …". Training and sparring are always open.
+`/missions?unlockall` opens every mission (for testing a new one).
+
 Mission data (title, place, briefing, objectives, who you play) lives in `src/lib/story/missions.ts`;
 each mission's rules are a director in `src/lib/engine/missions/`. A director can add its own things to
 draw (`drawables`) and things for the camera to keep in view (`cameraPoints`).
