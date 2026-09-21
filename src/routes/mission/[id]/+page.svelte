@@ -470,7 +470,10 @@
 		translate: -50% -50%;
 		width: min(34rem, 92vw);
 		max-height: 90vh;
+		max-height: 90dvh;
 		overflow: auto;
+		overscroll-behavior: contain;
+		touch-action: pan-y;
 		box-sizing: border-box;
 		padding: 1.5rem 1.75rem;
 		border-radius: 12px;
@@ -653,8 +656,20 @@
 		.briefing,
 		.end {
 			max-height: 94vh;
+			max-height: 94dvh;
 			width: min(40rem, 94vw);
-			padding: 1rem 1.25rem;
+			padding: 1rem 1.25rem 0;
+		}
+		/* Launch is always in reach, however long the briefing: it stays at the bottom while the rest scrolls */
+		.briefing .actions,
+		.end .actions {
+			position: sticky;
+			bottom: 0;
+			z-index: 1;
+			margin: 0.75rem -1.25rem 0;
+			padding: 0.6rem 1.25rem 0.8rem;
+			background: rgba(3, 10, 6, 0.97);
+			border-top: 1px solid var(--suit-lit);
 		}
 	}
 </style>

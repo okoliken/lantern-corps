@@ -159,7 +159,7 @@
 
 	onMount(() => {
 		pad.connected = 1;
-		const allowZoom = stopZooming();
+		const allowZoom = stopZooming({ allowScroll: true });
 		const sleep = keepAwake();
 		const measure = () => {
 			size = { w: window.innerWidth, h: window.innerHeight };

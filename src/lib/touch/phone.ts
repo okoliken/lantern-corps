@@ -28,8 +28,12 @@ const NO_ZOOM = 'width=device-width, initial-scale=1, maximum-scale=1, user-scal
  * Phone browsers zoom on a quick double tap or two thumbs at once, and ignore
  * "no zoom" for accessibility. While playing that's never wanted: take the
  * touches, and snap back if it zoomed anyway. Returns the undo.
+ *
+ * `allowScroll`: one finger can still scroll things that scroll (a long
+ * briefing, the pause menu on a small phone); only pinches and double taps
+ * are stopped. Without it (the phone pad) every touch is the page's.
  */
-export function stopZooming(): () => void {
+export function stopZooming({ allowScroll = false } = {}): () => void {
 	// The site's own viewport tag comes first and would win: change it rather than add another
 	let meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
 	if (!meta) {
@@ -40,9 +44,23 @@ export function stopZooming(): () => void {
 	const before = meta.content;
 	meta.content = NO_ZOOM;
 	const block = (e: Event) => e.preventDefault();
+	// Two fingers moving is a pinch; one finger is a scroll (or a thumb on a stick, which takes its own touches)
+	const blockPinch = (e: TouchEvent) => {
+		if (e.touches.length > 1) e.preventDefault();
+	};
 	const options = { passive: false } as const;
-	const events = ['touchstart', 'touchmove', 'dblclick', 'gesturestart', 'gesturechange'];
-	for (const name of events) document.addEventListener(name, block, options);
+	const handlers: [string, EventListener][] = allowScroll
+		? [
+				['touchmove', blockPinch as EventListener],
+				['dblclick', block],
+				['gesturestart', block],
+				['gesturechange', block]
+			]
+		: ['touchstart', 'touchmove', 'dblclick', 'gesturestart', 'gesturechange'].map((name) => [name, block]);
+	for (const [name, fn] of handlers) document.addEventListener(name, fn, options);
+	// No double-tap zoom, but panning (scrolling) still works
+	const touchAction = document.documentElement.style.touchAction;
+	if (allowScroll) document.documentElement.style.touchAction = 'pan-x pan-y';
 	// Zoomed in anyway: nudge the viewport tag to make the browser snap back to 1
 	const unzoom = () => {
 		const vv = window.visualViewport;
@@ -52,8 +70,9 @@ export function stopZooming(): () => void {
 	};
 	window.visualViewport?.addEventListener('resize', unzoom);
 	return () => {
-		for (const name of events) document.removeEventListener(name, block);
+		for (const [name, fn] of handlers) document.removeEventListener(name, fn);
 		window.visualViewport?.removeEventListener('resize', unzoom);
+		document.documentElement.style.touchAction = touchAction;
 		meta!.content = before;
 	};
 }

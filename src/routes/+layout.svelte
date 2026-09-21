@@ -30,6 +30,9 @@
 	}
 	:global(html, body) {
 		margin: 0;
+		/* iPhones blow text up in landscape unless told not to: sizes stay as written */
+		-webkit-text-size-adjust: 100%;
+		text-size-adjust: 100%;
 		height: 100%;
 		background: var(--bg);
 		color: var(--text);
@@ -46,7 +49,7 @@
 	/* A phone: everything in rem shrinks with it (menus, briefings, panels) */
 	@media (max-height: 520px) and (orientation: landscape) {
 		:global(html) {
-			font-size: 12px;
+			font-size: 13px;
 		}
 	}
 	@media (max-width: 520px) and (orientation: portrait) {
