@@ -96,6 +96,23 @@ export const THE_SIGNAL: SceneLine[] = [
 	{ who: 'john', text: "I've been alone in worse places than Eight Mile. Ring: take us down." }
 ];
 
+/**
+ * Start of Act 2's boss: what answered the signal, and why the Guardians
+ * never destroyed it.
+ */
+export const THE_FIRST: SceneLine[] = [
+	{ who: 'john', text: "Detroit is standing. But that spire was calling something, and something picked up." },
+	{ who: 'guardian', text: 'Manhunter Prime. The first. Every Manhunter that ever walked was a copy of its mind.', mood: 'alarm' },
+	{ who: 'hal', text: "Let me guess. You couldn't bring yourselves to scrap it, so you buried it.", mood: 'grin' },
+	{ who: 'guardian', text: 'Beneath the vault, deeper than the rest. It cannot be ended from afar. It must be broken, and its core unmade, by hand.' },
+	{ who: 'kilowog', text: "Then I'm goin' with 'em." },
+	{ who: 'guardian', text: 'No, Sergeant. The Red Lanterns are moving, and Oa will need you. Jordan and Stewart go alone.' },
+	{ who: 'guardian', text: 'Be warned, both of you. It was built to learn. What you show it, it keeps.', mood: 'alarm' },
+	{ who: 'john', text: "Then we don't show it the same thing twice." },
+	{ who: 'hal', text: 'Two guys from Earth against the one thing the Guardians were too scared to finish. I like our odds.', mood: 'grin' },
+	{ who: 'john', text: "I've seen your odds, Jordan. Let's go." }
+];
+
 /** End of Mission 1: Tomar-Re's ship sets down on Oa. */
 export const OA_LANDING: SceneLine[] = [
 	{ who: 'tomar', text: 'Oa. For a while out there, I did not think I would see her towers again.' },

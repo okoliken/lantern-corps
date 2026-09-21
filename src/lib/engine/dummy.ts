@@ -19,7 +19,7 @@ export const DUMMY_RESPAWN = 3;
 export const DEFEAT_LINGER = 0.9;
 
 /** What kind of target: a training dummy, or which enemy. */
-export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterCore' | 'reverseFlash' | 'signalSpire';
+export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterPrime' | 'manhunterCore' | 'reverseFlash' | 'signalSpire';
 
 export interface Dummy {
 	kind: TargetKind;
@@ -58,6 +58,8 @@ export interface Dummy {
 	drift?: { radius: number; float: number; spin: number; seed: number };
 	/** A broken Manhunter's core: how far (0..1) it has pulled itself back together. */
 	rebuild?: number;
+	/** Drawn this many times bigger (Manhunter Prime's core). */
+	scale?: number;
 }
 
 export function createDummy(x: number, y: number): Dummy {
@@ -206,6 +208,7 @@ export const BODY: Record<TargetKind, { halfWidth: number; height: number }> = {
 	grodd: { halfWidth: 34, height: 128 },
 	// Flying: its body is drawn well off the ground, so the box reaches up to it
 	manhunter: { halfWidth: 22, height: 160 },
+	manhunterPrime: { halfWidth: 36, height: 250 },
 	manhunterCore: { halfWidth: 22, height: 40 },
 	signalSpire: { halfWidth: 44, height: 250 },
 	reverseFlash: { halfWidth: 14, height: 86 }

@@ -18,6 +18,9 @@ import { BUBBLE_SHIELD } from './constructs/defs';
 import type { ConstructWorld } from './constructs/system';
 import { aimPoint, isStanding, type Dummy } from './dummy';
 import { isEnemy, type Enemy } from './enemies/enemies';
+
+/** A partner goes for a rebuilding Manhunter core from this far away. */
+const CORE_RANGE = 900;
 import { IDLE, type InputSource, type Intent } from './input';
 import type { Player } from './player';
 
@@ -102,7 +105,26 @@ export class AllyInput implements InputSource {
 			this.signatureRest = 6;
 		}
 		this.useConstructs(me, target, enemies, intent);
+		this.smashCore(me, intent);
 		return intent;
+	}
+
+	/** A broken Manhunter pulling itself back together nearby: drop everything and shoot its core (the one furthest along). */
+	private smashCore(me: Player, intent: Intent) {
+		if (this.retreating) return;
+		let core: Dummy | null = null;
+		for (const d of this.world.dummies) {
+			if (d.kind !== 'manhunterCore' || !isStanding(d) || dist(d, me) > CORE_RANGE) continue;
+			if (!core || (d.rebuild ?? 0) > (core.rebuild ?? 0)) core = d;
+		}
+		if (!core) return;
+		intent.pointer = { x: core.x, y: core.y - 20 - me.ringLift };
+		intent.shot = true;
+		const d = dist(core, me);
+		if (d > 170) {
+			intent.moveX = (core.x - me.x) / d;
+			intent.moveY = (core.y - me.y) / d;
+		}
 	}
 
 	/**

@@ -424,6 +424,30 @@ Kilowog", "the boss should be fierce... we're bullying him").**
   (Rage Slam away) or shatters. Health x3.2, might 2.25. Bots: win ~2/6; losses get him to 7-24%;
   2-3 minute duels; ~15 target switches.
 
+**Act 2 · Boss: Manhunter Prime** (Hal and John, you choose: `MissionInfo.choose` puts a picker on
+the briefing and `buildMission(id, { as })` builds with that Lantern first and the other as an AI
+partner; `missions/manhunterPrime.ts`, map `buildHeartMap` (the `vault` ground, a back wall at
+`WALL` 300 with 16 alcoves), art `draw/heart.ts` (`drawDormant`, `drawPrimeDais`, `drawSiphon`),
+intro scene `scenes/theFirst.ts` with `THE_FIRST` lines). New enemy **`manhunterPrime`** (hp 2600,
+poise 700, scale 2, hover; drawn by `drawManhunter` in gold and black with a crest, its chest disc
+burning green with the light it has taken, `brain.rage` 0..1). **Learning:** every Lantern now keeps
+`Player.usage` (a cast counts 1, a second of a held construct 1.2) and `Player.locked`. At 70%, 40%
+and 15% (`LEARN_AT`) Prime stops for 2.8s (can't be hurt or moved; green light siphons out of each
+ring into it), then locks each Lantern's most-used unlocked construct (`mostUsed`) and adds a copy to
+its own kit by the construct's behaviour (`COPIES`: smash → bigFist, slash → sword + bladeFan, heavy →
+cannon, volley → meteors, rapid/snipe/beam → beam, barrier → redWall, trap/grab → cage, turret/squad
+→ redTurret; else hammerSpin). A locked construct can't be made (`updatePlayerConstructs` says
+LOCKED), the smart ring and the AI skip it, and its hotbar slot is struck out in amber. Each learn
+wakes the ranks: 3+2, 4+3, 4+3 Manhunters and drones out of the alcoves (health x0.7, might 3.1; they
+rebuild from 260 hp cores in 8s). The third learn is **overdrive** (x1.15 might, x1.2 speed). Prime
+switches target between the two Lanterns every 5-8s. **Core:** broken, Prime leaves a double-size
+core (1200 hp, wears x0.65 per rebuild) that rebuilds it in 10s at 20% health, keeping all it has
+learned; while it lies in pieces the ranks hang stunned and their cores stop. Smash it: every
+Manhunter drops and `locked` is cleared. Broken before a stage, it comes back and learns what it
+missed. Prime health x9.5, might 3.8; `maxHit` 38. ★ destroyed ★ no lives lost ★ under 7 min. Bots:
+3/6 (every loss with Prime under 15%), 5-6 min. The AI partner and the autopilot now go for the core
+furthest along (`smashCore` in `ally.ts`, from 900px).
+
 **Act 2 · Mission 5: Sleepers** (John; the League joins through `game.addPartner`; Detroit at night;
 `missions/sleepers.ts`, map `buildDetroitMap` = `buildCityMap` (shared with Central City, now in
 `callToArms.ts` with `cityDecor`) on the new `nightStreet` ground (the street grid under a blue night

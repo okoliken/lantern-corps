@@ -224,6 +224,8 @@ export interface HudSlot {
 	cooldown: number;
 	/** Enough willpower to use it right now. */
 	affordable: boolean;
+	/** Manhunter Prime has learned it: it can't be used. */
+	locked?: boolean;
 }
 
 export interface HudPlayer {
@@ -412,6 +414,20 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 			ctx.font = uiFont(800, 12);
 			ctx.fillStyle = selected ? GREEN : 'rgba(216, 245, 224, 0.8)';
 			ctx.fillText(s.key, sx + 3, slotsY + 2);
+			if (s.locked) {
+				// Learned: struck out in Manhunter amber
+				ctx.fillStyle = 'rgba(40, 20, 0, 0.72)';
+				ctx.fillRect(sx, slotsY, box, box);
+				ctx.strokeStyle = '#ffb020';
+				ctx.lineWidth = 2;
+				ctx.strokeRect(sx + 1, slotsY + 1, box - 2, box - 2);
+				ctx.beginPath();
+				ctx.moveTo(sx + 6, slotsY + 6);
+				ctx.lineTo(sx + box - 6, slotsY + box - 6);
+				ctx.moveTo(sx + box - 6, slotsY + 6);
+				ctx.lineTo(sx + 6, slotsY + box - 6);
+				ctx.stroke();
+			}
 		});
 
 		// ---- Shield box ----

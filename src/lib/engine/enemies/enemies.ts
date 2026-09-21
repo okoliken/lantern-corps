@@ -374,6 +374,27 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		lieutenant: true
 	},
 
+	manhunterPrime: {
+		kind: 'manhunterPrime',
+		name: 'Manhunter Prime',
+		faction: 'manhunter',
+		description:
+			'The first Manhunter: the mind every other one was copied from, buried deepest of all. It watches how you fight. At each stage it takes the construct you have leaned on most: your ring can no longer make it, and it can. Keep changing what you use. Broken, it rebuilds round its core like the rest.',
+		mind: 'machine',
+		hp: 2600,
+		speed: 165,
+		accel: 4,
+		sight: 1400,
+		poise: 700,
+		scale: 2,
+		agility: 0.25,
+		movement: 'hover',
+		kit: ['eyeLaser', 'sweep', 'pulse', 'claws', 'slam', 'charge'],
+		range: 260,
+		leans: { aggression: 0.6, caution: -0.4 },
+		lieutenant: true
+	},
+
 	// Built by a Red Lantern (the Rage Turret construct): stays put, shoots, burns out
 	rageTurret: {
 		kind: 'rageTurret',

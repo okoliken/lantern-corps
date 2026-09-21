@@ -231,7 +231,18 @@ Atrocitus wants them.
    something answered. The League offers John a seat ("So have two jobs! I have two jobs. Bats has,
    like, five"); he says yes. Hal calls from Oa: it is called Manhunter Prime, and it is awake.
    Running joke: the Flash asks J'onn whether he isn't the Martian *Manhunter*.
-6. **Boss: Manhunter Prime**: Hal and John together; choose who to play. It learns your constructs.
+6. **Boss: Manhunter Prime** (built 2026-09-21; Hal and John together, you choose who to play).
+   Opening scene, **the First**: back on Oa, the Guardians name what answered the signal: Manhunter
+   Prime, the mind every Manhunter was copied from, buried under the vault because they could not
+   bring themselves to scrap it. Kilowog is kept on Oa (the Reds are moving). "It was built to learn.
+   What you show it, it keeps." "Then we don't show it the same thing twice." In the Heart of the
+   Vault, ten thousand dormant Manhunters line the walls; one stands on the dais. It **learns**: at
+   each stage it pulls the green light of each Lantern's most-used construct out of their ring and
+   into its own chest, locks it, and fights with a copy. The ranks wake as it goes. Broken, it rebuilds
+   round its core ("I WAS BUILT TO OUTLAST STARS"). Smash the core: every Manhunter drops, the rings
+   get their light back, and Prime's last words give it away: "THE RED ONE... SAID YOU WOULD COME. HE
+   SAID... YOU ALWAYS CLEAN UP... AFTER THEM." Atrocitus used the whole Manhunter crisis to draw the
+   Corps away. The ring: Red Lantern fleet massing in Sector 666, heading for Oa. **End of Act 2.**
 
 ### Act 3: Blood Oath
 *Into Sector 666, to end it at the source.* Red space, Dex-Starr, Ysmault, Atrocitus. To plan.

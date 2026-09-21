@@ -338,6 +338,9 @@ const TETHER_TIME = 0.45;
 
 // ------------------------------------------------------------ per player
 
+/** A second of holding a beam or a minigun counts as this many casts, for Manhunter Prime's learning. */
+const HELD_USE_RATE = 1.2;
+
 export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w: ConstructWorld) {
 	p.cooldowns = p.cooldowns.map((c) => Math.max(0, c - dt));
 	p.shieldCooldown = Math.max(0, p.shieldCooldown - dt);
@@ -386,6 +389,17 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
 	const def = p.loadout[p.selected];
 	const slot = p.selected;
 
+	// Learned by Manhunter Prime: the ring can't make it any more
+	if (p.locked.has(def.id)) {
+		p.firing = false;
+		p.beamLength = 0;
+		p.charge = 0;
+		if (intent.constructPressed) w.effects.push({ kind: 'text', x: p.x, y: p.y - p.bodyTop - 10, age: 0, life: 0.9, text: 'LOCKED' });
+		return;
+	}
+	// A held construct counts by the second, a cast by the cast
+	if (intent.construct && (def.behavior === 'snipe' || HELD_BEHAVIORS.has(def.behavior))) p.usage[def.id] = (p.usage[def.id] ?? 0) + dt * HELD_USE_RATE;
+
 	if (def.behavior === 'snipe') {
 		useSniper(p, def, intent.construct, dt, w);
 		return;
@@ -408,6 +422,7 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
 
 	spend(p, cost);
 	gainSurge(p, SURGE_PER_CONSTRUCT);
+	p.usage[def.id] = (p.usage[def.id] ?? 0) + 1;
 	p.cooldowns[slot] = def.cooldown * p.def.traits.cooldown;
 	p.actionTimer = ACTION_POSE_TIME + (def.windup ?? 0);
 	p.actionShape = def.shape;

@@ -643,7 +643,14 @@ export class Game {
 					: d.kind === 'rageTorpedo'
 						? () => drawRageTorpedo(ctx, d, x, y, this.time)
 						: d.kind === 'manhunterCore'
-						? () => drawManhunterCore(ctx, d, x, y, this.time)
+						? () => {
+								const k = d.scale ?? 1;
+								ctx.save();
+								ctx.translate(x, y);
+								ctx.scale(k, k);
+								drawManhunterCore(ctx, d, 0, 0, this.time);
+								ctx.restore();
+							}
 						: d.kind === 'signalSpire'
 						? () => {} // the mission draws it
 
@@ -849,7 +856,8 @@ export class Game {
 					// An AI partner has no keys to show
 					key: this.aiSlots.has(i) ? '' : shortLabel(this.inputs[i].bindings[SLOT_ACTIONS[s]]),
 					cooldown: def.cooldown > 0 ? Math.min(1, p.cooldowns[s] / (def.cooldown * p.def.traits.cooldown)) : 0,
-					affordable: canSpend(p, def.behavior === 'beam' ? 15 : costOf(p, def))
+					affordable: canSpend(p, def.behavior === 'beam' ? 15 : costOf(p, def)),
+					locked: p.locked.has(def.id)
 				})),
 				shield: {
 					key: this.aiSlots.has(i) ? '' : shortLabel(this.inputs[i].bindings.shield),

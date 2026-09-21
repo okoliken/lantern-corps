@@ -387,6 +387,10 @@ export function manhunterTop(e: Enemy, y: number): number {
 	return y - e.brain.air * SLAM_HEIGHT - (90 + MANHUNTER_HOVER) * scaleOf(e);
 }
 
+/** A Manhunter's colours: red and blue for the rank and file; Manhunter Prime, the first of them, in black and old gold. */
+const MANHUNTER_COLORS = { body: MH_RED, bodyDark: MH_RED_DARK, trim: MH_BLUE, trimDark: MH_BLUE_DARK };
+const PRIME_COLORS = { body: '#c9a445', bodyDark: '#8a6d24', trim: '#1c1d26', trimDark: '#0e0f15' };
+
 export function drawManhunter(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number) {
 	const b = e.brain;
 	const s = scaleOf(e);
@@ -398,6 +402,8 @@ export function drawManhunter(ctx: CanvasRenderingContext2D, e: Enemy, x: number
 	const flash = e.flash > 0 || ((tell === 'strike' || tell === 'heavy') && Math.sin(time * 30) > 0);
 	const c = (col: string) => (flash ? '#ffffff' : col);
 	const air = b.air * SLAM_HEIGHT;
+	const prime = e.kind === 'manhunterPrime';
+	const P = prime ? PRIME_COLORS : MANHUNTER_COLORS;
 
 	ctx.save();
 	ctx.globalAlpha = defeated ? Math.min(1, e.down / 0.5) : 1;
@@ -418,7 +424,7 @@ export function drawManhunter(ctx: CanvasRenderingContext2D, e: Enemy, x: number
 	// The cape, hanging from the shoulders and swinging behind
 	const sway = Math.sin(time * 2.2 + e.homeX) * 2 + Math.min(1, Math.hypot(e.vx, e.vy) / 150) * 5;
 	const [nx, ny] = at(17, -3);
-	ctx.fillStyle = c(MH_BLUE_DARK);
+	ctx.fillStyle = c(P.trimDark);
 	ctx.strokeStyle = OUTLINE;
 	ctx.lineWidth = 0.8;
 	ctx.beginPath();
@@ -431,14 +437,14 @@ export function drawManhunter(ctx: CanvasRenderingContext2D, e: Enemy, x: number
 	ctx.stroke();
 
 	// Far limbs
-	segment(ctx, sk.back.shoulder, sk.back.elbow, 2.8, 2.4, c(MH_RED_DARK));
-	segment(ctx, sk.back.elbow, sk.back.hand, 2.4, 2.2, c(MH_BLUE_DARK));
-	segment(ctx, sk.back.hipJoint, sk.back.knee, 3.4, 2.8, c(MH_RED_DARK));
-	segment(ctx, sk.back.knee, sk.back.foot, 2.8, 2.4, c(MH_BLUE_DARK));
+	segment(ctx, sk.back.shoulder, sk.back.elbow, 2.8, 2.4, c(P.bodyDark));
+	segment(ctx, sk.back.elbow, sk.back.hand, 2.4, 2.2, c(P.trimDark));
+	segment(ctx, sk.back.hipJoint, sk.back.knee, 3.4, 2.8, c(P.bodyDark));
+	segment(ctx, sk.back.knee, sk.back.foot, 2.8, 2.4, c(P.trimDark));
 
 	// Torso: red, a silver belt and the Manhunter disc on the chest
 	const body = rounded([at(-1.5, -4.5), at(8, -4.4), at(17, -5.4), at(19.5, -3), at(19.5, 4), at(14, 6.8), at(6, 5.4), at(-1.5, 4.8)]);
-	ctx.fillStyle = c(MH_RED);
+	ctx.fillStyle = c(P.body);
 	ctx.fill(body);
 	ctx.strokeStyle = OUTLINE;
 	ctx.lineWidth = 0.9;
@@ -453,20 +459,30 @@ export function drawManhunter(ctx: CanvasRenderingContext2D, e: Enemy, x: number
 	ctx.beginPath();
 	ctx.arc(...at(13, 3.6), 2.3, 0, TAU);
 	ctx.fill();
-	ctx.fillStyle = c(MH_BLUE);
+	ctx.fillStyle = c(P.trim);
 	ctx.beginPath();
 	ctx.arc(...at(13, 3.6), 1.1, 0, TAU);
 	ctx.fill();
+	if (prime && b.rage > 0 && !defeated) {
+		// The light it has taken from the Lanterns, burning in its chest
+		ctx.shadowColor = '#3dff6e';
+		ctx.shadowBlur = 6 + 6 * b.rage;
+		ctx.fillStyle = `rgba(61, 255, 110, ${0.5 + 0.5 * b.rage})`;
+		ctx.beginPath();
+		ctx.arc(...at(13, 3.6), 1.2 + 1.2 * b.rage, 0, TAU);
+		ctx.fill();
+		ctx.shadowBlur = 0;
+	}
 
 	// Near leg: red, blue boot
-	segment(ctx, sk.front.hipJoint, sk.front.knee, 3.6, 3, c(MH_RED));
-	segment(ctx, sk.front.knee, sk.front.foot, 3, 2.6, c(MH_BLUE));
+	segment(ctx, sk.front.hipJoint, sk.front.knee, 3.6, 3, c(P.body));
+	segment(ctx, sk.front.knee, sk.front.foot, 3, 2.6, c(P.trim));
 
 	// Head: a blue hood round a pale steel face, a black band over burning eyes
 	ctx.save();
 	ctx.translate(...sk.headCenter);
 	ctx.rotate(sk.headAngle);
-	ctx.fillStyle = c(MH_BLUE);
+	ctx.fillStyle = c(P.trim);
 	ctx.beginPath();
 	ctx.moveTo(-6, 6);
 	ctx.quadraticCurveTo(-8, -6, 0, -7.5);
@@ -477,6 +493,19 @@ export function drawManhunter(ctx: CanvasRenderingContext2D, e: Enemy, x: number
 	ctx.strokeStyle = OUTLINE;
 	ctx.lineWidth = 0.8;
 	ctx.stroke();
+	if (prime) {
+		// The first of them wears a crest
+		ctx.fillStyle = c(P.body);
+		ctx.beginPath();
+		ctx.moveTo(-3, -6.6);
+		ctx.lineTo(-1, -13);
+		ctx.lineTo(1.6, -7.4);
+		ctx.lineTo(4.4, -11);
+		ctx.lineTo(5, -6.6);
+		ctx.closePath();
+		ctx.fill();
+		ctx.stroke();
+	}
 	ctx.fillStyle = c(MH_FACE);
 	ctx.beginPath();
 	ctx.moveTo(1, -4.8);
@@ -497,8 +526,8 @@ export function drawManhunter(ctx: CanvasRenderingContext2D, e: Enemy, x: number
 	ctx.restore();
 
 	// Near arm, with its baton
-	segment(ctx, sk.front.shoulder, sk.front.elbow, 3, 2.6, c(MH_RED));
-	segment(ctx, sk.front.elbow, sk.front.hand, 2.6, 2.3, c(MH_BLUE));
+	segment(ctx, sk.front.shoulder, sk.front.elbow, 3, 2.6, c(P.body));
+	segment(ctx, sk.front.elbow, sk.front.hand, 2.6, 2.3, c(P.trim));
 	const [hx, hy] = sk.front.hand;
 	const [ex, ey] = sk.front.elbow;
 	const a = Math.atan2(hy - ey, hx - ex) - 0.5;
@@ -521,6 +550,8 @@ export function drawManhunter(ctx: CanvasRenderingContext2D, e: Enemy, x: number
  */
 export function drawManhunterCore(ctx: CanvasRenderingContext2D, d: Dummy, x: number, y: number, time: number) {
 	const k = d.rebuild ?? 0;
+	// Prime's pieces are gold and black
+	const P = (d.scale ?? 1) > 1 ? PRIME_COLORS : MANHUNTER_COLORS;
 	const spread = 1 - k * 0.85;
 	const pulse = 0.6 + 0.4 * Math.sin(time * (6 + k * 14));
 	ctx.save();
@@ -529,11 +560,11 @@ export function drawManhunterCore(ctx: CanvasRenderingContext2D, d: Dummy, x: nu
 	ctx.lineCap = 'round';
 	// The pieces: limbs, the cape, the head
 	const parts: [number, number, number, string, number][] = [
-		[-46, 6, 0.4, MH_RED, 26],
-		[40, 10, -0.9, MH_RED, 24],
-		[-26, -18, 1.8, MH_BLUE, 20],
-		[30, -16, 2.6, MH_RED_DARK, 22],
-		[-8, 22, -0.2, MH_BLUE_DARK, 30]
+		[-46, 6, 0.4, P.body, 26],
+		[40, 10, -0.9, P.body, 24],
+		[-26, -18, 1.8, P.trim, 20],
+		[30, -16, 2.6, P.bodyDark, 22],
+		[-8, 22, -0.2, P.trimDark, 30]
 	];
 	for (const [px, py, rot, color, len] of parts) {
 		const jitter = k > 0.5 ? Math.sin(time * 40 + px) * 1.5 : 0;

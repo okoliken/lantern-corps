@@ -12,7 +12,7 @@ import { PrisonMoon, buildPrisonMap } from '$lib/engine/missions/prisonMoon';
 import { RazerBoss, buildRazerMap } from '$lib/engine/missions/razerBoss';
 import { OaLanding } from '$lib/engine/scenes/oaLanding';
 import type { DialogueScene } from '$lib/engine/scenes/scene';
-import { CONFESSION, JOHN_CALLED, JOHN_CHOSEN, OA_LANDING, SUMMONED, THE_SIGNAL } from '$lib/story/scenes';
+import { CONFESSION, JOHN_CALLED, JOHN_CHOSEN, OA_LANDING, SUMMONED, THE_FIRST, THE_SIGNAL } from '$lib/story/scenes';
 import { JohnChosen } from '$lib/engine/scenes/johnChosen';
 import { CallToArms, buildCentralCityMap } from '$lib/engine/missions/callToArms';
 import { SummonedTrial, buildTrialMap } from '$lib/engine/missions/summoned';
@@ -20,6 +20,9 @@ import { GuardiansShame, buildVaultMap } from '$lib/engine/missions/guardiansSha
 import { Confession } from '$lib/engine/scenes/confession';
 import { Sleepers, buildDetroitMap } from '$lib/engine/missions/sleepers';
 import { TheSignal } from '$lib/engine/scenes/theSignal';
+import { ManhunterPrimeBoss, buildHeartMap } from '$lib/engine/missions/manhunterPrime';
+import { TheFirst } from '$lib/engine/scenes/theFirst';
+import type { LanternId } from '$lib/engine/lanterns';
 import { Summoned } from '$lib/engine/scenes/summoned';
 
 export interface MissionRun {
@@ -31,10 +34,28 @@ export interface MissionRun {
 	intro?: () => DialogueScene;
 }
 
-type Options = Pick<GameOptions, 'settings' | 'profiles' | 'onProgress' | 'zoom'>;
+type Options = Pick<GameOptions, 'settings' | 'profiles' | 'onProgress' | 'zoom'> & {
+	/** Who to play, in a mission that lets you choose (the other Lantern fights beside you). */
+	as?: LanternId;
+};
 
 export function buildMission(id: string, options: Options): MissionRun {
 	switch (id) {
+		case 'manhunter-prime': {
+			const map = buildHeartMap();
+			const me: LanternId = options.as ?? 'hal';
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: me, keys: 'solo' },
+					{ lantern: me === 'hal' ? 'john' : 'hal', keys: 'p2', ai: true }
+				],
+				map
+			});
+			const director = new ManhunterPrimeBoss();
+			game.director = director;
+			return { game, director, outro: null, intro: () => new TheFirst(THE_FIRST) };
+		}
 		case 'sleepers': {
 			// John starts alone: the League arrives as the fight goes on
 			const map = buildDetroitMap();

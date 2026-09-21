@@ -135,6 +135,10 @@ export interface Player {
 	armor: ArmorSuit | null;
 	/** Seconds left of a Rage Brand (Razer): the ring can't build constructs or shields. */
 	branded: number;
+	/** How much each construct has been used this fight, by id (a cast counts 1; a held one, time). Manhunter Prime reads it. */
+	usage: Record<string, number>;
+	/** Constructs Manhunter Prime has learned: they can't be made until the fight is over. */
+	locked: Set<string>;
 	/** Seconds left with Grodd in their head: every move goes the wrong way. */
 	confused: number;
 	/** A hero's powers (the Flash, Hawkgirl: heroes.ts). Lanterns don't have this. */
@@ -240,6 +244,8 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		dash: null,
 		armor: null,
 		branded: 0,
+		usage: {},
+		locked: new Set(),
 		confused: 0,
 		shotTimer: 0,
 		hurtTimer: 0,

@@ -7,7 +7,7 @@
 	import GameCanvas from '$lib/components/GameCanvas.svelte';
 	import PauseMenu from '$lib/components/PauseMenu.svelte';
 	import StoryScene from '$lib/components/StoryScene.svelte';
-	import { LANTERNS } from '$lib/engine/lanterns';
+	import { LANTERNS, type LanternId } from '$lib/engine/lanterns';
 	import type { CommsLine, MissionMeter, MissionState, MissionStat } from '$lib/engine/missions/mission';
 	import type { DialogueScene } from '$lib/engine/scenes/scene';
 	import { buildMission } from '$lib/missions';
@@ -20,10 +20,14 @@
 	const place = $derived(placeOf(mission.id));
 
 	let round = $state(0);
+	/** Who you've picked, in a mission that lets you choose (the boss fights with both Lanterns). */
+	let picked = $state<LanternId | null>(null);
+	const playAs = $derived(picked && mission.choose?.includes(picked) ? picked : mission.lantern);
 
 	const setup = $derived.by(() => {
 		void round; // Retry builds a fresh mission
 		return buildMission(mission.id, {
+			as: playAs,
 			settings: untrack(() => settings.snapshot()),
 			profiles: untrack(() => profiles.snapshot()),
 			onProgress: (id, profile) => profiles.update(id, profile),
@@ -184,7 +188,21 @@
 		<div class="briefing" role="dialog" aria-label="Mission briefing">
 			<small class="place">Act {place.act.number} · {place.act.title} · {mission.place}</small>
 			<h1>Mission {place.number}: {mission.title}</h1>
-			<p class="as">Playing as <strong>{LANTERNS[mission.lantern].name}</strong></p>
+			{#if mission.choose}
+				<div class="choose" role="radiogroup" aria-label="Choose your Lantern">
+					{#each mission.choose as id (id)}
+						<button role="radio" aria-checked={playAs === id} class:chosen={playAs === id} onclick={() => (picked = id)}>
+							<strong>{LANTERNS[id].name}</strong>
+							<small>{LANTERNS[id].title}</small>
+						</button>
+					{/each}
+				</div>
+				<p class="as">
+					Playing as <strong>{LANTERNS[playAs].name}</strong>. {LANTERNS[mission.choose.find((id) => id !== playAs) ?? playAs].name} fights beside you.
+				</p>
+			{:else}
+				<p class="as">Playing as <strong>{LANTERNS[mission.lantern].name}</strong></p>
+			{/if}
 			{#each mission.briefing as paragraph, i (i)}
 				<p>{paragraph}</p>
 			{/each}
@@ -243,7 +261,7 @@
 			onResume={() => setPaused(false)}
 			links={[
 				{ href: '/missions', label: '← Missions' },
-				{ href: `/hq?as=${mission.lantern}`, label: 'Corps HQ (upgrades)' },
+				{ href: `/hq?as=${playAs}`, label: 'Corps HQ (upgrades)' },
 				{ href: '/', label: 'Main menu' }
 			]}
 		/>
@@ -485,6 +503,33 @@
 	.as {
 		opacity: 0.75;
 		font-size: 0.85rem;
+	}
+	.choose {
+		display: flex;
+		gap: 0.6rem;
+		margin: 0.2rem 0;
+	}
+	.choose button {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		padding: 0.6rem 0.8rem;
+		text-align: left;
+		color: inherit;
+		font: inherit;
+		background: rgba(0, 0, 0, 0.35);
+		border: 1px solid var(--suit-lit);
+		border-radius: 8px;
+		cursor: pointer;
+		opacity: 0.7;
+	}
+	.choose button.chosen {
+		background: var(--suit);
+		opacity: 1;
+	}
+	.choose small {
+		opacity: 0.75;
 	}
 	ul {
 		margin: 0;

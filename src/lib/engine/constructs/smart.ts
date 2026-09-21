@@ -151,7 +151,7 @@ function score(def: ConstructDef, s: Situation, p: Player, w: ConstructWorld): n
 /** Can this slot be used right now? */
 function ready(p: Player, slot: number): boolean {
 	const def = p.loadout[slot];
-	if (p.cooldowns[slot] > 0 || p.exhausted) return false;
+	if (p.cooldowns[slot] > 0 || p.exhausted || p.locked.has(def.id)) return false;
 	if (def.behavior === 'beam') return p.willpower >= RESTART_THRESHOLD;
 	return canSpend(p, costOf(p, def));
 }

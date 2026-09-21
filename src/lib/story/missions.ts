@@ -23,6 +23,8 @@ export interface MissionInfo {
 	objectives: string[];
 	/** Who fights beside you (an AI partner). */
 	partner?: CrewId;
+	/** You pick who to play from these; the other fights beside you. */
+	choose?: LanternId[];
 }
 
 export const MISSIONS: MissionInfo[] = [
@@ -229,6 +231,27 @@ MISSIONS.push({
 	partner: 'flash'
 });
 
+MISSIONS.push({
+	id: 'manhunter-prime',
+	title: 'Manhunter Prime',
+	tagline: 'The first Manhunter, buried under the vault, is awake, and it learns. Hal and John go down together: choose who you play.',
+	lantern: 'hal',
+	choose: ['hal', 'john'],
+	environment: 'planet',
+	place: 'Sector 666 · The Heart of the Vault',
+	briefing: [
+		'The signal from Detroit was answered. Under the vault, deeper than the rest, the Guardians buried the first Manhunter: the mind every other one was copied from. They could not bring themselves to destroy it. Now it is awake.',
+		'It was built to learn. It watches what you build, and at each stage of the fight it takes the construct you have used most: your ring can no longer make it, and Prime can. Whatever you lean on, you lose.',
+		'Hal Jordan and John Stewart go down together. Choose who you play; the other fights beside you.'
+	],
+	objectives: [
+		'Destroy Manhunter Prime',
+		'Keep changing constructs: at 70%, 40% and 15% it locks the one you have used most, and copies it',
+		'The ranks along the walls wake as the fight goes on: break them and smash their cores',
+		'When Prime falls, smash its core before it rebuilds. That gives every ring its light back'
+	]
+});
+
 export function missionById(id: string): MissionInfo | undefined {
 	return MISSIONS.find((m) => m.id === id);
 }
@@ -271,7 +294,7 @@ export const ACTS: ActInfo[] = [
 			'colony-under-fire',
 			'the-guardians-shame',
 			'sleepers',
-			{ title: 'Manhunter Prime', tagline: 'Hal and John, together, at the heart of the vault.' }
+			'manhunter-prime'
 		]
 	},
 	{ number: 3, title: 'Blood Oath', tagline: 'Into Sector 666, to end it at the source.', lineup: [] },

@@ -62,7 +62,8 @@ export class Autopilot implements InputSource {
 		}
 
 		// A broken Manhunter's core: smash it before it rebuilds, whatever else is going on
-		const core = game.dummies.find((d) => d.kind === 'manhunterCore' && isStanding(d));
+		// (the one furthest along, if there are several)
+		const core = game.dummies.filter((d) => d.kind === 'manhunterCore' && isStanding(d)).sort((a, b) => (b.rebuild ?? 0) - (a.rebuild ?? 0))[0];
 		if (core) {
 			intent.pointer = { x: core.x, y: core.y - 20 - me.ringLift };
 			intent.shot = true;

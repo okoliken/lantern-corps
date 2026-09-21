@@ -69,7 +69,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, reverseFlashTop(y), reverseFlashHand(e, x, y), time);
 		return;
 	}
-	if (e.kind === 'manhunter') {
+	if (e.kind === 'manhunter' || e.kind === 'manhunterPrime') {
 		drawManhunter(ctx, e, x, y, hasGround, time);
 		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, manhunterTop(e, y), manhunterHand(e, x, y), time);
 		return;
@@ -90,7 +90,7 @@ export function enemyMuzzle(e: Enemy, x: number, y: number): [number, number] {
 	if (e.kind === 'rageTurret') return [x + e.brain.aimX * 26, y - RED_HAND_LIFT];
 	if (isLieutenantKind(e.kind)) return lieutenantHand(e, x, y);
 	if (isGorillaKind(e.kind)) return gorillaHand(e, x, y);
-	if (e.kind === 'manhunter') return manhunterHand(e, x, y);
+	if (e.kind === 'manhunter' || e.kind === 'manhunterPrime') return manhunterHand(e, x, y);
 	if (e.kind === 'reverseFlash') return reverseFlashHand(e, x, y);
 	if (isCorpsKind(e.kind)) return corpsRing(e.kind, x, y, enemyPose(e, true, 0), 0);
 	return redLanternHand(e, x, y);
