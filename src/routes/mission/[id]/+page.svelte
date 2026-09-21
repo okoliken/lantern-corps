@@ -252,7 +252,7 @@
 	{:else if outro && !outroDone}
 		<StoryScene scene={outro} onDone={() => (outroDone = true)} />
 	{:else if (status.state === 'won' && outroDone) || status.state === 'lost'}
-		<div class="end" class:won={status.state === 'won'}>
+		<div class="end" role="dialog" aria-label="Mission result" class:won={status.state === 'won'}>
 			<h2>{status.state === 'won' ? 'Mission complete' : 'Mission failed'}</h2>
 			{#if status.state === 'won'}
 				<div class="stars" aria-label="{status.stars} of 3 stars">

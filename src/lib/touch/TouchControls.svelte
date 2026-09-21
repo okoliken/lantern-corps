@@ -186,7 +186,9 @@
 			surgeReady = !!me && me.surge >= 100;
 			const state = (game.director as { state?: string } | null)?.state;
 			const over = state === 'won' || state === 'lost';
-			const next = !game.paused && !over;
+			// Any dialog on the page (a briefing, the pause menu, a results screen) gets the screen to itself
+			const dialog = document.querySelector('[role="dialog"], [role="alertdialog"]') !== null;
+			const next = !game.paused && !over && !dialog;
 			if (live && !next) letGoOfEverything();
 			live = next;
 		}, 60);

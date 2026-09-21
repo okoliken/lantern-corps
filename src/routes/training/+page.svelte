@@ -125,7 +125,7 @@
 	{/if}
 
 	{#if status.step === 'done'}
-		<div class="end">
+		<div class="end" role="dialog" aria-label="Training complete">
 			<h2>Training complete</h2>
 			<p class="line">"{text.kilowog}"</p>
 			<p>You know it all now: move, fly, shoot, make constructs, shield, recharge, and your signature.</p>

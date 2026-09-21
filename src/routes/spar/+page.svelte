@@ -83,7 +83,7 @@
 			{/if}
 		</section>
 	{:else}
-		<div class="end" class:won={status.state === 'won'}>
+		<div class="end" role="dialog" aria-label="Result" class:won={status.state === 'won'}>
 			<h2>{status.state === 'won' ? 'You beat them both!' : 'Down you go'}</h2>
 			<p class="line">
 				{status.state === 'won'

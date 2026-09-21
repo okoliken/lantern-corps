@@ -125,7 +125,7 @@
 		{#if showIntro}
 			<ControlsCard onClose={() => (showIntro = false)} />
 		{:else if status.state === 'won' || status.state === 'lost'}
-			<div class="end" class:won={status.state === 'won'}>
+			<div class="end" role="dialog" aria-label="Result" class:won={status.state === 'won'}>
 				<h2>{status.state === 'won' ? 'Victory' : 'Defeated'}</h2>
 				<p>
 					{#if status.state === 'won'}
