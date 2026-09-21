@@ -244,4 +244,21 @@
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
 	}
+
+	/* A phone on its side: your bars take the top left, so the fight's go top right */
+	@media (max-height: 520px) and (orientation: landscape) {
+		.pause kbd {
+			display: none;
+		}
+		.boss {
+			left: auto;
+			right: 10px;
+			translate: none;
+			width: min(20rem, 40vw);
+			padding: 0.45rem 0.65rem;
+		}
+		.tip {
+			display: none;
+		}
+	}
 </style>

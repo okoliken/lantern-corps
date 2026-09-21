@@ -3,6 +3,7 @@
 	// stays correct after remapping. Dismissed once, then remembered.
 	import { buttonLabel, type Action, type LayoutName } from '$lib/engine/input';
 	import { settings } from '$lib/settings.svelte';
+	import { wantsTouchControls } from '$lib/touch/phone';
 
 	interface Props {
 		layout?: LayoutName;
@@ -25,6 +26,19 @@
 		{ actions: ['target'], what: 'Lock onto a target (again to switch)' }
 	]);
 
+	/** Playing on a phone's own screen: its touch controls instead of keys. */
+	const touch = wantsTouchControls(settings.current.touchControls);
+	const touchRows: { key: string; what: string }[] = [
+		{ key: 'Left thumb', what: 'Move: put your thumb down anywhere on the left and push' },
+		{ key: '□', what: 'Ring shot: the ring aims itself at the nearest enemy' },
+		{ key: 'Right thumb', what: 'Aim and fire a way yourself (optional)' },
+		{ key: '✕', what: 'Construct: the ring makes what the moment needs (hold to keep going)' },
+		{ key: '○', what: 'Bubble shield: goes on whoever needs it most' },
+		{ key: '★', what: 'Signature ability, lit up when the surge bar is full' },
+		{ key: 'Hotbar', what: 'Tap a construct at the top left to use it yourself' },
+		{ key: '△  ◎  ◀ ▶', what: 'Take off / land · lock a target · change construct' }
+	];
+
 	const keysFor = (actions: Action[]) =>
 		actions.length === 4
 			? actions.map((a) => buttonLabel(settings.current.bindings[layout][a][0] ?? '?')).join('')
@@ -34,16 +48,29 @@
 <div class="backdrop" role="dialog" aria-modal="true" aria-label="How to play">
 	<div class="card">
 		<h2>How to play</h2>
-		<p class="lead">Aim with the mouse. The ring fires where the crosshair points.</p>
-		<ul>
-			{#each rows as row (row.what)}
-				<li>
-					<kbd>{keysFor(row.actions)}</kbd>
-					<span>{row.what}</span>
-				</li>
-			{/each}
-			<li><kbd>Esc</kbd><span>Pause, see all controls, change keys and options</span></li>
-		</ul>
+		{#if touch}
+			<p class="lead">Hold your phone sideways. Your thumbs do the work.</p>
+			<ul>
+				{#each touchRows as row (row.what)}
+					<li>
+						<kbd>{row.key}</kbd>
+						<span>{row.what}</span>
+					</li>
+				{/each}
+				<li><kbd>❚❚ Pause</kbd><span>Pause, options and controls</span></li>
+			</ul>
+		{:else}
+			<p class="lead">Aim with the mouse. The ring fires where the crosshair points.</p>
+			<ul>
+				{#each rows as row (row.what)}
+					<li>
+						<kbd>{keysFor(row.actions)}</kbd>
+						<span>{row.what}</span>
+					</li>
+				{/each}
+				<li><kbd>Esc</kbd><span>Pause, see all controls, change keys and options</span></li>
+			</ul>
+		{/if}
 		<p class="tip">Low on willpower? Stand next to the glowing green Lantern to recharge.</p>
 		<button
 			onclick={() => {
@@ -66,6 +93,8 @@
 	}
 	.card {
 		width: min(30rem, 100%);
+		max-height: 100%;
+		overflow: auto;
 		box-sizing: border-box;
 		padding: 1.5rem;
 		border: 2px solid var(--suit-lit);
@@ -125,5 +154,23 @@
 		border: none;
 		border-radius: 8px;
 		cursor: pointer;
+	}
+	/* A phone on its side: two columns, so it all fits without scrolling */
+	@media (max-height: 520px) {
+		.card {
+			width: min(44rem, 100%);
+			padding: 1rem 1.25rem;
+		}
+		ul {
+			grid-template-columns: 1fr 1fr;
+			gap: 0.45rem 1rem;
+		}
+		li {
+			grid-template-columns: 5.5rem 1fr;
+			font-size: 0.85rem;
+		}
+		.tip {
+			margin: 0.6rem 0;
+		}
 	}
 </style>

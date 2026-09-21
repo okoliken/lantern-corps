@@ -6,6 +6,7 @@
 	import type { Game } from '$lib/engine/game';
 	import { settings } from '$lib/settings.svelte';
 	import PadPairing from './PadPairing.svelte';
+	import { TOUCH_MODES, type TouchControlsMode } from '$lib/engine/settings';
 
 	interface Props {
 		game: Game;
@@ -19,6 +20,7 @@
 	let { game, layout = 'solo', onResume, links = [] }: Props = $props();
 
 	let tab = $state<'controls' | 'options' | 'pad'>('controls');
+	const TOUCH_LABELS: Record<TouchControlsMode, string> = { auto: 'On touch screens', on: 'Always', off: 'Never' };
 	/** The action waiting for a new button, while rebinding. */
 	let listening = $state<Action | null>(null);
 
@@ -97,10 +99,19 @@
 		<nav class="tabs" aria-label="Pause menu sections">
 			<button class:on={tab === 'controls'} onclick={() => (tab = 'controls')}>Controls</button>
 			<button class:on={tab === 'options'} onclick={() => (tab = 'options')}>Options</button>
-			<button class:on={tab === 'pad'} onclick={() => (tab = 'pad')}>Phone pad</button>
+			{#if !game.touch}<button class:on={tab === 'pad'} onclick={() => (tab = 'pad')}>Phone pad</button>{/if}
 		</nav>
 
-		{#if tab === 'controls'}
+		{#if tab === 'controls' && game.touch}
+			<ul class="touch-help">
+				<li><b>Left thumb</b> anywhere on the left: move</li>
+				<li><b>Right thumb</b> anywhere else: aim and fire (the ring also aims itself)</li>
+				<li><b>□</b> ring shot · <b>✕</b> construct (hold to keep going) · <b>○</b> bubble shield · <b>△</b> fly / land</li>
+				<li><b>◀ ▶</b> change construct · <b>◎</b> lock a target · <b>★</b> signature, when it glows</li>
+				<li><b>Tap a slot</b> in the hotbar (top left) to use that construct; hold it for the beam and the guns</li>
+				<li><b>Backup</b> calls for help, where a mission has it</li>
+			</ul>
+		{:else if tab === 'controls'}
 			<p class="help">Click a button to change it, then press the new key or mouse button. Esc cancels.</p>
 			<div class="groups">
 				{#each groups as group (group.title)}
@@ -136,6 +147,17 @@
 			<PadPairing />
 		{:else}
 			<div class="options">
+				<div class="option">
+					<span>
+						<strong>Touch controls</strong>
+						<small>The on-screen controller for playing on a phone or tablet. Changes take effect the next time a fight starts.</small>
+						<span class="modes">
+							{#each TOUCH_MODES as mode (mode)}
+								<button class:on={settings.current.touchControls === mode} onclick={() => settings.set('touchControls', mode)}>{TOUCH_LABELS[mode]}</button>
+							{/each}
+						</span>
+					</span>
+				</div>
 				{#each options as opt (opt.key)}
 					<label class="option">
 						<input
@@ -295,6 +317,26 @@
 	}
 	.option small {
 		opacity: 0.7;
+	}
+	.option .modes {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		margin-top: 0.4rem;
+	}
+	.modes button.on {
+		background: var(--suit);
+		border-color: var(--green);
+	}
+	.touch-help {
+		margin: 0;
+		padding-left: 1.1rem;
+		display: grid;
+		gap: 0.45rem;
+		font-size: 0.9rem;
+	}
+	.touch-help b {
+		color: var(--green);
 	}
 	footer {
 		display: flex;

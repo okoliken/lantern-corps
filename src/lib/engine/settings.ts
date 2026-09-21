@@ -24,7 +24,12 @@ export interface Settings {
 	trained: boolean;
 	/** Which round of new default keys these settings have (see ADDED_KEYS). */
 	keysVersion: number;
+	/** On-screen touch controls over the game: on any touch screen ('auto'), always, or never. */
+	touchControls: TouchControlsMode;
 }
+
+export type TouchControlsMode = 'auto' | 'on' | 'off';
+export const TOUCH_MODES: readonly TouchControlsMode[] = ['auto', 'on', 'off'];
 
 /**
  * Keys added to the defaults after players may already have saved their
@@ -50,7 +55,8 @@ export function defaultSettings(): Settings {
 		reduceFlashing: false,
 		seenControls: false,
 		trained: false,
-		keysVersion: KEYS_VERSION
+		keysVersion: KEYS_VERSION,
+		touchControls: 'auto'
 	};
 }
 
@@ -67,6 +73,8 @@ export function parseSettings(raw: unknown): Settings {
 	for (const flag of ['aimAssist', 'toggleShot', 'quickCast', 'smartRing', 'damageNumbers', 'reduceFlashing', 'seenControls', 'trained'] as const) {
 		if (typeof saved[flag] === 'boolean') settings[flag] = saved[flag];
 	}
+
+	if (TOUCH_MODES.includes(saved.touchControls as TouchControlsMode)) settings.touchControls = saved.touchControls as TouchControlsMode;
 
 	const bindings = saved.bindings as Partial<Record<LayoutName, Partial<Record<string, unknown>>>> | undefined;
 	if (bindings && typeof bindings === 'object') {

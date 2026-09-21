@@ -16,9 +16,18 @@ npm run preview  # serve the production build locally
 ```
 
 ## Playing on your phone
-`/pad` is a PS-style touch controller for a phone: pair it from the game's pause menu (**Phone pad**
-tab) by scanning the QR code. Phone and computer need to be on the same network (`npm run dev:pad`),
-or use the published game, where a small Cloudflare service passes the messages along.
+**On the phone itself (the mobile edition):** open the game on a phone or tablet and every fight gets
+on-screen touch controls: a floating move stick on the left, a floating aim stick on the right (the
+ring also aims itself), □ ✕ ○ △ face buttons, ◀ ▶ ◎ ★ above them, Backup and Pause at the bottom, and
+the hotbar (top left) tapped to use a construct. Hold the phone sideways. Add it to the home screen
+(Share, then Add to Home Screen) and it opens fullscreen and sideways like an app. The pause menu's
+Options tab switches touch controls on for any screen, or off; `?touch=1` in the address forces them on
+a laptop for testing.
+
+**As a controller for the computer:** `/pad` is a PS-style touch controller for a phone: pair it from
+the game's pause menu (**Phone pad** tab) by scanning the QR code. Phone and computer need to be on
+the same network (`npm run dev:pad`), or use the published game, where a small Cloudflare service
+passes the messages along.
 
 ## Publishing (Cloudflare)
 One Cloudflare Worker serves both: the built game (`build/`, static files) and the phone pad's relay

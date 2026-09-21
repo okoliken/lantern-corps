@@ -1,0 +1,14 @@
+{
+	"name": "Lantern Corps",
+	"short_name": "Lantern Corps",
+	"description": "A Green Lantern action game: constructs, Red Lanterns, Manhunters and the Justice League.",
+	"start_url": "/",
+	"display": "fullscreen",
+	"orientation": "landscape",
+	"background_color": "#03060a",
+	"theme_color": "#03060a",
+	"icons": [
+		{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+		{ "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+	]
+}

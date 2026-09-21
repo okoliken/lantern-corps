@@ -103,4 +103,30 @@ describe('the phone pad', () => {
 		expect(i.shot).toBe(false);
 		expect(i.moveX).toBe(0);
 	});
+
+	it('a finger on a construct slot (the touch controls) uses that construct for as long as it is held', () => {
+		const { pad, input } = setup();
+		pad.apply({ t: 'select', slot: 3 });
+		const first = input.read();
+		expect(first.select).toBe(3);
+		expect(first.construct).toBe(true);
+		expect(first.constructPressed).toBe(true);
+		// Still held: still using it, but it's not a fresh press
+		const held = input.read();
+		expect(held.select).toBe(3);
+		expect(held.construct).toBe(true);
+		expect(held.constructPressed).toBe(false);
+		pad.apply({ t: 'unselect' });
+		expect(input.read().construct).toBe(false);
+	});
+
+	it('a quick tap on a slot between two reads still uses it once', () => {
+		const { pad, input } = setup();
+		pad.apply({ t: 'select', slot: 5 });
+		pad.apply({ t: 'unselect' });
+		const i = input.read();
+		expect(i.select).toBe(5);
+		expect(i.constructPressed).toBe(true);
+		expect(input.read().select).toBe(-1);
+	});
 });

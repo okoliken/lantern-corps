@@ -8,6 +8,7 @@
 	import { SIGNATURES } from '$lib/engine/constructs/signature';
 	import { Game } from '$lib/engine/game';
 	import { buttonLabel, type Action } from '$lib/engine/input';
+	import { wantsTouchControls } from '$lib/touch/phone';
 	import { TRAINING_STEPS, Training, buildTrainingMap, type TrainingStep } from '$lib/engine/missions/training';
 	import { settings } from '$lib/settings.svelte';
 	import { TRAINING_TEXT } from '$lib/story/training';
@@ -61,15 +62,20 @@
 	const shownSteps = TRAINING_STEPS.filter((s) => s !== 'welcome' && s !== 'done');
 	const stepNumber = $derived(shownSteps.indexOf(status.step as (typeof shownSteps)[number]));
 
+	/** On a phone: the on-screen buttons' names instead of keys. */
+	const touch = wantsTouchControls(settings.current.touchControls);
+	const TOUCH_LABELS: Record<string, string> = { move: 'left thumb', fly: '△ Fly', shot: '□ Shot', construct: '✕ Construct', shield: '○ Shield', signature: '★', target: '◎' };
+
 	/** Split "Press {fly} to take off" into text and keys. */
 	function parts(how: string): { key: boolean; text: string }[] {
 		const smartOff = status.step === 'construct' && !settings.current.smartRing;
-		const source = smartOff ? '{construct} uses the selected construct (scroll or 1–0 to pick one). Make 3.' : how;
+		const source = smartOff ? '{construct} uses the selected construct (scroll or 1–0 to pick one). Make 3.' : touch ? (text.touchHow ?? how) : how;
 		return source.split(/\{(\w+)\}/).map((piece, i) => ({ key: i % 2 === 1, text: i % 2 === 1 ? label(piece) : piece }));
 	}
 
 	function label(name: string): string {
 		if (name === 'signatureName') return SIGNATURES[data.lantern].name;
+		if (touch) return TOUCH_LABELS[name] ?? name;
 		const bindings = settings.current.bindings.solo;
 		if (name === 'move') return (['up', 'left', 'down', 'right'] as Action[]).map((a) => buttonLabel(bindings[a][0] ?? '?')).join(' ');
 		return buttonLabel(bindings[name as Action]?.[0] ?? '?');
@@ -315,5 +321,24 @@
 		color: var(--text);
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
+	}
+
+	/* A phone on its side: your bars take the top left, so Kilowog goes top right */
+	@media (max-height: 520px) and (orientation: landscape) {
+		.pause kbd {
+			display: none;
+		}
+		.coach {
+			top: 2.4rem;
+			left: auto;
+			right: 10px;
+			translate: none;
+			width: min(24rem, 46vw);
+			padding: 0.5rem 0.75rem 0.6rem;
+		}
+		/* What to do stays; Kilowog's own words don't fit above the buttons */
+		.line {
+			display: none;
+		}
 	}
 </style>

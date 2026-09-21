@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Camera, clampCameraAxis } from './camera';
+import { Camera, clampCameraAxis, screenScale } from './camera';
 
 describe('clampCameraAxis', () => {
 	it('follows freely in the middle of the map', () => {
@@ -20,7 +20,8 @@ describe('clampCameraAxis', () => {
 });
 
 describe('Camera', () => {
-	const view = { width: 800, height: 600 };
+	// A laptop-sized screen: the camera's zooms apply as they are
+	const view = { width: 1280, height: 720 };
 
 	it('glides toward the target instead of snapping', () => {
 		const cam = new Camera(1);
@@ -40,16 +41,27 @@ describe('Camera', () => {
 	it('zooming in means less world fits, so edge limits move inward', () => {
 		const cam = new Camera(2);
 		cam.snapTo(0, 0, view, 3000, 3000);
-		// 800px screen at 2x zoom shows 400 world px, so centre can't go below 200
-		expect(cam.x).toBe(200);
+		// 1280px screen at 2x zoom shows 640 world px, so centre can't go below 320
+		expect(cam.x).toBe(320);
 	});
 
 	it('zooms out to fit a wide group, but never closer than its normal zoom or past its limit', () => {
 		const cam = new Camera(1.6);
-		const view = { width: 800, height: 600 };
-		for (let i = 0; i < 600; i++) cam.fit(1000, 300, 1 / 60, view);
-		expect(cam.zoom).toBeCloseTo(1, 2); // 800 / 1000 = 0.8, clamped to minZoom 1
+		for (let i = 0; i < 600; i++) cam.fit(1600, 300, 1 / 60, view);
+		expect(cam.zoom).toBeCloseTo(1, 2); // 1280 / 1600 = 0.8, clamped to minZoom 1
 		for (let i = 0; i < 600; i++) cam.fit(100, 100, 1 / 60, view);
 		expect(cam.zoom).toBeCloseTo(1.6, 2);
+	});
+
+	it('on a phone it zooms out, so about as much of the fight fits as on a laptop', () => {
+		const phone = { width: 844, height: 390 };
+		expect(screenScale(view)).toBe(1);
+		expect(screenScale(phone)).toBeLessThan(0.7);
+		expect(screenScale({ width: 320, height: 200 })).toBe(0.55);
+		const cam = new Camera(1.6);
+		cam.snapTo(1000, 1000, phone, 3000, 3000);
+		expect(cam.zoom).toBeCloseTo(1.6 * screenScale(phone), 5);
+		for (let i = 0; i < 600; i++) cam.fit(100, 100, 1 / 60, phone);
+		expect(cam.zoom).toBeCloseTo(1.6 * screenScale(phone), 2);
 	});
 });

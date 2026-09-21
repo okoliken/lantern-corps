@@ -31,7 +31,7 @@ import {
 	drawShield,
 	drawTrap
 } from './draw/constructs';
-import { drawBattery, drawBeam, drawChargeLink, drawCrosshair, drawDownedNotice, drawGoalArrow, drawHud } from './draw/effects';
+import { drawBattery, drawBeam, drawChargeLink, drawCrosshair, drawDownedNotice, drawGoalArrow, drawHud, type HudSlotRect } from './draw/effects';
 import { drawEnemy, enemyMuzzle } from './draw/enemies';
 import { drawSpaceRock } from './draw/escort';
 import { drawRageTorpedo } from './draw/interceptor';
@@ -198,6 +198,13 @@ export class Game {
 	freezeEnemies = false;
 	/** Draw the health / willpower / construct bars. */
 	hud = true;
+	/**
+	 * Playing with the on-screen touch controls: the HUD shows only your own
+	 * bars, at the top left, with no keyboard keys on them.
+	 */
+	touch = false;
+	/** Where your construct slots were last drawn (for tapping them on a phone). */
+	hudSlots: HudSlotRect[] = [];
 	/** Show the big "is down, back up in..." notice (off when being down means game over). */
 	downedNotice = true;
 	/** Draw the Lanterns' names above their heads. */
@@ -832,10 +839,12 @@ export class Game {
 
 		// ---- Screen space ----
 		// Bars for the two main Lanterns (bottom left and right); allies who join later fight without them
-		if (this.hud) drawHud(
+		// On a phone there's room for your own bars only, and no keys to show on them
+		const keyOf = (i: number, label: string) => (this.touch || this.aiSlots.has(i) ? '' : label);
+		if (this.hud) this.hudSlots = drawHud(
 			ctx,
 			// Heroes (the Flash, Hawkgirl) have no ring to show
-			this.players.slice(0, 2).filter((p) => !p.hero).map((p) => {
+			this.players.slice(0, this.touch ? 1 : 2).filter((p) => !p.hero).map((p) => {
 				const i = p.slot;
 				return {
 				name: p.def.name,
@@ -850,17 +859,17 @@ export class Game {
 				exhausted: p.exhausted,
 				charging: p.charging,
 				selected: p.selected,
-				smart: p.smartRing ? { key: buttonLabel(this.inputs[i].bindings.construct[0] ?? ''), pick: p.smartPick } : null,
+				smart: p.smartRing ? { key: this.touch ? '✕' : buttonLabel(this.inputs[i].bindings.construct[0] ?? ''), pick: p.smartPick } : null,
 				slots: p.loadout.map((def, s) => ({
 					...constructLabel(def, cw.space),
 					// An AI partner has no keys to show
-					key: this.aiSlots.has(i) ? '' : shortLabel(this.inputs[i].bindings[SLOT_ACTIONS[s]]),
+					key: keyOf(i, shortLabel(this.inputs[i].bindings[SLOT_ACTIONS[s]])),
 					cooldown: def.cooldown > 0 ? Math.min(1, p.cooldowns[s] / (def.cooldown * p.def.traits.cooldown)) : 0,
 					affordable: canSpend(p, def.behavior === 'beam' ? 15 : costOf(p, def)),
 					locked: p.locked.has(def.id)
 				})),
 				shield: {
-					key: this.aiSlots.has(i) ? '' : shortLabel(this.inputs[i].bindings.shield),
+					key: keyOf(i, shortLabel(this.inputs[i].bindings.shield)),
 					cooldown: Math.min(1, p.shieldCooldown / (BUBBLE_SHIELD.cooldown * p.def.traits.cooldown)),
 					affordable: canSpend(p, BUBBLE_SHIELD.cost),
 					active: cw.shields.some((sh) => sh.target === p)
@@ -869,14 +878,15 @@ export class Game {
 				surge: {
 					fill: p.surge / 100,
 					name: SIGNATURES[p.def.id as RingBearerId].name,
-					key: this.aiSlots.has(i) ? '' : shortLabel(this.inputs[i].bindings.signature),
+					key: this.touch ? 'R2' : keyOf(i, shortLabel(this.inputs[i].bindings.signature)),
 					active: p.dash !== null || cw.fortresses.some((f) => f.owner === p)
 				}
 				};
 			}),
 			width,
 			height,
-			this.time
+			this.time,
+			this.touch
 		);
 
 		// Solo: a big notice while down. (Co-op shows it per player in M7.)

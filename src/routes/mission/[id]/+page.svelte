@@ -622,4 +622,39 @@
 	.end .actions {
 		justify-content: center;
 	}
+
+	/* A phone on its side: the HUD and the thumbs take the corners, so the radio goes bottom middle */
+	@media (max-height: 520px) and (orientation: landscape) {
+		.pause kbd {
+			display: none;
+		}
+		.panel {
+			width: min(17rem, 38vw);
+			padding: 0.45rem 0.65rem;
+			gap: 0.25rem;
+		}
+		.comms {
+			top: auto;
+			bottom: calc(max(env(safe-area-inset-bottom), 8px) + 2.6rem);
+			width: min(28rem, 44vw);
+			min-width: 0;
+			padding: 0.4rem 0.65rem;
+			font-size: 0.85rem;
+			line-height: 1.25;
+			background: rgba(3, 10, 6, 0.78);
+		}
+		.warning {
+			top: 40%;
+		}
+		.banner {
+			top: 30%;
+			padding: 0.7rem 1.4rem;
+		}
+		.briefing,
+		.end {
+			max-height: 94vh;
+			width: min(40rem, 94vw);
+			padding: 1rem 1.25rem;
+		}
+	}
 </style>

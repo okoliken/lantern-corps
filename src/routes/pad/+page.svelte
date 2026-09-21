@@ -9,6 +9,7 @@
 	import { onMount } from 'svelte';
 	import { PAD_LABELS, type PadButton } from '$lib/engine/pad';
 	import { padSocketUrl, roomsUrl } from '$lib/pad/relay';
+	import { goFullscreen, stopZooming } from '$lib/touch/phone';
 
 	// A 4-letter room code; anything else (a missing or placeholder code) and it finds the game itself
 	const given = (new URLSearchParams(location.search).get('room') ?? '').toUpperCase();
@@ -214,58 +215,6 @@
 		send({ t: 'sticks', lx: r(left.x), ly: r(left.y), rx: r(right.x), ry: r(right.y), held });
 		dirty = false;
 		sentAt = performance.now();
-	}
-
-	async function goFullscreen() {
-		try {
-			if (!document.fullscreenElement) await document.documentElement.requestFullscreen?.();
-			await (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.('landscape');
-		} catch {
-			// Not allowed here (iPhone Safari): it still works, just with the browser bars
-		}
-	}
-
-	/**
-	 * Phone browsers zoom on a quick double tap or two thumbs at once, and
-	 * ignore "no zoom" for accessibility. On a controller that's never wanted:
-	 * the pad takes the touches for itself, and snaps back if it zoomed anyway.
-	 */
-	function stopZooming() {
-		const NO_ZOOM = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
-		// The site's own viewport tag comes first and would win: change it rather than add another
-		let meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
-		if (!meta) {
-			meta = document.createElement('meta');
-			meta.name = 'viewport';
-			document.head.appendChild(meta);
-		}
-		const before = meta.content;
-		meta.content = NO_ZOOM;
-		const block = (e: Event) => e.preventDefault();
-		const options = { passive: false } as const;
-		document.addEventListener('touchstart', block, options);
-		document.addEventListener('touchmove', block, options);
-		document.addEventListener('dblclick', block, options);
-		// Safari's own pinch events
-		document.addEventListener('gesturestart', block, options);
-		document.addEventListener('gesturechange', block, options);
-		// Zoomed in anyway: nudge the viewport tag to make the browser snap back to 1
-		const unzoom = () => {
-			const vv = window.visualViewport;
-			if (!vv || vv.scale <= 1.01) return;
-			meta!.content = NO_ZOOM.replace('initial-scale=1', 'initial-scale=0.99');
-			requestAnimationFrame(() => (meta!.content = NO_ZOOM));
-		};
-		window.visualViewport?.addEventListener('resize', unzoom);
-		return () => {
-			document.removeEventListener('touchstart', block);
-			document.removeEventListener('touchmove', block);
-			document.removeEventListener('dblclick', block);
-			document.removeEventListener('gesturestart', block);
-			document.removeEventListener('gesturechange', block);
-			window.visualViewport?.removeEventListener('resize', unzoom);
-			meta!.content = before;
-		};
 	}
 
 	onMount(() => {

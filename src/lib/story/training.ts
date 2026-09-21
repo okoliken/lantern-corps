@@ -11,6 +11,8 @@ export interface TrainingText {
 	kilowog: string;
 	/** Exactly what to do. */
 	how: string;
+	/** The same, for the on-screen touch controls, where it reads differently. */
+	touchHow?: string;
 	/** Optional extra, smaller. */
 	tip?: string;
 }
@@ -24,7 +26,8 @@ export const TRAINING_TEXT: Record<TrainingStep, TrainingText> = {
 	move: {
 		title: 'Move',
 		kilowog: 'First things first. Walk. Every glowing marker, go!',
-		how: 'Move with {move}. Walk onto each glowing marker.'
+		how: 'Move with {move}. Walk onto each glowing marker.',
+		touchHow: 'Put your {move} down on the left of the screen and push. Walk onto each glowing marker.'
 	},
 	fly: {
 		title: 'Take off',
@@ -41,6 +44,7 @@ export const TRAINING_TEXT: Record<TrainingStep, TrainingText> = {
 		title: 'Ring shot',
 		kilowog: "Your ring fires on its own. Point, shoot, and those targets go down. Doesn't cost you a thing.",
 		how: 'Aim with the mouse and {shot} to fire. Knock down both targets.',
+		touchHow: 'Hold {shot} to fire: the ring aims itself (or aim with your right thumb). Knock down both targets.',
 		tip: 'Ring shots are free: use them all the time.'
 	},
 	construct: {

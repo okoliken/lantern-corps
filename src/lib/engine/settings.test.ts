@@ -75,4 +75,10 @@ describe('rebind', () => {
 		rebind(DEFAULT_BINDINGS.solo, 'shield', 'KeyV');
 		expect(DEFAULT_BINDINGS.solo.shield).not.toContain('KeyV');
 	});
+
+	it('touch controls default to on for touch screens, and a saved choice is kept', () => {
+		expect(parseSettings(null).touchControls).toBe('auto');
+		expect(parseSettings({ touchControls: 'off' }).touchControls).toBe('off');
+		expect(parseSettings({ touchControls: 'sideways' }).touchControls).toBe('auto');
+	});
 });

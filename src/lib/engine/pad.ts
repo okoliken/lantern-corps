@@ -36,7 +36,11 @@ export const PAD_LABELS: Record<PadButton, string> = {
 export type PadMessage =
 	| { t: 'sticks'; lx: number; ly: number; rx: number; ry: number; held?: PadButton[] }
 	| { t: 'down'; b: PadButton }
-	| { t: 'up'; b: PadButton };
+	| { t: 'up'; b: PadButton }
+	/** A finger down on a construct's slot (playing on the phone's own screen): use it, for as long as it's held. */
+	| { t: 'select'; slot: number }
+	/** ...and lifted. */
+	| { t: 'unselect' };
 
 /** Sticks below this (0..1) count as centred. */
 export const DEAD_ZONE = 0.15;
@@ -65,6 +69,10 @@ export class PadState {
 	readonly held = new Set<PadButton>();
 	/** Presses since the game last read them (so a quick tap between ticks isn't lost). */
 	private presses = new Set<PadButton>();
+	/** A construct slot tapped since the game last read it. */
+	private picked: number | null = null;
+	/** The construct slot a finger is on right now. */
+	holdingSlot: number | null = null;
 
 	apply(msg: PadMessage | { t: 'pads'; n: number }) {
 		if (msg.t !== 'pads') this.heardAt = this.now();
@@ -93,6 +101,14 @@ export class PadState {
 			case 'up':
 				this.held.delete(msg.b);
 				break;
+			case 'select':
+				this.usedAt = this.now();
+				this.picked = msg.slot;
+				this.holdingSlot = msg.slot;
+				break;
+			case 'unselect':
+				this.holdingSlot = null;
+				break;
 		}
 	}
 
@@ -101,6 +117,7 @@ export class PadState {
 		if (this.now() - this.heardAt <= STICK_TIMEOUT) return;
 		this.lx = this.ly = this.rx = this.ry = 0;
 		this.held.clear();
+		this.holdingSlot = null;
 	}
 
 	/** Playing with the pad right now (so the mouse shouldn't aim). */
@@ -113,10 +130,18 @@ export class PadState {
 		return this.presses.delete(b);
 	}
 
+	/** The construct slot tapped since the last check, if any. (Clears it.) */
+	consumeSelect(): number | null {
+		const slot = this.picked;
+		this.picked = null;
+		return slot;
+	}
+
 	/** The pad went away: let go of everything. */
 	release() {
 		this.held.clear();
 		this.presses.clear();
+		this.picked = this.holdingSlot = null;
 		this.lx = this.ly = this.rx = this.ry = 0;
 	}
 }
@@ -169,6 +194,16 @@ export class PadInput implements InputSource {
 		intent.target = k.target || pad.consume('l2');
 		intent.signature = k.signature || pad.consume('r2');
 		intent.backup = k.backup || pad.consume('select');
+		// A finger on a construct's slot uses that construct (held for as long as it's there: the beam keeps going)
+		const picked = pad.consumeSelect();
+		if (pad.holdingSlot !== null) {
+			intent.select = pad.holdingSlot;
+			intent.construct = true;
+			if (picked !== null) intent.constructPressed = true;
+		} else if (picked !== null) {
+			intent.select = picked;
+			intent.construct = intent.constructPressed = true;
+		}
 		const prev = pad.consume('l1');
 		const next = pad.consume('r1');
 		if (prev || next) intent.cycle = (next ? 1 : 0) - (prev ? 1 : 0);

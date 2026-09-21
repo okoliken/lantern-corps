@@ -288,13 +288,28 @@ export function drawGoalArrow(ctx: CanvasRenderingContext2D, sx: number, sy: num
 	ctx.restore();
 }
 
-export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], width: number, height: number, time: number) {
-	const margin = 18;
+/** Where a construct slot (0..) or the shield box (-1) was drawn, so a tap on it can pick it. */
+export interface HudSlotRect {
+	slot: number;
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+}
+
+/**
+ * `touch`: laid out for a phone. Only the first player's bars, at the top
+ * left under the pause button (the thumbs have the bottom of the screen).
+ * Returns where the first player's slots were drawn.
+ */
+export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], width: number, height: number, time: number, touch = false): HudSlotRect[] {
+	const rects: HudSlotRect[] = [];
+	const margin = touch ? 10 : 18;
 	const count = players[0]?.slots.length ?? 10;
 	const gap = 4;
 	// Construct slots, a gap, then the shield box. Smaller boxes when two HUDs share a narrow screen.
 	const room = width / Math.max(1, players.length) - margin * 2 - 30;
-	const box = Math.max(24, Math.min(38, Math.floor((room - count * gap - 8) / (count + 1))));
+	const box = touch ? 30 : Math.max(24, Math.min(38, Math.floor((room - count * gap - 8) / (count + 1))));
 	const slotsW = (count + 1) * box + count * gap + 8;
 	const barW = slotsW;
 	const barH = 10;
@@ -302,7 +317,8 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 	for (const p of players) {
 		const right = p.slot === 1;
 		const x = right ? width - margin - barW : margin;
-		const slotsY = height - margin - box;
+		// On a phone: under the pause button, bars first and the slots below them
+		const slotsY = touch ? 96 : height - margin - box;
 		const surgeY = slotsY - 11;
 		const barY = surgeY - 8 - barH;
 		const healthY = barY - 9;
@@ -384,6 +400,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		p.slots.forEach((s, i) => {
 			const sx = x + i * (box + gap);
 			const selected = i === lit;
+			if (p.slot === 0) rects.push({ slot: i, x: sx, y: slotsY, w: box, h: box });
 			ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
 			ctx.fillRect(sx, slotsY, box, box);
 
@@ -432,6 +449,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 
 		// ---- Shield box ----
 		const shx = x + p.slots.length * (box + gap) + 8;
+		if (p.slot === 0) rects.push({ slot: -1, x: shx, y: slotsY, w: box, h: box });
 		ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
 		ctx.fillRect(shx, slotsY, box, box);
 		if (p.shield.cooldown > 0) {
@@ -464,11 +482,16 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 			ctx.textAlign = 'left';
 			ctx.textBaseline = 'bottom';
 			ctx.fillStyle = 'rgba(216, 245, 224, 0.75)';
-			ctx.fillText(`◎ ${p.targetLabel}`, x, labelY - 16);
+			// (on a phone it goes under the slots: there's no room above)
+			if (touch) {
+				ctx.textBaseline = 'top';
+				ctx.fillText(`◎ ${p.targetLabel}`, x, slotsY + box + 6);
+			} else ctx.fillText(`◎ ${p.targetLabel}`, x, labelY - 16);
 		}
 
 		ctx.restore();
 	}
+	return rects;
 }
 
 /** Fit a construct name in a small slot box. */

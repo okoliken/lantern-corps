@@ -9,8 +9,11 @@
 	import type { Game } from '$lib/engine/game';
 	import { Autopilot } from '$lib/engine/autopilot';
 	import { BindingInput } from '$lib/engine/input';
-	import { PadInput } from '$lib/engine/pad';
+	import { PadInput, PadState } from '$lib/engine/pad';
 	import { padLink } from '$lib/pad/link';
+	import { settings } from '$lib/settings.svelte';
+	import TouchControls from '$lib/touch/TouchControls.svelte';
+	import { wantsTouchControls } from '$lib/touch/phone';
 
 	interface Props {
 		game: Game;
@@ -20,8 +23,11 @@
 
 	let { game, showStats = false }: Props = $props();
 
-	let canvas: HTMLCanvasElement;
+	let canvas = $state<HTMLCanvasElement>() as unknown as HTMLCanvasElement;
 	let stats = $state<LoopStats>({ fps: 0, ups: 0 });
+	/** Playing on this screen with the on-screen controls (a phone), and their state. */
+	let touch = $state(false);
+	const touchState = new PadState();
 
 	onMount(() => {
 		void preloadFonts();
@@ -29,16 +35,19 @@
 		game.setView(view);
 		const detachButtons = game.buttons.attach(window, canvas);
 		const detachPointer = game.pointer.attach(canvas);
-		// The phone pad drives the first Lantern, alongside the keyboard
+		// On a phone: the on-screen controls drive the first Lantern. Otherwise the
+		// phone pad does (paired from the pause menu), alongside the keyboard
+		touch = wantsTouchControls(settings.current.touchControls);
+		game.touch = touch;
 		const first = game.players[0];
-		if (first && first.input instanceof BindingInput) first.input = new PadInput(first.input, padLink().state, () => game.players[0]);
+		if (first && first.input instanceof BindingInput) first.input = new PadInput(first.input, touch ? touchState : padLink().state, () => game.players[0]);
 		const stop = startLoop({
 			update: (dt) => game.update(dt),
 			render: (alpha) => game.render(ctx, alpha),
 			onStats: (s) => {
 				stats = s;
 				// The pad shows this: a tab the browser has slowed down feels like lag
-				padLink().fps = s.fps;
+				if (!touch) padLink().fps = s.fps;
 			}
 		});
 		// Dev only: poke the game from the browser console, and fast-forward it
@@ -71,6 +80,9 @@
 <div class="wrap">
 	<!-- The game draws its own crosshair when someone aims with the mouse -->
 	<canvas bind:this={canvas} class:no-cursor={game.usesMouse}></canvas>
+	{#if touch}
+		<TouchControls {game} state={touchState} {canvas} />
+	{/if}
 	{#if showStats}
 		<div class="stats">{stats.fps} fps · {stats.ups} ups</div>
 	{/if}

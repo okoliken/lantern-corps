@@ -43,4 +43,15 @@
 	:global(a) {
 		color: var(--green);
 	}
+	/* A phone: everything in rem shrinks with it (menus, briefings, panels) */
+	@media (max-height: 520px) and (orientation: landscape) {
+		:global(html) {
+			font-size: 12px;
+		}
+	}
+	@media (max-width: 520px) and (orientation: portrait) {
+		:global(html) {
+			font-size: 14px;
+		}
+	}
 </style>

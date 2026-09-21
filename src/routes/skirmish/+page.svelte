@@ -414,4 +414,18 @@
 		text-decoration: none;
 		opacity: 0.7;
 	}
+
+	/* A phone on its side: smaller portraits, so both Lanterns fit on one screen */
+	@media (max-height: 520px) and (orientation: landscape) {
+		.card :global(canvas) {
+			width: min(34vh, 9rem) !important;
+			height: min(34vh, 9rem) !important;
+		}
+		.card {
+			padding: 0.6rem;
+		}
+		.pause kbd {
+			display: none;
+		}
+	}
 </style>

@@ -112,6 +112,28 @@ around is a quick spin, not an instant flip.
 holding), damage numbers on/off, reduce flashing. A first-time "How to play" card shows the current
 bindings.
 
+**Mobile edition (touch controls, 2026-09-21):** on a touch screen (`(pointer: coarse)` with no fine
+pointer; setting `touchControls` auto / on / off, `?touch=1|0` overrides) `GameCanvas` mounts
+`$lib/touch/TouchControls.svelte` over the game and gives the first Lantern a `PadInput` fed by a local
+`PadState`, the same input path as the phone pad but with no network. Layout: floating move stick
+(left 42% of the screen), floating aim stick (the rest; faint and small at rest, the ring auto-aims
+anyway), face buttons bottom right (□ shot, ✕ construct, ○ shield, △ fly), ◀ ▶ ◎ ★ above them (★
+glows when the surge is full), Backup and Pause bottom middle. Tapping a hotbar slot sends
+`{t:'select', slot}`: that construct is selected and used, and held for as long as the finger stays
+(`PadState.holdingSlot`, so the beam keeps going, and the smart ring doesn't override it); the shield
+box is ○. The controls only show while the fight is live (not behind a briefing, scene, pause menu or
+results; hiding lets go of everything), with a "turn your phone sideways" screen in portrait. Also:
+`game.touch` lays the HUD out for a phone (only your own bars, top left under the pause button, 30px
+slots, pad symbols instead of keys; `drawHud` returns the slot rects in `game.hudSlots`); the camera
+scales its zooms by `screenScale(view)` (view / 1280x720, 0.55 to 1) so a phone sees about as much of
+the fight as a laptop; `html` font-size drops to 12px on a short landscape screen so every rem-sized
+menu, briefing and panel shrinks with it; the mission page moves the radio line to the bottom middle
+and the objective panel narrows; the sparring and training panels move top right; the How to play card
+and the pause menu's Controls tab show the touch controls; training's hints name the on-screen
+buttons. `$lib/touch/phone.ts` holds the shared phone helpers (no pinch or double-tap zoom, fullscreen
+and landscape lock where allowed, screen wake lock). `static/manifest.webmanifest` + Apple meta tags:
+added to the home screen, it opens fullscreen and sideways.
+
 ## Targeting (context awareness)
 The ring works out what you mean to hit or protect (`src/lib/engine/targeting.ts`):
 - **Mouse aim:** shots go where the crosshair points. Aim assist nudges them onto an enemy only if

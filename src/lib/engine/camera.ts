@@ -33,13 +33,16 @@ export class Camera {
 	 * never closer than baseZoom or further than minZoom.
 	 */
 	fit(width: number, height: number, dt: number, view: View) {
-		const wanted = Math.min(this.baseZoom, view.width / Math.max(width, 1), view.height / Math.max(height, 1));
-		const target = Math.max(this.minZoom, wanted);
+		const s = screenScale(view);
+		const wanted = Math.min(this.baseZoom * s, view.width / Math.max(width, 1), view.height / Math.max(height, 1));
+		const target = Math.max(this.minZoom * s, wanted);
 		this.zoom += (target - this.zoom) * (1 - Math.exp(-ZOOM_RATE * dt));
 	}
 
 	/** Jump straight to a target (used when a level starts). */
 	snapTo(tx: number, ty: number, view: View, mapW: number, mapH: number) {
+		// A small screen starts zoomed out as far as it will play
+		this.zoom = Math.min(this.zoom, this.baseZoom * screenScale(view));
 		this.x = this.prevX = clampCameraAxis(tx, view.width / this.zoom, mapW);
 		this.y = this.prevY = clampCameraAxis(ty, view.height / this.zoom, mapH);
 	}
@@ -54,6 +57,21 @@ export class Camera {
 		this.x = clampCameraAxis(this.x + (tx - this.x) * k, view.width / this.zoom, mapW);
 		this.y = clampCameraAxis(this.y + (ty - this.y) * k, view.height / this.zoom, mapH);
 	}
+}
+
+/** The screen size the zooms are tuned for (a laptop). */
+const DESIGN_VIEW = { width: 1280, height: 720 };
+/** On a small screen (a phone) the camera zooms out, but never below this, or everything is too small to see. */
+const MIN_SCREEN_SCALE = 0.55;
+
+/**
+ * How much smaller than a laptop screen this one is (1 at laptop size and up):
+ * the camera's zooms are scaled by it, so a phone sees about as much of the
+ * fight as a laptop, just smaller.
+ */
+export function screenScale(view: View): number {
+	if (view.width <= 0 || view.height <= 0) return 1;
+	return Math.max(MIN_SCREEN_SCALE, Math.min(1, view.width / DESIGN_VIEW.width, view.height / DESIGN_VIEW.height));
 }
 
 /**
