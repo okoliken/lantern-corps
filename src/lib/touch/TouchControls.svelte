@@ -19,6 +19,10 @@
 	import type { Game } from '$lib/engine/game';
 	import type { PadButton, PadMessage, PadState } from '$lib/engine/pad';
 	import { goFullscreen, keepAwake, stopZooming } from './phone';
+	import { HUD_CHIP } from '$lib/engine/draw/effects';
+
+	/** Seconds the full hotbar stays open if nothing is picked from it. */
+	const HOTBAR_OPEN = 5;
 
 	interface Props {
 		game: Game;
@@ -108,12 +112,17 @@
 		const slot = slotAt(e.clientX, e.clientY);
 		if (slot !== null) {
 			navigator.vibrate?.(8);
-			if (slot < 0) {
+			if (slot === HUD_CHIP) {
+				// The construct chip opens the full hotbar (and closes it again)
+				game.hotbarOpenUntil = game.time < game.hotbarOpenUntil ? 0 : game.time + HOTBAR_OPEN;
+			} else if (slot < 0) {
 				owners.set(e.pointerId, 'circle');
 				down('circle');
 			} else {
 				owners.set(e.pointerId, { slot });
 				apply({ t: 'select', slot });
+				// Picked: it folds away again
+				game.hotbarOpenUntil = 0;
 			}
 			return;
 		}

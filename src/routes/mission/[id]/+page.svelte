@@ -632,9 +632,21 @@
 			display: none;
 		}
 		.panel {
-			width: min(17rem, 38vw);
-			padding: 0.45rem 0.65rem;
-			gap: 0.25rem;
+			width: min(15rem, 32vw);
+			padding: 0.35rem 0.55rem;
+			gap: 0.2rem;
+			font-size: 0.7rem;
+			background: rgba(3, 10, 6, 0.6);
+		}
+		.title {
+			font-size: 0.62rem;
+		}
+		.objective {
+			font-size: 0.72rem;
+			line-height: 1.25;
+		}
+		.row.small {
+			font-size: 0.62rem;
 		}
 		.comms {
 			top: auto;

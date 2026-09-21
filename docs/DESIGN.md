@@ -123,8 +123,10 @@ glows when the surge is full), Backup and Pause bottom middle. Tapping a hotbar 
 (`PadState.holdingSlot`, so the beam keeps going, and the smart ring doesn't override it); the shield
 box is ○. The controls only show while the fight is live (not behind a briefing, scene, pause menu or
 results; hiding lets go of everything), with a "turn your phone sideways" screen in portrait. Also:
-`game.touch` lays the HUD out for a phone (only your own bars, top left under the pause button, 30px
-slots, pad symbols instead of keys; `drawHud` returns the slot rects in `game.hudSlots`); the camera
+`game.touch` lays the HUD out for a phone (`drawTouchHud`: only your own bars, small and thin beside the
+pause button, then a chip with the construct in hand and the shield box; a tap on the chip (`HUD_CHIP`)
+opens the full hotbar under it for 5s (`game.hotbarOpenUntil`), and picking from it folds it away;
+`drawHud` returns the tappable rects in `game.hudSlots`; the objective panel is narrower on phones); the camera
 scales its zooms by `screenScale(view)` (view / 1280x720, 0.55 to 1) so a phone sees about as much of
 the fight as a laptop; `html` font-size drops to 12px on a short landscape screen so every rem-sized
 menu, briefing and panel shrinks with it; the mission page moves the radio line to the bottom middle

@@ -288,7 +288,7 @@ export function drawGoalArrow(ctx: CanvasRenderingContext2D, sx: number, sy: num
 	ctx.restore();
 }
 
-/** Where a construct slot (0..) or the shield box (-1) was drawn, so a tap on it can pick it. */
+/** Where a construct slot (0..), the shield box (-1) or the phone HUD's construct chip (-2, opens the hotbar) was drawn, so a tap on it can pick it. */
 export interface HudSlotRect {
 	slot: number;
 	x: number;
@@ -302,7 +302,8 @@ export interface HudSlotRect {
  * left under the pause button (the thumbs have the bottom of the screen).
  * Returns where the first player's slots were drawn.
  */
-export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], width: number, height: number, time: number, touch = false): HudSlotRect[] {
+export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], width: number, height: number, time: number, touch = false, expanded = false): HudSlotRect[] {
+	if (touch) return players[0] ? drawTouchHud(ctx, players[0], time, expanded) : [];
 	const rects: HudSlotRect[] = [];
 	const margin = touch ? 10 : 18;
 	const count = players[0]?.slots.length ?? 10;
@@ -492,6 +493,168 @@ export function drawHud(ctx: CanvasRenderingContext2D, players: HudPlayer[], wid
 		ctx.restore();
 	}
 	return rects;
+}
+
+/** The phone HUD's construct chip: taps on it open and close the full hotbar. */
+export const HUD_CHIP = -2;
+
+/**
+ * The HUD on a phone: small, in the top left corner beside the pause button,
+ * so the fight gets the screen. Name and the construct in hand, three thin
+ * bars (health, willpower, surge), then a chip with the construct in hand and
+ * the shield box. Tapping the chip opens the full hotbar under it (`expanded`).
+ */
+function drawTouchHud(ctx: CanvasRenderingContext2D, p: HudPlayer, time: number, expanded: boolean): HudSlotRect[] {
+	const rects: HudSlotRect[] = [];
+	const x = 56;
+	const top = 8;
+	const barW = 150;
+	const chip = 34;
+	const low = p.exhausted || p.willpower < RESTART_THRESHOLD;
+	const lit = p.smart && p.smart.pick >= 0 ? p.smart.pick : p.selected;
+	ctx.save();
+
+	// Name, and what's in hand
+	ctx.font = uiFont(700, 10);
+	ctx.textBaseline = 'top';
+	ctx.textAlign = 'left';
+	ctx.fillStyle = 'rgba(216, 245, 224, 0.9)';
+	ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+	ctx.shadowBlur = 3;
+	const level = p.level !== null ? ` · ${p.level}` : '';
+	ctx.fillText(`${p.name.split(' ')[0]}${level}`, x, top);
+	ctx.textAlign = 'right';
+	ctx.fillStyle = low ? '#ffb86b' : 'rgba(216, 245, 224, 0.65)';
+	ctx.fillText(`${p.exhausted ? 'EXHAUSTED ' : ''}${Math.floor(p.willpower)}`, x + barW, top);
+	ctx.shadowBlur = 0;
+
+	// Three thin bars
+	const bar = (y: number, h: number, frac: number, fill: string | CanvasGradient, back: string, glow = false) => {
+		ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+		ctx.fillRect(x - 1, y - 1, barW + 2, h + 2);
+		ctx.fillStyle = back;
+		ctx.fillRect(x, y, barW, h);
+		if (glow) {
+			ctx.shadowColor = GREEN;
+			ctx.shadowBlur = 6;
+		}
+		ctx.fillStyle = fill;
+		ctx.fillRect(x, y, barW * Math.max(0, Math.min(1, frac)), h);
+		ctx.shadowBlur = 0;
+	};
+	const hurt = p.health / p.maxHealth;
+	bar(top + 14, 4, hurt, hurt < 0.3 && Math.sin(time * 10) > 0 ? '#ff9a9a' : '#ff3b3b', '#3a0c0c');
+	bar(top + 21, 6, p.willpower / p.maxWillpower, low && Math.sin(time * 10) > 0 ? '#ffb86b' : GREEN, BOTTLE_GREEN, !low);
+	ctx.fillStyle = 'rgba(216, 245, 224, 0.5)';
+	ctx.fillRect(x + barW * (RESTART_THRESHOLD / p.maxWillpower), top + 21, 1, 6);
+	const surge = ctx.createLinearGradient(x, 0, x + barW, 0);
+	surge.addColorStop(0, GREEN_LIGHT);
+	surge.addColorStop(1, GREEN_CORE);
+	bar(top + 30, 3, p.surge.fill, surge, 'rgba(0, 0, 0, 0.4)', p.surge.fill >= 1);
+
+	// The chip: the construct in hand (tap: every construct), and the shield
+	const cx = x + barW + 8;
+	const slot = p.slots[lit];
+	drawSlotBox(ctx, slot, cx, top, chip, true, time);
+	// A little caret: there's more
+	ctx.fillStyle = expanded ? GREEN : 'rgba(216, 245, 224, 0.7)';
+	ctx.beginPath();
+	ctx.moveTo(cx + chip - 9, top + chip - 7);
+	ctx.lineTo(cx + chip - 3, top + chip - 7);
+	ctx.lineTo(cx + chip - 6, top + chip - (expanded ? 11 : 3));
+	ctx.closePath();
+	ctx.fill();
+	rects.push({ slot: HUD_CHIP, x: cx, y: top, w: chip, h: chip });
+	const sx = cx + chip + 5;
+	drawShieldBox(ctx, p, sx, top, chip);
+	rects.push({ slot: -1, x: sx, y: top, w: chip, h: chip });
+
+	// Open: every construct in a row under it, to tap
+	let below = top + chip + 6;
+	if (expanded) {
+		const box = 30;
+		const gap = 3;
+		ctx.fillStyle = 'rgba(3, 10, 6, 0.75)';
+		ctx.fillRect(x - 4, below - 3, p.slots.length * (box + gap) + 5, box + 6);
+		p.slots.forEach((s, i) => {
+			const bx = x + i * (box + gap);
+			drawSlotBox(ctx, s, bx, below, box, i === lit, time);
+			rects.push({ slot: i, x: bx, y: below, w: box, h: box });
+		});
+		below += box + 8;
+	}
+
+	// Who the ring is on
+	if (p.targetLabel) {
+		ctx.font = uiFont(500, 10);
+		ctx.textAlign = 'left';
+		ctx.textBaseline = 'top';
+		ctx.fillStyle = 'rgba(216, 245, 224, 0.7)';
+		ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+		ctx.shadowBlur = 3;
+		ctx.fillText(`◎ ${p.targetLabel}`, x, below);
+	}
+	ctx.restore();
+	return rects;
+}
+
+/** One construct's box: its name, its cooldown draining down, lit if in hand, struck out if Manhunter Prime took it. */
+function drawSlotBox(ctx: CanvasRenderingContext2D, s: HudSlot, sx: number, sy: number, box: number, selected: boolean, time: number) {
+	void time;
+	ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+	ctx.fillRect(sx, sy, box, box);
+	if (s.cooldown > 0) {
+		ctx.fillStyle = suitGreen(0.85);
+		ctx.fillRect(sx, sy + box * (1 - s.cooldown), box, box * s.cooldown);
+	}
+	ctx.strokeStyle = selected ? GREEN : green(0.25);
+	ctx.lineWidth = selected ? 2 : 1;
+	if (selected) {
+		ctx.shadowColor = GREEN;
+		ctx.shadowBlur = 8;
+	}
+	ctx.strokeRect(sx + 0.5, sy + 0.5, box - 1, box - 1);
+	ctx.shadowBlur = 0;
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'middle';
+	ctx.font = uiFont(600, 9);
+	ctx.fillStyle = s.affordable ? 'rgba(216, 245, 224, 0.95)' : 'rgba(216, 245, 224, 0.35)';
+	ctx.fillText(abbreviate(s.short, 6), sx + box / 2, sy + box / 2);
+	if (s.locked) {
+		ctx.fillStyle = 'rgba(40, 20, 0, 0.72)';
+		ctx.fillRect(sx, sy, box, box);
+		ctx.strokeStyle = '#ffb020';
+		ctx.lineWidth = 2;
+		ctx.beginPath();
+		ctx.moveTo(sx + 5, sy + 5);
+		ctx.lineTo(sx + box - 5, sy + box - 5);
+		ctx.moveTo(sx + box - 5, sy + 5);
+		ctx.lineTo(sx + 5, sy + box - 5);
+		ctx.stroke();
+	}
+}
+
+/** The bubble shield's box: its cooldown, and bright while a shield is up on you. */
+function drawShieldBox(ctx: CanvasRenderingContext2D, p: HudPlayer, sx: number, sy: number, box: number) {
+	ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+	ctx.fillRect(sx, sy, box, box);
+	if (p.shield.cooldown > 0) {
+		ctx.fillStyle = suitGreen(0.85);
+		ctx.fillRect(sx, sy + box * (1 - p.shield.cooldown), box, box * p.shield.cooldown);
+	}
+	ctx.strokeStyle = p.shield.active ? GREEN : p.shield.affordable ? green(0.7) : green(0.25);
+	ctx.lineWidth = 2;
+	if (p.shield.active) {
+		ctx.shadowColor = GREEN;
+		ctx.shadowBlur = 10;
+	}
+	ctx.beginPath();
+	ctx.arc(sx + box / 2, sy + box / 2, box * 0.3, 0, Math.PI * 2);
+	ctx.stroke();
+	ctx.shadowBlur = 0;
+	ctx.strokeStyle = green(0.4);
+	ctx.lineWidth = 1;
+	ctx.strokeRect(sx + 0.5, sy + 0.5, box - 1, box - 1);
 }
 
 /** Fit a construct name in a small slot box. */

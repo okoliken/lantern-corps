@@ -205,6 +205,8 @@ export class Game {
 	touch = false;
 	/** Where your construct slots were last drawn (for tapping them on a phone). */
 	hudSlots: HudSlotRect[] = [];
+	/** On a phone: the full hotbar is open (a tap on the construct chip), until this game time. */
+	hotbarOpenUntil = 0;
 	/** Show the big "is down, back up in..." notice (off when being down means game over). */
 	downedNotice = true;
 	/** Draw the Lanterns' names above their heads. */
@@ -886,7 +888,8 @@ export class Game {
 			width,
 			height,
 			this.time,
-			this.touch
+			this.touch,
+			this.time < this.hotbarOpenUntil
 		);
 
 		// Solo: a big notice while down. (Co-op shows it per player in M7.)
