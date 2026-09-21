@@ -7,7 +7,7 @@
 //  3. At 0 health they're DOWNED: they can't move or use the ring, and after a
 //     few seconds they get back up (at the battery, on test maps).
 
-import { GUARD } from './heroes';
+import { GUARD, STEEL } from './heroes';
 import { absorbWithShield, type ConstructWorld } from './constructs/system';
 import type { Player } from './player';
 
@@ -50,7 +50,8 @@ export function damagePlayer(
 	if (w.maxHit !== undefined) amount = Math.min(amount, w.maxHit);
 	// Power Armor takes most of the blow
 	if (p.armor) amount *= ARMOR_TAKES;
-	// Hawkgirl's wings wrapped round her
+	if (p.hero?.id === 'superman') amount *= STEEL;
+	// Hawkgirl's wings wrapped round her, Wonder Woman's bracelets up
 	if (p.hero && p.hero.guard > 0) {
 		amount *= GUARD.takes;
 		knockback *= GUARD.takes;

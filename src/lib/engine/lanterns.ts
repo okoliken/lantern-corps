@@ -7,7 +7,7 @@ export type CrewId = LanternId | 'kilowog' | PrisonerId | HeroId;
 /** Everyone who fights with a Green Lantern ring (heroes have their own powers). */
 export type RingBearerId = Exclude<CrewId, HeroId>;
 /** Earth's heroes who fight beside John in Act 2 (heroes.ts): their own powers, no ring. */
-export type HeroId = 'flash' | 'hawkgirl' | 'razer';
+export type HeroId = 'flash' | 'hawkgirl' | 'razer' | 'superman' | 'wonderwoman';
 /** Green Lanterns the Red Lanterns took prisoner (Act 1, Prison Moon): freed, they fight beside you. */
 export type PrisonerId = 'arisia' | 'katma' | 'boodikka';
 /** The Lanterns you can pick. */
@@ -163,6 +163,30 @@ export const LANTERNS: Record<CrewId, LanternDef> = {
 		traits: { power: 1, durability: 1, cooldown: 1, structureCost: 1 },
 		look: { skin: '#8e97ab', hair: '#0d0a10', hairStyle: 'peak', mask: false },
 		hero: 'razer'
+	},
+	superman: {
+		id: 'superman',
+		name: 'Superman',
+		title: 'The Man of Steel',
+		blurb: 'Faster than a speeding bullet: a punch that sends machines across the street, heat vision, freezing breath, and skin that shrugs off most of what hits it.',
+		maxSpeed: 360,
+		accel: 3000,
+		decel: 2600,
+		traits: { power: 1, durability: 1, cooldown: 1, structureCost: 1 },
+		look: { skin: '#e6b892', hair: '#0e0f16', hairStyle: 'swept', mask: false },
+		hero: 'superman'
+	},
+	wonderwoman: {
+		id: 'wonderwoman',
+		name: 'Wonder Woman',
+		title: 'Princess of Themyscira',
+		blurb: 'An Amazon warrior: a sword that cuts steel, the golden lasso that drags enemies to her, and bracelets that turn shots aside.',
+		maxSpeed: 340,
+		accel: 2800,
+		decel: 2400,
+		traits: { power: 1, durability: 1, cooldown: 1, structureCost: 1 },
+		look: { skin: '#dcaa84', hair: '#100c10', hairStyle: 'swept', mask: false },
+		hero: 'wonderwoman'
 	},
 	hawkgirl: {
 		id: 'hawkgirl',

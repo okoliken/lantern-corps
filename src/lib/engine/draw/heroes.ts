@@ -14,6 +14,7 @@ import { createEnemy, type Enemy } from '../enemies/enemies';
 import type { Player } from '../player';
 import { drawLieutenant } from './lieutenants';
 import { enemyPose } from './enemies';
+import { LASSO_GOLD, drawSupermanBody, drawWonderWomanBody } from './league';
 import { FIGURE_HEIGHT, lerpP, poly, segment, shadeColor } from './lantern';
 
 const FIGURE_SCALE = 1.35;
@@ -77,6 +78,10 @@ export function drawHero(
 
 	if (id === 'flash') {
 		drawSpeedsterBody(ctx, sk, look, time, FLASH_COLORS);
+	} else if (id === 'superman') {
+		drawSupermanBody(ctx, sk, look, time, pose);
+	} else if (id === 'wonderwoman') {
+		drawWonderWomanBody(ctx, sk, look, time, pose, extra.guard ?? 0);
 	} else {
 		const flying = air > 0.5 && !pose.downed;
 		const guard = extra.guard ?? 0;
@@ -158,7 +163,7 @@ function drawFlashArm(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: 
 }
 
 /** Points along the spine: `along` from the hip, `side` toward the front. */
-function frame(sk: Skeleton) {
+export function frame(sk: Skeleton) {
 	const { hip, neck, torsoAngle } = sk;
 	const up: Point = [Math.sin(torsoAngle), -Math.cos(torsoAngle)];
 	const across: Point = [Math.cos(torsoAngle), Math.sin(torsoAngle)];
@@ -169,7 +174,7 @@ function frame(sk: Skeleton) {
 	];
 }
 
-function torsoShape(at: (a: number, s: number) => Point, slim = 0) {
+export function torsoShape(at: (a: number, s: number) => Point, slim = 0) {
 	return poly([
 		at(-1.5, -4.4 + slim),
 		at(6, -4.2 + slim),
@@ -231,7 +236,7 @@ function drawFlashTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, P: Speedste
 	segment(ctx, sk.neck, lerpP(sk.neck, sk.headCenter, 0.45), 1.9, 1.8, P.suit);
 }
 
-function faceShape(): Path2D {
+export function faceShape(): Path2D {
 	const R = HEAD_R;
 	const face = new Path2D();
 	face.moveTo(-R * 0.95, -1);
@@ -626,6 +631,8 @@ export function drawSpeedTrail(ctx: CanvasRenderingContext2D, trail: { x: number
 /** Lightning, tornadoes, shockwaves and mace arcs. */
 export function drawHeroFx(ctx: CanvasRenderingContext2D, list: readonly HeroFx[], time: number) {
 	for (const f of list) {
+		// Not started yet (one of a staggered set)
+		if (f.age < 0) continue;
 		const k = f.age / f.life;
 		const fade = 1 - k;
 		ctx.save();
@@ -684,8 +691,8 @@ export function drawHeroFx(ctx: CanvasRenderingContext2D, list: readonly HeroFx[
 			case 'thunder': {
 				// A ring of force where she landed, lightning forking out along the ground
 				const r = (f.radius ?? 120) * (0.3 + 0.7 * Math.min(1, k * 2.5));
-				ctx.strokeStyle = `rgba(255, 240, 138, ${0.8 * fade})`;
-				ctx.shadowColor = NTH_GLOW;
+				ctx.strokeStyle = f.gold ? `rgba(255, 215, 102, ${0.9 * fade})` : `rgba(255, 240, 138, ${0.8 * fade})`;
+				ctx.shadowColor = f.gold ? LASSO_GOLD : NTH_GLOW;
 				ctx.shadowBlur = 12;
 				ctx.lineWidth = 4 * fade + 1;
 				ctx.beginPath();
@@ -708,8 +715,8 @@ export function drawHeroFx(ctx: CanvasRenderingContext2D, list: readonly HeroFx[
 				// A rage blade's arc
 				const r = f.radius ?? 70;
 				const a = f.angle ?? 0;
-				ctx.strokeStyle = `rgba(255, 60, 60, ${0.9 * fade})`;
-				ctx.shadowColor = '#ff2a2a';
+				ctx.strokeStyle = f.gold ? `rgba(240, 244, 250, ${0.9 * fade})` : `rgba(255, 60, 60, ${0.9 * fade})`;
+				ctx.shadowColor = f.gold ? LASSO_GOLD : '#ff2a2a';
 				ctx.shadowBlur = 10;
 				ctx.lineWidth = 6 * fade + 1;
 				ctx.beginPath();
@@ -759,6 +766,116 @@ export function drawHeroFx(ctx: CanvasRenderingContext2D, list: readonly HeroFx[
 				ctx.beginPath();
 				ctx.ellipse(f.x, f.y, r, r * 0.45, 0, 0, TAU);
 				ctx.stroke();
+				break;
+			}
+			case 'heat': {
+				// Twin beams from his eyes
+				const lift = f.lift ?? 90;
+				const ty = f.y2! - 70;
+				ctx.shadowColor = '#ff3b1e';
+				ctx.shadowBlur = 12;
+				for (const off of [-2.5, 2.5]) {
+					ctx.strokeStyle = `rgba(255, 60, 30, ${0.85 * Math.min(1, fade * 2)})`;
+					ctx.lineWidth = 3.5;
+					ctx.beginPath();
+					ctx.moveTo(f.x, f.y - lift + off);
+					ctx.lineTo(f.x2!, ty + off);
+					ctx.stroke();
+					ctx.strokeStyle = `rgba(255, 235, 200, ${Math.min(1, fade * 2)})`;
+					ctx.lineWidth = 1.2;
+					ctx.stroke();
+				}
+				// Where it burns
+				ctx.fillStyle = `rgba(255, 190, 90, ${0.8 * Math.min(1, fade * 2)})`;
+				ctx.beginPath();
+				ctx.arc(f.x2!, ty, 7 + Math.sin(time * 40) * 2, 0, TAU);
+				ctx.fill();
+				break;
+			}
+			case 'frost': {
+				// A cone of cold from his mouth, spreading and thinning
+				const r = (f.radius ?? 300) * Math.min(1, 0.25 + k * 2.2);
+				const a = f.angle ?? 0;
+				const lift = f.lift ?? 80;
+				const spread = 0.55;
+				ctx.translate(f.x, f.y - lift);
+				const cold = ctx.createRadialGradient(0, 0, 8, 0, 0, r);
+				cold.addColorStop(0, `rgba(235, 248, 255, ${0.7 * fade})`);
+				cold.addColorStop(1, 'rgba(170, 215, 255, 0)');
+				ctx.fillStyle = cold;
+				ctx.beginPath();
+				ctx.moveTo(0, 0);
+				// Flattened like everything on the ground plane, and sinking to it
+				for (let i = 0; i <= 10; i++) {
+					const b = a - spread + (i / 10) * spread * 2;
+					ctx.lineTo(Math.cos(b) * r, Math.sin(b) * r * 0.7 + (lift - 30) * (r / (f.radius ?? 300)));
+				}
+				ctx.closePath();
+				ctx.fill();
+				ctx.fillStyle = `rgba(255, 255, 255, ${0.8 * fade})`;
+				for (let i = 0; i < 14; i++) {
+					const b = a - spread + ((i * 0.37 + f.x * 0.01) % 1) * spread * 2;
+					const d = r * (0.2 + ((i * 0.61 + k) % 1) * 0.8);
+					ctx.fillRect(Math.cos(b) * d, Math.sin(b) * d * 0.7 + (lift - 30) * (d / (f.radius ?? 300)), 2.5, 2.5);
+				}
+				break;
+			}
+			case 'lasso': {
+				// The golden lasso: a glowing rope from her hand to a loop round them
+				const [a, b] = f.track ?? [{ x: f.x, y: f.y }, { x: f.x2!, y: f.y2! }];
+				const lift = f.lift ?? 60;
+				const reach = Math.min(1, f.age / 0.12);
+				const bx = a.x + (b.x - a.x) * reach;
+				const by = a.y - lift + (b.y - 60 - (a.y - lift)) * reach;
+				ctx.strokeStyle = `rgba(255, 215, 102, ${Math.min(1, fade * 3)})`;
+				ctx.shadowColor = LASSO_GOLD;
+				ctx.shadowBlur = 10;
+				ctx.lineWidth = 2.5;
+				ctx.beginPath();
+				ctx.moveTo(a.x, a.y - lift);
+				ctx.quadraticCurveTo((a.x + bx) / 2, Math.min(a.y - lift, by) - 26 + Math.sin(time * 18) * 5, bx, by);
+				ctx.stroke();
+				if (reach >= 1) {
+					ctx.beginPath();
+					ctx.ellipse(b.x, b.y - 60, 24, 9, 0, 0, TAU);
+					ctx.stroke();
+				}
+				break;
+			}
+			case 'boom': {
+				// An explosion: a fireball swelling and thinning, a ring of fire along the ground
+				const r = (f.radius ?? 120) * (0.35 + 0.65 * Math.min(1, k * 2));
+				const cy = f.y - 30 - 40 * k;
+				const fire = ctx.createRadialGradient(f.x, cy, 0, f.x, cy, r);
+				fire.addColorStop(0, `rgba(255, 250, 220, ${fade})`);
+				fire.addColorStop(0.35, `rgba(255, 170, 50, ${0.85 * fade})`);
+				fire.addColorStop(0.75, `rgba(200, 60, 20, ${0.45 * fade})`);
+				fire.addColorStop(1, 'rgba(60, 30, 20, 0)');
+				ctx.fillStyle = fire;
+				ctx.beginPath();
+				ctx.arc(f.x, cy, r, 0, TAU);
+				ctx.fill();
+				ctx.strokeStyle = `rgba(255, 190, 90, ${0.8 * fade})`;
+				ctx.lineWidth = 4 * fade + 1;
+				ctx.beginPath();
+				ctx.ellipse(f.x, f.y, r * 1.1, r * 0.48, 0, 0, TAU);
+				ctx.stroke();
+				break;
+			}
+			case 'spark': {
+				// A shot bursting on her bracelets
+				const lift = f.lift ?? 40;
+				ctx.strokeStyle = `rgba(255, 225, 140, ${fade})`;
+				ctx.shadowColor = LASSO_GOLD;
+				ctx.shadowBlur = 8;
+				ctx.lineWidth = 1.6;
+				for (let i = 0; i < 6; i++) {
+					const a = (i / 6) * TAU + f.x;
+					ctx.beginPath();
+					ctx.moveTo(f.x + Math.cos(a) * 4, f.y - lift + Math.sin(a) * 4);
+					ctx.lineTo(f.x + Math.cos(a) * (8 + 16 * k), f.y - lift + Math.sin(a) * (8 + 16 * k));
+					ctx.stroke();
+				}
 				break;
 			}
 			case 'mace': {

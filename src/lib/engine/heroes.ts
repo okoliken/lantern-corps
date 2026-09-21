@@ -1,4 +1,4 @@
-// Earth's heroes: the Flash and Hawkgirl, who fight beside John in Act 2.
+// Earth's heroes: the Flash, Hawkgirl, Superman and Wonder Woman, who fight beside John in Act 2.
 //
 // They aren't Lanterns. No ring, no willpower, no constructs: each has powers
 // of their own, run here instead of the construct system. The Game treats
@@ -22,6 +22,16 @@
 //    Twin Blades    a lunge and three quick cuts with the blades on his arms
 //    Chakram        a crescent of rage thrown at someone out of reach
 //    Rage Nova      surrounded, he lets it all out: a ring of rage around him
+//  SUPERMAN (in the air; most of what hits him bounces off)
+//    Haymaker       across the street in a blink, and one punch that sends them flying
+//    Heat Vision    twin beams from his eyes, burning into someone out of reach
+//    Freeze Breath  a cone of cold: everything in it stops where it stands
+//    Meteor         up, then down on a crowd like a falling star (Hawkgirl's dive, heavier)
+//  WONDER WOMAN (in the air)
+//    Sword          a lunge and three cuts (Razer's blades, in gold)
+//    Lasso          the golden lasso round someone out of reach: dragged to her, helpless
+//    Bracelets      crossed against a big hit: most of it turned aside, and shots near her burst
+//    Clash          bracelets struck together: a shockwave all around her
 
 import { hitDummyWithFx, type ConstructWorld } from './constructs/system';
 import { isStanding, type Dummy } from './dummy';
@@ -31,7 +41,7 @@ import type { HeroId } from './lanterns';
 import { moveBody, type Solid } from './physics';
 import { FEET_HALF_H, FEET_HALF_W, type Player } from './player';
 
-export type HeroPower = 'blitz' | 'barrage' | 'tornado' | 'lightning' | 'dodge' | 'mace' | 'dive' | 'rush' | 'thunder' | 'guard' | 'blades' | 'chakram' | 'nova';
+export type HeroPower = 'blitz' | 'barrage' | 'tornado' | 'lightning' | 'dodge' | 'mace' | 'dive' | 'rush' | 'thunder' | 'guard' | 'blades' | 'chakram' | 'nova' | 'haymaker' | 'heat' | 'frost' | 'lasso';
 
 interface Move {
 	power: HeroPower;
@@ -69,7 +79,7 @@ export interface HeroState {
 
 /** A flash of lightning, a tornado, a shockwave: drawn by draw/heroes.ts. */
 export interface HeroFx {
-	kind: 'bolt' | 'tornado' | 'thunder' | 'quake' | 'mace' | 'zip' | 'chakram' | 'nova' | 'cut';
+	kind: 'bolt' | 'tornado' | 'thunder' | 'quake' | 'mace' | 'zip' | 'chakram' | 'nova' | 'cut' | 'heat' | 'frost' | 'lasso' | 'spark' | 'boom';
 	x: number;
 	y: number;
 	/** Bolts and zips: the other end. */
@@ -83,6 +93,10 @@ export interface HeroFx {
 	lift?: number;
 	/** Reverse-Flash's: red lightning instead of yellow. */
 	red?: boolean;
+	/** Wonder Woman's: gold. */
+	gold?: boolean;
+	/** The lasso: its two ends follow these as they move. */
+	track?: [{ x: number; y: number }, { x: number; y: number }];
 }
 
 const COOLDOWNS: Record<HeroPower, number> = {
@@ -98,7 +112,11 @@ const COOLDOWNS: Record<HeroPower, number> = {
 	guard: 5,
 	blades: 1.8,
 	chakram: 3.2,
-	nova: 11
+	nova: 11,
+	haymaker: 1.5,
+	heat: 5,
+	frost: 10,
+	lasso: 6
 };
 
 // ---- The Flash ----
@@ -128,6 +146,21 @@ export const BLADES = { range: 330, speed: 900, reach: 70, cuts: [0.12, 0.28, 0.
 export const CHAKRAM = { minRange: 170, range: 620, damage: 30, knockback: 260 };
 export const NOVA = { radius: 170, damage: 40, knockback: 520, stun: 0.6, windup: 0.4 };
 
+// ---- Superman ----
+export const HAYMAKER = { range: 560, speed: 1050, reach: 36, damage: 36, knockback: 900 };
+/** Heat Vision: how long he holds it, and what each tick does. */
+export const HEAT = { minRange: 160, range: 680, time: 0.9, tick: 0.15, damage: 11 };
+/** Freeze Breath: a cone this long and this wide (half angle, radians); what's in it can't move. */
+export const FROST = { range: 300, halfAngle: 0.55, stun: 2.4, damage: 8, windup: 0.2 };
+/** The Man of Steel: the share of any hit that gets through. */
+export const STEEL = 0.5;
+
+// ---- Wonder Woman ----
+/** Lasso: how fast it drags them in, for how long at most, and how long they're helpless. */
+export const LASSO = { minRange: 190, range: 600, pull: 900, pullTime: 0.7, stun: 1.6, damage: 14 };
+/** Bracelets: how long she holds them up, and how near a shot has to come to burst on them. */
+export const BRACELETS = { time: 1.2, deflect: 120 };
+
 const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
 
 const fxLists = new WeakMap<ConstructWorld, HeroFx[]>();
@@ -152,6 +185,8 @@ export function createHeroState(id: HeroId): HeroState {
 	cooldowns.tornado = 6;
 	cooldowns.dive = 2;
 	cooldowns.thunder = 5;
+	cooldowns.frost = 4;
+	cooldowns.lasso = 2;
 	return { id, move: null, cooldowns, target: null, trail: [], guard: 0, rise: 0 };
 }
 
@@ -159,12 +194,13 @@ export function createHeroState(id: HeroId): HeroState {
 export function heroMoving(p: Player): boolean {
 	const m = p.hero?.move;
 	if (!m) return false;
-	return m.power !== 'mace' && m.power !== 'thunder' && m.power !== 'lightning' && m.power !== 'chakram' && m.power !== 'nova' && !(m.power === 'blitz' && m.step === 'hits');
+	const still: HeroPower[] = ['mace', 'thunder', 'lightning', 'chakram', 'nova', 'heat', 'frost', 'lasso'];
+	return !still.includes(m.power) && !(m.power === 'blitz' && m.step === 'hits');
 }
 
 const enemiesOf = (w: ConstructWorld) => w.dummies.filter((d): d is Enemy => isEnemy(d) && isStanding(d));
 /** Everything a hero can hit: enemies, and a broken Manhunter's core. */
-const foesOf = (w: ConstructWorld) => w.dummies.filter((d) => isStanding(d) && (isEnemy(d) || d.kind === 'manhunterCore'));
+const foesOf = (w: ConstructWorld) => w.dummies.filter((d) => isStanding(d) && (isEnemy(d) || d.kind === 'manhunterCore' || d.kind === 'signalSpire'));
 /** Nth metal: Hawkgirl's mace does this many times the damage to a Manhunter's core. */
 export const NTH_VS_CORE = 3;
 
@@ -187,6 +223,14 @@ export function updateHero(p: Player, dt: number, w: ConstructWorld, solids: rea
 		h.move = null;
 		h.rise = 0;
 		return;
+	}
+	// Wonder Woman's bracelets: shots that come near them burst
+	if (h.id === 'wonderwoman' && h.guard > 0) {
+		w.red.shots = w.red.shots.filter((s) => {
+			if (s.kind === 'hook' || dist(s, p) > BRACELETS.deflect) return true;
+			heroFx(w).push({ kind: 'spark', x: s.x, y: s.y, age: 0, life: 0.3, lift: 40, gold: true });
+			return false;
+		});
 	}
 	if (!h.move) choose(p, h, w);
 	if (h.move) run(p, h, h.move, dt, w, solids);
@@ -286,6 +330,54 @@ function choose(p: Player, h: HeroState, w: ConstructWorld) {
 		return;
 	}
 
+	if (h.id === 'superman') {
+		if (!t) return;
+		const d = dist(t, p);
+		if (ready('frost')) {
+			const ang = Math.atan2(t.y - p.y, t.x - p.x);
+			if (inCone(enemies, p, ang, FROST.range, FROST.halfAngle).length >= 2) {
+				const m = begin(h, 'frost', t);
+				m.x = ang;
+				w.effects.push({ kind: 'callout', x: p.x, y: p.y, age: 0, life: 1.1, text: 'FREEZE BREATH', owner: p });
+				return;
+			}
+		}
+		if (ready('dive') && d > 200 && d <= DIVE.range && around(t.x, t.y, DIVE.radius).length >= 2) {
+			const m = begin(h, 'dive', t, t.x, t.y);
+			m.step = 'rise';
+			return;
+		}
+		if (ready('heat') && d >= HEAT.minRange && d <= HEAT.range && Math.random() < 0.5) {
+			begin(h, 'heat', t);
+			return;
+		}
+		if (ready('haymaker') && d <= HAYMAKER.range) begin(h, 'haymaker', t);
+		return;
+	}
+
+	if (h.id === 'wonderwoman') {
+		if (ready('guard') && (coming || incoming)) {
+			h.cooldowns.guard = COOLDOWNS.guard;
+			h.guard = BRACELETS.time;
+			return;
+		}
+		if (!t) return;
+		const d = dist(t, p);
+		if (ready('thunder') && around(p.x, p.y, THUNDER.radius).length >= 3) {
+			begin(h, 'thunder', t);
+			return;
+		}
+		if (ready('lasso') && isEnemy(t) && d >= LASSO.minRange && d <= LASSO.range) {
+			begin(h, 'lasso', t);
+			return;
+		}
+		if (ready('blades') && d <= BLADES.range) {
+			const m = begin(h, 'blades', t);
+			m.step = 'in';
+		}
+		return;
+	}
+
 	// ---- Hawkgirl ----
 	const big = enemies.some((e) => e.brain.target === p && e.brain.state === 'windup' && dist(e, p) < 320 && (e.brain.ability === 'slam' || e.brain.ability === 'charge' || e.brain.ability === 'roar' || e.brain.ability === 'cannon'));
 	if (ready('guard') && (big || (coming && p.health < p.maxHealth * 0.45))) {
@@ -314,6 +406,18 @@ function choose(p: Player, h: HeroState, w: ConstructWorld) {
 		return;
 	}
 	if (ready('mace') && d <= MACE.reach + 10) begin(h, 'mace', t);
+}
+
+/** Those of `list` inside a cone from `from` along `ang`. */
+function inCone<T extends { x: number; y: number }>(list: T[], from: { x: number; y: number }, ang: number, range: number, halfAngle: number): T[] {
+	return list.filter((e) => {
+		const d = dist(e, from);
+		if (d > range) return false;
+		if (d < 30) return true;
+		let off = Math.atan2(e.y - from.y, e.x - from.x) - ang;
+		off = Math.atan2(Math.sin(off), Math.cos(off));
+		return Math.abs(off) <= halfAngle;
+	});
 }
 
 /** Face the way we're going (or at the target). */
@@ -541,7 +645,7 @@ function run(p: Player, h: HeroState, m: Move, dt: number, w: ConstructWorld, so
 				h.rise = 0;
 				for (const e of foesOf(w)) {
 					if (dist(e, m) > DIVE.radius) continue;
-					hit(w, p, e, DIVE.damage, DIVE.knockback, m.x, m.y);
+					hit(w, p, e, DIVE.damage * (h.id === 'superman' ? 1.4 : 1), DIVE.knockback, m.x, m.y);
 					e.stun = Math.max(e.stun, DIVE.stun);
 				}
 				fx.push({ kind: 'quake', x: m.x, y: m.y, age: 0, life: 0.55, radius: DIVE.radius });
@@ -572,7 +676,7 @@ function run(p: Player, h: HeroState, m: Move, dt: number, w: ConstructWorld, so
 				hit(w, p, e, THUNDER.damage, THUNDER.knockback, p.x, p.y);
 				e.stun = Math.max(e.stun, THUNDER.stun);
 			}
-			fx.push({ kind: 'thunder', x: p.x, y: p.y, age: 0, life: 0.6, radius: THUNDER.radius });
+			fx.push({ kind: h.id === 'wonderwoman' ? 'quake' : 'thunder', x: p.x, y: p.y, age: 0, life: 0.6, radius: THUNDER.radius, gold: h.id === 'wonderwoman' });
 			done();
 			return;
 		}
@@ -608,7 +712,7 @@ function run(p: Player, h: HeroState, m: Move, dt: number, w: ConstructWorld, so
 					if (d > 20 && (dx * Math.cos(ang) + dy * Math.sin(ang)) / d < 0) continue;
 					hit(w, p, e, BLADES.damage, m.count === BLADES.cuts.length ? BLADES.knockback : 40, p.x, p.y);
 				}
-				fx.push({ kind: 'cut', x: p.x, y: p.y, age: 0, life: 0.22, angle: ang + (m.count % 2 ? 0.4 : -0.4), radius: BLADES.reach, lift: p.bodyBottom + 40, red: true });
+				fx.push({ kind: 'cut', x: p.x, y: p.y, age: 0, life: 0.22, angle: ang + (m.count % 2 ? 0.4 : -0.4), radius: BLADES.reach, lift: p.bodyBottom + 40, red: h.id === 'razer', gold: h.id === 'wonderwoman' });
 			}
 			if (m.count >= BLADES.cuts.length && m.elapsed > 0.6) done();
 			return;
@@ -642,6 +746,91 @@ function run(p: Player, h: HeroState, m: Move, dt: number, w: ConstructWorld, so
 			return;
 		}
 
+		case 'haymaker': {
+			const t = m.target;
+			if (!t || !isStanding(t)) {
+				done();
+				return;
+			}
+			if (runTo(t.x - (t.x > p.x ? HAYMAKER.reach : -HAYMAKER.reach), t.y, HAYMAKER.speed) || m.elapsed > 0.7) {
+				if (dist(t, p) < HAYMAKER.reach + 50) {
+					hit(w, p, t, HAYMAKER.damage, HAYMAKER.knockback, p.x, p.y);
+					w.effects.push({ kind: 'impact', x: t.x, y: t.y, age: 0, life: 0.25, lift: 50 });
+				}
+				p.actionTimer = 0.3;
+				p.shotTimer = 0.2;
+				done();
+			}
+			return;
+		}
+
+		case 'heat': {
+			const t = m.target;
+			if (!t || !isStanding(t) || m.elapsed >= HEAT.time) {
+				done();
+				return;
+			}
+			face(p, t.x);
+			p.vx *= 0.85;
+			p.vy *= 0.85;
+			if (m.elapsed >= m.count * HEAT.tick) {
+				m.count++;
+				hit(w, p, t, HEAT.damage, 20, p.x, p.y);
+				fx.push({ kind: 'heat', x: p.x + p.dir * 8, y: p.y, x2: t.x, y2: t.y, age: 0, life: HEAT.tick + 0.05, lift: p.bodyTop - 12 });
+			}
+			return;
+		}
+
+		case 'frost': {
+			const ang = m.x;
+			face(p, p.x + Math.cos(ang) * 10);
+			p.actionTimer = 0.4;
+			p.vx *= 0.85;
+			p.vy *= 0.85;
+			if (m.elapsed < FROST.windup) return;
+			if (m.count === 0) {
+				m.count = 1;
+				for (const e of inCone(enemiesOf(w), p, ang, FROST.range, FROST.halfAngle)) {
+					hit(w, p, e, FROST.damage, 40, p.x, p.y);
+					e.stun = Math.max(e.stun, FROST.stun);
+				}
+				fx.push({ kind: 'frost', x: p.x, y: p.y, age: 0, life: 0.8, angle: ang, radius: FROST.range, lift: p.bodyTop - 16 });
+			}
+			if (m.elapsed > 0.6) done();
+			return;
+		}
+
+		case 'lasso': {
+			const t = m.target;
+			if (!t || !isStanding(t)) {
+				done();
+				return;
+			}
+			face(p, t.x);
+			p.actionTimer = 0.4;
+			p.vx *= 0.8;
+			p.vy *= 0.8;
+			if (m.elapsed < 0.15) return;
+			if (m.count === 0) {
+				m.count = 1;
+				fx.push({ kind: 'lasso', x: p.x, y: p.y, x2: t.x, y2: t.y, age: 0, life: LASSO.pullTime + 0.15, lift: p.bodyBottom + 40, gold: true, track: [p, t] });
+			}
+			// Roped: helpless, and dragged to her
+			t.stun = Math.max(t.stun, LASSO.stun);
+			const d = dist(t, p);
+			if (d > 80) {
+				t.vx = ((p.x - t.x) / d) * LASSO.pull;
+				t.vy = ((p.y - t.y) / d) * LASSO.pull;
+			}
+			if (d <= 80 || m.elapsed >= 0.15 + LASSO.pullTime) {
+				t.vx *= 0.2;
+				t.vy *= 0.2;
+				hit(w, p, t, LASSO.damage, 0, p.x, p.y);
+				done();
+			}
+			return;
+		}
+
 		default:
 			done();
 	}
@@ -656,6 +845,8 @@ const RETURN_ABOVE = 0.65;
 const LEASH = 950;
 /** They'll drop what they're doing to stop a hit on the Lantern from this close. */
 const HELP_RANGE = 450;
+/** With other heroes about, they only go for a core this near (someone closer will get the rest). */
+const CORE_RANGE = 800;
 
 export interface HeroWorld {
 	readonly players: readonly Player[];
@@ -689,10 +880,15 @@ export class HeroInput implements InputSource {
 		const lead = this.world.players.find((p) => !p.hero && !p.downed) ?? null;
 		const enemies = this.world.dummies.filter((d): d is Enemy => isEnemy(d) && isStanding(d));
 		// A broken Manhunter's core comes first: it has to be smashed before it rebuilds
-		const core = this.world.dummies.find((d) => d.kind === 'manhunterCore' && isStanding(d));
+		const core = this.nearestCore(me);
 		// The Flash drops everything for Reverse-Flash
 		const rival = h.id === 'flash' ? enemies.find((e) => e.kind === 'reverseFlash') : undefined;
 		h.target = core ?? rival ?? this.pickTarget(me, lead, enemies);
+		// Something the enemy built (a signal spire): when nobody near needs hitting first
+		const spire = this.world.dummies.find((d) => d.kind === 'signalSpire' && isStanding(d));
+		// (the heavy hitters, Superman and Wonder Woman, go at it unless someone is right on top of them)
+		const busy = h.id === 'superman' || h.id === 'wonderwoman' ? 170 : 420;
+		if (spire && !core && (!h.target || dist(h.target, me) > busy) && (!lead || dist(spire, lead) < LEASH + 300)) h.target = spire;
 		const t = h.target;
 		const intent: Intent = { ...IDLE };
 		// Only the Flash stays on the ground
@@ -757,6 +953,20 @@ export class HeroInput implements InputSource {
 			intent.moveY = dy * k;
 		}
 		return intent;
+	}
+
+	/** The nearest broken Manhunter's core that no other hero is already on (with one hero, any core). */
+	private nearestCore(me: Player): Dummy | null {
+		const others = this.world.players.filter((p) => p !== me && p.hero && !p.downed);
+		let best: Dummy | null = null;
+		for (const d of this.world.dummies) {
+			if (d.kind !== 'manhunterCore' || !isStanding(d)) continue;
+			// (Hawkgirl goes for any core: her mace is made for them)
+			if (me.hero?.id !== 'hawkgirl' && others.some((p) => p.hero!.target === d)) continue;
+			if (others.length > 0 && dist(d, me) > CORE_RANGE) continue;
+			if (!best || dist(d, me) < dist(best, me)) best = d;
+		}
+		return best;
 	}
 
 	/**

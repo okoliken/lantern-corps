@@ -37,7 +37,7 @@ import type { Dummy } from '../dummy';
 import { createDummy, isStanding } from '../dummy';
 import { drawDigSite, drawLampPost, drawStreetTree } from '../draw/earth';
 import { drawGorilla } from '../draw/gorillas';
-import { CITY_BLOCK, ROAD_OFFSET, ROAD_WIDTH } from '../draw/world';
+import { CITY_BLOCK, ROAD_OFFSET, ROAD_WIDTH, type GroundStyle } from '../draw/world';
 import { beginWindup, createEnemy, type Enemy, type EnemyKind } from '../enemies/enemies';
 import type { AbilityId } from '../enemies/redConstructs';
 import type { Drawable, Game } from '../game';
@@ -162,7 +162,7 @@ const KITS: Record<1 | 2 | 3, AbilityId[]> = {
 };
 
 /** Where the roads run (the ground draws them the same way). */
-const roadsAlong = (length: number) => {
+export const roadsAlong = (length: number) => {
 	const list: number[] = [];
 	for (let r = ROAD_OFFSET; r < length; r += CITY_BLOCK) list.push(r);
 	return list;
@@ -173,7 +173,13 @@ const roadsAlong = (length: number) => {
  * edges, open plazas in between, cars parked along the roads.
  */
 export function buildCentralCityMap(): GameMap {
-	const rand = seededRandom(1956);
+	return buildCityMap({ name: 'Central City', ground: 'street', seed: 1956, width: W, height: H, spawn: ENTRY, clear: DIG });
+}
+
+/** A city on the street grid (Central City by day, Detroit by night): `clear` is kept free of parked cars. */
+export function buildCityMap(city: { name: string; ground: GroundStyle; seed: number; width: number; height: number; spawn: { x: number; y: number }; clear: { x: number; y: number } }): GameMap {
+	const { width: W, height: H, clear: DIG, spawn: ENTRY } = city;
+	const rand = seededRandom(city.seed);
 	const obstacles: Obstacle[] = [];
 	const columns = roadsAlong(W);
 	const rows = roadsAlong(H);
@@ -206,9 +212,9 @@ export function buildCentralCityMap(): GameMap {
 		}
 	}
 	return {
-		name: 'Central City',
+		name: city.name,
 		environment: 'planet',
-		ground: 'street',
+		ground: city.ground,
 		width: W,
 		height: H,
 		spawn: ENTRY,
@@ -899,26 +905,29 @@ export class CallToArms implements MissionDirector {
 
 	/** Street lamps along the kerbs and trees on the plazas (drawn only, nothing to bump into). */
 	private decorations(ctx: CanvasRenderingContext2D): Drawable[] {
-		if (this.decor) return this.decor;
-		const rand = seededRandom(77);
-		const list: Drawable[] = [];
-		for (const y of roadsAlong(H)) {
-			for (let x = 150; x < W - 100; x += 320) {
-				if (roadsAlong(W).some((c) => x > c - 30 && x < c + ROAD_WIDTH + 30)) continue;
-				list.push({ baseY: y - 12, draw: () => drawLampPost(ctx, x, y - 12) });
-			}
-		}
-		for (let i = 0; i < 14; i++) {
-			const x = 300 + rand() * (W - 600);
-			const y = ROAD_OFFSET + ROAD_WIDTH + 60 + rand() * (H - 2 * (ROAD_OFFSET + ROAD_WIDTH) - 120);
-			const onRoad = roadsAlong(W).some((c) => x > c - 40 && x < c + ROAD_WIDTH + 40) || roadsAlong(H).some((r) => y > r - 40 && y < r + ROAD_WIDTH + 40);
-			if (onRoad || Math.hypot(x - DIG.x, y - DIG.y) < 300) continue;
-			const seed = rand();
-			list.push({ baseY: y, draw: () => drawStreetTree(ctx, x, y, seed) });
-		}
-		this.decor = list;
-		return list;
+		return (this.decor ??= cityDecor(ctx, W, H, 77, DIG));
 	}
+}
+
+/** Street lamps along the kerbs and trees on the plazas of a city map (drawn only, nothing to bump into); none near `clear`. */
+export function cityDecor(ctx: CanvasRenderingContext2D, width: number, height: number, seed: number, clear: { x: number; y: number }): Drawable[] {
+	const rand = seededRandom(seed);
+	const list: Drawable[] = [];
+	for (const y of roadsAlong(height)) {
+		for (let x = 150; x < width - 100; x += 320) {
+			if (roadsAlong(width).some((c) => x > c - 30 && x < c + ROAD_WIDTH + 30)) continue;
+			list.push({ baseY: y - 12, draw: () => drawLampPost(ctx, x, y - 12) });
+		}
+	}
+	for (let i = 0; i < 14; i++) {
+		const x = 300 + rand() * (width - 600);
+		const y = ROAD_OFFSET + ROAD_WIDTH + 60 + rand() * (height - 2 * (ROAD_OFFSET + ROAD_WIDTH) - 120);
+		const onRoad = roadsAlong(width).some((c) => x > c - 40 && x < c + ROAD_WIDTH + 40) || roadsAlong(height).some((r) => y > r - 40 && y < r + ROAD_WIDTH + 40);
+		if (onRoad || Math.hypot(x - clear.x, y - clear.y) < 300) continue;
+		const treeSeed = rand();
+		list.push({ baseY: y, draw: () => drawStreetTree(ctx, x, y, treeSeed) });
+	}
+	return list;
 }
 
 /**

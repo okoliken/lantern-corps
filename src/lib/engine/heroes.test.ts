@@ -3,7 +3,7 @@ import { damagePlayer, updatePlayerCombat } from './combat';
 import { createConstructWorld, type ConstructWorld } from './constructs/system';
 import { createDummy, updateDummy, type Dummy } from './dummy';
 import { createEnemy, type Enemy } from './enemies/enemies';
-import { GUARD, NTH_VS_CORE, MACE, TORNADO, heroMoving, updateHero } from './heroes';
+import { BRACELETS, FROST, GUARD, HAYMAKER, LASSO, NTH_VS_CORE, MACE, STEEL, TORNADO, heroMoving, updateHero } from './heroes';
 import { IDLE } from './input';
 import { LANTERNS, type HeroId } from './lanterns';
 import { createPlayer, updatePlayer, type Player } from './player';
@@ -12,7 +12,7 @@ const DT = 1 / 60;
 
 function arena(id: HeroId, foes: Dummy[]) {
 	const p = createPlayer(1, LANTERNS[id], { read: () => IDLE }, 0, 0);
-	if (id === 'hawkgirl') {
+	if (id !== 'flash') {
 		p.flying = true;
 		p.altitude = 1;
 	}
@@ -134,5 +134,86 @@ describe('Hawkgirl', () => {
 		p.hero!.cooldowns.dive = p.hero!.cooldowns.rush = p.hero!.cooldowns.thunder = 99;
 		run(p, w, 0.4);
 		expect(core.maxHp - core.hp).toBeCloseTo(MACE.damage * NTH_VS_CORE);
+	});
+});
+
+describe('Superman', () => {
+	it('Haymaker: across the street in a blink, and one punch that sends them flying', () => {
+		const e = foe(420, 0);
+		const { p, w } = arena('superman', [e]);
+		p.hero!.target = e;
+		p.hero!.cooldowns.heat = 99;
+		let speed = 0;
+		run(p, w, 0.7, () => (speed = Math.max(speed, Math.hypot(e.vx, e.vy))));
+		expect(e.maxHp - e.hp).toBeGreaterThanOrEqual(HAYMAKER.damage);
+		expect(speed).toBeGreaterThan(300);
+		expect(e.x).toBeGreaterThan(440);
+	});
+
+	it('Heat Vision burns someone out of reach, without him moving in', () => {
+		const e = foe(500, 0);
+		const { p, w } = arena('superman', [e]);
+		p.hero!.target = e;
+		p.hero!.cooldowns.haymaker = 99;
+		// (he uses it half the time it's ready: give him a few chances)
+		run(p, w, 3);
+		expect(e.hp).toBeLessThan(e.maxHp - 40);
+		expect(Math.abs(p.x)).toBeLessThan(40);
+	});
+
+	it('Freeze Breath stops everything in the cone where it stands, and nothing behind him', () => {
+		const front = [foe(160, -30), foe(200, 40)];
+		const behind = foe(-180, 0);
+		const { p, w } = arena('superman', [...front, behind]);
+		p.hero!.target = front[0];
+		p.hero!.cooldowns.frost = 0;
+		run(p, w, 0.4);
+		for (const e of front) expect(e.stun).toBeGreaterThan(FROST.stun - 0.5);
+		expect(behind.stun).toBe(0);
+	});
+
+	it('is the Man of Steel: only part of any hit gets through', () => {
+		const { p, w } = arena('superman', []);
+		damagePlayer(w, p, 40, 100, 0);
+		expect(p.maxHealth - p.health).toBeCloseTo(40 * STEEL);
+	});
+});
+
+describe('Wonder Woman', () => {
+	it('Lasso: ropes someone out of reach and drags them to her, helpless', () => {
+		const e = foe(450, 0);
+		const { p, w } = arena('wonderwoman', [e]);
+		p.hero!.target = e;
+		p.hero!.cooldowns.lasso = 0;
+		run(p, w, 0.3);
+		expect(p.hero!.move?.power).toBe('lasso');
+		expect(e.stun).toBeGreaterThan(1);
+		run(p, w, LASSO.pullTime + 0.3);
+		expect(Math.hypot(e.x - p.x, e.y - p.y)).toBeLessThan(200);
+		expect(e.hp).toBeLessThan(e.maxHp);
+	});
+
+	it('Bracelets: up against a big hit, most of it is turned aside and shots near her burst', () => {
+		const e = foe(200, 0);
+		const { p, w } = arena('wonderwoman', [e]);
+		e.brain.target = p;
+		e.brain.state = 'windup';
+		p.hero!.cooldowns.lasso = 99;
+		run(p, w, 0.1);
+		expect(p.hero!.guard).toBeGreaterThan(BRACELETS.time - 0.2);
+		w.red.shots.push({ kind: 'bolt', owner: e, x: p.x + 60, y: p.y, prevX: p.x + 60, prevY: p.y, vx: -100, vy: 0, life: 2, speed: 100, damage: 10, knockback: 0, ignore: [], hit: [], travelled: 0, out: 400, returning: false });
+		run(p, w, 0.05);
+		expect(w.red.shots.length).toBe(0);
+		damagePlayer(w, p, 40, 100, 0);
+		expect(p.maxHealth - p.health).toBeCloseTo(40 * GUARD.takes);
+	});
+
+	it('Sword: lunges in and cuts', () => {
+		const e = foe(250, 0);
+		const { p, w } = arena('wonderwoman', [e]);
+		p.hero!.target = e;
+		p.hero!.cooldowns.lasso = 99;
+		run(p, w, 1.2);
+		expect(e.hp).toBeLessThan(e.maxHp - 30);
 	});
 });

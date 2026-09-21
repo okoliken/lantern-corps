@@ -3,7 +3,7 @@
 
 import { GREEN_LIGHT, THEME_GREEN } from '../theme';
 
-export type Speaker = 'tomar' | 'hal' | 'john' | 'ring' | 'guardian' | 'kilowog' | 'razer';
+export type Speaker = 'tomar' | 'hal' | 'john' | 'ring' | 'guardian' | 'kilowog' | 'razer' | 'jonn';
 
 export interface SceneLine {
 	who: Speaker;
@@ -19,7 +19,8 @@ export const SPEAKERS: Record<Speaker, { name: string; color: string }> = {
 	ring: { name: 'The ring', color: THEME_GREEN },
 	guardian: { name: 'The Guardians', color: '#7fb4ff' },
 	kilowog: { name: 'Kilowog', color: '#e8b0b6' },
-	razer: { name: 'Razer', color: '#ff6b6b' }
+	razer: { name: 'Razer', color: '#ff6b6b' },
+	jonn: { name: "J'onn J'onzz", color: '#78dcaa' }
 };
 
 /**
@@ -79,6 +80,20 @@ export const CONFESSION: SceneLine[] = [
 	{ who: 'hal', text: "Then you're going to show us where it is." },
 	{ who: 'razer', text: 'I will take you. Not for them. Never for them. For what is behind that door, and what it did.' },
 	{ who: 'kilowog', text: "Good enough for me. Open the cell, Jordan. We're going." }
+];
+
+/**
+ * Start of Act 2, Mission 5: the Manhunters that got out of the vault come
+ * down over Detroit, and the Martian Manhunter introduces himself.
+ */
+export const THE_SIGNAL: SceneLine[] = [
+	{ who: 'ring', text: "Warning. Three objects entering Earth's atmosphere. Manhunter signatures.", mood: 'alarm' },
+	{ who: 'john', text: "The ones that got out of Hal's vault. Where are they headed?" },
+	{ who: 'ring', text: 'Here. And they are not alone. Dormant units detected beneath this city. They are waking.', mood: 'alarm' },
+	{ who: 'jonn', text: "John Stewart. Do not be alarmed. I am J'onn J'onzz, of the Justice League, and I am speaking to your mind." },
+	{ who: 'john', text: "A voice in my head telling me not to be alarmed. That's alarming." },
+	{ who: 'jonn', text: 'They are waking beneath seven cities. Yours is the largest nest. The League is coming, but you are closest. You will be alone at first.', mood: 'alarm' },
+	{ who: 'john', text: "I've been alone in worse places than Eight Mile. Ring: take us down." }
 ];
 
 /** End of Mission 1: Tomar-Re's ship sets down on Oa. */

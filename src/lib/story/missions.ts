@@ -208,6 +208,27 @@ MISSIONS.push({
 	partner: 'kilowog'
 });
 
+MISSIONS.push({
+	id: 'sleepers',
+	title: 'Sleepers',
+	tagline: 'The Manhunters that escaped the vault are waking the ones buried under Earth. John holds Detroit, and the Justice League comes to him.',
+	lantern: 'john',
+	environment: 'planet',
+	place: 'Earth · Detroit',
+	briefing: [
+		'Some Manhunters got out of the vault before Hal sealed it, and they came to Earth. They did not come to fight. They came to wake the rest: machines buried under seven cities since before there were cities.',
+		"The largest nest is under Detroit. John Stewart's city. He is closest, so he is first, and for a while he is alone.",
+		"The Justice League is on its way, one at a time, as fast as each can get there. J'onn J'onzz links them mind to mind. Batman is watching from above. Something under the east junction is drawing a great deal of power."
+	],
+	objectives: [
+		'Break the Manhunters as they come up through the street, and smash their cores before they rebuild',
+		'Hold on: the Flash, Hawkgirl, Superman and Wonder Woman arrive as the fight goes on',
+		'Tear down the signal spire before its signal is complete',
+		'When the spire is about to pulse, get clear of it or shield'
+	],
+	partner: 'flash'
+});
+
 export function missionById(id: string): MissionInfo | undefined {
 	return MISSIONS.find((m) => m.id === id);
 }
@@ -249,7 +270,7 @@ export const ACTS: ActInfo[] = [
 			'summoned',
 			'colony-under-fire',
 			'the-guardians-shame',
-			{ title: 'Sleepers', tagline: 'Manhunters wake up all over Earth. John stands with the Justice League.' },
+			'sleepers',
 			{ title: 'Manhunter Prime', tagline: 'Hal and John, together, at the heart of the vault.' }
 		]
 	},

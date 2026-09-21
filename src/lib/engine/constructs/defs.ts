@@ -377,7 +377,9 @@ export const LOADOUTS: Record<CrewId, ConstructId[]> = {
 	// Heroes don't use a ring (heroes.ts has their powers); this only sets how far they look for a target
 	flash: ['beam'],
 	hawkgirl: ['beam'],
-	razer: ['beam']
+	razer: ['beam'],
+	superman: ['beam'],
+	wonderwoman: ['beam']
 };
 
 /** How many traps a single Lantern can have out at once. */

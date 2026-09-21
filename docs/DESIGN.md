@@ -424,6 +424,40 @@ Kilowog", "the boss should be fierce... we're bullying him").**
   (Rage Slam away) or shatters. Health x3.2, might 2.25. Bots: win ~2/6; losses get him to 7-24%;
   2-3 minute duels; ~15 target switches.
 
+**Act 2 · Mission 5: Sleepers** (John; the League joins through `game.addPartner`; Detroit at night;
+`missions/sleepers.ts`, map `buildDetroitMap` = `buildCityMap` (shared with Central City, now in
+`callToArms.ts` with `cityDecor`) on the new `nightStreet` ground (the street grid under a blue night
+wash); art `draw/sleepers.ts` (`drawSignalSpire`, `drawStreetBreak`, `drawBatwing`); intro scene
+`scenes/theSignal.ts` with `THE_SIGNAL` lines and the new `jonn` speaker). Sleepers **come up through
+the street** (`waking` list: a glow, then a quake, a hole left behind, and the Manhunter stunned 0.9s;
+standing on the spot throws you clear). Phases: **wake** (2 Manhunters, John alone; the Flash after
+9s or the first one broken, + 3 more) → **league** in three waves, each when the last is cleared:
+street (7 + 3 drones, Hawkgirl dives in 4s in), flanks (9 + 4 drones, Superman lands 6s in: 160 damage
+in 240px), and the **surge** (10 in a ring 320px round John himself) → **spire** → **silence** →
+**offer** (the League gathers round John; he joins). Half of each league wave and every surge
+Manhunter is **marked** on John (`brain.grudge` held for 18s), so the League doesn't soak everything.
+**The spire** (`signalSpire` target kind, 12000 hp, drawn by the mission, rises for 3.5s first): the
+signal fills over 130s (`SIGNAL_TIME`); complete = "SIGNAL SENT", it costs the third star but the
+spire still has to come down. It **pulses** every 12s (1.6s `slamMark` warning, 340px, 34 damage and a
+big knockback: get clear or shield), wakes a sleeper every 5s (7 up at once, 24 in all, every other
+one marked), Wonder Woman arrives 6s in, and **Batman's Batwing** strafes every 34s: 6 bombs 120px
+apart through the thickest of them, 90 damage each (`boom` hero fx: orange fireballs). Spire down =
+every Manhunter and core drops for good. Cores as in the vault (300 hp, 7s, 45%, wear 0.75).
+Manhunters health x1.15, might 3.5; drones x2.5, might 3.3; `maxHit` 36. ★ spire down ★ no lives lost
+★ before the signal is complete. Bots: win 6/6 in ~7 min, John under 20% in 4 of 6, a life lost in 1;
+signal 77-100% (the bot fights Manhunters rather than the spire: a player who goes for it gets the
+star).
+**New heroes** (`heroes.ts`, art `draw/league.ts`): **Superman** (Haymaker: 1050px/s in, 36 damage,
+900 knockback; Heat Vision: 0.9s of 11 per 0.15s out to 680px; Freeze Breath: a 300px cone, stun 2.4s;
+Hawkgirl's dive as a meteor, x1.4; `STEEL`: only half of any hit gets through, in `combat.ts`) and
+**Wonder Woman** (Razer's blades as a sword, in gold; Lasso: ropes an enemy 190-600px away, stuns 1.6s
+and drags them to her at 900px/s; Bracelets: the guard, 1.2s, and shots within 120px burst; Clash: the
+thunderclap as a gold shockwave). Both go for the spire unless someone is within 170px of them; the
+Flash and Hawkgirl only when nobody is within 420px. Heroes now share cores out: each takes the
+nearest core no other hero is on, within 800px (Hawkgirl takes any: Nth metal). `HeroFx` gained
+`heat`, `frost`, `lasso` (its ends `track` the two bodies), `spark`, `boom`, a `gold` flag, and effects
+with a negative age wait their turn (staggered explosions).
+
 **Act 2 · Mission 4: The Guardians' Shame** (Hal + Kilowog and Razer as AI allies; a dead world;
 `missions/guardiansShame.ts`, map `buildVaultMap` (`ground: 'vault'`), art `draw/vault.ts`
 (`drawVaultDoor`, `drawCliff`, `drawPylon`, `drawSealBeam`), intro scene `scenes/confession.ts` with

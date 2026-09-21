@@ -73,6 +73,18 @@ export class Autopilot implements InputSource {
 			}
 		}
 
+		// Something the mission wants torn down (a signal spire): shoot it whenever nobody's in the way
+		const spire = game.dummies.find((d) => d.kind === 'signalSpire' && isStanding(d));
+		if (spire && !core && !game.enemies.some((e) => isStanding(e) && dist(e, me) < 260)) {
+			intent.pointer = { x: spire.x, y: spire.y - 90 - me.ringLift };
+			intent.shot = true;
+			const d = dist(spire, me);
+			if (d > 320) {
+				intent.moveX = (spire.x - me.x) / d;
+				intent.moveY = (spire.y - me.y) / d;
+			}
+		}
+
 		// Whatever you're protecting (a ship, colonists) gets the bubble when it's in danger
 		const guard = game.constructs.protectables.some((t) => t.threat > 1 && dist(t, me) < BUBBLE_SHIELD.range + t.radius);
 		if (guard && me.shieldCooldown === 0) intent.shield = true;

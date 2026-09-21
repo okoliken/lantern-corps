@@ -644,6 +644,9 @@ export class Game {
 						? () => drawRageTorpedo(ctx, d, x, y, this.time)
 						: d.kind === 'manhunterCore'
 						? () => drawManhunterCore(ctx, d, x, y, this.time)
+						: d.kind === 'signalSpire'
+						? () => {} // the mission draws it
+
 						: d.drift
 							? () => drawSpaceRock(ctx, d, x, y, this.time)
 							: () => drawDummy(ctx, d, x, y, env.hasGround, this.time, this.settings.reduceFlashing)
@@ -907,6 +910,8 @@ export class Game {
 							? 'Rage torpedo'
 							: t.dummy.kind === 'manhunterCore'
 								? 'Manhunter core'
+								: t.dummy.kind === 'signalSpire'
+									? 'Signal spire'
 								: 'Dummy'
 				: t.kind === 'ally'
 					? t.player.def.name

@@ -217,8 +217,20 @@ Atrocitus wants them.
    pylons to close the vault, smashing cores so the broken ones stay down, then **Bleez** arrives for
    Razer ("Atrocitus said you were dead. I told him you were worse: you were theirs"). The vault
    holds, but some got out, heading for Earth: that sets up Sleepers.
-5. **Sleepers** (Earth): Manhunters wake up across Earth; John stands with the Justice League, who
-   offer him a place on the team.
+5. **Sleepers** (built 2026-09-21; John, and the Justice League arriving one at a time). Opening
+   scene, **the Signal**: John on his roof in Detroit, in uniform, as three lights come down over the
+   city (the Manhunters that got out of the vault); eyes open in the streets below; **J'onn J'onzz**
+   introduces himself inside John's head ("A voice in my head telling me not to be alarmed. That's
+   alarming"). They are waking under seven cities; Detroit is the largest nest, and John is closest.
+   He fights alone on Eight Mile until **the Flash** gets there, then **Hawkgirl**, then **Superman**
+   comes down on top of them like a meteor ("Tonight it is your city. Where do you want me?"). The
+   Manhunters mark the Lantern as the priority target and come up in a ring round him. Then the east
+   junction splits and a **signal spire** rises: they are calling something that thinks for all of
+   them. **Wonder Woman** arrives, **Batman** strafes the street in the Batwing, and the League tears
+   the spire down; every Manhunter drops where it stands. Some or all of the signal got out, and
+   something answered. The League offers John a seat ("So have two jobs! I have two jobs. Bats has,
+   like, five"); he says yes. Hal calls from Oa: it is called Manhunter Prime, and it is awake.
+   Running joke: the Flash asks J'onn whether he isn't the Martian *Manhunter*.
 6. **Boss: Manhunter Prime**: Hal and John together; choose who to play. It learns your constructs.
 
 ### Act 3: Blood Oath
