@@ -113,6 +113,20 @@ export const THE_FIRST: SceneLine[] = [
 	{ who: 'john', text: "I've seen your odds, Jordan. Let's go." }
 ];
 
+/**
+ * Start of Act 3: the Red fleet over Oa, with most of the Corps still
+ * scattered across the sectors.
+ */
+export const RED_DAWN: SceneLine[] = [
+	{ who: 'ring', text: 'Alert. Red Lantern fleet in orbit over Oa. Drop pods launching.', mood: 'alarm' },
+	{ who: 'kilowog', text: "Every Lantern we got is out chasin' Manhunters. That was the point, wasn't it?", mood: 'alarm' },
+	{ who: 'guardian', text: 'They have come for the Central Battery. Every ring in the Corps draws on its light. If it goes dark, so do they.' },
+	{ who: 'john', text: 'Then it does not go dark. Three of us, one battery. We make a perimeter and we hold it.' },
+	{ who: 'hal', text: "Three of us against a fleet. I've had worse Tuesdays.", mood: 'grin' },
+	{ who: 'guardian', text: 'Hold until we can wake it fully. The Corps is coming home as fast as it can.' },
+	{ who: 'kilowog', text: "You heard 'em, poozers. Nobody touches that battery!", mood: 'alarm' }
+];
+
 /** End of Mission 1: Tomar-Re's ship sets down on Oa. */
 export const OA_LANDING: SceneLine[] = [
 	{ who: 'tomar', text: 'Oa. For a while out there, I did not think I would see her towers again.' },

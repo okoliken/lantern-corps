@@ -12,7 +12,7 @@ import { PrisonMoon, buildPrisonMap } from '$lib/engine/missions/prisonMoon';
 import { RazerBoss, buildRazerMap } from '$lib/engine/missions/razerBoss';
 import { OaLanding } from '$lib/engine/scenes/oaLanding';
 import type { DialogueScene } from '$lib/engine/scenes/scene';
-import { CONFESSION, JOHN_CALLED, JOHN_CHOSEN, OA_LANDING, SUMMONED, THE_FIRST, THE_SIGNAL } from '$lib/story/scenes';
+import { CONFESSION, JOHN_CALLED, JOHN_CHOSEN, OA_LANDING, RED_DAWN, SUMMONED, THE_FIRST, THE_SIGNAL } from '$lib/story/scenes';
 import { JohnChosen } from '$lib/engine/scenes/johnChosen';
 import { CallToArms, buildCentralCityMap } from '$lib/engine/missions/callToArms';
 import { SummonedTrial, buildTrialMap } from '$lib/engine/missions/summoned';
@@ -22,6 +22,8 @@ import { Sleepers, buildDetroitMap } from '$lib/engine/missions/sleepers';
 import { TheSignal } from '$lib/engine/scenes/theSignal';
 import { ManhunterPrimeBoss, buildHeartMap } from '$lib/engine/missions/manhunterPrime';
 import { TheFirst } from '$lib/engine/scenes/theFirst';
+import { SiegeOfOa, buildOaPlazaMap } from '$lib/engine/missions/siegeOfOa';
+import { RedDawn } from '$lib/engine/scenes/redDawn';
 import type { LanternId } from '$lib/engine/lanterns';
 import { Summoned } from '$lib/engine/scenes/summoned';
 
@@ -41,6 +43,22 @@ type Options = Pick<GameOptions, 'settings' | 'profiles' | 'onProgress' | 'zoom'
 
 export function buildMission(id: string, options: Options): MissionRun {
 	switch (id) {
+		case 'siege-of-oa': {
+			const map = buildOaPlazaMap();
+			const me: LanternId = options.as ?? 'hal';
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: me, keys: 'solo' },
+					{ lantern: me === 'hal' ? 'john' : 'hal', keys: 'p2', ai: true },
+					{ lantern: 'kilowog', keys: 'p2', ai: true }
+				],
+				map
+			});
+			const director = new SiegeOfOa();
+			game.director = director;
+			return { game, director, outro: null, intro: () => new RedDawn(RED_DAWN) };
+		}
 		case 'manhunter-prime': {
 			const map = buildHeartMap();
 			const me: LanternId = options.as ?? 'hal';

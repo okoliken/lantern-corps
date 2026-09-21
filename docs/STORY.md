@@ -245,7 +245,23 @@ Atrocitus wants them.
    Corps away. The ring: Red Lantern fleet massing in Sector 666, heading for Oa. **End of Act 2.**
 
 ### Act 3: Blood Oath
-*Into Sector 666, to end it at the source.* Red space, Dex-Starr, Ysmault, Atrocitus. To plan.
+*Atrocitus comes for Oa, and the Corps goes after him: into Sector 666, to end it at the source.*
+The user chose the siege opening (2026-09-21) over going straight into Sector 666.
+
+1. **Siege of Oa** (built 2026-09-21; Hal or John, the other and Kilowog beside you). Opening scene,
+   **Red Dawn**: the Red fleet over Oa, streaks of rage falling on the Central Battery, and most of the
+   Corps still out chasing Manhunters ("That was the point, wasn't it?"). Three Lanterns hold the
+   battery every ring draws on. Drop pods land round it and any Red Lantern that reaches it drinks its
+   light; fighters torpedo it; Zox and Skallox land. Then the Lanterns Hal freed from the prison moon
+   in Act 1 come home ("You broke us out of that prison. We came home to return the favour"). The
+   flagship fires on the plaza for a minute while the Guardians wake the battery; it blazes out as
+   everyone says the oath, and the fleet runs. In the light nobody sees **Dex-Starr** until he is
+   gone, with **Ganthet** in a bubble of rage ("Dex-Starr is GOOD KITTY"). The fleet was cover, again:
+   Ganthet knows the way into the Book of the Black.
+2. **Dex-Starr**: hunt him through the wreckage of the siege, and get Ganthet back (planned).
+3. **Into Sector 666**: Red space, the dead sector where it all began (planned).
+4. **Ysmault**: the Red Lanterns' home world, and the Blood Altar (planned).
+5. **Boss: Atrocitus**: it takes every Lantern you have (planned).
 
 ### Act 4
 To be revealed.

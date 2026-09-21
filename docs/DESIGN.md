@@ -424,6 +424,24 @@ Kilowog", "the boss should be fierce... we're bullying him").**
   (Rage Slam away) or shatters. Health x3.2, might 2.25. Bots: win ~2/6; losses get him to 7-24%;
   2-3 minute duels; ~15 target switches.
 
+**Act 3 · Mission 1: Siege of Oa** (Hal or John via `choose`, the other and Kilowog as AI partners;
+`missions/siegeOfOa.ts`, map `buildOaPlazaMap` (`oa` ground, open plaza; the ring battery sits at the
+foot of the Central Battery, so you recharge there), art `draw/siege.ts` (`drawCentralBattery`,
+`drawDrain`, `drawDropPod`, `drawOrbitalStrike`, `drawDexStarr`), intro scene `scenes/redDawn.ts` with
+`RED_DAWN` lines). **The battery** has 1000 light and is a `Protectable` (radius 120), so a bubble
+shield on it takes hits and the AI shields it when threatened. Every Red Lantern within 300px
+**drains** it at 3.6/s (a dashed red line to it; the warning at 3+); with none on it, it **refills**
+at 2/s. Lose if it hits 0. **Drop pods** (`pods`: a 1.4s fall with a target ring, then a 90px landing
+that throws Lanterns clear) put Reds in rings 520-600px round it; 45% are **sappers** that drift in
+toward the battery (600 px/s² pull) whatever they're fighting. Phases: **drop** (waves of 6, 8, 10) →
+**bombard** (6 fighters + 8 escorts; torpedoes at the battery every 4-6s, 35 each) → **corps** (Zox and
+Skallox at health x5.5, a pod every 4.5s while either stands; 18s in, **Arisia, Katma Tui and
+Boodikka** come home via `addPartner`) → **flagship** (60s: a strike every ~1.6s with a 1.5s
+`slamMark`, half on the battery (60) and half on the Lanterns (30), pods every 2.4s up to 12 Reds) →
+**flare** (every Red takes 9999, the oath over the radio) → **taken** (Dex-Starr's 6s escape with Ganthet)
+→ won. Reds health x3.4, might 3.6; `maxHit` 36. ★ Oa held ★ no lives lost ★ the battery above half.
+Bots: win 4/6, the battery ends at 14-37%; losses in the bombard and corps phases.
+
 **Act 2 · Boss: Manhunter Prime** (Hal and John, you choose: `MissionInfo.choose` puts a picker on
 the briefing and `buildMission(id, { as })` builds with that Lantern first and the other as an AI
 partner; `missions/manhunterPrime.ts`, map `buildHeartMap` (the `vault` ground, a back wall at

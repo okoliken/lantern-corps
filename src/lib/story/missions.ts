@@ -252,6 +252,28 @@ MISSIONS.push({
 	]
 });
 
+MISSIONS.push({
+	id: 'siege-of-oa',
+	title: 'Siege of Oa',
+	tagline: 'The Manhunters were a distraction. The Red fleet is over Oa, the Corps is scattered, and three Lanterns hold the Central Battery.',
+	lantern: 'hal',
+	choose: ['hal', 'john'],
+	environment: 'planet',
+	place: 'Oa · The Central Battery',
+	briefing: [
+		'Manhunter Prime\'s last words gave it away: Atrocitus wanted the Corps looking at the Manhunters. While every Lantern was out chasing them, his fleet came for Oa.',
+		'The Central Battery is the light every ring in the Corps draws on. The Red Lanterns will try to drink it dry, and crack it open from the air. If it goes dark, so does every Green Lantern.',
+		'Hal Jordan, John Stewart and Kilowog are all the Corps has on the ground. Choose who you play. Hold until the Guardians can wake the battery.'
+	],
+	objectives: [
+		'Keep the Red Lanterns away from the Central Battery: any near it drain its light',
+		'Shoot down torpedoes aimed at the battery, or put a bubble shield on it',
+		'When the flagship fires, get out of the red circles',
+		'Stand at the foot of the battery to recharge your ring'
+	],
+	partner: 'kilowog'
+});
+
 export function missionById(id: string): MissionInfo | undefined {
 	return MISSIONS.find((m) => m.id === id);
 }
@@ -297,7 +319,18 @@ export const ACTS: ActInfo[] = [
 			'manhunter-prime'
 		]
 	},
-	{ number: 3, title: 'Blood Oath', tagline: 'Into Sector 666, to end it at the source.', lineup: [] },
+	{
+		number: 3,
+		title: 'Blood Oath',
+		tagline: 'Atrocitus comes for Oa, and the Corps goes after him: into Sector 666, to end it at the source.',
+		lineup: [
+			'siege-of-oa',
+			{ title: 'Dex-Starr', tagline: 'A Red Lantern cat has a Guardian. Hunt him through the wreckage of the siege.' },
+			{ title: 'Into Sector 666', tagline: 'Red space: the dead sector where it all began.' },
+			{ title: 'Ysmault', tagline: 'The Red Lanterns\' home world, and the Blood Altar.' },
+			{ title: 'Boss: Atrocitus', tagline: 'It will take every Lantern you have.' }
+		]
+	},
 	{ number: 4, title: 'To be revealed', tagline: '', lineup: [] }
 ];
 
