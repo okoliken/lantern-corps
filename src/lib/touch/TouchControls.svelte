@@ -37,7 +37,6 @@
 	let pressed = $state<Record<string, boolean>>({});
 	/** The signature is ready (lights up R2), and whether there's backup to call. */
 	let surgeReady = $state(false);
-	let portrait = $state(false);
 	/** Only while the fight is on: behind a briefing, a scene, the pause menu or the results they'd be in the way. */
 	let live = $state(false);
 	let size = $state({ w: 0, h: 0 });
@@ -163,7 +162,6 @@
 		const sleep = keepAwake();
 		const measure = () => {
 			size = { w: window.innerWidth, h: window.innerHeight };
-			portrait = size.h > size.w;
 		};
 		measure();
 		window.addEventListener('resize', measure);
@@ -260,12 +258,7 @@
 </div>
 {/if}
 
-{#if portrait}
-	<div class="rotate" role="alert">
-		<div class="phone"></div>
-		<p>Turn your phone sideways to play</p>
-	</div>
-{/if}
+
 
 <style>
 	.touch {
@@ -421,40 +414,5 @@
 	}
 	.pill.down {
 		background: var(--suit);
-	}
-	.rotate {
-		position: fixed;
-		inset: 0;
-		z-index: 50;
-		display: grid;
-		place-content: center;
-		justify-items: center;
-		gap: 1rem;
-		background: rgba(3, 6, 10, 0.94);
-		text-align: center;
-		padding: 2rem;
-	}
-	.rotate p {
-		margin: 0;
-		font-family: var(--font-display);
-		color: var(--green);
-		letter-spacing: 0.06em;
-	}
-	.phone {
-		width: 44px;
-		height: 76px;
-		border: 3px solid var(--green);
-		border-radius: 8px;
-		animation: turn 2s ease-in-out infinite;
-	}
-	@keyframes turn {
-		0%,
-		30% {
-			transform: rotate(0deg);
-		}
-		60%,
-		100% {
-			transform: rotate(-90deg);
-		}
 	}
 </style>

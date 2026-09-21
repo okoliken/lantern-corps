@@ -5,6 +5,7 @@
 	import '@fontsource-variable/exo-2/wght.css';
 	import '@fontsource-variable/exo-2/wght-italic.css';
 
+	import RotatePrompt from '$lib/touch/RotatePrompt.svelte';
 	import { SUIT_GREEN, SUIT_GREEN_DARK, SUIT_GREEN_LIT, THEME_GREEN } from '$lib/theme';
 
 	let { children } = $props();
@@ -20,6 +21,9 @@
 </svelte:head>
 
 {@render children()}
+
+<!-- A phone held upright is asked to turn sideways, on every page -->
+<RotatePrompt />
 
 <style>
 	:global(:root) {
