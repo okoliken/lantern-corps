@@ -3,6 +3,9 @@
 // Dex-Starr.
 
 import { drawGuardian } from '../scenes/summoned';
+import { isStanding } from '../dummy';
+import type { Enemy } from '../enemies/enemies';
+import { SLAM_HEIGHT } from '../enemies/redConstructs';
 
 const OUTLINE = '#050302';
 const TAU = Math.PI * 2;
@@ -287,3 +290,33 @@ export function drawDexStarr(ctx: CanvasRenderingContext2D, x: number, y: number
 	ctx.fillRect(13.6, -9.2, 1.8, 1.2);
 	ctx.restore();
 }
+
+/** How high Dex-Starr flies (px above his ground point). */
+const DEX_HOVER = 56;
+
+/** Dex-Starr as an enemy: flying at head height over his shadow, flashing white when hit. */
+export function drawDexStarrEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number) {
+	const defeated = !isStanding(e);
+	const air = e.brain.air * SLAM_HEIGHT;
+	const bob = defeated ? 0 : Math.sin(time * 5 + e.homeX) * 4;
+	ctx.save();
+	ctx.globalAlpha = defeated ? Math.min(1, e.down / 0.5) : 1;
+	if (hasGround) {
+		ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+		ctx.beginPath();
+		ctx.ellipse(x, y, 16, 5, 0, 0, TAU);
+		ctx.fill();
+	}
+	const lift = defeated ? 12 : DEX_HOVER + air;
+	drawDexStarr(ctx, x, y - lift + bob, time, e.dir, false);
+	if (e.flash > 0) {
+		ctx.globalCompositeOperation = 'lighter';
+		ctx.globalAlpha = Math.min(1, e.flash * 6) * 0.6;
+		drawDexStarr(ctx, x, y - lift + bob, time, e.dir, false);
+	}
+	ctx.restore();
+}
+
+export const dexStarrHand = (e: Enemy, x: number, y: number): [number, number] => [x + e.dir * 22, y - DEX_HOVER - e.brain.air * SLAM_HEIGHT - 12];
+export const dexStarrTop = (e: Enemy, y: number) => y - DEX_HOVER - e.brain.air * SLAM_HEIGHT - 44;
+

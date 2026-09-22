@@ -127,6 +127,16 @@ export const RED_DAWN: SceneLine[] = [
 	{ who: 'kilowog', text: "You heard 'em, poozers. Nobody touches that battery!", mood: 'alarm' }
 ];
 
+/** Start of Act 3, Mission 2: the morning after the siege, and a column of smoke on the far plains. */
+export const THE_TRAIL: SceneLine[] = [
+	{ who: 'guardian', text: 'Ganthet is taken. Of all of us, the one who knows the way into the Book of the Black.', mood: 'alarm' },
+	{ who: 'kilowog', text: "One of their dreadnoughts didn't make it off-world. Came down on the far plains. Scanners say somethin' small crawled out of it." },
+	{ who: 'hal', text: 'Small. Furry. Angry. With a Guardian in a bubble.', mood: 'grin' },
+	{ who: 'john', text: "If he's still on Oa, we can still get Ganthet back. Once he's off-world, we can't." },
+	{ who: 'kilowog', text: "Then go. I'll hold things here. And poozers: it's a cat. Don't let it make you look stupid." },
+	{ who: 'hal', text: "Too late for that. Let's go, John." }
+];
+
 /** End of Mission 1: Tomar-Re's ship sets down on Oa. */
 export const OA_LANDING: SceneLine[] = [
 	{ who: 'tomar', text: 'Oa. For a while out there, I did not think I would see her towers again.' },

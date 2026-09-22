@@ -464,6 +464,22 @@ Kilowog", "the boss should be fierce... we're bullying him").**
   (Rage Slam away) or shatters. Health x3.2, might 2.25. Bots: win ~2/6; losses get him to 7-24%;
   2-3 minute duels; ~15 target switches.
 
+**Act 3 · Mission 2: Dex-Starr** (Hal or John via `choose`, the other as AI partner; `missions/dexStarr.ts`,
+map `buildCrashSiteMap` (`ash` ground, ~23 hull plates as hidden solids drawn by the mission, the
+dreadnought's bow at the far end), art `draw/wreck.ts` (`drawHullPlate`, `drawDreadnoughtBow`,
+`drawRageBubble`, `drawPawPrints`), intro `scenes/theTrail.ts` with `THE_TRAIL`). New enemy **`dexStarr`**
+(hp 520, speed 240, hover, kit swoop / claws / vomit / spears / redShield; drawn by `drawDexStarrEnemy`
+in `draw/siege.ts`, flying 56px up) and target **`rageBubble`** (drawn by the mission; the autopilot and
+AI partner go for it like a core). Phases: **track** (he waits at his hiding place, held: can't be hurt
+or fight; within 520px he springs) → **ambush** (Reds round the hiding place; at 78 / 56 / 34% health
+(`BOLT_AT`) he bolts) → **flee** (3.2s along a curved path to the next of 4 hiding places, can't be hurt,
+leaving paw prints that fade over 14s; Ganthet's bubble goes with him) → ... → at the bow, at 12% he
+**drops Ganthet** and escapes; **rescue** (break the 2200 hp bubble while the last 4 Reds fight) →
+**freed**. **The trail** (0..1): cools 0.05/s while nobody is within 700px of him, warms 0.12/s within
+480 or during an ambush; 0 = lost ("escaped"). Dex health x16, might 4.4; Reds x3.8, might 4.1; Zox
+and Skallox x4; `maxHit` 36. ★ rescued ★ no lives lost ★ trail never below half. Bots: 6/6, ~3:45, a
+life lost in 5 of 6 (one on its last).
+
 **Act 3 · Mission 1: Siege of Oa** (Hal or John via `choose`, the other and Kilowog as AI partners;
 `missions/siegeOfOa.ts`, map `buildOaPlazaMap` (`oa` ground, open plaza; the ring battery sits at the
 foot of the Central Battery, so you recharge there), art `draw/siege.ts` (`drawCentralBattery`,

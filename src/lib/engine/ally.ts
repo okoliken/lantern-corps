@@ -114,7 +114,7 @@ export class AllyInput implements InputSource {
 		if (this.retreating) return;
 		let core: Dummy | null = null;
 		for (const d of this.world.dummies) {
-			if (d.kind !== 'manhunterCore' || !isStanding(d) || dist(d, me) > CORE_RANGE) continue;
+			if ((d.kind !== 'manhunterCore' && d.kind !== 'rageBubble') || !isStanding(d) || dist(d, me) > CORE_RANGE) continue;
 			if (!core || (d.rebuild ?? 0) > (core.rebuild ?? 0)) core = d;
 		}
 		if (!core) return;

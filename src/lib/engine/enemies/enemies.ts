@@ -28,7 +28,7 @@ import { flyShip } from './ships';
 import { updateSquads, type SquadRole } from './squad';
 import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
 
-export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire'>;
+export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire' | 'rageBubble'>;
 export type EnemyState = 'idle' | 'move' | 'windup' | 'act' | 'recover';
 export type Role = 'berserker' | 'hunter' | 'gunner';
 /** How a faction thinks: rage never backs down and gets faster when hurt; machines stay cold and regroup. */
@@ -243,6 +243,28 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		kit: ['swoop', 'spears', 'claws', 'cage', 'redShield'],
 		range: 240,
 		leans: { caution: 0.3, aggression: 0.2 },
+		lieutenant: true
+	},
+
+	// A cat. A Red Lantern cat. Small, very fast, and never where you're aiming
+	dexStarr: {
+		kind: 'dexStarr',
+		name: 'Dex-Starr',
+		faction: 'red',
+		description:
+			"A blue house cat from Earth whose rage drew a Red Lantern ring. Small, fast and hard to hit: he darts in with rage claws, dives out of the air, spits blood napalm and throws spears of rage. Calls himself a good kitty. He is not.",
+		mind: 'rage',
+		hp: 520,
+		speed: 240,
+		accel: 6,
+		sight: 900,
+		poise: 60,
+		scale: 1,
+		agility: 1,
+		movement: 'hover',
+		kit: ['swoop', 'claws', 'vomit', 'spears', 'redShield'],
+		range: 220,
+		leans: { caution: 0.2, aggression: 0.4 },
 		lieutenant: true
 	},
 

@@ -258,7 +258,14 @@ The user chose the siege opening (2026-09-21) over going straight into Sector 66
    everyone says the oath, and the fleet runs. In the light nobody sees **Dex-Starr** until he is
    gone, with **Ganthet** in a bubble of rage ("Dex-Starr is GOOD KITTY"). The fleet was cover, again:
    Ganthet knows the way into the Book of the Black.
-2. **Dex-Starr**: hunt him through the wreckage of the siege, and get Ganthet back (planned).
+2. **Dex-Starr** (built 2026-09-22; Hal or John, the other beside you). Opening scene, **the Trail**:
+   the morning after the siege, a column of smoke on the far plains where a Red dreadnought came down,
+   and "something small crawled out of it". Dex-Starr (third person, "GOOD KITTY") runs a chase across
+   the crash site: he waits at a hiding place with an ambush of Reds, bolts when hurt, dragging Ganthet's
+   bubble, and leaves glowing paw prints to follow; fall behind and the trail goes cold. Zox joins the
+   third ambush, Skallox the last. Cornered at the dreadnought's bow he drops Ganthet and escapes
+   ("Dex-Starr will be BACK!"). Freed, Ganthet tells them Atrocitus has gone home to Ysmault for the Book
+   of the Black, hidden at the heart of Sector 666, and that he is the only one who knows the way.
 3. **Into Sector 666**: Red space, the dead sector where it all began (planned).
 4. **Ysmault**: the Red Lanterns' home world, and the Blood Altar (planned).
 5. **Boss: Atrocitus**: it takes every Lantern you have (planned).

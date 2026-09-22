@@ -274,6 +274,26 @@ MISSIONS.push({
 	partner: 'kilowog'
 });
 
+MISSIONS.push({
+	id: 'dex-starr',
+	title: 'Dex-Starr',
+	tagline: 'A Red Lantern cat has a Guardian. Hunt him across the wreck of a Red dreadnought before he gets off Oa.',
+	lantern: 'hal',
+	choose: ['hal', 'john'],
+	environment: 'planet',
+	place: "Oa · The Dreadnought's Crash",
+	briefing: [
+		"One of Atrocitus's dreadnoughts never made it off Oa: it came down on the far plains. Something small crawled out of the wreck alive, and it has Ganthet in a bubble of rage.",
+		'Dex-Starr is fast, cruel and hard to pin down. He will run, and every time he runs he leaves a trail. Follow it. If you fall too far behind, the trail goes cold and he is gone.',
+		'Hal Jordan and John Stewart go after him. Choose who you play.'
+	],
+	objectives: [
+		'Follow the glowing paw prints to where Dex-Starr has gone to ground',
+		'Hurt him enough and he runs: stay close, or the trail goes cold',
+		'Corner him at the dreadnought, then break Ganthet out of his bubble'
+	]
+});
+
 export function missionById(id: string): MissionInfo | undefined {
 	return MISSIONS.find((m) => m.id === id);
 }
@@ -325,7 +345,7 @@ export const ACTS: ActInfo[] = [
 		tagline: 'Atrocitus comes for Oa, and the Corps goes after him: into Sector 666, to end it at the source.',
 		lineup: [
 			'siege-of-oa',
-			{ title: 'Dex-Starr', tagline: 'A Red Lantern cat has a Guardian. Hunt him through the wreckage of the siege.' },
+			'dex-starr',
 			{ title: 'Into Sector 666', tagline: 'Red space: the dead sector where it all began.' },
 			{ title: 'Ysmault', tagline: 'The Red Lanterns\' home world, and the Blood Altar.' },
 			{ title: 'Boss: Atrocitus', tagline: 'It will take every Lantern you have.' }

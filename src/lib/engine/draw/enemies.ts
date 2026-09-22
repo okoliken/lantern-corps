@@ -18,6 +18,7 @@ import { axePath, drawRageTurret, drawWard, macePath, rage, rageCannonPath } fro
 import { displayFont, uiFont } from './fonts';
 import { corpsRing, corpsTop, drawCorpsLantern, inCorpsGreen, isCorpsKind } from './corps';
 import { drawCorpsWindup } from './corpsConstructs';
+import { dexStarrHand, dexStarrTop, drawDexStarrEnemy } from './siege';
 import { drawGorilla, drawManhunter, gorillaHand, gorillaTop, isGorillaKind, manhunterHand, manhunterTop } from './gorillas';
 import { inTint } from './corps';
 
@@ -74,6 +75,11 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, manhunterTop(e, y), manhunterHand(e, x, y), time);
 		return;
 	}
+	if (e.kind === 'dexStarr') {
+		drawDexStarrEnemy(ctx, e, x, y, hasGround, time);
+		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, dexStarrTop(e, y), dexStarrHand(e, x, y), time);
+		return;
+	}
 	if (isLieutenantKind(e.kind)) {
 		drawLieutenant(ctx, e, x, y, hasGround, time);
 		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, lieutenantTop(e, y), lieutenantHand(e, x, y), time);
@@ -88,6 +94,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 export function enemyMuzzle(e: Enemy, x: number, y: number): [number, number] {
 	if (e.kind === 'manhunterDrone' || e.kind === 'redFighter') return machineMuzzle(e, x, y);
 	if (e.kind === 'rageTurret') return [x + e.brain.aimX * 26, y - RED_HAND_LIFT];
+	if (e.kind === 'dexStarr') return dexStarrHand(e, x, y);
 	if (isLieutenantKind(e.kind)) return lieutenantHand(e, x, y);
 	if (isGorillaKind(e.kind)) return gorillaHand(e, x, y);
 	if (e.kind === 'manhunter' || e.kind === 'manhunterPrime') return manhunterHand(e, x, y);
