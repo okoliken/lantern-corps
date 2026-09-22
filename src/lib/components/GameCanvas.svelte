@@ -14,6 +14,11 @@
 	import { settings } from '$lib/settings.svelte';
 	import TouchControls from '$lib/touch/TouchControls.svelte';
 	import { wantsTouchControls } from '$lib/touch/phone';
+	import { synth } from '$lib/sound.svelte';
+	import { SoundDirector } from '$lib/engine/audio/soundDirector';
+	import { BOSS_KINDS, Music, type Mood } from '$lib/engine/audio/music';
+	import { isEnemy } from '$lib/engine/enemies/enemies';
+	import { isStanding } from '$lib/engine/dummy';
 
 	interface Props {
 		game: Game;
@@ -29,8 +34,27 @@
 	let touch = $state(false);
 	const touchState = new PadState();
 
+	// The volumes follow the settings (the pause menu changes them live)
+	$effect(() => {
+		synth.setVolumes(settings.current.sound, settings.current.music);
+	});
+
+	/** Boss music with a boss up, battle music with anyone to fight, the chords alone between fights, nothing while paused. */
+	function moodOf(g: Game): Mood {
+		if (g.paused) return 'quiet';
+		let fighting = false;
+		for (const d of g.dummies) {
+			if (!isEnemy(d) || !isStanding(d)) continue;
+			if (BOSS_KINDS.has(d.kind)) return 'boss';
+			fighting = true;
+		}
+		return fighting ? 'battle' : 'calm';
+	}
+
 	onMount(() => {
 		void preloadFonts();
+		const sounds = new SoundDirector((name, volume) => synth.play(name, volume));
+		const music = new Music(synth);
 		const { ctx, view, destroy } = fitCanvas(canvas);
 		game.setView(view);
 		const detachButtons = game.buttons.attach(window, canvas);
@@ -43,7 +67,12 @@
 		if (first && first.input instanceof BindingInput) first.input = new PadInput(first.input, touch ? touchState : padLink().state, () => game.players[0]);
 		const stop = startLoop({
 			update: (dt) => game.update(dt),
-			render: (alpha) => game.render(ctx, alpha),
+			render: (alpha) => {
+				game.render(ctx, alpha);
+				sounds.observe(game);
+				music.setMood(moodOf(game));
+				music.tick();
+			},
 			onStats: (s) => {
 				stats = s;
 				// The pad shows this: a tab the browser has slowed down feels like lag
@@ -69,6 +98,7 @@
 
 		// Returning a function from onMount = cleanup on unmount.
 		return () => {
+			music.setMood('quiet');
 			stop();
 			detachButtons();
 			detachPointer();

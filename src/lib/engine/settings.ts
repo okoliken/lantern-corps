@@ -26,6 +26,9 @@ export interface Settings {
 	keysVersion: number;
 	/** On-screen touch controls over the game: on any touch screen ('auto'), always, or never. */
 	touchControls: TouchControlsMode;
+	/** Sound effects and music volume, 0..1. */
+	sound: number;
+	music: number;
 }
 
 export type TouchControlsMode = 'auto' | 'on' | 'off';
@@ -56,7 +59,9 @@ export function defaultSettings(): Settings {
 		seenControls: false,
 		trained: false,
 		keysVersion: KEYS_VERSION,
-		touchControls: 'auto'
+		touchControls: 'auto',
+		sound: 0.8,
+		music: 0.5
 	};
 }
 
@@ -74,6 +79,10 @@ export function parseSettings(raw: unknown): Settings {
 		if (typeof saved[flag] === 'boolean') settings[flag] = saved[flag];
 	}
 
+	for (const level of ['sound', 'music'] as const) {
+		const v = saved[level];
+		if (typeof v === 'number' && Number.isFinite(v)) settings[level] = Math.max(0, Math.min(1, v));
+	}
 	if (TOUCH_MODES.includes(saved.touchControls as TouchControlsMode)) settings.touchControls = saved.touchControls as TouchControlsMode;
 
 	const bindings = saved.bindings as Partial<Record<LayoutName, Partial<Record<string, unknown>>>> | undefined;

@@ -151,6 +151,23 @@
 			<PadPairing />
 		{:else}
 			<div class="options">
+				{#each [['sound', 'Sound effects'], ['music', 'Music']] as const as [key, label] (key)}
+					<label class="option volume">
+						<span>
+							<strong>{label}</strong>
+							<input
+								type="range"
+								min="0"
+								max="1"
+								step="0.05"
+								value={settings.current[key]}
+								oninput={(e) => settings.set(key, Number(e.currentTarget.value))}
+								aria-label={label}
+							/>
+						</span>
+						<small class="level">{Math.round(settings.current[key] * 100)}%</small>
+					</label>
+				{/each}
 				<div class="option">
 					<span>
 						<strong>Touch controls</strong>
@@ -325,6 +342,16 @@
 		display: grid;
 	}
 	.option small {
+		opacity: 0.7;
+	}
+	.volume input[type='range'] {
+		width: min(18rem, 60vw);
+		accent-color: var(--suit-lit);
+		margin-top: 0.3rem;
+	}
+	.volume .level {
+		align-self: center;
+		margin-left: auto;
 		opacity: 0.7;
 	}
 	.option .modes {

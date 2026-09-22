@@ -144,6 +144,22 @@ HUD, pause buttons and side panels keep clear of a notch (`env(safe-area-inset-*
 A turn-your-phone screen (`RotatePrompt.svelte`, in the root layout) covers every page on a phone held
 upright.
 
+**Sound (2026-09-22):** every sound is synthesized by the browser's Web Audio engine, no audio files
+(`engine/audio/`). `Synth` (`synth.ts`) owns the AudioContext (started on the first tap or key press, in
+`$lib/sound.svelte.ts`), a master compressor, and effects and music buses; 18 recipes of tones and
+filtered noise (shot, enemyShot, hit, heavy, construct, boom, chime, pop, shield, hurt, down, enemyDown,
+alert, signature, radio, spawn, win, lose), each with a cooldown so a flurry is one sound, and a
+little random pitch. `SoundDirector` (`soundDirector.ts`) watches the world each frame without
+changing it: new effects (by kind: impacts, hammers, blasts, pulses, callouts marked hurt...), hero
+powers, projectiles (yours loudest), enemy shots, shields, fortresses and Jet Strikes, a slot's
+cooldown starting (a construct made), your health dropping and going down, enemies falling, each new
+radio line, and winning or losing. `Music` (`music.ts`) is a 16-step sequencer scheduled ahead on the
+audio clock: **battle** (Dm Bb F C, 112 bpm) with a fight on, **boss** (Cm Ab Fm G, 132 bpm, busier)
+with a boss up (`BOSS_KINDS`), **calm** (just the chords) between fights, **quiet** when paused; a change
+waits for the bar. `GameCanvas` runs the director and the music after every render. Settings `sound`
+0.8 and `music` 0.5, sliders in the pause menu's Options. About 36 short voices a second in a fight.
+On iPhones the ring/silent switch mutes web audio.
+
 ## Targeting (context awareness)
 The ring works out what you mean to hit or protect (`src/lib/engine/targeting.ts`):
 - **Mouse aim:** shots go where the crosshair points. Aim assist nudges them onto an enemy only if
