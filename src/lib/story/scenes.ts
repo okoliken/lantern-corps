@@ -3,7 +3,7 @@
 
 import { GREEN_LIGHT, THEME_GREEN } from '../theme';
 
-export type Speaker = 'tomar' | 'hal' | 'john' | 'ring' | 'guardian' | 'kilowog' | 'razer' | 'jonn' | 'ganthet' | 'arisia';
+export type Speaker = 'tomar' | 'hal' | 'john' | 'ring' | 'guardian' | 'kilowog' | 'razer' | 'jonn' | 'ganthet' | 'arisia' | 'atrocitus';
 
 export interface SceneLine {
 	who: Speaker;
@@ -22,7 +22,8 @@ export const SPEAKERS: Record<Speaker, { name: string; color: string }> = {
 	razer: { name: 'Razer', color: '#ff6b6b' },
 	jonn: { name: "J'onn J'onzz", color: '#78dcaa' },
 	ganthet: { name: 'Ganthet', color: '#9fd4ff' },
-	arisia: { name: 'Arisia', color: '#ffe08a' }
+	arisia: { name: 'Arisia', color: '#ffe08a' },
+	atrocitus: { name: 'Atrocitus', color: '#ff3b30' }
 };
 
 /**
@@ -147,6 +148,17 @@ export const DEAD_SECTOR: SceneLine[] = [
 	{ who: 'john', text: 'And Atrocitus is at the far end of it.' },
 	{ who: 'ganthet', text: 'Ysmault, beyond the Blood Gate. The Red Lanterns will be waiting, and the storms here are made of rage. Stay close to me.' },
 	{ who: 'hal', text: "Stay close, clear the way, don't touch the scary red clouds. Got it.", mood: 'grin' }
+];
+
+/** Start of Act 3, Mission 4: down onto Ysmault. */
+export const BLOOD_WORLD: SceneLine[] = [
+	{ who: 'ring', text: 'Ysmault. Warning: high concentrations of rage energy. Willpower drain likely.', mood: 'alarm' },
+	{ who: 'atrocitus', text: 'I have felt you coming since you crossed my gate, little lights.' },
+	{ who: 'atrocitus', text: 'Ten thousand years ago the Guardians’ machines burned my world. Every soul in this sector. I alone remained, and my rage kept me alive.' },
+	{ who: 'john', text: "He's not wrong about the machines. We saw what's left." },
+	{ who: 'hal', text: "He's also about to open a book that ends the Corps. We can feel sorry for him after.", mood: 'grin' },
+	{ who: 'arisia', text: 'The glow on the horizon. That is the Blood Altar.' },
+	{ who: 'atrocitus', text: 'Come to it, then. Come and bleed.', mood: 'alarm' }
 ];
 
 /** End of Mission 1: Tomar-Re's ship sets down on Oa. */

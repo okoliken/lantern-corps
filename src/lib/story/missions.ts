@@ -316,6 +316,28 @@ MISSIONS.push({
 	partner: 'arisia'
 });
 
+MISSIONS.push({
+	id: 'ysmault',
+	title: 'Ysmault',
+	tagline: 'The Red Lanterns’ home world. Break the four conduits feeding the Blood Altar while Atrocitus’s legion pours out of the blood.',
+	lantern: 'hal',
+	choose: ['hal', 'john'],
+	environment: 'planet',
+	place: 'Sector 666 · Ysmault',
+	briefing: [
+		'Through the Blood Gate lies Ysmault, the world Atrocitus has ruled since the Manhunters burned his sector. At its heart is the Blood Altar, and Atrocitus is drawing on it to open the Book of the Black.',
+		'Four conduits feed the altar. While any of them stand, it heals every Red Lantern near it and throws surges of blood across the plain. The Red Lanterns climb out of the blood pools at the edges, and keep coming.',
+		'Hal Jordan, John Stewart and Arisia go down into the middle of it. Choose who you play.'
+	],
+	objectives: [
+		'Break the four conduits feeding the Blood Altar',
+		'While any conduit stands, Red Lanterns near the altar heal: break the conduits first',
+		'When the altar swells, take to the air (or shield): the surge rolls along the ground',
+		'Stay out of the blood lake'
+	],
+	partner: 'arisia'
+});
+
 export function missionById(id: string): MissionInfo | undefined {
 	return MISSIONS.find((m) => m.id === id);
 }
@@ -369,7 +391,7 @@ export const ACTS: ActInfo[] = [
 			'siege-of-oa',
 			'dex-starr',
 			'into-sector-666',
-			{ title: 'Ysmault', tagline: 'The Red Lanterns\' home world, and the Blood Altar.' },
+			'ysmault',
 			{ title: 'Boss: Atrocitus', tagline: 'It will take every Lantern you have.' }
 		]
 	},

@@ -464,6 +464,20 @@ Kilowog", "the boss should be fierce... we're bullying him").**
   (Rage Slam away) or shatters. Health x3.2, might 2.25. Bots: win ~2/6; losses get him to 7-24%;
   2-3 minute duels; ~15 target switches.
 
+**Act 3 · Mission 4: Ysmault** (Hal or John via `choose`, the other and Arisia; Razer joins as a hero
+ally after the second conduit via `addPartner`; `missions/ysmault.ts`, map `buildYsmaultMap` (`bloodMoon`
+ground, 3400x2400, the altar in the middle, 4 conduits round it, 5 blood pools at the edges), art
+`draw/ysmault.ts` (`drawBloodAltar`, `drawConduit`, `drawConduitStump`, `drawBloodSurge`, `drawBloodPool`),
+intro `scenes/bloodWorld.ts` with `BLOOD_WORLD`; speaker `atrocitus`). New target kind **`bloodConduit`**
+(5200 hp; the autopilot and hero allies go for the nearest). While conduits stand, Reds within 800px
+of the altar **heal** 5%/s x the share still standing; a conduit with no Lantern within 450px **mends**
+1.2%/s. The **lake** (altar radius 250) burns grounded Lanterns 14/s. Every 12s the altar **surges**
+(1.4s warning): a ring rolls from the altar to 1150px in 2.2s, 40 x (0.5 + power) damage and a big
+knockback to grounded Lanterns it crosses; flying, it passes under you. Reds climb out of the pools
+every 2.6s up to 11 at once. Zox after conduit 1, Razer after 2, Skallox after 3; all 4 = **silence**
+(every Red drops) = won. Reds x4, might 4.8; lieutenants x5; `maxHit` 36. ★ broken ★ no lives lost ★
+under 7 min. Bots: 6/6, 5-8 min, usually down near zero health.
+
 **Act 3 · Mission 3: Into Sector 666** (Hal or John via `choose`, the other and Arisia as AI partners;
 space; `missions/sector666.ts`, map `buildSector666Map` (6200x1800, 16 Manhunter husks as hidden
 solids along the edges), art `draw/sector666.ts` (`drawRedNebula`, `drawRageStorm`, `drawManhunterHusk`,

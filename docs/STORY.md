@@ -272,7 +272,14 @@ The user chose the siege opening (2026-09-21) over going straight into Sector 66
    everything that died there) burn Lanterns and drain their will; the burnt husks of the Manhunters
    who did it drift past; Skallox and fighter patrols, and hunters from behind. Bleez holds the Blood
    Gate ("Razer beat me at the vault. And Razer is not here"); Ganthet opens it.
-4. **Ysmault**: the Red Lanterns' home world, and the Blood Altar (planned).
+4. **Ysmault** (built 2026-09-22; Hal or John, the other and Arisia; Razer joins). Opening scene, **the
+   Blood World**: a red sun, black crags, the altar's glow on the horizon, and Atrocitus's voice from
+   everywhere: the Guardians' machines burned his world ten thousand years ago and his rage alone kept
+   him alive. Four conduits feed the Blood Altar; while they stand it heals his legion and throws blood
+   surges across the plain; the Reds climb out of the blood pools. Zox after the first conduit; after
+   the second, **Razer** arrives ("This world is my shame too"; "You made me, Atrocitus. And I am here
+   to unmake you"); Skallox after the third. The altar goes dark, and Atrocitus reveals he already has
+   the Book of the Black: "Come, then. All of you." Hal: "Call Oa. Call everyone."
 5. **Boss: Atrocitus**: it takes every Lantern you have (planned).
 
 ### Act 4
