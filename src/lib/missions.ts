@@ -12,7 +12,7 @@ import { PrisonMoon, buildPrisonMap } from '$lib/engine/missions/prisonMoon';
 import { RazerBoss, buildRazerMap } from '$lib/engine/missions/razerBoss';
 import { OaLanding } from '$lib/engine/scenes/oaLanding';
 import type { DialogueScene } from '$lib/engine/scenes/scene';
-import { CONFESSION, JOHN_CALLED, JOHN_CHOSEN, OA_LANDING, RED_DAWN, SUMMONED, THE_FIRST, THE_SIGNAL, THE_TRAIL } from '$lib/story/scenes';
+import { CONFESSION, JOHN_CALLED, JOHN_CHOSEN, OA_LANDING, RED_DAWN, SUMMONED, THE_FIRST, THE_SIGNAL, THE_TRAIL, DEAD_SECTOR } from '$lib/story/scenes';
 import { JohnChosen } from '$lib/engine/scenes/johnChosen';
 import { CallToArms, buildCentralCityMap } from '$lib/engine/missions/callToArms';
 import { SummonedTrial, buildTrialMap } from '$lib/engine/missions/summoned';
@@ -26,6 +26,8 @@ import { SiegeOfOa, buildOaPlazaMap } from '$lib/engine/missions/siegeOfOa';
 import { RedDawn } from '$lib/engine/scenes/redDawn';
 import { DexStarrHunt, buildCrashSiteMap } from '$lib/engine/missions/dexStarr';
 import { TheTrail } from '$lib/engine/scenes/theTrail';
+import { IntoSector666, buildSector666Map } from '$lib/engine/missions/sector666';
+import { DeadSector } from '$lib/engine/scenes/deadSector';
 import type { LanternId } from '$lib/engine/lanterns';
 import { Summoned } from '$lib/engine/scenes/summoned';
 
@@ -45,6 +47,22 @@ type Options = Pick<GameOptions, 'settings' | 'profiles' | 'onProgress' | 'zoom'
 
 export function buildMission(id: string, options: Options): MissionRun {
 	switch (id) {
+		case 'into-sector-666': {
+			const map = buildSector666Map();
+			const me: LanternId = options.as ?? 'hal';
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: me, keys: 'solo' },
+					{ lantern: me === 'hal' ? 'john' : 'hal', keys: 'p2', ai: true },
+					{ lantern: 'arisia', keys: 'p2', ai: true }
+				],
+				map
+			});
+			const director = new IntoSector666();
+			game.director = director;
+			return { game, director, outro: null, intro: () => new DeadSector(DEAD_SECTOR) };
+		}
 		case 'dex-starr': {
 			const map = buildCrashSiteMap();
 			const me: LanternId = options.as ?? 'hal';

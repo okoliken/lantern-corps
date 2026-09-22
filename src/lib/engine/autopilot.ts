@@ -75,7 +75,7 @@ export class Autopilot implements InputSource {
 		}
 
 		// Something the mission wants torn down (a signal spire): shoot it whenever nobody's in the way
-		const spire = game.dummies.find((d) => (d.kind === 'signalSpire' || d.kind === 'rageBubble') && isStanding(d));
+		const spire = game.dummies.filter((d) => (d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit') && isStanding(d)).sort((a, b) => dist(a, me) - dist(b, me))[0];
 		if (spire && !core && !game.enemies.some((e) => isStanding(e) && dist(e, me) < 260)) {
 			intent.pointer = { x: spire.x, y: spire.y - 90 - me.ringLift };
 			intent.shot = true;

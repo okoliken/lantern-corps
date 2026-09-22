@@ -266,7 +266,12 @@ The user chose the siege opening (2026-09-21) over going straight into Sector 66
    third ambush, Skallox the last. Cornered at the dreadnought's bow he drops Ganthet and escapes
    ("Dex-Starr will be BACK!"). Freed, Ganthet tells them Atrocitus has gone home to Ysmault for the Book
    of the Black, hidden at the heart of Sector 666, and that he is the only one who knows the way.
-3. **Into Sector 666**: Red space, the dead sector where it all began (planned).
+3. **Into Sector 666** (built 2026-09-22; Hal or John, the other and Arisia). Opening scene, **the Dead
+   Sector**: no life signs anywhere; "the most shameful place in the universe, and we made it". Ganthet
+   leads the way to Ysmault and won't go on while the Reds are on him; rage storms (what is left of
+   everything that died there) burn Lanterns and drain their will; the burnt husks of the Manhunters
+   who did it drift past; Skallox and fighter patrols, and hunters from behind. Bleez holds the Blood
+   Gate ("Razer beat me at the vault. And Razer is not here"); Ganthet opens it.
 4. **Ysmault**: the Red Lanterns' home world, and the Blood Altar (planned).
 5. **Boss: Atrocitus**: it takes every Lantern you have (planned).
 

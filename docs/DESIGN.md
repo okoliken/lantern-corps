@@ -464,6 +464,19 @@ Kilowog", "the boss should be fierce... we're bullying him").**
   (Rage Slam away) or shatters. Health x3.2, might 2.25. Bots: win ~2/6; losses get him to 7-24%;
   2-3 minute duels; ~15 target switches.
 
+**Act 3 · Mission 3: Into Sector 666** (Hal or John via `choose`, the other and Arisia as AI partners;
+space; `missions/sector666.ts`, map `buildSector666Map` (6200x1800, 16 Manhunter husks as hidden
+solids along the edges), art `draw/sector666.ts` (`drawRedNebula`, `drawRageStorm`, `drawManhunterHusk`,
+`drawGanthetEscort`, `drawBloodGate`), intro `scenes/deadSector.ts` with `DEAD_SECTOR`; speakers
+`ganthet`, `arisia`). **Ganthet** is a `Protectable` (950 hp, radius 70) that goes on at 46 px/s unless a
+non-fighter Red is within 380px of him; the ring battery rides just below him. **Rage storms** (6,
+radius 240, drifting up and down across the way): inside one a Lantern takes 10/s and loses 14
+willpower/s; Ganthet takes 15/s unless a bubble is on him. Patrols meet him at x 900 / 1700 / 2600 /
+3500 / 4400 (fighters with torpedoes at him: 36 each, every 3.5-5.5s; Skallox in the fourth), and 3
+hunters come up from behind every 28s. At x 5280 **gate**: Bleez (x9, might 4.2) and 4 guards; beaten
+= **open** (3s) = won. Reds x4, might 3.9; `maxHit` 36. ★ through the gate ★ no lives lost ★ Ganthet
+above half. Bots: 4/6, ~4-5 min; losses are Ganthet to fighters and one out of lives at the gate.
+
 **Act 3 · Mission 2: Dex-Starr** (Hal or John via `choose`, the other as AI partner; `missions/dexStarr.ts`,
 map `buildCrashSiteMap` (`ash` ground, ~23 hull plates as hidden solids drawn by the mission, the
 dreadnought's bow at the far end), art `draw/wreck.ts` (`drawHullPlate`, `drawDreadnoughtBow`,

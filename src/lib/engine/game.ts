@@ -662,7 +662,7 @@ export class Game {
 								drawManhunterCore(ctx, d, 0, 0, this.time);
 								ctx.restore();
 							}
-						: d.kind === 'signalSpire' || d.kind === 'rageBubble'
+						: d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit'
 						? () => {} // the mission draws it
 
 						: d.drift
@@ -938,6 +938,8 @@ export class Game {
 									? 'Signal spire'
 									: t.dummy.kind === 'rageBubble'
 										? 'Rage bubble'
+										: t.dummy.kind === 'bloodConduit'
+											? 'Blood conduit'
 								: 'Dummy'
 				: t.kind === 'ally'
 					? t.player.def.name

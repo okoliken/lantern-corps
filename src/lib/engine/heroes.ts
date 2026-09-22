@@ -200,7 +200,7 @@ export function heroMoving(p: Player): boolean {
 
 const enemiesOf = (w: ConstructWorld) => w.dummies.filter((d): d is Enemy => isEnemy(d) && isStanding(d));
 /** Everything a hero can hit: enemies, and a broken Manhunter's core. */
-const foesOf = (w: ConstructWorld) => w.dummies.filter((d) => isStanding(d) && (isEnemy(d) || d.kind === 'manhunterCore' || d.kind === 'signalSpire'));
+const foesOf = (w: ConstructWorld) => w.dummies.filter((d) => isStanding(d) && (isEnemy(d) || d.kind === 'manhunterCore' || d.kind === 'signalSpire' || d.kind === 'bloodConduit'));
 /** Nth metal: Hawkgirl's mace does this many times the damage to a Manhunter's core. */
 export const NTH_VS_CORE = 3;
 
@@ -885,7 +885,7 @@ export class HeroInput implements InputSource {
 		const rival = h.id === 'flash' ? enemies.find((e) => e.kind === 'reverseFlash') : undefined;
 		h.target = core ?? rival ?? this.pickTarget(me, lead, enemies);
 		// Something the enemy built (a signal spire): when nobody near needs hitting first
-		const spire = this.world.dummies.find((d) => d.kind === 'signalSpire' && isStanding(d));
+		const spire = this.world.dummies.filter((d) => (d.kind === 'signalSpire' || d.kind === 'bloodConduit') && isStanding(d)).sort((a, b) => dist(a, me) - dist(b, me))[0];
 		// (the heavy hitters, Superman and Wonder Woman, go at it unless someone is right on top of them)
 		const busy = h.id === 'superman' || h.id === 'wonderwoman' ? 170 : 420;
 		if (spire && !core && (!h.target || dist(h.target, me) > busy) && (!lead || dist(spire, lead) < LEASH + 300)) h.target = spire;

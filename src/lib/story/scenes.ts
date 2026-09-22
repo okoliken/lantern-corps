@@ -3,7 +3,7 @@
 
 import { GREEN_LIGHT, THEME_GREEN } from '../theme';
 
-export type Speaker = 'tomar' | 'hal' | 'john' | 'ring' | 'guardian' | 'kilowog' | 'razer' | 'jonn';
+export type Speaker = 'tomar' | 'hal' | 'john' | 'ring' | 'guardian' | 'kilowog' | 'razer' | 'jonn' | 'ganthet' | 'arisia';
 
 export interface SceneLine {
 	who: Speaker;
@@ -20,7 +20,9 @@ export const SPEAKERS: Record<Speaker, { name: string; color: string }> = {
 	guardian: { name: 'The Guardians', color: '#7fb4ff' },
 	kilowog: { name: 'Kilowog', color: '#e8b0b6' },
 	razer: { name: 'Razer', color: '#ff6b6b' },
-	jonn: { name: "J'onn J'onzz", color: '#78dcaa' }
+	jonn: { name: "J'onn J'onzz", color: '#78dcaa' },
+	ganthet: { name: 'Ganthet', color: '#9fd4ff' },
+	arisia: { name: 'Arisia', color: '#ffe08a' }
 };
 
 /**
@@ -135,6 +137,16 @@ export const THE_TRAIL: SceneLine[] = [
 	{ who: 'john', text: "If he's still on Oa, we can still get Ganthet back. Once he's off-world, we can't." },
 	{ who: 'kilowog', text: "Then go. I'll hold things here. And poozers: it's a cat. Don't let it make you look stupid." },
 	{ who: 'hal', text: "Too late for that. Let's go, John." }
+];
+
+/** Start of Act 3, Mission 3: the edge of the dead sector. */
+export const DEAD_SECTOR: SceneLine[] = [
+	{ who: 'ring', text: 'Entering Sector 666. No life signs. No life signs anywhere in the sector.', mood: 'alarm' },
+	{ who: 'arisia', text: 'Nothing? Not even on the planets?' },
+	{ who: 'ganthet', text: 'Nothing. The Manhunters were thorough. It is the most shameful place in the universe, and we made it.' },
+	{ who: 'john', text: 'And Atrocitus is at the far end of it.' },
+	{ who: 'ganthet', text: 'Ysmault, beyond the Blood Gate. The Red Lanterns will be waiting, and the storms here are made of rage. Stay close to me.' },
+	{ who: 'hal', text: "Stay close, clear the way, don't touch the scary red clouds. Got it.", mood: 'grin' }
 ];
 
 /** End of Mission 1: Tomar-Re's ship sets down on Oa. */

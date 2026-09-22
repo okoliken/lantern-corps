@@ -294,6 +294,28 @@ MISSIONS.push({
 	]
 });
 
+MISSIONS.push({
+	id: 'into-sector-666',
+	title: 'Into Sector 666',
+	tagline: 'Escort Ganthet through the dead sector the Manhunters burned, past rage storms and Red patrols, to the Blood Gate.',
+	lantern: 'hal',
+	choose: ['hal', 'john'],
+	environment: 'space',
+	place: 'Sector 666 · The Dead Sector',
+	briefing: [
+		'Only Ganthet knows the way through Sector 666 to Ysmault, where Atrocitus is going for the Book of the Black. The sector is dead: the Manhunters burned it, long ago.',
+		'What is left is rage. It drifts through the sector in storms that burn Lanterns and drain their will, and the Red Lanterns patrol the way.',
+		'Ganthet leads, and he will not go on while the Reds are on him. Hal Jordan, John Stewart and Arisia escort him. Choose who you play.'
+	],
+	objectives: [
+		'Keep Ganthet alive: clear the Red Lanterns so he can go on',
+		'Stay out of the rage storms, and shield Ganthet when one reaches him',
+		'Shoot down the torpedoes fighters fire at him',
+		'Stay near Ganthet to recharge your ring: his light is your battery'
+	],
+	partner: 'arisia'
+});
+
 export function missionById(id: string): MissionInfo | undefined {
 	return MISSIONS.find((m) => m.id === id);
 }
@@ -346,7 +368,7 @@ export const ACTS: ActInfo[] = [
 		lineup: [
 			'siege-of-oa',
 			'dex-starr',
-			{ title: 'Into Sector 666', tagline: 'Red space: the dead sector where it all began.' },
+			'into-sector-666',
 			{ title: 'Ysmault', tagline: 'The Red Lanterns\' home world, and the Blood Altar.' },
 			{ title: 'Boss: Atrocitus', tagline: 'It will take every Lantern you have.' }
 		]
