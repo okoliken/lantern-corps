@@ -33,9 +33,9 @@ const HANDS: Record<'zox' | 'skallox', Point> = {
 	skallox: [26, -34]
 };
 
-type Lieutenant = 'zox' | 'skallox' | 'bleez' | 'razer';
+type Lieutenant = 'zox' | 'skallox' | 'bleez' | 'razer' | 'atrocitus';
 
-export const isLieutenantKind = (k: string): k is Lieutenant => k === 'zox' || k === 'skallox' || k === 'bleez' || k === 'razer';
+export const isLieutenantKind = (k: string): k is Lieutenant => k === 'zox' || k === 'skallox' || k === 'bleez' || k === 'razer' || k === 'atrocitus';
 
 /** Skallox gets bigger as he transforms. */
 const sizeOf = (e: Enemy) => SCALE * ENEMIES[e.kind].scale * (1 + 0.28 * e.brain.form);
@@ -43,7 +43,7 @@ const sizeOf = (e: Enemy) => SCALE * ENEMIES[e.kind].scale * (1 + 0.28 * e.brain
 export function lieutenantHand(e: Enemy, x: number, y: number): Point {
 	const s = sizeOf(e);
 	const air = e.brain.air * SLAM_HEIGHT;
-	if (e.kind === 'bleez' || e.kind === 'razer') {
+	if (e.kind === 'bleez' || e.kind === 'razer' || e.kind === 'atrocitus') {
 		const pose = enemyPose(e, true, 0);
 		const [hx, hy] = computeSkeleton({ ...pose, firing: true }, 0).front.hand;
 		return [x + hx * e.dir * s, y + hy * s];
@@ -54,7 +54,7 @@ export function lieutenantHand(e: Enemy, x: number, y: number): Point {
 
 /** Top of the figure (for its health bar and name). */
 export function lieutenantTop(e: Enemy, y: number): number {
-	const tall = e.kind === 'zox' ? 58 : e.kind === 'skallox' ? 76 : e.kind === 'razer' ? 74 : 70;
+	const tall = e.kind === 'zox' ? 58 : e.kind === 'skallox' ? 76 : e.kind === 'razer' ? 74 : e.kind === 'atrocitus' ? 80 : 70;
 	return y - e.brain.air * SLAM_HEIGHT - (HOVER + tall) * sizeOf(e);
 }
 
@@ -65,6 +65,10 @@ export function drawLieutenant(ctx: CanvasRenderingContext2D, e: Enemy, x: numbe
 	}
 	if (e.kind === 'razer') {
 		drawRazer(ctx, e, x, y, hasGround, time);
+		return;
+	}
+	if (e.kind === 'atrocitus') {
+		drawAtrocitus(ctx, e, x, y, hasGround, time);
 		return;
 	}
 	const b = e.brain;
@@ -753,6 +757,190 @@ function drawRazer(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number
 	ring(ctx, sk.front.hand[0], sk.front.hand[1]);
 	if (!defeated && (tell === 'aim' || tell === 'build')) orb(ctx, sk.front.hand[0], sk.front.hand[1], 1.5 + k * 3.5, time);
 	else if (!defeated && tell === 'sky') orb(ctx, sk.headCenter[0], sk.headCenter[1] - 16 - k * 4, 2 + k * 6, time);
+	ctx.restore();
+}
+
+// ------------------------------------------------------------ Atrocitus
+
+const ATRO_SKIN = '#9c2f2a';
+const ATRO_SKIN_DARK = '#651a17';
+
+/**
+ * Atrocitus: huge and heavy, crimson skin, bald with a ridged scalp and a
+ * brow like a ledge over sunken burning eyes, black and red armour, the Red
+ * Lantern emblem on his chest; the Book of the Black floats at his side,
+ * its pages burning when he reads from it (b.rage).
+ */
+function drawAtrocitus(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number) {
+	const b = e.brain;
+	const s = sizeOf(e);
+	const pose = enemyPose(e, hasGround, time);
+	const sk = computeSkeleton(pose, time);
+	const defeated = !isStanding(e);
+	const winding = b.state === 'windup' ? b.ability : null;
+	const acting = b.state === 'act' ? b.ability : null;
+	const tell = winding ? ABILITIES[winding].tell : null;
+	const flash = e.flash > 0 || ((tell === 'strike' || tell === 'heavy' || tell === 'sky') && Math.sin(time * 30) > 0);
+	const k = winding ? 1 - b.timer / ABILITIES[winding].windup : 0;
+	const skin = flash ? '#ffffff' : ATRO_SKIN;
+	const suit = (c: string) => (flash ? '#ffdddd' : c);
+
+	ctx.save();
+	ctx.globalAlpha = defeated ? Math.min(1, e.down / 0.5) : 1;
+	ctx.translate(x, y);
+	ctx.scale(s, s);
+	if (pose.shadow) {
+		const shrink = 1 - b.air * 0.6;
+		ctx.fillStyle = `rgba(0, 0, 0, ${0.45 * shrink})`;
+		ctx.beginPath();
+		ctx.ellipse(0, 0, 19 * shrink, 5 * shrink, 0, 0, TAU);
+		ctx.fill();
+	}
+	ctx.scale(pose.dir, 1);
+	ctx.lineJoin = 'round';
+	ctx.lineCap = 'round';
+	if (!defeated) aura(ctx, (sk.hip[1] + sk.neck[1]) / 2, 34, b.rage + 0.7 + (winding ? 0.5 : 0), time, x);
+
+	// The Book of the Black, floating behind his far shoulder
+	if (!defeated) drawBookOfTheBlack(ctx, sk.back.shoulder[0] - 10, sk.back.shoulder[1] - 6, time, b.rage);
+
+	// Far limbs: thick, armoured
+	segment(ctx, sk.back.shoulder, sk.back.elbow, 3.6, 3, suit(BLACK));
+	segment(ctx, sk.back.elbow, sk.back.hand, 3, 2.7, suit(RED_DEEP));
+	segment(ctx, sk.back.hipJoint, sk.back.knee, 4, 3.3, suit(BLACK));
+	segment(ctx, sk.back.knee, sk.back.foot, 3.3, 2.6, suit(RED_DEEP));
+
+	// Torso: broad, black plate with red panels, a heavy gorget
+	const up: Point = [Math.sin(sk.torsoAngle), -Math.cos(sk.torsoAngle)];
+	const across: Point = [Math.cos(sk.torsoAngle), Math.sin(sk.torsoAngle)];
+	const at = (along: number, side: number): Point => [
+		sk.hip[0] + up[0] * along + across[0] * side,
+		sk.hip[1] + up[1] * along + across[1] * side
+	];
+	const torso = new Path2D();
+	for (const [i, p] of [at(-1.5, -5.5), at(9, -5.2), at(17.5, -7), at(20.5, 5.5), at(12, 6.8), at(4, 5.2), at(-1.5, 5.6)].entries()) {
+		if (i === 0) torso.moveTo(...p);
+		else torso.lineTo(...p);
+	}
+	torso.closePath();
+	ctx.fillStyle = suit(BLACK_LIT);
+	ctx.fill(torso);
+	ctx.save();
+	ctx.clip(torso);
+	ctx.fillStyle = suit(RED_SUIT);
+	ctx.fill(new Path2D(`M ${at(3, -1.5).join(' ')} L ${at(18, -2.5).join(' ')} L ${at(18, 3.5).join(' ')} L ${at(3, 2.5).join(' ')} Z`));
+	ctx.restore();
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.9;
+	ctx.stroke(torso);
+	emblem(ctx, ...at(12.5, 0.8), 3, sk.torsoAngle);
+	// Shoulder plates
+	ctx.fillStyle = suit(RED_DEEP);
+	ctx.beginPath();
+	ctx.ellipse(...at(17.5, -5), 4.2, 3, sk.torsoAngle, 0, TAU);
+	ctx.fill();
+	ctx.stroke();
+
+	// Near leg
+	segment(ctx, sk.front.hipJoint, sk.front.knee, 4.2, 3.4, suit(BLACK_LIT));
+	segment(ctx, sk.front.knee, sk.front.foot, 3.4, 2.7, suit(RED_SUIT));
+
+	// Head: bald and ridged, the brow a ledge, eyes burning down in the dark under it
+	const [hx, hy] = sk.headCenter;
+	ctx.save();
+	ctx.translate(hx, hy);
+	ctx.rotate(sk.headAngle);
+	ctx.scale(1.2, 1.2);
+	ctx.fillStyle = skin;
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.beginPath();
+	ctx.moveTo(-4.5, 4);
+	ctx.quadraticCurveTo(-6, -4, -1, -6.4);
+	ctx.quadraticCurveTo(5, -7, 6, -1.6);
+	ctx.lineTo(6.4, 2.4);
+	ctx.quadraticCurveTo(5.6, 6, 1.5, 6.4);
+	ctx.quadraticCurveTo(-3, 6.2, -4.5, 4);
+	ctx.closePath();
+	ctx.fill();
+	ctx.stroke();
+	// Scalp ridges
+	ctx.strokeStyle = flash ? '#ffffff' : ATRO_SKIN_DARK;
+	ctx.lineWidth = 0.7;
+	for (let i = 0; i < 3; i++) {
+		ctx.beginPath();
+		ctx.moveTo(-3 + i * 1.8, -6);
+		ctx.quadraticCurveTo(-4 + i * 1.8, -3, -4.2 + i * 1.6, 0);
+		ctx.stroke();
+	}
+	// The brow, and the dark under it
+	ctx.fillStyle = flash ? '#ffffff' : ATRO_SKIN_DARK;
+	ctx.beginPath();
+	ctx.moveTo(0.5, -2.6);
+	ctx.lineTo(7, -2.2);
+	ctx.lineTo(6.4, -0.6);
+	ctx.lineTo(1, -1);
+	ctx.closePath();
+	ctx.fill();
+	ctx.fillStyle = '#1a0405';
+	ctx.beginPath();
+	ctx.ellipse(4.2, 0, 2.2, 1.1, 0, 0, TAU);
+	ctx.fill();
+	eye(ctx, 4.6, 0, 1, b.rage + 0.8 + (winding ? 0.8 : 0));
+	// A mouth full of teeth, open when he acts
+	const open = winding || acting ? 1.2 : 0.4;
+	ctx.fillStyle = '#1a0405';
+	ctx.beginPath();
+	ctx.ellipse(4, 3.8, 2, open, 0, 0, TAU);
+	ctx.fill();
+	ctx.fillStyle = '#e8dcc8';
+	for (let i = 0; i < 3; i++) ctx.fillRect(2.6 + i * 1, 3.8 - open, 0.5, 0.8);
+	ctx.restore();
+
+	// The ring arm
+	segment(ctx, sk.front.shoulder, sk.front.elbow, 3.8, 3.1, suit(BLACK_LIT));
+	segment(ctx, sk.front.elbow, sk.front.hand, 3.1, 2.8, suit(RED_SUIT));
+	fist(ctx, sk.front.hand, suit(RED_DEEP), false);
+	ring(ctx, sk.front.hand[0], sk.front.hand[1]);
+	if (!defeated && (tell === 'aim' || tell === 'build')) orb(ctx, sk.front.hand[0], sk.front.hand[1], 2 + k * 4.5, time);
+	else if (!defeated && tell === 'sky') orb(ctx, sk.headCenter[0], sk.headCenter[1] - 18 - k * 5, 3 + k * 7, time);
+	ctx.restore();
+}
+
+/** The Book of the Black: a black book hanging in the air, its pages glowing red, burning as he reads (`reading` 0..1). */
+function drawBookOfTheBlack(ctx: CanvasRenderingContext2D, x: number, y: number, time: number, reading: number) {
+	ctx.save();
+	ctx.translate(x, y + Math.sin(time * 1.8) * 1.5);
+	ctx.rotate(-0.2 + Math.sin(time * 0.9) * 0.08);
+	const glow = 0.4 + 0.6 * Math.min(1, reading);
+	ctx.shadowColor = RED;
+	ctx.shadowBlur = 6 + 8 * glow;
+	// Covers
+	ctx.fillStyle = '#0a0506';
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.6;
+	ctx.fillRect(-6, -4.5, 12, 9);
+	ctx.strokeRect(-6, -4.5, 12, 9);
+	ctx.shadowBlur = 0;
+	// Open pages, glowing
+	ctx.fillStyle = `rgba(255, 70, 60, ${0.5 + 0.4 * glow})`;
+	ctx.beginPath();
+	ctx.moveTo(0, -4);
+	ctx.quadraticCurveTo(-3, -5, -5.4, -3.6);
+	ctx.lineTo(-5.4, 3.6);
+	ctx.quadraticCurveTo(-3, 2.6, 0, 3.8);
+	ctx.quadraticCurveTo(3, 2.6, 5.4, 3.6);
+	ctx.lineTo(5.4, -3.6);
+	ctx.quadraticCurveTo(3, -5, 0, -4);
+	ctx.closePath();
+	ctx.fill();
+	// A page turning
+	const turn = (time * (0.6 + reading * 2)) % 1;
+	ctx.strokeStyle = `rgba(255, 190, 170, ${0.6 * (1 - turn)})`;
+	ctx.beginPath();
+	ctx.moveTo(0, -4);
+	ctx.quadraticCurveTo(4 - turn * 8, -6, 5 - turn * 10, -3);
+	ctx.stroke();
 	ctx.restore();
 }
 

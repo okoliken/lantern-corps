@@ -464,6 +464,23 @@ Kilowog", "the boss should be fierce... we're bullying him").**
   (Rage Slam away) or shatters. Health x3.2, might 2.25. Bots: win ~2/6; losses get him to 7-24%;
   2-3 minute duels; ~15 target switches.
 
+**Act 3 · Boss: Atrocitus** (the finale; Hal or John via `choose`, the other, Arisia and Razer (hero) at the
+start, Kilowog, Katma Tui and Boodikka arriving 18-20s in via `addPartner`; `missions/atrocitusBoss.ts`,
+map `buildFinaleMap` (`bloodMoon`, the dark altar), intro `scenes/bloodOath.ts` with `BLOOD_OATH`,
+**outro** `scenes/lastLight.ts` with `LAST_LIGHT` (the ending, then the results). New enemy
+**`atrocitus`** (hp 3000, poise 900, scale 1.55; kit claws / slam / vomit / meteors / beam / charge /
+skulls; drawn by `drawAtrocitus` in `draw/lieutenants.ts`: crimson skin, ridged scalp, brow ledge,
+black and red armour, the Book of the Black floating at his shoulder, its pages burning with
+`brain.rage`). **The Blood Oath ward**: while up, only 10% of any damage gets through (the mission
+restores the rest each tick); every hitter is noted from `brain.grudge` (whoever hurt him last), and
+**4 different Lanterns within 2s** break it for 6s; restored, it holds 7s whatever hits it. At 60% the
+**Book** opens: Dex-Starr (x10) and 4 Reds; Lanterns within 460px lose 9 willpower/s; every 15s (1.5s
+`slamMark` warning) he reads a page and every ring within 520px is `branded` (no constructs or
+shields) for 4s. At 25% the **rage**: x1.2 might and speed, and blood drops every ~1.3s (1.4s warning,
+radius 120, 30 damage), 60% of them aimed at Lanterns. Falls = every Red drops = won. Atrocitus x20,
+might 3.8; Reds x3.8, might 4.2; `maxHit` 38. ★ defeated ★ no lives lost ★ under 8 min. Bots: 5/6,
+~7.5 min, the ward broken ~31 times, lives lost in the Hal runs.
+
 **Act 3 · Mission 4: Ysmault** (Hal or John via `choose`, the other and Arisia; Razer joins as a hero
 ally after the second conduit via `addPartner`; `missions/ysmault.ts`, map `buildYsmaultMap` (`bloodMoon`
 ground, 3400x2400, the altar in the middle, 4 conduits round it, 5 blood pools at the edges), art

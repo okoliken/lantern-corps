@@ -246,6 +246,28 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		lieutenant: true
 	},
 
+	// The first Red Lantern: the last survivor of Sector 666, and the rage that kept him alive
+	atrocitus: {
+		kind: 'atrocitus',
+		name: 'Atrocitus',
+		faction: 'red',
+		description:
+			'The last survivor of Sector 666, the first Red Lantern, and their master. Blood napalm, a rain of rage from the sky, fists that break shields, a beam of pure hatred. He swore a Blood Oath, and he is holding the Book of the Black. Behind a Blood Oath ward he barely feels a single Lantern: it breaks when many strike him at once.',
+		mind: 'rage',
+		hp: 3000,
+		speed: 150,
+		accel: 4,
+		sight: 1400,
+		poise: 900,
+		scale: 1.55,
+		agility: 0.3,
+		movement: 'hover',
+		kit: ['claws', 'slam', 'vomit', 'meteors', 'beam', 'charge', 'skulls'],
+		range: 260,
+		leans: { aggression: 0.7, caution: -0.5 },
+		lieutenant: true
+	},
+
 	// A cat. A Red Lantern cat. Small, very fast, and never where you're aiming
 	dexStarr: {
 		kind: 'dexStarr',

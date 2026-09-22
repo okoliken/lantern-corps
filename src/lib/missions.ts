@@ -12,7 +12,7 @@ import { PrisonMoon, buildPrisonMap } from '$lib/engine/missions/prisonMoon';
 import { RazerBoss, buildRazerMap } from '$lib/engine/missions/razerBoss';
 import { OaLanding } from '$lib/engine/scenes/oaLanding';
 import type { DialogueScene } from '$lib/engine/scenes/scene';
-import { CONFESSION, JOHN_CALLED, JOHN_CHOSEN, OA_LANDING, RED_DAWN, SUMMONED, THE_FIRST, THE_SIGNAL, THE_TRAIL, DEAD_SECTOR, BLOOD_WORLD } from '$lib/story/scenes';
+import { CONFESSION, JOHN_CALLED, JOHN_CHOSEN, OA_LANDING, RED_DAWN, SUMMONED, THE_FIRST, THE_SIGNAL, THE_TRAIL, DEAD_SECTOR, BLOOD_WORLD, BLOOD_OATH, LAST_LIGHT } from '$lib/story/scenes';
 import { JohnChosen } from '$lib/engine/scenes/johnChosen';
 import { CallToArms, buildCentralCityMap } from '$lib/engine/missions/callToArms';
 import { SummonedTrial, buildTrialMap } from '$lib/engine/missions/summoned';
@@ -30,6 +30,9 @@ import { IntoSector666, buildSector666Map } from '$lib/engine/missions/sector666
 import { DeadSector } from '$lib/engine/scenes/deadSector';
 import { YsmaultMission, buildYsmaultMap } from '$lib/engine/missions/ysmault';
 import { BloodWorld } from '$lib/engine/scenes/bloodWorld';
+import { AtrocitusBoss, buildFinaleMap } from '$lib/engine/missions/atrocitusBoss';
+import { BloodOath } from '$lib/engine/scenes/bloodOath';
+import { LastLight } from '$lib/engine/scenes/lastLight';
 import type { LanternId } from '$lib/engine/lanterns';
 import { Summoned } from '$lib/engine/scenes/summoned';
 
@@ -49,6 +52,23 @@ type Options = Pick<GameOptions, 'settings' | 'profiles' | 'onProgress' | 'zoom'
 
 export function buildMission(id: string, options: Options): MissionRun {
 	switch (id) {
+		case 'atrocitus': {
+			const map = buildFinaleMap();
+			const me: LanternId = options.as ?? 'hal';
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: me, keys: 'solo' },
+					{ lantern: me === 'hal' ? 'john' : 'hal', keys: 'p2', ai: true },
+					{ lantern: 'arisia', keys: 'p2', ai: true },
+					{ lantern: 'razer', keys: 'p2', ai: true }
+				],
+				map
+			});
+			const director = new AtrocitusBoss();
+			game.director = director;
+			return { game, director, outro: () => new LastLight(LAST_LIGHT), intro: () => new BloodOath(BLOOD_OATH) };
+		}
 		case 'ysmault': {
 			const map = buildYsmaultMap();
 			const me: LanternId = options.as ?? 'hal';

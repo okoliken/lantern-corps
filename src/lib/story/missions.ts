@@ -338,6 +338,28 @@ MISSIONS.push({
 	partner: 'arisia'
 });
 
+MISSIONS.push({
+	id: 'atrocitus',
+	title: 'Atrocitus',
+	tagline: 'The finale. Atrocitus has the Book of the Black and has called out every Lantern the Guardians can spare. It will take all of them.',
+	lantern: 'hal',
+	choose: ['hal', 'john'],
+	environment: 'planet',
+	place: 'Sector 666 · The Dark Altar',
+	briefing: [
+		'The Blood Altar is dark, but Atrocitus already holds the Book of the Black. He has sworn his Blood Oath, and he has called for every Lantern the Guardians can spare.',
+		'His oath is a ward: against any one Lantern it turns almost everything. It breaks only when four or more strike him at once. That is what the Corps is for.',
+		'Hal Jordan, John Stewart, Arisia and Razer start the fight. Kilowog, Katma Tui and Boodikka are on their way from Oa. Choose who you play.'
+	],
+	objectives: [
+		'Break his Blood Oath: four or more Lanterns hitting him at once, then everything while it is down',
+		'When he reads from the Book, get away from him: it quiets every ring nearby',
+		'When the rage takes him, stay out of the blood rain',
+		'Defeat Atrocitus'
+	],
+	partner: 'razer'
+});
+
 export function missionById(id: string): MissionInfo | undefined {
 	return MISSIONS.find((m) => m.id === id);
 }
@@ -392,10 +414,9 @@ export const ACTS: ActInfo[] = [
 			'dex-starr',
 			'into-sector-666',
 			'ysmault',
-			{ title: 'Boss: Atrocitus', tagline: 'It will take every Lantern you have.' }
+			'atrocitus'
 		]
 	},
-	{ number: 4, title: 'To be revealed', tagline: '', lineup: [] }
 ];
 
 /** Which act a mission is in and its number within that act. */

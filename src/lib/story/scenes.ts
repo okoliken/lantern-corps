@@ -3,7 +3,7 @@
 
 import { GREEN_LIGHT, THEME_GREEN } from '../theme';
 
-export type Speaker = 'tomar' | 'hal' | 'john' | 'ring' | 'guardian' | 'kilowog' | 'razer' | 'jonn' | 'ganthet' | 'arisia' | 'atrocitus';
+export type Speaker = 'tomar' | 'hal' | 'john' | 'ring' | 'guardian' | 'kilowog' | 'razer' | 'jonn' | 'ganthet' | 'arisia' | 'atrocitus' | 'katma' | 'boodikka';
 
 export interface SceneLine {
 	who: Speaker;
@@ -23,7 +23,9 @@ export const SPEAKERS: Record<Speaker, { name: string; color: string }> = {
 	jonn: { name: "J'onn J'onzz", color: '#78dcaa' },
 	ganthet: { name: 'Ganthet', color: '#9fd4ff' },
 	arisia: { name: 'Arisia', color: '#ffe08a' },
-	atrocitus: { name: 'Atrocitus', color: '#ff3b30' }
+	atrocitus: { name: 'Atrocitus', color: '#ff3b30' },
+	katma: { name: 'Katma Tui', color: '#e58bc0' },
+	boodikka: { name: 'Boodikka', color: '#ffae7a' }
 };
 
 /**
@@ -159,6 +161,31 @@ export const BLOOD_WORLD: SceneLine[] = [
 	{ who: 'hal', text: "He's also about to open a book that ends the Corps. We can feel sorry for him after.", mood: 'grin' },
 	{ who: 'arisia', text: 'The glow on the horizon. That is the Blood Altar.' },
 	{ who: 'atrocitus', text: 'Come to it, then. Come and bleed.', mood: 'alarm' }
+];
+
+/** Start of the finale: Atrocitus swears his oath at the dark altar. */
+export const BLOOD_OATH: SceneLine[] = [
+	{ who: 'atrocitus', text: 'The altar is dark. It does not matter. The Book of the Black is already mine.' },
+	{ who: 'razer', text: 'Then put it down, Atrocitus. It is over.' },
+	{ who: 'atrocitus', text: 'Over? Razer. Nothing is over. Ten thousand years I have waited to hear the Guardians’ children scream.', mood: 'alarm' },
+	{ who: 'atrocitus', text: 'With blood and rage of crimson red, ripped from a corpse so freshly dead...', mood: 'alarm' },
+	{ who: 'atrocitus', text: 'Together with our hellish hate, we’ll burn you all. That is your fate!', mood: 'alarm' },
+	{ who: 'hal', text: "In brightest day, in blackest night. We've got our own words, pal." },
+	{ who: 'john', text: 'And the rest of the Corps is on its way. Hold him till they get here.' }
+];
+
+/** The end: home on Oa, everyone who fought, the battery bright again. */
+export const LAST_LIGHT: SceneLine[] = [
+	{ who: 'guardian', text: 'Lanterns. You went where we would not, and you ended what we began ten thousand years ago.' },
+	{ who: 'ganthet', text: 'The Manhunters were our shame. Atrocitus was our shame. We hid them both. We will not hide again.' },
+	{ who: 'kilowog', text: "First time I ever heard a Guardian say sorry. Took a whole sector to get it." },
+	{ who: 'arisia', text: 'Razer stayed on Ysmault. He said somebody has to watch over the dead, and he owes them.' },
+	{ who: 'john', text: "I'm going back to Earth. The League kept my seat warm, and Earth's in my sector." },
+	{ who: 'hal', text: "And I'll be out on the frontier. Somebody has to fly into things headfirst.", mood: 'grin' },
+	{ who: 'john', text: "Somebody has to pull you back out. You know where to find me, Jordan." },
+	{ who: 'katma', text: 'The Corps is whole again. More Lanterns came home tonight than we lost.' },
+	{ who: 'guardian', text: 'Then say it, all of you. Say it so the whole universe can hear.' },
+	{ who: 'hal', text: 'In brightest day, in blackest night, no evil shall escape our sight. Let those who worship evil’s might beware our power: Green Lantern’s light!', mood: 'chosen' }
 ];
 
 /** End of Mission 1: Tomar-Re's ship sets down on Oa. */

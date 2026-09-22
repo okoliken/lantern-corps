@@ -280,10 +280,21 @@ The user chose the siege opening (2026-09-21) over going straight into Sector 66
    the second, **Razer** arrives ("This world is my shame too"; "You made me, Atrocitus. And I am here
    to unmake you"); Skallox after the third. The altar goes dark, and Atrocitus reveals he already has
    the Book of the Black: "Come, then. All of you." Hal: "Call Oa. Call everyone."
-5. **Boss: Atrocitus**: it takes every Lantern you have (planned).
+5. **Boss: Atrocitus** (built 2026-09-22; the finale). Opening scene, **the Blood Oath**: at the dark altar,
+   the Book of the Black already in his hand, Atrocitus swears his oath; Hal answers with theirs. His
+   Blood Oath ward turns any one Lantern's attack and breaks only when four strike him at once: the
+   Corps' whole point. Hal or John, Arisia and Razer start the fight; Kilowog, Katma Tui and Boodikka
+   arrive from Oa ("Did somebody call for every Lantern the Guardians could spare? Here's three!"). At
+   60% he opens the Book (it drinks will, and its pages quiet every ring nearby) and Dex-Starr comes back
+   for revenge; at 25% the rage takes him and blood rains down. He falls ("Rage does not end. It only
+   waits"); Razer chooses to stay on Ysmault to watch over the dead; Ganthet binds the Book. Ending scene,
+   **The Last Light**: home on Oa, the Guardians own their shame at last ("We hid them both. We will not
+   hide again"), John goes back to Earth and the League, Hal back to the frontier, and every Lantern says
+   the oath together. **The End.**
 
 ### Act 4
-To be revealed.
+Dropped (2026-09-22): the story ends with Atrocitus. The Act 4 placeholder is gone from the menu.
+
 
 ---
 
