@@ -29,6 +29,7 @@ import { ENEMIES, type Enemy, type EnemyKind, type Role } from '../enemies/enemi
 import type { Drawable, Game } from '../game';
 import { heroFx } from '../heroes';
 import { IDLE } from '../input';
+import { MAX_WILLPOWER } from '../willpower';
 import type { CrewId } from '../lanterns';
 import type { GameMap } from '../map';
 import type { Player } from '../player';
@@ -37,7 +38,7 @@ import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type Mi
 export type SiegePhase = 'drop' | 'bombard' | 'corps' | 'flagship' | 'flare' | 'taken';
 
 export const SIEGE_LIVES = 3;
-const INTRO_TIME = 3;
+export const INTRO_TIME = 3;
 /** The battery's light, and how much each Red near it drinks per second. */
 export const BATTERY_POWER = 1150;
 export const DRAIN_RANGE = 300;
@@ -58,17 +59,17 @@ const LIEUTENANT_MIGHT = 3.3;
 const POD_FALL = 1.4;
 const POD_LANDING = { radius: 90, damage: 16, knockback: 480 };
 /** Roughly half of what drops heads straight for the battery, fighting as it goes. */
-const SAPPER_SHARE = 0.45;
+const SAPPER_SHARE = 0.55;
 const SAPPER_PULL = 600;
 /** Torpedoes at the battery. */
 export const TORPEDO = { radius: 14, hp: 18, speed: 220, damage: 29, lanternDamage: 14, lift: 60 };
-const TORPEDO_EVERY: [number, number] = [4, 6];
+const TORPEDO_EVERY: [number, number] = [2.6, 4];
 /** The flagship: seconds of it, how often a strike comes down, the warning, and what a strike does. */
 export const FLAGSHIP_TIME = 60;
 const STRIKE = { every: 1.6, warn: 1.5, radius: 130, damage: 30, knockback: 520, battery: 44 };
 /** Pods keep coming while the flagship fires: one every so often, at most this many Reds up. */
-const FLAGSHIP_POD_EVERY = 2.4;
-const FLAGSHIP_CAP = 12;
+const FLAGSHIP_POD_EVERY = 1.5;
+const FLAGSHIP_CAP = 20;
 /** The flare: how much it does to every Red on the plaza. */
 const FLARE_DAMAGE = 9999;
 /** Seconds of Dex-Starr's escape. */
@@ -89,24 +90,33 @@ const around = (n: number, radius: number, start: number, gap: number, spin = 0)
 		const roles: Role[] = ['berserker', 'hunter', 'gunner'];
 		return [Math.cos(a) * radius, Math.sin(a) * radius * 0.7, start + i * gap, 'rageGrunt', roles[i % 3]] as Pod;
 	});
-const DROPS: Pod[][] = [around(6, 520, 0.5, 0.35, 0.3), around(8, 600, 0.3, 0.3, 1.1), around(10, 560, 0.2, 0.25, 2)];
+const DROPS: Pod[][] = [around(10, 520, 0.4, 0.35, 0.3), around(14, 600, 0.25, 0.3, 1.1), around(18, 560, 0.18, 0.25, 2)];
 const FIGHTERS: Pod[] = [
 	[-1100, -600, 0, 'redFighter'],
-	[1100, -600, 0.8, 'redFighter'],
-	[-1150, 550, 1.6, 'redFighter'],
-	[1150, 550, 2.4, 'redFighter'],
-	[0, -900, 3.2, 'redFighter'],
-	[0, 900, 4, 'redFighter']
+	[1100, -600, 0.6, 'redFighter'],
+	[-1150, 550, 1.2, 'redFighter'],
+	[1150, 550, 1.8, 'redFighter'],
+	[0, -900, 2.4, 'redFighter'],
+	[0, 900, 3, 'redFighter'],
+	[-1300, 0, 3.6, 'redFighter'],
+	[1300, 0, 4.2, 'redFighter'],
+	[-700, -950, 4.8, 'redFighter'],
+	[700, 950, 5.4, 'redFighter']
 ];
-const ESCORT: Pod[] = around(8, 480, 1, 0.45, 0.7);
+const ESCORT: Pod[] = around(14, 480, 0.8, 0.45, 0.7);
 /** While Zox and Skallox are up, a pod every so often; the Corps gets home this long after they land. */
-const CORPS_POD_EVERY = 4.5;
-const HOMECOMING_AFTER = 18;
-/** Freed on the prison moon in Act 1: they come home. */
-const HOMECOMING: [CrewId, number, number][] = [
-	['arisia', -700, -300],
-	['katma', 700, -300],
-	['boodikka', 0, 520]
+const CORPS_POD_EVERY = 2.6;
+const RALLY_AFTER = 18;
+/** What the Corps' volley does to every Red on the plaza. */
+const RALLY_DAMAGE = 260;
+/**
+ * Freed on the prison moon in Act 1, and home before the fleet arrived. Oa is
+ * not defended by three Lanterns: it is defended by everyone who got back.
+ */
+const GUARD: [CrewId, number, number][] = [
+	['arisia', -420, -220],
+	['katma', 420, -220],
+	['boodikka', 0, 340]
 ];
 
 /** Oa: the great plaza round the Central Battery. */
@@ -151,7 +161,7 @@ export class SiegeOfOa implements MissionDirector {
 	zox: Enemy | null = null;
 	skallox: Enemy | null = null;
 	/** Who came home from the prison moon. */
-	readonly homecoming: Player[] = [];
+	readonly guard: Player[] = [];
 	private reds: Enemy[] = [];
 	private sappers = new WeakSet<Enemy>();
 	private counted = new WeakSet<Enemy>();
@@ -171,7 +181,8 @@ export class SiegeOfOa implements MissionDirector {
 	private draining: Enemy[] = [];
 	private wasDown = false;
 	private clock = 0;
-	private said = new Set<string>();
+	/** Beats that have already played, so each one happens once. */
+	readonly said = new Set<string>();
 
 	// ------------------------------------------------------------ reporting
 
@@ -259,6 +270,7 @@ export class SiegeOfOa implements MissionDirector {
 				if (this.timer <= 0) {
 					this.state = 'playing';
 					cw.maxHit = MAX_HIT;
+					this.postGuard(game);
 					this.dropAll(DROPS[0]);
 					this.comms.scene([
 						['Kilowog', 'Here they come! Drop pods, all round the battery!'],
@@ -309,7 +321,7 @@ export class SiegeOfOa implements MissionDirector {
 				if (clear()) this.startCorps(game);
 				break;
 			case 'corps':
-				if (this.clock >= HOMECOMING_AFTER) this.once('home', () => this.homecome(game));
+				if (this.clock >= RALLY_AFTER) this.once('home', () => this.rally(game));
 				if ((this.zox && isStanding(this.zox)) || (this.skallox && isStanding(this.skallox))) {
 					this.podIn -= dt;
 					if (this.podIn <= 0) {
@@ -512,24 +524,41 @@ export class SiegeOfOa implements MissionDirector {
 		this.podIn = CORPS_POD_EVERY;
 		this.comms.scene([
 			['Zox', 'ZOX IS HERE! ZOX WILL BREAK YOUR LITTLE LANTERN!'],
-			['Skallox', 'Three Lanterns. Atrocitus said there would be more of you. I am disappointed.'],
+			['Skallox', 'Six of you. Atrocitus said the Corps was away. Atrocitus was wrong, and it will not save you.'],
 			['Kilowog', "Big ones, both of 'em. Stay on the battery, don't get pulled away!"]
 		]);
 	}
 
-	/** The Lanterns freed from the prison moon get home. */
-	private homecome(game: Game) {
-		for (const [who, dx, dy] of HOMECOMING) {
+	/** The Lanterns who got home before the fleet did, spread round the battery. */
+	private postGuard(game: Game) {
+		for (const [who, dx, dy] of GUARD) {
 			const p = game.addPartner(who, BATTERY.x + dx, BATTERY.y + dy);
-			this.homecoming.push(p);
+			this.guard.push(p);
 			game.constructs.effects.push({ kind: 'callout', x: p.x, y: p.y, age: 0, life: 2, text: p.def.name.toUpperCase(), owner: p });
-			game.constructs.effects.push({ kind: 'snap', x: p.x, y: p.y - 60, age: 0, life: 0.7, radius: 80 });
 		}
+	}
+
+	/** The rest of the Corps, still a long way out, throws its light at Oa. */
+	private rally(game: Game) {
+		const cw = game.constructs;
+		// Every Lantern on the plaza gets back what this has cost them
+		for (const p of game.players) {
+			if (p.downed) continue;
+			p.health = Math.min(p.maxHealth, p.health + p.maxHealth * 0.45);
+			p.willpower = Math.min(MAX_WILLPOWER, p.willpower + MAX_WILLPOWER * 0.5);
+			cw.effects.push({ kind: 'snap', x: p.x, y: p.y - 60, age: 0, life: 0.7, radius: 90 });
+		}
+		// And the volley itself: green light across the whole plaza
+		for (const e of this.reds) {
+			if (!isStanding(e)) continue;
+			hitDummyWithFx(cw, e, RALLY_DAMAGE, 400, BATTERY.x, BATTERY.y, null);
+			heroFx(cw).push({ kind: 'boom', x: e.x, y: e.y, age: 0, life: 0.5, radius: 110 });
+		}
+		cw.effects.push({ kind: 'snap', x: BATTERY.x, y: BATTERY.y - 140, age: 0, life: 1.2, radius: 620 });
 		this.comms.scene([
-			['Arisia', 'Not today, Zox! Hal Jordan: you broke us out of that prison. We came home to return the favour.'],
-			['Katma Tui', 'Every Lantern within a day of Oa is on the way. We were closest.'],
-			['Boodikka', 'Point me at the big one.'],
-			['Kilowog', "HA! Now it's a fight! Take the big fellas down!"]
+			['Katma Tui', 'Hal! Every Lantern within a day of Oa just fired at once. That is all of us, from wherever we are.'],
+			['Arisia', 'They cannot get here in time. They can still shoot.'],
+			['Kilowog', "HA! Feel that, Zox? That's the Corps!"]
 		]);
 	}
 

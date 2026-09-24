@@ -4,7 +4,7 @@ import { Game } from '../game';
 import type { LanternId } from '../lanterns';
 import { RED_DAWN } from '../../story/scenes';
 import { RedDawn } from '../scenes/redDawn';
-import { BATTERY, BATTERY_POWER, DRAIN_RANGE, FLAGSHIP_TIME, SiegeOfOa, buildOaPlazaMap } from './siegeOfOa';
+import { BATTERY, BATTERY_POWER, DRAIN_RANGE, FLAGSHIP_TIME, INTRO_TIME, SiegeOfOa, buildOaPlazaMap } from './siegeOfOa';
 
 function setup(me: LanternId = 'hal') {
 	const game = new Game({
@@ -58,7 +58,9 @@ describe('Act 3, Mission 1: Siege of Oa', () => {
 		expect(mission.phase).toBe('drop');
 		expect(game.enemies.length).toBe(0);
 		run(5);
-		expect(game.enemies.filter((e) => e.kind === 'rageGrunt').length).toBe(6);
+		// Six pods land, and with six Lanterns on the plaza one of them may
+		// already be down by the time we look
+		expect(game.enemies.filter((e) => e.kind === 'rageGrunt').length).toBeGreaterThanOrEqual(5);
 	});
 
 	it('a Red Lantern near the battery drinks its light; with none on it, it fills back up', () => {
@@ -103,13 +105,21 @@ describe('Act 3, Mission 1: Siege of Oa', () => {
 		expect(torpedo).toBe(true);
 	});
 
-	it('Zox and Skallox land, and the Lanterns freed from the prison moon come home', () => {
+	it('every Lantern who got home is on the plaza from the first drop', () => {
+		const { game, mission, run } = setup();
+		run(INTRO_TIME + 0.5);
+		expect(mission.guard.length).toBe(3);
+		expect(game.players.map((p) => p.def.id)).toEqual(['hal', 'john', 'kilowog', 'arisia', 'katma', 'boodikka']);
+	});
+
+	it('Zox and Skallox land, and the rest of the Corps fires on Oa from wherever it is', () => {
 		const { game, mission, until } = setup();
 		until(() => mission.phase === 'corps');
 		expect(mission.zox).not.toBeNull();
 		expect(mission.skallox).not.toBeNull();
-		until(() => mission.homecoming.length === 3);
-		expect(game.players.map((p) => p.def.id)).toEqual(['hal', 'john', 'kilowog', 'arisia', 'katma', 'boodikka']);
+		const before = game.enemies.filter(isStanding).length;
+		until(() => mission.said.has('home'), 60);
+		expect(game.enemies.filter(isStanding).length).toBeLessThanOrEqual(before);
 	});
 
 	it('the flagship fires for a minute, then the battery blazes out and Dex-Starr takes a Guardian', () => {
