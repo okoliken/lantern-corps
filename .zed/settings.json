@@ -1,0 +1,22 @@
+// Project settings for lantern-corps — override ~/.config/zed/settings.json.
+{
+  "hard_tabs": true,
+  "tab_size": 4,
+
+  // No Prettier config in this repo yet; formatting on save would restyle ~88 files.
+  "format_on_save": "off",
+
+  // Zed's defaults plus the generated SvelteKit folder (hides it from the tree and search).
+  "file_scan_exclusions": [
+    "**/.git",
+    "**/.svn",
+    "**/.hg",
+    "**/.jj",
+    "**/CVS",
+    "**/.DS_Store",
+    "**/Thumbs.db",
+    "**/.classpath",
+    "**/.settings",
+    "**/.svelte-kit"
+  ]
+}

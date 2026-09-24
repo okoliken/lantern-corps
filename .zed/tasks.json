@@ -1,0 +1,8 @@
+// Run with cmd-shift-p → "task: spawn" (or alt-shift-t).
+[
+  { "label": "dev server", "command": "npm run dev" },
+  { "label": "test", "command": "npm test" },
+  { "label": "test (watch)", "command": "npm run test:watch" },
+  { "label": "test current file", "command": "npx vitest run \"$ZED_RELATIVE_FILE\"" },
+  { "label": "type check", "command": "npm run check" }
+]
