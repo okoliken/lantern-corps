@@ -39,11 +39,16 @@ export type SiegePhase = 'drop' | 'bombard' | 'corps' | 'flagship' | 'flare' | '
 export const SIEGE_LIVES = 3;
 const INTRO_TIME = 3;
 /** The battery's light, and how much each Red near it drinks per second. */
-export const BATTERY_POWER = 1000;
+export const BATTERY_POWER = 1150;
 export const DRAIN_RANGE = 300;
-const DRAIN_RATE = 3.6;
-/** With no Red Lantern on it, the Guardians feed the battery back up this much a second. */
-const REFILL_RATE = 2;
+const DRAIN_RATE = 3;
+/**
+ * The Guardians never stop feeding the battery: slowly while Red Lanterns are
+ * drinking from it, properly once the plaza is clear. Clearing them off it has
+ * to be worth something, or the whole mission is one long slide downward.
+ */
+const REFILL_RATE = 3;
+const REFILL_UNDER_FIRE = 1;
 /** Red Lanterns: health and hitting power on top of their base. */
 const TOUGHNESS = 3.4;
 const MIGHT = 3.6;
@@ -56,11 +61,11 @@ const POD_LANDING = { radius: 90, damage: 16, knockback: 480 };
 const SAPPER_SHARE = 0.45;
 const SAPPER_PULL = 600;
 /** Torpedoes at the battery. */
-export const TORPEDO = { radius: 14, hp: 18, speed: 220, damage: 35, lanternDamage: 14, lift: 60 };
+export const TORPEDO = { radius: 14, hp: 18, speed: 220, damage: 29, lanternDamage: 14, lift: 60 };
 const TORPEDO_EVERY: [number, number] = [4, 6];
 /** The flagship: seconds of it, how often a strike comes down, the warning, and what a strike does. */
 export const FLAGSHIP_TIME = 60;
-const STRIKE = { every: 1.6, warn: 1.5, radius: 130, damage: 30, knockback: 520, battery: 60 };
+const STRIKE = { every: 1.6, warn: 1.5, radius: 130, damage: 30, knockback: 520, battery: 44 };
 /** Pods keep coming while the flagship fires: one every so often, at most this many Reds up. */
 const FLAGSHIP_POD_EVERY = 2.4;
 const FLAGSHIP_CAP = 12;
@@ -140,7 +145,7 @@ export class SiegeOfOa implements MissionDirector {
 	power = BATTERY_POWER;
 	failReason: 'lantern' | 'battery' | null = null;
 	readonly comms = new Comms();
-	readonly starHint = '★ Oa held · ★ no lives lost · ★ the battery above half its light';
+	readonly starHint = '★ Oa held · ★ no lives lost · ★ the battery still above three quarters';
 	/** The Central Battery, as something a bubble shield can go on. */
 	readonly battery: Protectable = { x: BATTERY.x, y: BATTERY.y, name: 'Central Battery', radius: 120, lift: 140, threat: 0 };
 	zox: Enemy | null = null;
@@ -211,7 +216,7 @@ export class SiegeOfOa implements MissionDirector {
 
 	get stars(): number {
 		if (this.state !== 'won') return 0;
-		return 1 + (this.downs === 0 ? 1 : 0) + (this.power >= BATTERY_POWER / 2 ? 1 : 0);
+		return 1 + (this.downs === 0 ? 1 : 0) + (this.power >= BATTERY_POWER * 0.75 ? 1 : 0);
 	}
 
 	get resultText(): string {
@@ -382,7 +387,8 @@ export class SiegeOfOa implements MissionDirector {
 			this.power = Math.min(BATTERY_POWER, this.power + REFILL_RATE * dt);
 			return;
 		}
-		this.power -= this.draining.length * DRAIN_RATE * dt;
+		// Drinking, but the Guardians are still pouring it back in
+		this.power -= (this.draining.length * DRAIN_RATE - REFILL_UNDER_FIRE) * dt;
 		this.once('drain', () => this.comms.say('John', "They're drinking from the battery! Get them off it!", true));
 	}
 
