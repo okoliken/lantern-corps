@@ -23,7 +23,7 @@ export const COOP_WAVES: WaveMember[][] = [
 	['berserker', 'hunter', 'gunner', 'berserker', 'hunter', 'gunner', 'manhunterDrone']
 ];
 
-export const isRole = (m: WaveMember): m is Role => m in ROLES;
+const isRole = (m: WaveMember): m is Role => m in ROLES;
 
 /** What to call a wave member in the co-op lab's overlay. */
 export function memberName(m: WaveMember): string {
@@ -31,7 +31,7 @@ export function memberName(m: WaveMember): string {
 }
 
 /** Seconds between waves. */
-export const WAVE_BREAK = 4;
+const WAVE_BREAK = 4;
 /** How far from the Lanterns a pack arrives. */
 const ARRIVE_DISTANCE = 460;
 

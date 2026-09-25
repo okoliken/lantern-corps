@@ -22,7 +22,7 @@ import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type Mi
 
 export type TrialPhase = 'kilowog' | 'sinestro' | 'together' | 'verdict';
 
-export const TRIAL_LIVES = 3;
+const TRIAL_LIVES = 3;
 const INTRO_TIME = 3;
 /** Three stars: done within this many seconds. */
 const PAR_TIME = 300;

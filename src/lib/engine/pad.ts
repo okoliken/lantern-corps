@@ -15,7 +15,7 @@
 import type { InputSource, Intent } from './input';
 import type { Player } from './player';
 
-export const PAD_BUTTONS = ['square', 'cross', 'circle', 'triangle', 'l1', 'r1', 'l2', 'r2', 'select', 'start'] as const;
+const PAD_BUTTONS = ['square', 'cross', 'circle', 'triangle', 'l1', 'r1', 'l2', 'r2', 'select', 'start'] as const;
 export type PadButton = (typeof PAD_BUTTONS)[number];
 
 /** What each button does, for the pad's labels. */
@@ -43,9 +43,9 @@ export type PadMessage =
 	| { t: 'unselect' };
 
 /** Sticks below this (0..1) count as centred. */
-export const DEAD_ZONE = 0.15;
+const DEAD_ZONE = 0.15;
 /** The right stick fires once it's pushed this far. */
-export const AIM_FIRE = 0.35;
+const AIM_FIRE = 0.35;
 /** How far out (world px) the right stick puts the crosshair. */
 const AIM_REACH = 260;
 /** No word from the pad's sticks for this long (ms): they're let go (a lost "released" never leaves you running). */

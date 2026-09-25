@@ -365,7 +365,7 @@ export function missionById(id: string): MissionInfo | undefined {
 }
 
 /** A mission that's part of the story but not built yet: shown locked, with a teaser. */
-export interface PlannedMission {
+interface PlannedMission {
 	title: string;
 	tagline: string;
 }

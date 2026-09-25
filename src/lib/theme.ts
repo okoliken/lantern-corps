@@ -37,7 +37,7 @@ const DIM_RGB = mix([0, 0, 0], 0.52);
 /** A pale tint of the theme green: glowing eyes, highlights, light shafts. */
 export const GREEN_LIGHT = hexOf(LIGHT_RGB);
 /** A dark shade of the theme green: unlit lights, borders, "off" states. */
-export const GREEN_DIM = hexOf(DIM_RGB);
+const GREEN_DIM = hexOf(DIM_RGB);
 /** The white-hot centre of ring energy (almost white, a touch of green). */
 export const GREEN_CORE = hexOf(mix([255, 255, 255], 0.9));
 

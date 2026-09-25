@@ -31,7 +31,7 @@ import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type Mi
 
 export type ColonyPhase = 'rescue' | 'launch';
 
-export const COLONY_LIVES = 3;
+const COLONY_LIVES = 3;
 const INTRO_TIME = 3;
 /** How close John has to get to a shelter for its colonists to come out. */
 const PICKUP_RADIUS = 130;

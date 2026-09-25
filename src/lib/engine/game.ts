@@ -83,9 +83,9 @@ import { BUBBLE_SHIELD, constructLabel } from './constructs/defs';
 import { AUTO_RANGE, autoReach, sameTarget, targetPosition, updateTargeting, type Target, type TargetWorld } from './targeting';
 import { BATTERY_MAX_CHARGE, canSpend, updateBattery, updateWillpower, type Battery } from './willpower';
 
-export const LANTERN_GREEN = GREEN;
+const LANTERN_GREEN = GREEN;
 
-export interface PlayerConfig {
+interface PlayerConfig {
 	/** Hal or John, or a partner the story brings along (Kilowog, AI only). */
 	lantern: CrewId;
 	/** Which keys control this player. */

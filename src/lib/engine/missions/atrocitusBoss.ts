@@ -33,7 +33,7 @@ import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type Mi
 
 export type FinalePhase = 'oath' | 'book' | 'rage' | 'fallen';
 
-export const FINALE_LIVES = 3;
+const FINALE_LIVES = 3;
 const INTRO_TIME = 3;
 /** Three stars: done within this many seconds. */
 const PAR_TIME = 480;
@@ -46,10 +46,10 @@ const RAGE = { might: 1.2, speed: 1.2 };
 /** The Blood Oath: what share of a hit gets through it, how many Lanterns it takes to break, in how long, and for how long it stays broken. */
 export const WARD_TAKES = 0.1;
 export const WARD_BREAKERS = 4;
-export const WARD_WINDOW = 2;
-export const WARD_DOWN = 6;
+const WARD_WINDOW = 2;
+const WARD_DOWN = 6;
 /** Once it's back, it holds this long whatever hits it. */
-export const WARD_HOLDS = 7;
+const WARD_HOLDS = 7;
 /** The Book: how near it drains will and how fast; how often he reads a page, how far it reaches, how long rings stay quiet. */
 const BOOK_DRAIN = { range: 460, rate: 9 };
 export const PAGE = { every: 15, warn: 1.5, range: 520, silence: 4 };
@@ -70,7 +70,7 @@ const MAX_HIT = 38;
 
 const W = 3000;
 const H = 2000;
-export const ALTAR = { x: 1500, y: 900 };
+const ALTAR = { x: 1500, y: 900 };
 const ENTRY = { x: 1500, y: 1700 };
 
 type Wave = [EnemyKind, number, number, Role?][];

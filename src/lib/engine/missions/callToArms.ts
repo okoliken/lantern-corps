@@ -47,7 +47,7 @@ import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type Mi
 
 export type CallPhase = 'arrival' | 'flank' | 'push' | 'grodd' | 'escape' | 'awakening' | 'manhunter' | 'farewell';
 
-export const CALL_LIVES = 3;
+const CALL_LIVES = 3;
 const INTRO_TIME = 3;
 /** Three stars: done within this many seconds. */
 const PAR_TIME = 540;
@@ -55,13 +55,13 @@ const PAR_TIME = 540;
 const TOUGHNESS = 3.6;
 const MIGHT = 3.1;
 /** The most one hit can take off anyone (about a quarter of John's health): hard, but never a one-shot. */
-export const MAX_HIT = 34;
+const MAX_HIT = 34;
 /** Grodd himself. */
-export const GRODD_HEALTH = 4.5;
+const GRODD_HEALTH = 4.5;
 const GRODD_MIGHT = 2.9;
 /** Health left (0..1) where Grodd's stages begin, and where he gets away. */
 export const GRODD_STAGE_2 = 0.6;
-export const GRODD_STAGE_3 = 0.25;
+const GRODD_STAGE_3 = 0.25;
 export const GRODD_ESCAPE = 0.12;
 /** The Manhunter: health and might, and how its rebuilding works. */
 const MANHUNTER_HEALTH = 3;
@@ -76,7 +76,7 @@ export const CORE_HP = 700;
 /** The core's health after each rebuild, as a share of the last. */
 const CORE_WEAR = 0.8;
 /** A rebuilt Manhunter comes back with this share of its health, and stronger each time. */
-export const REBUILT_HEALTH = 0.5;
+const REBUILT_HEALTH = 0.5;
 const REBUILT_MIGHT = 1.15;
 /** He turns on someone new every so often (seconds, plus up to SWITCH_SPREAD more). */
 const SWITCH_EVERY = 4.5;
@@ -101,7 +101,7 @@ const H = 2100;
 /** John comes down here. */
 const ENTRY = { x: 640, y: 1050 };
 /** Grodd's dig: the junction he tore open. */
-export const DIG = { x: 2450, y: 1050 };
+const DIG = { x: 2450, y: 1050 };
 
 type Wave = [EnemyKind, number, number][];
 /** Already fighting the Flash and Hawkgirl when John arrives. */
@@ -162,7 +162,7 @@ const KITS: Record<1 | 2 | 3, AbilityId[]> = {
 };
 
 /** Where the roads run (the ground draws them the same way). */
-export const roadsAlong = (length: number) => {
+const roadsAlong = (length: number) => {
 	const list: number[] = [];
 	for (let r = ROAD_OFFSET; r < length; r += CITY_BLOCK) list.push(r);
 	return list;

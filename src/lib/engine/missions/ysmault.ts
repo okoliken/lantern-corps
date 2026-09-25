@@ -30,7 +30,7 @@ import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type Mi
 
 export type AltarPhase = 'altar' | 'silence';
 
-export const ALTAR_LIVES = 3;
+const ALTAR_LIVES = 3;
 const INTRO_TIME = 3;
 /** Three stars: done within this many seconds. */
 const PAR_TIME = 420;

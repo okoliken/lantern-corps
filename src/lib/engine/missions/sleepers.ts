@@ -35,7 +35,7 @@ import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type Mi
 
 export type SleeperPhase = 'wake' | 'league' | 'spire' | 'silence' | 'offer';
 
-export const SLEEPER_LIVES = 3;
+const SLEEPER_LIVES = 3;
 const INTRO_TIME = 3;
 /** Manhunters: health and might on top of their base (there are a lot of them). */
 const MANHUNTER_HEALTH = 1.15;
@@ -44,7 +44,7 @@ const TOUGHNESS = 3.6;
 const DRONE_HEALTH = 2.5;
 const DRONE_MIGHT = 3.3;
 /** How a broken Manhunter rebuilds (while the spire stands, or before it's up). */
-export const CORE_HP = 300;
+const CORE_HP = 300;
 export const REBUILD_TIME = 7;
 const REBUILT_HEALTH = 0.45;
 const CORE_WEAR = 0.75;
@@ -53,7 +53,7 @@ const MAX_HIT = 36;
 /** The Flash gets there after this long, or as soon as John breaks his first Manhunter. */
 const FLASH_AFTER = 9;
 /** The spire: its health, seconds to send the whole signal, and seconds it takes to come up. */
-export const SPIRE_HP = 12000;
+const SPIRE_HP = 12000;
 export const SIGNAL_TIME = 130;
 const RISE_TIME = 3.5;
 /** Its pulse: how often, how long the warning, how far, and what it does. */

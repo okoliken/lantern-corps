@@ -18,8 +18,8 @@ export const REVERSE_FLASH_ABILITIES: ReadonlySet<AbilityId> = new Set<AbilityId
 /** How fast he runs in (px/s), how close counts as reached, and his punches. */
 const DASH_SPEED = 1300;
 const REACH = 46;
-export const RF_BLITZ = { punches: 4, gap: 0.07, lastKnockback: 520 };
-export const RF_BEATDOWN = { hits: 10, gap: 0.08 };
+const RF_BLITZ = { punches: 4, gap: 0.07, lastKnockback: 520 };
+const RF_BEATDOWN = { hits: 10, gap: 0.08 };
 
 /** When each combo made contact (seconds into the move). */
 const contact = new WeakMap<Enemy, number>();

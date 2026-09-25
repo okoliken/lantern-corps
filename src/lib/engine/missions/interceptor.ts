@@ -32,7 +32,7 @@ import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type Mi
 
 export type InterceptorPhase = 'run' | 'reboot' | 'online' | 'board' | 'jump';
 
-export const INTERCEPTOR_LIVES = 3;
+const INTERCEPTOR_LIVES = 3;
 const INTRO_TIME = 3;
 export const SHIP_HULL = 600;
 const SHIP_SPEED = 28;

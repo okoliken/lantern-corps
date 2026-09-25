@@ -50,14 +50,14 @@ const INTRO_TIME = 3;
 const SHIP_HULL = 500;
 const SHIP_SPEED = 25;
 /** How high the ship and asteroids float above their ground point (they're drawn this far up). */
-export const FLOAT = 40;
+const FLOAT = 40;
 /** The ship's footprint on the ground plane: half its length and half its depth. */
 const SHIP_HALF_LENGTH = 85;
 const SHIP_HALF_DEPTH = 28;
 /** Further than this from the ship and the asteroid has gone past. */
 const LOST_DISTANCE = 1300;
 /** Further than this and Hal is told to get back to the ship. */
-export const LEASH = 650;
+const LEASH = 650;
 
 /** How far ahead (seconds) the ship watches for asteroids on a collision course. */
 const THREAT_LOOKAHEAD = 2.5;

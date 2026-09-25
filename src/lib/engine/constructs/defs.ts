@@ -35,7 +35,7 @@ export type Behavior =
 	| 'ram'; // press: something huge charges out along your aim, hitting everything in its path
 
 /** Drawing style for a construct. Forge constructs will add their own. */
-export type ConstructShape =
+type ConstructShape =
 	| 'beam'
 	| 'minigun'
 	| 'cannon'
@@ -387,6 +387,6 @@ export const MAX_TRAPS_PER_PLAYER = 3;
 /** Mines out at once per Lantern (placing another replaces the oldest). */
 export const MAX_MINES_PER_PLAYER = 4;
 /** One fireteam at a time: calling another replaces the first. */
-export const MAX_SQUADS_PER_PLAYER = 1;
+const MAX_SQUADS_PER_PLAYER = 1;
 /** How many auto-turrets a single Lantern can have out at once. */
 export const MAX_TURRETS_PER_PLAYER = 2;

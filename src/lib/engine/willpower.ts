@@ -20,10 +20,10 @@ export const REGEN_AIR = 6;
 
 /** Battery: how close you need to be, and how fast it refills you. */
 export const BATTERY_RADIUS = 90;
-export const BATTERY_RATE = 60;
+const BATTERY_RATE = 60;
 export const BATTERY_MAX_CHARGE = 400;
 /** How fast a battery's own charge comes back, per second. */
-export const BATTERY_REGEN = 8;
+const BATTERY_REGEN = 8;
 
 export interface Battery {
 	x: number;

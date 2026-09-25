@@ -29,10 +29,10 @@ import { updateSquads, type SquadRole } from './squad';
 import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
 
 export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire' | 'rageBubble' | 'bloodConduit'>;
-export type EnemyState = 'idle' | 'move' | 'windup' | 'act' | 'recover';
+type EnemyState = 'idle' | 'move' | 'windup' | 'act' | 'recover';
 export type Role = 'berserker' | 'hunter' | 'gunner';
 /** How a faction thinks: rage never backs down and gets faster when hurt; machines stay cold and regroup. */
-export type Mind = 'rage' | 'machine';
+type Mind = 'rage' | 'machine';
 /** Enemy art is drawn red; a tint recolors it: a sparring Lantern's green, Gorilla City tech amber, Grodd's psychic purple. */
 export type Tint = 'corps' | 'tech' | 'psychic';
 
@@ -521,7 +521,7 @@ export const MAX_RED_TURRETS = 2;
 export const ENEMY_SPACING = 34;
 
 /** Rolled per enemy, 0..1 each, so no two in a pack act the same. */
-export interface Personality {
+interface Personality {
 	/** Wants to be in your face: closes in, flanks, takes the first opening. */
 	aggression: number;
 	/** Careful: dodges more, uses cover, backs off (machines) when hurt. */
@@ -530,7 +530,7 @@ export interface Personality {
 	patience: number;
 }
 
-export interface EnemyBrain {
+interface EnemyBrain {
 	role: Role;
 	persona: Personality;
 	/** The red constructs this particular enemy can use. */
@@ -1200,7 +1200,7 @@ export function steer(e: Enemy, wantVx: number, wantVy: number, accel: number, d
 	e.vy += (wantVy - e.vy) * k;
 }
 
-export function aimAt(e: Enemy, t: { x: number; y: number }) {
+function aimAt(e: Enemy, t: { x: number; y: number }) {
 	const dx = t.x - e.x;
 	const dy = t.y - e.y;
 	const len = Math.hypot(dx, dy);

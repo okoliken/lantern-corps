@@ -75,7 +75,7 @@ export interface Skeleton {
 	back: Limbs;
 }
 
-export interface Limbs {
+interface Limbs {
 	shoulder: Point;
 	elbow: Point;
 	hand: Point;
@@ -88,11 +88,11 @@ export interface Limbs {
 export const THIGH = 11;
 export const SHIN = 11;
 export const TORSO = 18;
-export const NECK = 3.5;
+const NECK = 3.5;
 /** Heroic proportions: a smaller head on a broad body. */
 export const HEAD_R = 5.4;
-export const UPPER_ARM = 9;
-export const FOREARM = 8.5;
+const UPPER_ARM = 9;
+const FOREARM = 8.5;
 /** Feet to top of head when standing straight. */
 export const STANDING_HEIGHT = THIGH + SHIN + TORSO + NECK + HEAD_R * 2;
 

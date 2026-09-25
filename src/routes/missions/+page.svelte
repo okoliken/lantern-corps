@@ -54,6 +54,7 @@
 		<a class="on" href="/missions">Missions</a>
 		<a href="/training">Training</a>
 		<a href="/spar">Sparring</a>
+		<a href="/skirmish">Skirmish</a>
 		<a href="/hq">Corps HQ</a>
 	</nav>
 </header>

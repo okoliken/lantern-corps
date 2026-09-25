@@ -6,7 +6,7 @@
 import type { TouchControlsMode } from '$lib/engine/settings';
 
 /** A touch screen with no mouse (a phone or a tablet). */
-export function isTouchScreen(): boolean {
+function isTouchScreen(): boolean {
 	if (typeof window === 'undefined') return false;
 	return window.matchMedia?.('(pointer: coarse)').matches === true && !window.matchMedia?.('(any-pointer: fine)').matches;
 }

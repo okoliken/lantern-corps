@@ -28,7 +28,7 @@ import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type Mi
 
 export type ShamePhase = 'reds' | 'breakout' | 'reseal' | 'bleez' | 'sealed';
 
-export const SHAME_LIVES = 3;
+const SHAME_LIVES = 3;
 const INTRO_TIME = 3;
 /** Three stars: done within this many seconds. */
 const PAR_TIME = 480;
@@ -41,7 +41,7 @@ const BLEEZ_MIGHT = 3.2;
 /** Manhunters, and how they rebuild. */
 const MANHUNTER_HEALTH = 0.7;
 const MANHUNTER_MIGHT = 2.8;
-export const CORE_HP = 320;
+const CORE_HP = 320;
 export const REBUILD_TIME = 7;
 const REBUILT_HEALTH = 0.45;
 /** Each rebuild wears the cores down: a core's health is this share of the last one's (so it can't go on for ever). */
@@ -51,7 +51,7 @@ const SPILL_EVERY = 16;
 const SPILL_CAP = 3;
 const MOST_ESCAPED = 9;
 /** A pylon charges while a Lantern is within this reach, and takes this long. */
-export const PYLON_REACH = 130;
+const PYLON_REACH = 130;
 export const PYLON_TIME = 10;
 /** Reds and Manhunters shoot each other from this far, this often, for this much. */
 const FEUD_RANGE = 460;
@@ -64,8 +64,8 @@ const W = 3000;
 const H = 1900;
 /** The cliff runs along the top of the map; the vault door is set into it, facing you. */
 const CLIFF = 470;
-export const ENTRY = { x: 520, y: 1560 };
-export const DOOR = { x: 1500, y: CLIFF };
+const ENTRY = { x: 520, y: 1560 };
+const DOOR = { x: 1500, y: CLIFF };
 export const PYLONS: { x: number; y: number }[] = [
 	{ x: 820, y: 860 },
 	{ x: 1500, y: 1060 },

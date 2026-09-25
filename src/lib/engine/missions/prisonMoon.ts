@@ -26,7 +26,7 @@ import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type Mi
 
 export type PrisonPhase = 'breakout' | 'warden' | 'reveal';
 
-export const PRISON_LIVES = 3;
+const PRISON_LIVES = 3;
 const INTRO_TIME = 3;
 /** How tough a cell is (it takes a few constructs, not one shot). */
 export const CELL_HP = 420;

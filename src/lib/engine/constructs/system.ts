@@ -71,7 +71,7 @@ export interface Projectile {
 	lift: number;
 }
 
-export interface Tether {
+interface Tether {
 	owner: Player;
 	target: Dummy | Obstacle;
 	/** Seconds of pulling left. */
@@ -107,7 +107,7 @@ export interface AidStation {
 }
 
 /** A punch that's winding up and lands shortly. */
-export interface PendingSmash {
+interface PendingSmash {
 	owner: Player;
 	def: ConstructDef;
 	time: number;
@@ -227,7 +227,7 @@ export interface Turret {
 }
 
 /** Pillars on their way down: they land when `time` runs out. */
-export interface PillarStrike {
+interface PillarStrike {
 	owner: Player;
 	def: ConstructDef;
 	x: number;
@@ -247,7 +247,7 @@ export interface Fortress {
 }
 
 /** Something happened that the rest of the game (XP, missions, lines) may care about. */
-export interface WorldEvent {
+interface WorldEvent {
 	type: 'defeat';
 	/** The Lantern who landed the defeating hit. */
 	by: Player;
@@ -305,12 +305,12 @@ export function createConstructWorld(obstacles: Obstacle[], dummies: Dummy[], sp
 /** The surge meter: full at 100. */
 export const SURGE_MAX = 100;
 /** Surge per point of damage dealt to enemies. */
-export const SURGE_PER_DAMAGE = 0.16;
-export const SURGE_PER_CONSTRUCT = 2;
-export const SURGE_PER_ALLY_SHIELD = 6;
+const SURGE_PER_DAMAGE = 0.16;
+const SURGE_PER_CONSTRUCT = 2;
+const SURGE_PER_ALLY_SHIELD = 6;
 
 /** Fill a Lantern's surge meter (not while their signature ability is running). */
-export function gainSurge(p: Player, amount: number) {
+function gainSurge(p: Player, amount: number) {
 	if (p.dash) return;
 	p.surge = Math.min(SURGE_MAX, p.surge + amount);
 }

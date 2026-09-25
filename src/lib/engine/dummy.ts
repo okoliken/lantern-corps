@@ -14,9 +14,9 @@ export const DUMMY_HALF_H = 7;
 /** How quickly knockback wears off for things without a brain. */
 const FRICTION = 7;
 /** Seconds a broken training dummy stays down before popping back up. */
-export const DUMMY_RESPAWN = 3;
+const DUMMY_RESPAWN = 3;
 /** Seconds a defeated enemy lies there before disappearing. */
-export const DEFEAT_LINGER = 0.9;
+const DEFEAT_LINGER = 0.9;
 
 /** What kind of target: a training dummy, or which enemy. */
 export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterPrime' | 'manhunterCore' | 'reverseFlash' | 'signalSpire' | 'dexStarr' | 'rageBubble' | 'bloodConduit' | 'atrocitus';
@@ -170,7 +170,7 @@ export function updateDummy(d: Dummy, dt: number, solids: readonly Solid[], fric
 }
 
 /** The target's footprint as a Solid (what it stands on: for moving and colliding). */
-export function dummyBox(d: Dummy): Solid {
+function dummyBox(d: Dummy): Solid {
 	return { x: d.x - DUMMY_HALF_W, y: d.y - DUMMY_HALF_H, w: DUMMY_HALF_W * 2, h: DUMMY_HALF_H * 2, blocksFlying: false };
 }
 

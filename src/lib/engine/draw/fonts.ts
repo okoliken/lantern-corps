@@ -3,8 +3,8 @@
 //   Exo 2     a readable techy face for everything else: HUD, numbers, labels
 // Canvas text needs them spelled out in each ctx.font, so they live here.
 
-export const FONT_DISPLAY = "'Orbitron Variable', 'Exo 2 Variable', system-ui, sans-serif";
-export const FONT_UI = "'Exo 2 Variable', system-ui, sans-serif";
+const FONT_DISPLAY = "'Orbitron Variable', 'Exo 2 Variable', system-ui, sans-serif";
+const FONT_UI = "'Exo 2 Variable', system-ui, sans-serif";
 
 /** A ctx.font string in the display face. */
 export const displayFont = (weight: number, size: number) => `${weight} ${size}px ${FONT_DISPLAY}`;

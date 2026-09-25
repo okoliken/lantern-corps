@@ -28,7 +28,7 @@ const RED_DARK = '#8e0c12';
 const YELLOW = '#ffd21e';
 const YELLOW_DARK = '#c79a0a';
 /** The Speed Force: lightning is yellow-white with an orange edge. */
-export const SPEED_YELLOW = '#ffe45c';
+const SPEED_YELLOW = '#ffe45c';
 
 // ---- Hawkgirl ----
 const GOLD = '#d9a441';
@@ -40,7 +40,7 @@ const WING_LIGHT = '#a8805c';
 const HELMET = '#b57a2a';
 const NTH = '#a9b3bd';
 /** Nth metal's crackle. */
-export const NTH_GLOW = '#fff08a';
+const NTH_GLOW = '#fff08a';
 
 export interface HeroLook {
 	/** Wings wrapped round her (Wing Guard), 0..1. */
@@ -112,11 +112,11 @@ export interface SpeedsterColors {
 	disc: string;
 	bolt: string;
 }
-export const FLASH_COLORS: SpeedsterColors = { suit: RED, lit: RED_LIT, dark: RED_DARK, trim: YELLOW, trimDark: YELLOW_DARK, disc: '#f7f3ea', bolt: YELLOW };
-export const REVERSE_FLASH_COLORS: SpeedsterColors = { suit: '#e5bd14', lit: '#ffdc4a', dark: '#a8850a', trim: '#c8141c', trimDark: '#8e0c12', disc: '#17110b', bolt: '#e0202a' };
+const FLASH_COLORS: SpeedsterColors = { suit: RED, lit: RED_LIT, dark: RED_DARK, trim: YELLOW, trimDark: YELLOW_DARK, disc: '#f7f3ea', bolt: YELLOW };
+const REVERSE_FLASH_COLORS: SpeedsterColors = { suit: '#e5bd14', lit: '#ffdc4a', dark: '#a8850a', trim: '#c8141c', trimDark: '#8e0c12', disc: '#17110b', bolt: '#e0202a' };
 
 /** A speedster on the Lantern skeleton, in the given colours (the caller has translated, scaled and mirrored). */
-export function drawSpeedsterBody(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look, time: number, P: SpeedsterColors) {
+function drawSpeedsterBody(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look, time: number, P: SpeedsterColors) {
 	drawFlashArm(ctx, sk.back, true, P);
 	drawFlashLeg(ctx, sk.back, true, P);
 	drawFlashTorso(ctx, sk, P);

@@ -9,7 +9,7 @@ const MH_BLUE_DARK = '#152452';
 const MH_EYE = '#ff8a2a';
 
 /** How tall the spire stands once it's all the way up. */
-export const SPIRE_HEIGHT = 250;
+const SPIRE_HEIGHT = 250;
 
 /**
  * The signal spire: a tapering tower of Manhunter steel up out of the broken

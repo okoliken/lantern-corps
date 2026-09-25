@@ -28,7 +28,7 @@ import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type Mi
 
 export type RazerPhase = 'guards' | 'descent' | 'duel' | 'captured';
 
-export const RAZER_LIVES = 3;
+const RAZER_LIVES = 3;
 const INTRO_TIME = 3;
 /** Three stars: done within this many seconds. */
 const PAR_TIME = 300;
@@ -36,7 +36,7 @@ const PAR_TIME = 300;
 const TOUGHNESS = 4;
 const MIGHT = 3;
 /** Razer himself: health and hitting power on top of his base. */
-export const RAZER_HEALTH = 3.2;
+const RAZER_HEALTH = 3.2;
 const RAZER_MIGHT = 2.25;
 /** Health left (0..1) where each phase begins, and where he's caught. */
 export const PHASE_2 = 0.6;

@@ -41,7 +41,7 @@ import type { HeroId } from './lanterns';
 import { moveBody, type Solid } from './physics';
 import { FEET_HALF_H, FEET_HALF_W, type Player } from './player';
 
-export type HeroPower = 'blitz' | 'barrage' | 'tornado' | 'lightning' | 'dodge' | 'mace' | 'dive' | 'rush' | 'thunder' | 'guard' | 'blades' | 'chakram' | 'nova' | 'haymaker' | 'heat' | 'frost' | 'lasso';
+type HeroPower = 'blitz' | 'barrage' | 'tornado' | 'lightning' | 'dodge' | 'mace' | 'dive' | 'rush' | 'thunder' | 'guard' | 'blades' | 'chakram' | 'nova' | 'haymaker' | 'heat' | 'frost' | 'lasso';
 
 interface Move {
 	power: HeroPower;
@@ -123,33 +123,33 @@ const COOLDOWNS: Record<HeroPower, number> = {
 /** How fast he runs in and out of a Blitz (px/s), and how close he stops. */
 const BLITZ_SPEED = 1100;
 const BLITZ_REACH = 32;
-export const BLITZ = { punches: 3, gap: 0.08, damage: 7, knockback: 80, lastKnockback: 300, range: 620 };
+const BLITZ = { punches: 3, gap: 0.08, damage: 7, knockback: 80, lastKnockback: 300, range: 620 };
 /** Speed Barrage: how many, how far he looks, how long each zip takes. */
-export const BARRAGE = { count: 5, range: 480, zip: 0.075, damage: 16, knockback: 280 };
+const BARRAGE = { count: 5, range: 480, zip: 0.075, damage: 16, knockback: 280 };
 /** Tornado: how long, how wide it drags, how wide it holds, and the damage. */
 export const TORNADO = { time: 2.2, pull: 270, hold: 150, pullForce: 1400, dps: 10, fling: 480, flingDamage: 14, circle: 85 };
-export const LIGHTNING = { minRange: 200, range: 700, damage: 24, knockback: 200, stun: 0.45 };
+const LIGHTNING = { minRange: 200, range: 700, damage: 24, knockback: 200, stun: 0.45 };
 const DODGE = { distance: 120, time: 0.12, invuln: 0.4 };
 
 // ---- Hawkgirl ----
 export const MACE = { reach: 82, damage: 18, knockback: 360, windup: 0.16 };
 /** Dive: how high she climbs, how long, and the shockwave where she lands. */
-export const DIVE = { range: 540, riseTime: 0.45, rise: 150, fallTime: 0.2, radius: 120, damage: 34, knockback: 520, stun: 0.9 };
+const DIVE = { range: 540, riseTime: 0.45, rise: 150, fallTime: 0.2, radius: 120, damage: 34, knockback: 520, stun: 0.9 };
 const RUSH = { length: 320, time: 0.26, width: 42, damage: 16, knockback: 320 };
-export const THUNDER = { radius: 160, damage: 22, knockback: 380, stun: 0.7 };
+const THUNDER = { radius: 160, damage: 22, knockback: 380, stun: 0.7 };
 /** Wing Guard: how long, and the share of any hit that gets through. */
 export const GUARD = { time: 1.1, takes: 0.25 };
 
 // ---- Razer ----
 /** Twin Blades: how far he lunges from, the cuts (seconds into the move), and what each does. */
-export const BLADES = { range: 330, speed: 900, reach: 70, cuts: [0.12, 0.28, 0.44], damage: 17, knockback: 240 };
-export const CHAKRAM = { minRange: 170, range: 620, damage: 30, knockback: 260 };
-export const NOVA = { radius: 170, damage: 40, knockback: 520, stun: 0.6, windup: 0.4 };
+const BLADES = { range: 330, speed: 900, reach: 70, cuts: [0.12, 0.28, 0.44], damage: 17, knockback: 240 };
+const CHAKRAM = { minRange: 170, range: 620, damage: 30, knockback: 260 };
+const NOVA = { radius: 170, damage: 40, knockback: 520, stun: 0.6, windup: 0.4 };
 
 // ---- Superman ----
 export const HAYMAKER = { range: 560, speed: 1050, reach: 36, damage: 36, knockback: 900 };
 /** Heat Vision: how long he holds it, and what each tick does. */
-export const HEAT = { minRange: 160, range: 680, time: 0.9, tick: 0.15, damage: 11 };
+const HEAT = { minRange: 160, range: 680, time: 0.9, tick: 0.15, damage: 11 };
 /** Freeze Breath: a cone this long and this wide (half angle, radians); what's in it can't move. */
 export const FROST = { range: 300, halfAngle: 0.55, stun: 2.4, damage: 8, windup: 0.2 };
 /** The Man of Steel: the share of any hit that gets through. */

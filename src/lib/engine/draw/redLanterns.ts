@@ -144,7 +144,7 @@ function seeded(x: number, y: number) {
 
 const cache = new WeakMap<Enemy, Anatomy>();
 
-export function anatomyOf(e: Enemy): Anatomy {
+function anatomyOf(e: Enemy): Anatomy {
 	let an = cache.get(e);
 	if (an) return an;
 	const r = seeded(e.homeX, e.homeY);

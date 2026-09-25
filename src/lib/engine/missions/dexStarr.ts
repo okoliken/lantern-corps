@@ -25,7 +25,7 @@ import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type Mi
 
 export type HuntPhase = 'track' | 'ambush' | 'flee' | 'rescue' | 'freed';
 
-export const HUNT_LIVES = 3;
+const HUNT_LIVES = 3;
 const INTRO_TIME = 3;
 /** Dex-Starr: health and might on top of his base. */
 const DEX_HEALTH = 16;
@@ -46,7 +46,7 @@ const WARM = 480;
 const COOL_RATE = 0.05;
 const WARM_RATE = 0.12;
 /** Ganthet's bubble, once he drops it. */
-export const BUBBLE_HP = 2200;
+const BUBBLE_HP = 2200;
 /** The most one hit can take off a Lantern. */
 const MAX_HIT = 36;
 

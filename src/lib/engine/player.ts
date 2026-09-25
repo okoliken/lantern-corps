@@ -155,7 +155,7 @@ export interface Player {
 	victoryTimer: number;
 }
 
-export interface Dash {
+interface Dash {
 	/** Hal's Jet Strike (signature), or the Afterburner construct. */
 	kind: 'jet' | 'burn';
 	dx: number;
@@ -175,7 +175,7 @@ export interface Dash {
 }
 
 /** John's Power Armor while it's on: less damage taken, and the ring shot becomes an arm cannon. */
-export interface ArmorSuit {
+interface ArmorSuit {
 	def: ConstructDef;
 	time: number;
 	maxTime: number;
@@ -193,11 +193,11 @@ const OPEN_WORLD: WorldRules = { solids: [], alwaysFlying: false };
 /** Flying is faster than walking. */
 export const FLY_SPEED_BONUS = 1.25;
 /** Holding the beam or minigun steady slows you down. */
-export const FIRING_SPEED_FACTOR = 0.55;
+const FIRING_SPEED_FACTOR = 0.55;
 /** Moving away from the way you face (backing off while shooting) is slower. */
-export const BACKPEDAL_SPEED_FACTOR = 0.8;
+const BACKPEDAL_SPEED_FACTOR = 0.8;
 /** Seconds to turn all the way around. */
-export const TURN_TIME = 0.12;
+const TURN_TIME = 0.12;
 /** After attacking, keep facing the aim this long (so steady fire doesn't flip you back and forth). */
 export const AIM_HOLD_TIME = 0.45;
 /** Seconds to rise from the ground to full height (and back down). */

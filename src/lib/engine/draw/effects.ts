@@ -214,7 +214,7 @@ export function drawChargeLink(
 
 // ------------------------------------------------------------------- HUD
 
-export interface HudSlot {
+interface HudSlot {
 	name: string;
 	/** Short label for inside the slot box. */
 	short: string;

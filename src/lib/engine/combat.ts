@@ -17,15 +17,15 @@ export const HIT_INVULN = 0.5;
 /** Out of the fight this long (no damage taken), health starts coming back... */
 export const REGEN_DELAY = 5;
 /** ...at this many points a second. */
-export const REGEN_RATE = 3.5;
+const REGEN_RATE = 3.5;
 /** Seconds of invulnerability after getting back up. */
-export const REVIVE_INVULN = 2;
+const REVIVE_INVULN = 2;
 /** Seconds spent downed before getting back up. */
 export const DOWNED_TIME = 4;
 /** How long the flinch pose lasts. */
-export const HURT_TIME = 0.35;
+const HURT_TIME = 0.35;
 /** How much further a Red Lantern's hit throws a Lantern. */
-export const RAGE_KNOCKBACK = 1.45;
+const RAGE_KNOCKBACK = 1.45;
 /** How much damage still gets through John's Power Armor. */
 export const ARMOR_TAKES = 0.4;
 

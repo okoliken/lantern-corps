@@ -751,7 +751,7 @@ export function drawSkeletonDebug(ctx: CanvasRenderingContext2D, pose: LanternPo
 
 // ---------------------------------------------------------------- helpers
 
-export const mid = (a: Point, b: Point): Point => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+const mid = (a: Point, b: Point): Point => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
 export const lerpP = (a: Point, b: Point, t: number): Point => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 
 /** A closed shape through the midpoints of `points`, rounded at every corner (a heavy, soft body). */

@@ -26,12 +26,12 @@ import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type Mi
 
 export type CrossingPhase = 'crossing' | 'gate' | 'open';
 
-export const CROSSING_LIVES = 3;
+const CROSSING_LIVES = 3;
 const INTRO_TIME = 3;
 /** Ganthet: health, how fast he goes, and how close the Reds have to be to stop him. */
 export const GANTHET_HP = 950;
 export const GANTHET_SPEED = 46;
-export const HALT_RANGE = 380;
+const HALT_RANGE = 380;
 /** Red Lanterns out here. */
 const TOUGHNESS = 4;
 const MIGHT = 3.9;
@@ -44,7 +44,7 @@ const STORM_BURN = 10;
 const STORM_DRAIN = 14;
 const STORM_GANTHET = 15;
 /** Torpedoes at Ganthet. */
-export const TORPEDO = { radius: 14, hp: 18, speed: 210, damage: 36, lanternDamage: 14, lift: 60 };
+const TORPEDO = { radius: 14, hp: 18, speed: 210, damage: 36, lanternDamage: 14, lift: 60 };
 const TORPEDO_EVERY: [number, number] = [3.5, 5.5];
 /** Hunters come up behind Ganthet this often while he crosses, this many at a time. */
 const HUNT_EVERY = 28;
@@ -58,7 +58,7 @@ const W = 6200;
 const H = 1800;
 const LANE_Y = 900;
 const START = { x: 480, y: LANE_Y };
-export const GATE = { x: 5700, y: LANE_Y };
+const GATE = { x: 5700, y: LANE_Y };
 /** Where Ganthet waits for the gate. */
 const GATE_STOP = GATE.x - 420;
 

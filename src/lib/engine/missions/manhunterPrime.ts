@@ -36,7 +36,7 @@ import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type Mi
 
 export type PrimePhase = 'descent' | 'fight' | 'learning' | 'core' | 'fallen';
 
-export const PRIME_LIVES = 3;
+const PRIME_LIVES = 3;
 const INTRO_TIME = 3;
 /** Three stars: done within this many seconds. */
 const PAR_TIME = 420;
@@ -61,7 +61,7 @@ const MANHUNTER_MIGHT = 3.1;
 const DRONE_HEALTH = 2.5;
 const DRONE_MIGHT = 3;
 /** Prime's core: health, seconds to rebuild, the health it comes back with, and how the core wears. */
-export const CORE_HP = 1200;
+const CORE_HP = 1200;
 export const REBUILD_TIME = 10;
 const REBUILT_HEALTH = 0.2;
 const CORE_WEAR = 0.65;
@@ -77,7 +77,7 @@ const SWITCH_SPREAD = 3;
 const W = 2800;
 const H = 1800;
 const ENTRY = { x: 560, y: 1000 };
-export const DAIS = { x: 1500, y: 880 };
+const DAIS = { x: 1500, y: 880 };
 /** The hall's back wall runs along the top of the map; the alcoves are cut into the foot of it, left to right. */
 const WALL = 300;
 const ALCOVES = Array.from({ length: 16 }, (_, i) => ({ x: 260 + i * 152, y: WALL + 4 }));

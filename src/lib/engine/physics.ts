@@ -32,7 +32,7 @@ export function boxOverlap(x: number, y: number, hw: number, hh: number, s: Soli
  * Doing x and y separately is what lets you slide along a wall when you
  * run into it diagonally, instead of sticking to it.
  */
-export function moveAxis(
+function moveAxis(
 	b: Body,
 	axis: 'x' | 'y',
 	delta: number,

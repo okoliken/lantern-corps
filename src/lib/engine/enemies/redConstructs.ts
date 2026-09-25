@@ -84,7 +84,7 @@ export type AbilityId =
 	| 'rfLightning';
 
 /** How far away a construct is used from. Kits take some of each. */
-export type Band = 'close' | 'mid' | 'long' | 'support';
+type Band = 'close' | 'mid' | 'long' | 'support';
 
 /**
  * What the windup looks like:
@@ -92,7 +92,7 @@ export type Band = 'close' | 'mid' | 'long' | 'support';
  * aim = orb in the hand and an aim line   sky = orb raised overhead, "!!"
  * build = energy gathering in the hand, no warning (it isn't an attack)
  */
-export type Tell = 'strike' | 'heavy' | 'aim' | 'sky' | 'build';
+type Tell = 'strike' | 'heavy' | 'aim' | 'sky' | 'build';
 
 export interface AbilityDef {
 	id: AbilityId;
@@ -398,12 +398,12 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 };
 
 /** What the machines use. They're never part of a Red Lantern's random kit. */
-export const MACHINE_ABILITIES: readonly AbilityId[] = ['eyeLaser', 'sweep', 'pulse', 'strafe', 'bombs'];
+const MACHINE_ABILITIES: readonly AbilityId[] = ['eyeLaser', 'sweep', 'pulse', 'strafe', 'bombs'];
 /** Signature moves of named Red Lanterns, never handed out in random kits. */
 const SIGNATURE_ABILITIES: readonly AbilityId[] = ['swoop', ...CORPS_ABILITIES, ...RAZER_ABILITIES, ...GRODD_ABILITIES, ...REVERSE_FLASH_ABILITIES];
 
 /** Every red construct a Red Lantern's kit can be built from. */
-export const ABILITY_LIST = (Object.keys(ABILITIES) as AbilityId[]).filter(
+const ABILITY_LIST = (Object.keys(ABILITIES) as AbilityId[]).filter(
 	(id) => !MACHINE_ABILITIES.includes(id) && !SIGNATURE_ABILITIES.includes(id)
 );
 
@@ -489,7 +489,7 @@ export interface RedShot {
 }
 
 /** A Barbed Chain hooked into a Lantern, dragging them in. */
-export interface RedChain {
+interface RedChain {
 	owner: Enemy;
 	target: Player;
 	time: number;
@@ -554,7 +554,7 @@ export interface RedWorld {
 	cages: RedCage[];
 }
 
-export function createRedWorld(): RedWorld {
+function createRedWorld(): RedWorld {
 	return { shots: [], chains: [], strikes: [], puddles: [], beams: [], cages: [] };
 }
 
@@ -1367,7 +1367,7 @@ function wallsNear(w: ConstructWorld, x: number, y: number, r: number): Obstacle
 }
 
 /** Energy walls (and Force Fields) can be worn down by red constructs. */
-export function damageWall(w: ConstructWorld, o: Obstacle, damage: number) {
+function damageWall(w: ConstructWorld, o: Obstacle, damage: number) {
 	if (o.hp === undefined) return;
 	o.hp -= damage;
 	if (o.hp <= 0) removeObstacle(w, o, 'burst');

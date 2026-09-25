@@ -9,7 +9,7 @@ import { green, greenShade, GREEN_CORE } from '../../theme';
 const TAU = Math.PI * 2;
 
 /** Tolen Vex, who guarded Sector 2814's frontier from Kel-Aris Station. */
-export const TOLEN_VEX: Figure = {
+const TOLEN_VEX: Figure = {
 	id: 'tolen',
 	look: { skin: '#6f9fd6', hair: '#e8eef5', hairStyle: 'swept', mask: false }
 };

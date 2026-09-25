@@ -51,7 +51,7 @@ const ROTATE_EVERY = 8;
 /** Enemies that always fight, and don't take one of the squad's places. */
 const leadsFromFront = (e: Enemy) => ENEMIES[e.kind].lieutenant === true || ENEMIES[e.kind].movement !== 'hover';
 
-export function assaultSize(players: readonly Player[]): number {
+function assaultSize(players: readonly Player[]): number {
 	const up = players.filter((p) => !p.downed).length;
 	return up === 0 ? 0 : ASSAULT_SIZE + (up - 1) * ASSAULT_PER_EXTRA_LANTERN;
 }

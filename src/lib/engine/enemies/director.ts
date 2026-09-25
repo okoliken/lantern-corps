@@ -48,7 +48,7 @@ export interface Attacker {
 	attack: AbilityDef | null;
 }
 
-export function pressureOn(map: PressureMap, p: Player): Pressure {
+function pressureOn(map: PressureMap, p: Player): Pressure {
 	let entry = map.get(p);
 	if (!entry) {
 		entry = { heat: 0, gap: 0, lastHealth: p.health };
@@ -69,10 +69,10 @@ export function updatePressure(map: PressureMap, players: readonly Player[], dt:
 }
 
 /** Attacks cost 1 token, big area attacks 2. */
-export const attackCost = (a: AbilityDef) => (a.heavy ? 2 : 1);
+const attackCost = (a: AbilityDef) => (a.heavy ? 2 : 1);
 
 /** How many tokens a Lantern has right now. Higher tempo (a harder fight) allows one more. */
-export function budgetFor(map: PressureMap, p: Player, tempo: number): number {
+function budgetFor(map: PressureMap, p: Player, tempo: number): number {
 	const entry = pressureOn(map, p);
 	let budget = ATTACK_BUDGET + (tempo > 1.5 ? 1 : 0);
 	if (entry.heat > HEAT_LIMIT) budget -= 1;

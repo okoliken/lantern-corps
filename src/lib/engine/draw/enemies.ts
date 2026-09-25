@@ -138,7 +138,7 @@ export function enemyPose(e: Enemy, hasGround: boolean, time: number): LanternPo
 }
 
 /** How high above its anchor an enemy's chest is (for effects and bars). */
-export function enemyChestLift(e: Enemy): number {
+function enemyChestLift(e: Enemy): number {
 	return (HOVER + 34) * FIGURE_SCALE * ENEMIES[e.kind].scale * 0.75 + e.brain.air * SLAM_HEIGHT;
 }
 

@@ -69,7 +69,7 @@ export const SIGNATURES: Record<RingBearerId, SignatureDef> = {
 };
 
 /** Hammer Quake: how far it reaches, how hard it hits, and how long enemies stay stunned. */
-export const QUAKE = { radius: 210, damage: 90, knockback: 700, stun: 1.2 };
+const QUAKE = { radius: 210, damage: 90, knockback: 700, stun: 1.2 };
 
 // ------------------------------------------------------------ Jet Strike
 

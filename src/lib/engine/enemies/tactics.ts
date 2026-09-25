@@ -23,7 +23,7 @@ import { ABILITIES } from './redConstructs';
 export type Goal = 'hold' | 'approach' | 'flank' | 'cover' | 'wait' | 'retreat' | 'investigate' | 'reserve';
 
 /** Seconds it keeps hunting a Lantern it has lost sight of. */
-export const MEMORY = 5;
+const MEMORY = 5;
 /** Spotting a Lantern alerts allies this close (machines share data further). */
 const CALL_RADIUS = 420;
 const MACHINE_CALL_RADIUS = 900;
@@ -48,7 +48,7 @@ const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
  * Nothing solid between two points. Enemies hover low, so buildings, rocks
  * and asteroids block the view; energy walls are see-through.
  */
-export function hasLineOfSight(x0: number, y0: number, x1: number, y1: number, obstacles: readonly Obstacle[]): boolean {
+function hasLineOfSight(x0: number, y0: number, x1: number, y1: number, obstacles: readonly Obstacle[]): boolean {
 	const dx = x1 - x0;
 	const dy = y1 - y0;
 	const d = Math.hypot(dx, dy);
@@ -246,7 +246,7 @@ export function chooseGoal(e: Enemy, t: Player, pack: readonly Enemy[], w: Const
  * A spot behind something solid, on the far side from the Lantern, at a
  * sensible range. Null if there's nothing to hide behind.
  */
-export function findCover(e: Enemy, t: Player, w: ConstructWorld): [number, number] | null {
+function findCover(e: Enemy, t: Player, w: ConstructWorld): [number, number] | null {
 	const range = rangeOf(e);
 	let best: [number, number] | null = null;
 	let bestDist = Infinity;

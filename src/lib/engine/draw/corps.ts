@@ -17,7 +17,7 @@ interface CorpsFigure {
 	hunch: number;
 }
 
-export const CORPS: Record<CorpsKind, CorpsFigure> = {
+const CORPS: Record<CorpsKind, CorpsFigure> = {
 	/**
 	 * Kilowog of Bolovax Vik: enormous. A barrel chest and gut, arms like tree
 	 * trunks, short thick legs, a small bald head sunk into his shoulders.

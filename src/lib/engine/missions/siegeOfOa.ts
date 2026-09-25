@@ -37,7 +37,7 @@ import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type Mi
 
 export type SiegePhase = 'drop' | 'bombard' | 'corps' | 'flagship' | 'flare' | 'taken';
 
-export const SIEGE_LIVES = 3;
+const SIEGE_LIVES = 3;
 export const INTRO_TIME = 3;
 /** The battery's light, and how much each Red near it drinks per second. */
 export const BATTERY_POWER = 1150;
@@ -62,7 +62,7 @@ const POD_LANDING = { radius: 90, damage: 16, knockback: 480 };
 const SAPPER_SHARE = 0.55;
 const SAPPER_PULL = 600;
 /** Torpedoes at the battery. */
-export const TORPEDO = { radius: 14, hp: 18, speed: 220, damage: 29, lanternDamage: 14, lift: 60 };
+const TORPEDO = { radius: 14, hp: 18, speed: 220, damage: 29, lanternDamage: 14, lift: 60 };
 const TORPEDO_EVERY: [number, number] = [2.6, 4];
 /** The flagship: seconds of it, how often a strike comes down, the warning, and what a strike does. */
 export const FLAGSHIP_TIME = 60;

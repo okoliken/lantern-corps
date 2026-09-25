@@ -6,7 +6,7 @@ import type { GroundStyle } from './draw/world';
 import type { Solid } from './physics';
 
 /** 'wall' is an Energy Wall construct, 'redWall' a Red Lantern's Rage Wall; the rest are part of the map. */
-export type ObstacleKind = 'building' | 'rock' | 'crate' | 'asteroid' | 'wall' | 'redWall' | 'cell' | 'car';
+type ObstacleKind = 'building' | 'rock' | 'crate' | 'asteroid' | 'wall' | 'redWall' | 'cell' | 'car';
 
 export interface Obstacle extends Solid {
 	kind: ObstacleKind;

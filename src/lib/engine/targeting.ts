@@ -51,7 +51,7 @@ export function targetPosition(t: Target): [number, number] {
 }
 
 /** Still there to be targeted? (Not broken, not destroyed.) */
-export function isTargetValid(t: Target, w: TargetWorld): boolean {
+function isTargetValid(t: Target, w: TargetWorld): boolean {
 	switch (t.kind) {
 		case 'enemy':
 			return isStanding(t.dummy);
@@ -135,7 +135,7 @@ export function autoReach(def: ConstructDef): number {
  * its roof on screen, would still count as visible and pull your aim onto
  * it. `except` is the target itself; energy walls don't block your view.
  */
-export function hasLineOfSight(p: Player, x: number, y: number, w: TargetWorld, except?: Obstacle): boolean {
+function hasLineOfSight(p: Player, x: number, y: number, w: TargetWorld, except?: Obstacle): boolean {
 	const dx = x - p.x;
 	const dy = y - p.y;
 	const dist = Math.hypot(dx, dy);
@@ -148,7 +148,7 @@ export function hasLineOfSight(p: Player, x: number, y: number, w: TargetWorld, 
 }
 
 /** Keyboard aiming: breakable objects are only auto-targeted within this angle of where you face (enemies anywhere). */
-export const KEYBOARD_HALF_ANGLE = (30 * Math.PI) / 180;
+const KEYBOARD_HALF_ANGLE = (30 * Math.PI) / 180;
 /** All-around auto-aim: an enemy right behind you counts as this much further away than one in front... */
 const BEHIND_COST = 0.6;
 /** ...one attacking you as this much nearer... */
@@ -156,9 +156,9 @@ const THREAT_PULL = 0.75;
 /** ...and the one you're already shooting as this much nearer, so the aim doesn't flick between two. */
 const KEEP_PULL = 0.7;
 /** Mouse aim assist: snap only to something this close to the crosshair direction. */
-export const ASSIST_HALF_ANGLE = (12 * Math.PI) / 180;
+const ASSIST_HALF_ANGLE = (12 * Math.PI) / 180;
 /** A thumb on a phone's stick is far less exact than a mouse: it snaps onto anything this close to where it points. */
-export const STICK_ASSIST_HALF_ANGLE = (30 * Math.PI) / 180;
+const STICK_ASSIST_HALF_ANGLE = (30 * Math.PI) / 180;
 
 /** Is (x, y) within `range` and within `halfAngle` of the direction (dirX, dirY)? */
 function inCone(p: Player, x: number, y: number, range: number, dirX: number, dirY: number, halfAngle: number): boolean {

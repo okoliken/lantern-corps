@@ -11,7 +11,7 @@ const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_KEY = 'lantern-corps:pad-room';
 
 /** This browser's pairing code: the same in every tab and across reloads, so the phone stays paired whatever you open. */
-export function roomCode(): string {
+function roomCode(): string {
 	try {
 		const saved = localStorage.getItem(ROOM_KEY);
 		if (saved) return saved;

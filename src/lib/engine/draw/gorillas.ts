@@ -360,7 +360,7 @@ function rifle(ctx: CanvasRenderingContext2D, l: Skeleton['front'], e: Enemy, ti
 // ------------------------------------------------------------------ Manhunter
 
 /** How high a Manhunter flies, before scaling. */
-export const MANHUNTER_HOVER = 24;
+const MANHUNTER_HOVER = 24;
 
 /** Manhunters fly: legs trailing, leaning into it when they move, bobbing when they hold still. */
 function manhunterPose(e: Enemy, hasGround: boolean, time: number): LanternPose {

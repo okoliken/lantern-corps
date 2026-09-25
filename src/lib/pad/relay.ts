@@ -9,7 +9,7 @@ const configured = (import.meta.env.VITE_PAD_RELAY ?? '').replace(/\/$/, '');
 const sameOrigin = import.meta.env.PROD;
 
 /** A relay of its own, set at build time; otherwise the game's own address serves it. */
-export const RELAY = configured || null;
+const RELAY = configured || null;
 
 /** The WebSocket to join a room with, as a game or as a pad. */
 export function padSocketUrl(role: 'game' | 'pad', room: string): string {
