@@ -18,6 +18,25 @@
 	});
 
 	const titleOf = (id: string | null) => (id ? (missionById(id)?.title ?? id) : '');
+
+	/** The built missions in an act, and how far through it you are. */
+	const builtOf = (act: (typeof ACTS)[number]) =>
+		act.lineup.filter((entry): entry is string => typeof entry === 'string');
+	const doneIn = (act: (typeof ACTS)[number]) => builtOf(act).filter((id) => campaign.stars(id) > 0).length;
+	const starsIn = (act: (typeof ACTS)[number]) => builtOf(act).reduce((n, id) => n + campaign.stars(id), 0);
+
+	/** The act you are in: the first with a mission still to finish. */
+	function currentAct(): number {
+		for (const act of ACTS) {
+			if (builtOf(act).some((id) => campaign.stars(id) === 0)) return act.number;
+		}
+		return ACTS[ACTS.length - 1]?.number ?? 1;
+	}
+
+	/** Which chapters are open. Only the one you are in, until you say otherwise. */
+	let opened = $state<Record<number, boolean>>({});
+	const isOpen = (n: number) => opened[n] ?? n === currentAct();
+	const toggle = (n: number) => (opened = { ...opened, [n]: !isOpen(n) });
 </script>
 
 <main>
@@ -25,9 +44,11 @@
 	{#if unlocked}<p class="note">Every mission is unlocked.</p>{/if}
 
 	<section>
-		<header class="act">
-			<small>On Oa</small>
-			<h2>Corps training</h2>
+		<header class="act plain">
+			<span class="chapter">
+				<small>On Oa</small>
+				<h2>Corps training</h2>
+			</span>
 		</header>
 		<ol>
 			<li>
@@ -54,13 +75,22 @@
 	</section>
 
 	{#each ACTS as act (act.number)}
-		<section class:later={act.lineup.length === 0}>
-			<header class="act">
-				<small>Act {act.number}</small>
-				<h2>{act.title}</h2>
-				{#if act.tagline}<p>{act.tagline}</p>{/if}
-			</header>
-			{#if act.lineup.length > 0}
+		{@const built = builtOf(act)}
+		{@const done = doneIn(act)}
+		<section class:later={act.lineup.length === 0} class:shut={!isOpen(act.number)}>
+			<button class="act" onclick={() => toggle(act.number)} aria-expanded={isOpen(act.number)}>
+				<span class="chapter">
+					<small>Act {act.number}</small>
+					<h2>{act.title}</h2>
+					{#if act.tagline}<p>{act.tagline}</p>{/if}
+				</span>
+				<span class="progress">
+					<span class="count">{done} / {act.lineup.length}</span>
+					{#if starsIn(act) > 0}<span class="won">{starsIn(act)}★</span>{/if}
+					<span class="chevron" class:down={isOpen(act.number)}>›</span>
+				</span>
+			</button>
+			{#if act.lineup.length > 0 && isOpen(act.number)}
 				<ol>
 					{#each act.lineup as entry, i (i)}
 						{@const m = typeof entry === 'string' ? missionById(entry) : undefined}
@@ -99,7 +129,7 @@
 						</li>
 					{/each}
 				</ol>
-			{:else}
+			{:else if act.lineup.length === 0 && isOpen(act.number)}
 				<div class="locked"><span class="text"><small>Coming later</small></span></div>
 			{/if}
 		</section>
@@ -128,10 +158,56 @@
 		opacity: 0.55;
 	}
 	.act {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		width: 100%;
+		border: 0;
+		border-left: 3px solid var(--suit-lit);
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-align: left;
+		padding: 0.35rem 0.4rem 0.35rem 0.8rem;
+		cursor: pointer;
+		border-radius: 0 6px 6px 0;
+	}
+	.act:hover {
+		background: color-mix(in srgb, var(--suit) 22%, transparent);
+	}
+	.act.plain {
+		cursor: default;
+	}
+	.act.plain:hover {
+		background: none;
+	}
+	.chapter {
 		display: grid;
 		gap: 0.15rem;
-		border-left: 3px solid var(--suit-lit);
-		padding-left: 0.8rem;
+	}
+	.progress {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		color: var(--green);
+		font-size: 0.85rem;
+		white-space: nowrap;
+	}
+	.progress .won {
+		color: var(--star, #ffd21e);
+	}
+	.chevron {
+		display: inline-block;
+		font-size: 1.4rem;
+		line-height: 1;
+		transition: transform 0.15s ease;
+	}
+	.chevron.down {
+		transform: rotate(90deg);
+	}
+	section.shut {
+		gap: 0;
 	}
 	.act small {
 		color: var(--green);
