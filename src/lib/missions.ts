@@ -23,6 +23,7 @@ import { TheSignal } from '$lib/engine/scenes/theSignal';
 import { ManhunterPrimeBoss, buildHeartMap } from '$lib/engine/missions/manhunterPrime';
 import { TheFirst } from '$lib/engine/scenes/theFirst';
 import { SiegeOfOa, buildOaPlazaMap } from '$lib/engine/missions/siegeOfOa';
+import { Watchtower, buildWatchtowerMap } from '$lib/engine/missions/watchtower';
 import { RedDawn } from '$lib/engine/scenes/redDawn';
 import { DexStarrHunt, buildCrashSiteMap } from '$lib/engine/missions/dexStarr';
 import { TheTrail } from '$lib/engine/scenes/theTrail';
@@ -131,6 +132,17 @@ export function buildMission(id: string, options: Options): MissionRun {
 			const director = new SiegeOfOa();
 			game.director = director;
 			return { game, director, outro: null, intro: () => new RedDawn(RED_DAWN) };
+		}
+		case 'watchtower': {
+			// Season two opens on Earth: John alone with the League, and no battery in orbit
+			const game = new Game({
+				...options,
+				players: [{ lantern: 'john', keys: 'solo' }],
+				map: buildWatchtowerMap()
+			});
+			const director = new Watchtower();
+			game.director = director;
+			return { game, director, outro: null };
 		}
 		case 'manhunter-prime': {
 			const map = buildHeartMap();

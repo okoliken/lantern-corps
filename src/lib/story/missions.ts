@@ -417,6 +417,18 @@ export const ACTS: ActInfo[] = [
 			'atrocitus'
 		]
 	},
+	{
+		number: 4,
+		title: 'The Home Sector',
+		tagline: 'Season two. John comes home, and the Justice League asks him to stay.',
+		lineup: [
+			'watchtower',
+			{ title: 'Ground Level', tagline: 'A cargo lifter loses power over a full dock, and Superman takes the far end.' },
+			{ title: 'What Grodd Wants', tagline: 'Gorilla City tech is loose in Central City, and Grodd is here for the ring.' },
+			{ title: 'Checkmate', tagline: 'A human task force with weapons built to break constructs, and Wonder Woman will not let you leave.' },
+			{ title: 'Amazo', tagline: 'It copies whoever last hit it. The whole League turns up.' }
+		]
+	},
 ];
 
 /** Which act a mission is in and its number within that act. */
@@ -432,3 +444,25 @@ export function placeOf(id: string): { act: ActInfo; number: number } {
 export function storyOrder(): string[] {
 	return ACTS.flatMap((act) => act.lineup.filter((entry): entry is string => typeof entry === 'string'));
 }
+
+// ---------------------------------------------------------------- Season Two
+
+MISSIONS.push({
+	id: 'watchtower',
+	title: 'The Watchtower',
+	tagline: 'The League runs John through their drills, and their drills are about people.',
+	lantern: 'john',
+	environment: 'planet',
+	place: 'Earth orbit · the Watchtower, training deck',
+	briefing: [
+		'Oa is quiet. Atrocitus is finished, the frontier is being rebuilt by people who are good at rebuilding, and for the first time since the ring found him John Stewart has been sent home.',
+		'The invitation came through a comm unit nobody remembers giving him. Superman was polite about it. Wonder Woman was not: "You have fought a war. We want to know what you do when the thing in front of you is not an enemy."',
+		'Four of them are waiting on the training deck. None of it is target practice.'
+	],
+	objectives: [
+		'Run the deck with the Flash, in his time',
+		'Stop every gantry load before it reaches the floor',
+		'Keep the pod whole while Wonder Woman throws everything at it',
+		'Get a shield up before Hawkgirl lands a pass'
+	]
+});
