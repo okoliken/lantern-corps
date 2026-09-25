@@ -1,21 +1,13 @@
 <script lang="ts">
-	// The main menu's backdrop, like a movie poster: Kilowog, Hal and John
-	// standing together on Oa, facing you, rings raised.
+	// The main menu's backdrop: Oa at night under the Corps' emblem, burning
+	// in the middle of the sky. No figures. The game is about what the ring
+	// asks of whoever wears it, so the ring is what you see.
 	import { onMount } from 'svelte';
-	import { drawLanternFront } from '$lib/engine/draw/lanternFront';
-	import type { CrewId } from '$lib/engine/lanterns';
 	import { green, greenCore } from '$lib/theme';
 
 	let canvas: HTMLCanvasElement;
 
 	const TAU = Math.PI * 2;
-
-	/** Who stands where: across from the middle (-1..1) and how far back (smaller, darker). */
-	const LINEUP: { id: CrewId; across: number; back: number }[] = [
-		{ id: 'kilowog', across: -1, back: 0.9 },
-		{ id: 'john', across: 1, back: 0.9 },
-		{ id: 'hal', across: 0, back: 1 }
-	];
 
 	function seeded(seed: number) {
 		let s = seed;
@@ -35,6 +27,43 @@
 		[0.89, 0.035, 0.52],
 		[0.95, 0.05, 0.66]
 	];
+
+	/**
+	 * The Corps' emblem: a ring of light with a bar across the top and the
+	 * bottom, and a lantern's core burning through the middle of it.
+	 */
+	function drawEmblem(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, pulse: number) {
+		ctx.save();
+		ctx.lineCap = 'round';
+		// The outer ring
+		ctx.strokeStyle = greenCore(0.8);
+		ctx.lineWidth = r * 0.14;
+		ctx.shadowColor = green(0.9);
+		ctx.shadowBlur = r * 0.45 * pulse;
+		ctx.beginPath();
+		ctx.arc(cx, cy, r, 0, TAU);
+		ctx.stroke();
+		// The bar above and the bar below
+		const bar = r * 1.26;
+		ctx.lineWidth = r * 0.26;
+		for (const side of [-1, 1]) {
+			ctx.beginPath();
+			ctx.moveTo(cx - bar, cy + side * r * 0.66);
+			ctx.lineTo(cx + bar, cy + side * r * 0.66);
+			ctx.stroke();
+		}
+		// The core: what the ring is actually made of
+		ctx.shadowBlur = r * 0.9 * pulse;
+		const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.72);
+		core.addColorStop(0, greenCore(0.95 * pulse));
+		core.addColorStop(0.55, green(0.34));
+		core.addColorStop(1, green(0));
+		ctx.fillStyle = core;
+		ctx.beginPath();
+		ctx.arc(cx, cy, r * 0.72, 0, TAU);
+		ctx.fill();
+		ctx.restore();
+	}
 
 	function draw(ctx: CanvasRenderingContext2D, W: number, H: number, t: number) {
 		// ---- Sky: a stormy blue-green night, lighter where the rings' light meets ----
@@ -85,54 +114,25 @@
 			for (let i = 1; i < 5; i++) ctx.fillRect(x + w * 0.45, top + i * (H - top) * 0.12, Math.max(1.5, w * 0.08), 3);
 		}
 
-		// ---- The platform they stand on ----
-		const size = Math.min(H / 420, W / 300);
-		const gap = size * 44;
-		const floor = H * 0.68;
-		const deck = ctx.createRadialGradient(W / 2, floor, 0, W / 2, floor, gap * 2.2);
-		deck.addColorStop(0, green(0.22 * pulse));
-		deck.addColorStop(0.5, green(0.06));
-		deck.addColorStop(1, green(0));
-		ctx.fillStyle = deck;
-		ctx.beginPath();
-		ctx.ellipse(W / 2, floor, gap * 2.2, gap * 0.45, 0, 0, TAU);
-		ctx.fill();
-		ctx.strokeStyle = green(0.35);
-		ctx.lineWidth = 1.5;
-		ctx.beginPath();
-		ctx.ellipse(W / 2, floor, gap * 1.8, gap * 0.34, 0, 0, TAU);
-		ctx.stroke();
+		// ---- The emblem, hanging in the middle of it ----
+		const r = Math.min(W, H) * 0.115;
+		const cx = W / 2;
+		const cy = H * 0.3;
 
-		// ---- The three of them, head to toe ----
-		const rings: [number, number, number][] = [];
-		for (const { id, across, back } of LINEUP) {
-			const scale = size * back * (id === 'kilowog' ? 0.92 : 1);
-			const x = W / 2 + across * gap;
-			// Standing on the platform; the ones behind a little further back
-			const y = floor - (1 - back) * gap * 0.5;
-			ctx.save();
-			if (back < 1) ctx.filter = 'brightness(0.72) saturate(0.9)';
-			// Floating above the platform, each bobbing on their own beat
-			const float = 16 + Math.sin(t * 1.4 + across * 1.7) * 2.5;
-			const [rx, ry] = drawLanternFront(ctx, id, x, y, t, scale, float);
-			ctx.restore();
-			rings.push([rx, ry, back]);
-		}
-
-		// Each ring blazing in its raised hand
+		// The light it throws
 		ctx.save();
 		ctx.globalCompositeOperation = 'lighter';
-		for (const [rx, ry] of rings) {
-			const glow = ctx.createRadialGradient(rx, ry, 0, rx, ry, size * 7);
-			glow.addColorStop(0, greenCore(0.9 * pulse));
-			glow.addColorStop(0.25, green(0.45));
-			glow.addColorStop(1, green(0));
-			ctx.fillStyle = glow;
-			ctx.beginPath();
-			ctx.arc(rx, ry, size * 7, 0, TAU);
-			ctx.fill();
-		}
+		const halo = ctx.createRadialGradient(cx, cy, r * 0.3, cx, cy, r * 3.4);
+		halo.addColorStop(0, green(0.3 * pulse));
+		halo.addColorStop(0.4, green(0.08));
+		halo.addColorStop(1, green(0));
+		ctx.fillStyle = halo;
+		ctx.beginPath();
+		ctx.arc(cx, cy, r * 3.4, 0, TAU);
+		ctx.fill();
 		ctx.restore();
+
+		drawEmblem(ctx, cx, cy, r, pulse);
 
 		// Motes of light drifting up
 		for (const m of MOTES) {
@@ -144,12 +144,13 @@
 			ctx.fill();
 		}
 
-		// Into the dark at the bottom, where the title sits
-		const fade = ctx.createLinearGradient(0, H * 0.74, 0, H);
+		// Into the dark at the bottom, where the title and the buttons sit
+		const fade = ctx.createLinearGradient(0, H * 0.52, 0, H);
 		fade.addColorStop(0, 'rgba(2, 5, 8, 0)');
-		fade.addColorStop(1, 'rgba(2, 5, 8, 0.9)');
+		fade.addColorStop(0.55, 'rgba(2, 5, 8, 0.72)');
+		fade.addColorStop(1, 'rgba(2, 5, 8, 0.96)');
 		ctx.fillStyle = fade;
-		ctx.fillRect(0, H * 0.74, W, H * 0.26);
+		ctx.fillRect(0, H * 0.52, W, H * 0.48);
 	}
 
 	onMount(() => {

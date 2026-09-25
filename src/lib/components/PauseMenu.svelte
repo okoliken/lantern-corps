@@ -14,13 +14,17 @@
 		/** Which binding set to show and edit. */
 		layout?: LayoutName;
 		onResume: () => void;
+		/** Where you are, shown under "Paused" (the mission's objective). */
+		where?: string;
 		/** Extra links shown under Resume (e.g. change Lantern, main menu). */
 		links?: { href: string; label: string }[];
 	}
 
-	let { game, layout = 'solo', onResume, links = [] }: Props = $props();
+	let { game, layout = 'solo', onResume, where, links = [] }: Props = $props();
 
 	let tab = $state<'controls' | 'options' | 'pad'>('controls');
+	/** The ten construct slots are all obvious, so they stay folded away. */
+	let showSlots = $state(false);
 	const TOUCH_LABELS: Record<TouchControlsMode, string> = { auto: 'On touch screens', on: 'Always', off: 'Never' };
 	/** The action waiting for a new button, while rebinding. */
 	let listening = $state<Action | null>(null);
@@ -69,7 +73,7 @@
 	const groups: { title: string; actions: Action[] }[] = [
 		{ title: 'Move', actions: ['up', 'down', 'left', 'right', 'fly'] },
 		{ title: 'Fight', actions: ['shot', 'construct', 'shield', 'signature', 'target', 'backup'] },
-		{ title: 'Choose construct', actions: ['prevConstruct', 'nextConstruct', ...SLOT_ACTIONS] }
+		{ title: 'Choose construct', actions: ['prevConstruct', 'nextConstruct'] }
 	];
 
 	const options: { key: 'aimAssist' | 'toggleShot' | 'quickCast' | 'smartRing' | 'damageNumbers' | 'reduceFlashing'; label: string; help: string }[] = [
@@ -93,7 +97,10 @@
 <div class="backdrop" role="dialog" aria-modal="true" aria-label="Paused">
 	<div class="panel">
 		<header>
-			<h2>Paused</h2>
+			<span class="where">
+				<h2>Paused</h2>
+				{#if where}<p>{where}</p>{/if}
+			</span>
 			<span class="head-actions">
 				<FullscreenButton compact />
 				<button class="primary" onclick={onResume}>Resume {#if !game.touch}<kbd>Esc</kbd>{/if}</button>
@@ -139,6 +146,31 @@
 						{/each}
 					</section>
 				{/each}
+			</div>
+			<div class="slots">
+				<button class="fold" onclick={() => (showSlots = !showSlots)} aria-expanded={showSlots}>
+					{showSlots ? 'Hide' : 'Show'} the ten construct slot keys
+				</button>
+				{#if showSlots}
+					<div class="slot-rows">
+						{#each SLOT_ACTIONS as action (action)}
+							<div class="row">
+								<span class="label">{ACTION_LABELS[action]}</span>
+								<button
+									class="bind"
+									class:listening={listening === action}
+									onclick={() => (listening = listening === action ? null : action)}
+								>
+									{#if listening === action}
+										Press a key…
+									{:else}
+										{settings.current.bindings[layout][action].map(buttonLabel).join('  /  ') || 'Unbound'}
+									{/if}
+								</button>
+							</div>
+						{/each}
+					</div>
+				{/if}
 			</div>
 			<button
 				class="reset"
@@ -290,7 +322,36 @@
 	.groups {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-		gap: 1rem 1.5rem;
+		align-items: start;
+		gap: 0.8rem;
+	}
+	.groups section {
+		border: 1px solid color-mix(in srgb, var(--suit-lit) 45%, transparent);
+		border-radius: 8px;
+		padding: 0.7rem 0.8rem;
+		background: color-mix(in srgb, var(--suit) 12%, transparent);
+	}
+	.where {
+		display: grid;
+		gap: 0.1rem;
+	}
+	.where p {
+		margin: 0;
+		font-size: 0.82rem;
+		opacity: 0.6;
+	}
+	.slots {
+		margin-top: 0.8rem;
+	}
+	.fold {
+		font-size: 0.8rem;
+		opacity: 0.85;
+	}
+	.slot-rows {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+		gap: 0 1.2rem;
+		margin-top: 0.6rem;
 	}
 	.row {
 		display: flex;
@@ -317,7 +378,7 @@
 		}
 	}
 	.reset {
-		margin-top: 1rem;
+		margin-top: 0.9rem;
 		font-size: 0.8rem;
 		opacity: 0.8;
 	}

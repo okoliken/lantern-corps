@@ -291,6 +291,7 @@
 				{ href: `/hq?as=${playAs}`, label: 'Corps HQ (upgrades)' },
 				{ href: '/', label: 'Main menu' }
 			]}
+			where={setup.director.objective}
 		/>
 	{/if}
 </div>
