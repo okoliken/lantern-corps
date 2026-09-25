@@ -31,6 +31,9 @@
 		display: grid;
 		align-content: center;
 		justify-content: center;
+		/* The column is as wide as the longest line of the title, so the block
+		   inside it has to be centred too, or it sits against the left edge */
+		justify-items: center;
 		text-align: center;
 		padding: 1rem;
 		box-sizing: border-box;
