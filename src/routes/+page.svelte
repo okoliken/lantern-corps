@@ -94,6 +94,27 @@
 		font-size: 0.85rem;
 		background: rgba(2, 8, 6, 0.55);
 	}
+	@media (max-width: 640px) {
+		.title {
+			margin-top: 24vh;
+			width: min(22rem, 100%);
+		}
+		h1 {
+			font-size: clamp(1.9rem, 11vw, 2.8rem);
+			-webkit-text-stroke-width: 2.5px;
+		}
+		.oath {
+			font-size: 0.85rem;
+			margin-bottom: 1.3rem;
+		}
+		nav {
+			gap: 0.6rem;
+		}
+		.btn {
+			padding: 0.55rem 1.2rem;
+			font-size: 0.78rem;
+		}
+	}
 	.btn:hover {
 		background: var(--suit-lit);
 		color: var(--text);

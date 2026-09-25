@@ -7,6 +7,7 @@
 	import { LANTERNS } from '$lib/engine/lanterns';
 	import { settings } from '$lib/settings.svelte';
 	import MenuPoster from '$lib/components/MenuPoster.svelte';
+	import Emblem from '$lib/components/Emblem.svelte';
 	import { campaign } from '$lib/campaign.svelte';
 
 	/** ?unlockall opens every mission (for trying a new one without playing through). */
@@ -46,7 +47,7 @@
 
 <header class="bar">
 	<a class="brand" href="/">
-		<span class="mark" aria-hidden="true"></span>
+		<Emblem size={26} />
 		<span class="name">Lantern Corps</span>
 	</a>
 	<nav class="tabs">
@@ -146,28 +147,20 @@
 		position: relative;
 		z-index: 2;
 		display: flex;
-		align-items: center;
-		gap: 2.5rem;
-		padding: 0.9rem clamp(1rem, 4vw, 3rem);
-		background: linear-gradient(rgba(2, 8, 6, 0.92), rgba(2, 8, 6, 0.55));
+		align-items: stretch;
+		gap: clamp(1rem, 4vw, 2.5rem);
+		min-height: 3.4rem;
+		padding: 0 clamp(0.8rem, 4vw, 3rem);
+		background: linear-gradient(rgba(2, 8, 6, 0.94), rgba(2, 8, 6, 0.6));
 		border-bottom: 1px solid color-mix(in srgb, var(--suit-lit) 55%, transparent);
 	}
 	.brand {
 		display: flex;
 		align-items: center;
-		gap: 0.6rem;
+		gap: 0.55rem;
 		text-decoration: none;
 		color: var(--text);
-	}
-	.mark {
-		width: 22px;
-		height: 22px;
-		border-radius: 50%;
-		background: var(--green);
-		box-shadow:
-			inset 0 5px 0 -1px #06140d,
-			inset 0 -5px 0 -1px #06140d,
-			0 0 12px color-mix(in srgb, var(--green) 70%, transparent);
+		flex-shrink: 0;
 	}
 	.name {
 		font-family: var(--font-display);
@@ -178,17 +171,26 @@
 	}
 	.tabs {
 		display: flex;
-		gap: 1.6rem;
+		align-items: stretch;
+		gap: clamp(0.9rem, 3vw, 1.6rem);
+		overflow-x: auto;
+		scrollbar-width: none;
+		margin-bottom: -1px;
+	}
+	.tabs::-webkit-scrollbar {
+		display: none;
 	}
 	.tabs a {
+		display: flex;
+		align-items: center;
+		white-space: nowrap;
 		text-decoration: none;
 		color: color-mix(in srgb, var(--text) 62%, transparent);
 		text-transform: uppercase;
 		letter-spacing: 0.12em;
 		font-size: 0.76rem;
 		font-weight: 600;
-		padding: 0.35rem 0;
-		border-bottom: 2px solid transparent;
+		border-bottom: 3px solid transparent;
 	}
 	.tabs a:hover {
 		color: var(--text);
@@ -370,5 +372,110 @@
 	}
 	.plain a:hover {
 		color: var(--green);
+	}
+	/* A phone held sideways: wide but very short. Everything tightens up. */
+	@media (max-height: 560px) {
+		.bar {
+			min-height: 2.5rem;
+			gap: 1.1rem;
+		}
+		.name {
+			font-size: 0.7rem;
+			letter-spacing: 0.1em;
+		}
+		.tabs a {
+			font-size: 0.66rem;
+			letter-spacing: 0.08em;
+		}
+		main {
+			padding: 0.6rem clamp(0.6rem, 3vw, 1.4rem) 1.6rem;
+		}
+		.rail {
+			width: min(30rem, 100%);
+			gap: 0.4rem;
+		}
+		.act {
+			padding: 0.45rem 0.6rem;
+		}
+		.chapter small {
+			font-size: 0.58rem;
+		}
+		.chapter h2 {
+			font-size: 0.9rem;
+		}
+		.chapter p {
+			font-size: 0.7rem;
+			max-width: 22rem;
+		}
+		.progress {
+			font-size: 0.72rem;
+		}
+		.chevron {
+			font-size: 1.1rem;
+		}
+		.mission {
+			padding: 0.45rem 0.55rem;
+			gap: 0.5rem;
+		}
+		.number {
+			font-size: 0.9rem;
+			width: 1.2rem;
+		}
+		.text strong {
+			font-size: 0.85rem;
+		}
+		.text small {
+			font-size: 0.58rem;
+		}
+		.text span {
+			font-size: 0.72rem;
+		}
+		.rule {
+			margin-top: 0.6rem;
+		}
+		.plain a {
+			font-size: 0.7rem;
+		}
+	}
+	@media (max-width: 720px) {
+		.shade {
+			background: linear-gradient(rgba(2, 8, 6, 0.9), rgba(2, 8, 6, 0.95));
+		}
+		.name {
+			display: none;
+		}
+		main {
+			padding: 1rem 0.8rem 3rem;
+		}
+		.rail {
+			width: 100%;
+			gap: 0.55rem;
+		}
+		.act {
+			padding: 0.65rem 0.7rem;
+		}
+		.chapter h2 {
+			font-size: 1rem;
+		}
+		.chapter p {
+			font-size: 0.76rem;
+		}
+		.progress {
+			font-size: 0.78rem;
+			gap: 0.4rem;
+		}
+		ol {
+			padding: 0 0.3rem;
+		}
+		.mission {
+			gap: 0.6rem;
+			padding: 0.6rem;
+		}
+		.text span {
+			font-size: 0.8rem;
+		}
+		.text small {
+			font-size: 0.62rem;
+		}
 	}
 </style>
