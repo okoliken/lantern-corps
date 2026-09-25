@@ -7,6 +7,10 @@
 
 	let canvas: HTMLCanvasElement;
 
+	/** The emblem's two tones: the rim's green, and the pale field inside it. */
+	const RIM = '#12A150';
+	const FIELD = '#e6f7e8';
+
 	const TAU = Math.PI * 2;
 
 	function seeded(seed: number) {
@@ -34,35 +38,48 @@
 	 * and the light burning inside. Green, with the white kept for the core.
 	 */
 	function drawEmblem(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, pulse: number) {
-		const plate = r * 0.3;
-		const reach = r * 1.16;
 		ctx.save();
+		ctx.shadowColor = green(0.7);
+		ctx.shadowBlur = r * 0.5 * pulse;
 
-		// The lamp's light: white only at the very middle, green everywhere else
-		const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.88);
-		core.addColorStop(0, `rgba(236, 255, 240, ${0.9 * pulse})`);
-		core.addColorStop(0.16, greenCore(0.8 * pulse));
-		core.addColorStop(0.45, green(0.5));
-		core.addColorStop(1, green(0.08));
-		ctx.fillStyle = core;
-		ctx.beginPath();
-		ctx.arc(cx, cy, r * 0.88, 0, TAU);
-		ctx.fill();
-
-		// The metal: the theme green, not a tint of white
-		ctx.shadowColor = green(0.8);
-		ctx.shadowBlur = r * 0.34 * pulse;
-		ctx.fillStyle = green(1);
-		ctx.strokeStyle = green(1);
-		ctx.lineWidth = r * 0.19;
+		// The rim: a thick green ring, which is most of what you see
+		ctx.fillStyle = RIM;
 		ctx.beginPath();
 		ctx.arc(cx, cy, r, 0, TAU);
-		ctx.stroke();
+		ctx.fill();
+		ctx.shadowBlur = 0;
+
+		// The pale field inside it
+		ctx.fillStyle = FIELD;
+		ctx.beginPath();
+		ctx.arc(cx, cy, r * 0.74, 0, TAU);
+		ctx.fill();
+
+		// The lantern itself, sitting on the field: a ring and two plates,
+		// the plates running right out to the rim on either side
+		const glyph = r * 0.4;
+		const plate = r * 0.2;
+		ctx.fillStyle = RIM;
 		for (const side of [-1, 1]) {
-			const y = cy + side * (r * 0.95);
-			roundedBar(ctx, cx - reach, y - plate / 2, reach * 2, plate, plate / 2);
+			const y = cy + side * glyph * 1.12;
+			roundedBar(ctx, cx - r * 0.74, y - plate / 2, r * 1.48, plate, plate * 0.35);
 			ctx.fill();
 		}
+		ctx.strokeStyle = RIM;
+		ctx.lineWidth = r * 0.15;
+		ctx.beginPath();
+		ctx.arc(cx, cy, glyph, 0, TAU);
+		ctx.stroke();
+
+		// The light burning in the middle of the lantern
+		const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, glyph * 0.92);
+		core.addColorStop(0, `rgba(255, 255, 255, ${0.95 * pulse})`);
+		core.addColorStop(0.45, greenCore(0.55 * pulse));
+		core.addColorStop(1, 'rgba(255, 255, 255, 0)');
+		ctx.fillStyle = core;
+		ctx.beginPath();
+		ctx.arc(cx, cy, glyph * 0.92, 0, TAU);
+		ctx.fill();
 		ctx.restore();
 	}
 
@@ -130,7 +147,7 @@
 		}
 
 		// ---- The emblem, hanging in the middle of it ----
-		const r = Math.min(W, H) * 0.105;
+		const r = Math.min(W, H) * 0.125;
 		const cx = W / 2;
 		const cy = H * 0.31;
 

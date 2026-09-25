@@ -51,12 +51,21 @@
 		margin-top: 21vh;
 	}
 	h1 {
-		font-size: clamp(1.9rem, 5.4vw, 3.2rem);
+		font-size: clamp(2.2rem, 7vw, 4.2rem);
 		margin: 0;
-		color: var(--green);
-		text-shadow: 0 0 22px var(--green);
-		letter-spacing: 0.18em;
+		line-height: 0.96;
+		color: #05130b;
+		letter-spacing: 0.06em;
 		text-transform: uppercase;
+		font-weight: 800;
+		font-style: italic;
+		/* The animated series' lockup: dark letters cut out of a green edge */
+		-webkit-text-stroke: clamp(3px, 0.5vw, 6px) var(--green);
+		paint-order: stroke fill;
+		text-shadow:
+			0 0 14px color-mix(in srgb, var(--green) 85%, transparent),
+			0 0 40px color-mix(in srgb, var(--green) 55%, transparent),
+			0 5px 0 rgba(0, 0, 0, 0.55);
 	}
 	.oath {
 		margin: 0.1rem 0 1.7rem;
