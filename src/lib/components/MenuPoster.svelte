@@ -29,40 +29,55 @@
 	];
 
 	/**
-	 * The Corps' emblem: a ring of light with a bar across the top and the
-	 * bottom, and a lantern's core burning through the middle of it.
+	 * The Corps' emblem, which is a lantern seen head on: a ring for the lamp,
+	 * a plate across the top and another across the bottom, both touching it,
+	 * and the light burning inside. Green, with the white kept for the core.
 	 */
 	function drawEmblem(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, pulse: number) {
+		const plate = r * 0.3;
+		const reach = r * 1.16;
 		ctx.save();
-		ctx.lineCap = 'round';
-		// The outer ring
-		ctx.strokeStyle = greenCore(0.8);
-		ctx.lineWidth = r * 0.14;
-		ctx.shadowColor = green(0.9);
-		ctx.shadowBlur = r * 0.45 * pulse;
+
+		// The lamp's light: white only at the very middle, green everywhere else
+		const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.88);
+		core.addColorStop(0, `rgba(236, 255, 240, ${0.9 * pulse})`);
+		core.addColorStop(0.16, greenCore(0.8 * pulse));
+		core.addColorStop(0.45, green(0.5));
+		core.addColorStop(1, green(0.08));
+		ctx.fillStyle = core;
+		ctx.beginPath();
+		ctx.arc(cx, cy, r * 0.88, 0, TAU);
+		ctx.fill();
+
+		// The metal: the theme green, not a tint of white
+		ctx.shadowColor = green(0.8);
+		ctx.shadowBlur = r * 0.34 * pulse;
+		ctx.fillStyle = green(1);
+		ctx.strokeStyle = green(1);
+		ctx.lineWidth = r * 0.19;
 		ctx.beginPath();
 		ctx.arc(cx, cy, r, 0, TAU);
 		ctx.stroke();
-		// The bar above and the bar below
-		const bar = r * 1.26;
-		ctx.lineWidth = r * 0.26;
 		for (const side of [-1, 1]) {
-			ctx.beginPath();
-			ctx.moveTo(cx - bar, cy + side * r * 0.66);
-			ctx.lineTo(cx + bar, cy + side * r * 0.66);
-			ctx.stroke();
+			const y = cy + side * (r * 0.95);
+			roundedBar(ctx, cx - reach, y - plate / 2, reach * 2, plate, plate / 2);
+			ctx.fill();
 		}
-		// The core: what the ring is actually made of
-		ctx.shadowBlur = r * 0.9 * pulse;
-		const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.72);
-		core.addColorStop(0, greenCore(0.95 * pulse));
-		core.addColorStop(0.55, green(0.34));
-		core.addColorStop(1, green(0));
-		ctx.fillStyle = core;
-		ctx.beginPath();
-		ctx.arc(cx, cy, r * 0.72, 0, TAU);
-		ctx.fill();
 		ctx.restore();
+	}
+
+	function roundedBar(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+		ctx.beginPath();
+		ctx.moveTo(x + r, y);
+		ctx.lineTo(x + w - r, y);
+		ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+		ctx.lineTo(x + w, y + h - r);
+		ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+		ctx.lineTo(x + r, y + h);
+		ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+		ctx.lineTo(x, y + r);
+		ctx.quadraticCurveTo(x, y, x + r, y);
+		ctx.closePath();
 	}
 
 	function draw(ctx: CanvasRenderingContext2D, W: number, H: number, t: number) {
@@ -115,16 +130,16 @@
 		}
 
 		// ---- The emblem, hanging in the middle of it ----
-		const r = Math.min(W, H) * 0.115;
+		const r = Math.min(W, H) * 0.105;
 		const cx = W / 2;
-		const cy = H * 0.3;
+		const cy = H * 0.31;
 
 		// The light it throws
 		ctx.save();
 		ctx.globalCompositeOperation = 'lighter';
 		const halo = ctx.createRadialGradient(cx, cy, r * 0.3, cx, cy, r * 3.4);
-		halo.addColorStop(0, green(0.3 * pulse));
-		halo.addColorStop(0.4, green(0.08));
+		halo.addColorStop(0, green(0.2 * pulse));
+		halo.addColorStop(0.4, green(0.06));
 		halo.addColorStop(1, green(0));
 		ctx.fillStyle = halo;
 		ctx.beginPath();

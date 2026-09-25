@@ -11,11 +11,7 @@
 	<div class="corner"><FullscreenButton /></div>
 	<div class="title">
 		<h1>Lantern Corps</h1>
-		<p class="oath">In brightest day, in blackest night…</p>
-		<p class="what">
-			A ring picks someone who can overcome fear, and hands them a sector and everyone in it. This is the job that
-			comes after that.
-		</p>
+		<p class="oath">A ring, a sector, and everyone in it.</p>
 
 		<nav>
 			<a class="btn primary" href="/missions">Missions</a>
@@ -52,7 +48,7 @@
 		gap: 0.45rem;
 		justify-items: center;
 		width: min(30rem, 100%);
-		margin-top: 30vh;
+		margin-top: 21vh;
 	}
 	h1 {
 		font-size: clamp(1.9rem, 5.4vw, 3.2rem);
@@ -63,18 +59,11 @@
 		text-transform: uppercase;
 	}
 	.oath {
-		margin: 0;
+		margin: 0.1rem 0 1.7rem;
 		font-size: 0.95rem;
-		opacity: 0.72;
+		opacity: 0.68;
 		font-style: italic;
 		letter-spacing: 0.04em;
-	}
-	.what {
-		margin: 0.4rem 0 1.5rem;
-		max-width: 27rem;
-		font-size: 0.88rem;
-		line-height: 1.55;
-		opacity: 0.6;
 	}
 	nav {
 		display: flex;
