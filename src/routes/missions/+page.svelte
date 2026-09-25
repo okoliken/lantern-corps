@@ -6,6 +6,7 @@
 	import { ACTS, missionById } from '$lib/story/missions';
 	import { LANTERNS } from '$lib/engine/lanterns';
 	import { settings } from '$lib/settings.svelte';
+	import MenuPoster from '$lib/components/MenuPoster.svelte';
 	import { campaign } from '$lib/campaign.svelte';
 
 	/** ?unlockall opens every mission (for trying a new one without playing through). */
@@ -39,123 +40,195 @@
 	const toggle = (n: number) => (opened = { ...opened, [n]: !isOpen(n) });
 </script>
 
+<MenuPoster />
+
+<div class="shade"></div>
+
+<header class="bar">
+	<a class="brand" href="/">
+		<span class="mark" aria-hidden="true"></span>
+		<span class="name">Lantern Corps</span>
+	</a>
+	<nav class="tabs">
+		<a class="on" href="/missions">Missions</a>
+		<a href="/training">Training</a>
+		<a href="/spar">Sparring</a>
+		<a href="/hq">Corps HQ</a>
+	</nav>
+</header>
+
 <main>
-	<h1>Missions</h1>
-	{#if unlocked}<p class="note">Every mission is unlocked.</p>{/if}
+	<div class="rail">
+		{#if unlocked}<p class="note">Every mission is unlocked.</p>{/if}
 
-	<section>
-		<header class="act plain">
-			<span class="chapter">
-				<small>On Oa</small>
-				<h2>Corps training</h2>
-			</span>
-		</header>
-		<ol>
-			<li>
-				<a class="mission" href="/training">
-					<span class="number">{settings.current.trained ? '✓' : '★'}</span>
-					<span class="text">
-						<strong>Training</strong>
-						<small>Oa · with Kilowog · about 3 minutes</small>
-						<span>New to the ring? Learn everything a Lantern can do, one thing at a time.</span>
+		{#each ACTS as act (act.number)}
+			{@const built = builtOf(act)}
+			{@const done = doneIn(act)}
+			{@const current = act.number === currentAct()}
+			<section class:shut={!isOpen(act.number)} class:current>
+				<button class="act" onclick={() => toggle(act.number)} aria-expanded={isOpen(act.number)}>
+					<span class="chapter">
+						<small>Act {act.number}{#if act.number >= 4} · Season two{/if}</small>
+						<h2>{act.title}</h2>
+						{#if act.tagline}<p>{act.tagline}</p>{/if}
 					</span>
-				</a>
-			</li>
-			<li>
-				<a class="mission" href="/spar">
-					<span class="number">⚔</span>
-					<span class="text">
-						<strong>Spar with Kilowog & Sinestro</strong>
-						<small>Oa · two on one</small>
-						<span>Think you learned something? Prove it against the Corps' drill sergeant and its greatest Lantern.</span>
+					<span class="progress">
+						<span class="count">{done} / {act.lineup.length}</span>
+						{#if starsIn(act) > 0}<span class="won">{starsIn(act)}★</span>{/if}
+						<span class="chevron" class:down={isOpen(act.number)}>›</span>
 					</span>
-				</a>
-			</li>
-		</ol>
-	</section>
+				</button>
 
-	{#each ACTS as act (act.number)}
-		{@const built = builtOf(act)}
-		{@const done = doneIn(act)}
-		<section class:later={act.lineup.length === 0} class:shut={!isOpen(act.number)}>
-			<button class="act" onclick={() => toggle(act.number)} aria-expanded={isOpen(act.number)}>
-				<span class="chapter">
-					<small>Act {act.number}</small>
-					<h2>{act.title}</h2>
-					{#if act.tagline}<p>{act.tagline}</p>{/if}
-				</span>
-				<span class="progress">
-					<span class="count">{done} / {act.lineup.length}</span>
-					{#if starsIn(act) > 0}<span class="won">{starsIn(act)}★</span>{/if}
-					<span class="chevron" class:down={isOpen(act.number)}>›</span>
-				</span>
-			</button>
-			{#if act.lineup.length > 0 && isOpen(act.number)}
-				<ol>
-					{#each act.lineup as entry, i (i)}
-						{@const m = typeof entry === 'string' ? missionById(entry) : undefined}
-						<li>
-							{#if m && campaign.isOpen(m.id)}
-								{@const stars = campaign.stars(m.id)}
-								<a class="mission" class:done={stars > 0} href="/mission/{m.id}">
-									<span class="number">{stars > 0 ? '✓' : i + 1}</span>
-									<span class="text">
-										<strong>{m.title}</strong>
-										<small>{m.place} · as {m.choose ? 'Hal or John' : LANTERNS[m.lantern].name}</small>
-										<span>{m.tagline}</span>
-									</span>
-									{#if stars > 0}
-										<span class="stars" aria-label="{stars} of 3 stars">{#each [1, 2, 3] as n (n)}<span class:on={n <= stars}>★</span>{/each}</span>
-									{/if}
-								</a>
-							{:else if m}
-								<div class="locked" aria-disabled="true">
-									<span class="number">🔒</span>
-									<span class="text">
-										<strong>{m.title}</strong>
-										<small>Finish {titleOf(campaign.before(m.id))} to unlock</small>
-									</span>
-								</div>
-							{:else if typeof entry !== 'string'}
-								<div class="locked">
-									<span class="number">{i + 1}</span>
-									<span class="text">
-										<strong>{entry.title}</strong>
-										<small>Coming soon</small>
-										<span>{entry.tagline}</span>
-									</span>
-								</div>
-							{/if}
-						</li>
-					{/each}
-				</ol>
-			{:else if act.lineup.length === 0 && isOpen(act.number)}
-				<div class="locked"><span class="text"><small>Coming later</small></span></div>
-			{/if}
-		</section>
-	{/each}
+				{#if act.lineup.length > 0 && isOpen(act.number)}
+					<ol>
+						{#each act.lineup as entry, i (i)}
+							{@const m = typeof entry === 'string' ? missionById(entry) : undefined}
+							<li>
+								{#if m && campaign.isOpen(m.id)}
+									{@const stars = campaign.stars(m.id)}
+									<a class="mission" class:done={stars > 0} href="/mission/{m.id}">
+										<span class="number">{stars > 0 ? '✓' : i + 1}</span>
+										<span class="text">
+											<strong>{m.title}</strong>
+											<small>{m.place} · as {m.choose ? 'Hal or John' : LANTERNS[m.lantern].name}</small>
+											<span>{m.tagline}</span>
+										</span>
+										{#if stars > 0}
+											<span class="stars" aria-label="{stars} of 3 stars"
+												>{#each [1, 2, 3] as n (n)}<span class:on={n <= stars}>★</span>{/each}</span
+											>
+										{/if}
+									</a>
+								{:else if m}
+									<div class="mission locked" aria-disabled="true">
+										<span class="number">🔒</span>
+										<span class="text">
+											<strong>{m.title}</strong>
+											<small>Finish {titleOf(campaign.before(m.id))} to unlock</small>
+										</span>
+									</div>
+								{:else if typeof entry !== 'string'}
+									<div class="mission locked">
+										<span class="number">{i + 1}</span>
+										<span class="text">
+											<strong>{entry.title}</strong>
+											<small>Coming soon</small>
+											<span>{entry.tagline}</span>
+										</span>
+									</div>
+								{/if}
+							</li>
+						{/each}
+					</ol>
+				{/if}
+			</section>
+		{/each}
 
-	<a class="back" href="/">← Menu</a>
+		<div class="rule"></div>
+		<nav class="plain">
+			<a href="/">Main menu</a>
+		</nav>
+	</div>
 </main>
 
 <style>
+	:global(body) {
+		overflow-y: auto;
+	}
+	.shade {
+		position: fixed;
+		inset: 0;
+		background: linear-gradient(90deg, rgba(2, 8, 6, 0.94) 0%, rgba(2, 8, 6, 0.86) 42%, rgba(2, 8, 6, 0.35) 100%);
+		z-index: 0;
+	}
+	/* ---- the bar across the top ---- */
+	.bar {
+		position: relative;
+		z-index: 2;
+		display: flex;
+		align-items: center;
+		gap: 2.5rem;
+		padding: 0.9rem clamp(1rem, 4vw, 3rem);
+		background: linear-gradient(rgba(2, 8, 6, 0.92), rgba(2, 8, 6, 0.55));
+		border-bottom: 1px solid color-mix(in srgb, var(--suit-lit) 55%, transparent);
+	}
+	.brand {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		text-decoration: none;
+		color: var(--text);
+	}
+	.mark {
+		width: 22px;
+		height: 22px;
+		border-radius: 50%;
+		background: var(--green);
+		box-shadow:
+			inset 0 5px 0 -1px #06140d,
+			inset 0 -5px 0 -1px #06140d,
+			0 0 12px color-mix(in srgb, var(--green) 70%, transparent);
+	}
+	.name {
+		font-family: var(--font-display);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		font-size: 0.82rem;
+	}
+	.tabs {
+		display: flex;
+		gap: 1.6rem;
+	}
+	.tabs a {
+		text-decoration: none;
+		color: color-mix(in srgb, var(--text) 62%, transparent);
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+		font-size: 0.76rem;
+		font-weight: 600;
+		padding: 0.35rem 0;
+		border-bottom: 2px solid transparent;
+	}
+	.tabs a:hover {
+		color: var(--text);
+	}
+	.tabs a.on {
+		color: var(--green);
+		border-bottom-color: var(--green);
+	}
+	/* ---- the rail of chapters ---- */
 	main {
-		min-height: 100%;
-		box-sizing: border-box;
+		position: relative;
+		z-index: 1;
+		padding: 1.6rem clamp(1rem, 4vw, 3rem) 4rem;
+	}
+	.rail {
 		display: grid;
-		justify-content: center;
-		align-content: start;
-		justify-items: center;
-		gap: 2rem;
-		padding: 2.5rem 1rem;
+		gap: 0.7rem;
+		width: min(38rem, 100%);
+	}
+	.note {
+		margin: 0;
+		font-size: 0.8rem;
+		color: var(--green);
 	}
 	section {
 		display: grid;
-		gap: 0.8rem;
-		width: min(34rem, 100%);
+		gap: 0.5rem;
+		background: rgba(4, 14, 10, 0.72);
+		border: 1px solid color-mix(in srgb, var(--suit-lit) 40%, transparent);
+		border-left: 3px solid transparent;
+		border-radius: 4px;
+		padding: 0.2rem 0.2rem 0.4rem;
 	}
-	section.later {
-		opacity: 0.55;
+	section.shut {
+		gap: 0;
+		padding-bottom: 0.2rem;
+	}
+	section.current {
+		border-left-color: var(--green);
+		background: rgba(6, 22, 15, 0.82);
 	}
 	.act {
 		display: flex;
@@ -164,27 +237,38 @@
 		gap: 1rem;
 		width: 100%;
 		border: 0;
-		border-left: 3px solid var(--suit-lit);
 		background: none;
 		color: inherit;
 		font: inherit;
 		text-align: left;
-		padding: 0.35rem 0.4rem 0.35rem 0.8rem;
+		padding: 0.7rem 0.9rem;
 		cursor: pointer;
-		border-radius: 0 6px 6px 0;
 	}
 	.act:hover {
-		background: color-mix(in srgb, var(--suit) 22%, transparent);
-	}
-	.act.plain {
-		cursor: default;
-	}
-	.act.plain:hover {
-		background: none;
+		background: color-mix(in srgb, var(--suit) 25%, transparent);
 	}
 	.chapter {
 		display: grid;
 		gap: 0.15rem;
+	}
+	.chapter small {
+		color: var(--green);
+		text-transform: uppercase;
+		letter-spacing: 0.16em;
+		font-size: 0.66rem;
+		opacity: 0.9;
+	}
+	.chapter h2 {
+		margin: 0;
+		font-size: 1.15rem;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+	}
+	.chapter p {
+		margin: 0;
+		font-size: 0.82rem;
+		opacity: 0.62;
+		max-width: 26rem;
 	}
 	.progress {
 		display: flex;
@@ -195,7 +279,7 @@
 		white-space: nowrap;
 	}
 	.progress .won {
-		color: var(--star, #ffd21e);
+		color: #ffd21e;
 	}
 	.chevron {
 		display: inline-block;
@@ -206,107 +290,85 @@
 	.chevron.down {
 		transform: rotate(90deg);
 	}
-	section.shut {
-		gap: 0;
-	}
-	.act small {
-		color: var(--green);
-		opacity: 0.8;
-	}
-	.act h2 {
-		margin: 0;
-		font-family: var(--font-display);
-		letter-spacing: 0.05em;
-		text-transform: uppercase;
-		font-size: 1.25rem;
-	}
-	.act p {
-		margin: 0;
-		opacity: 0.75;
-		font-size: 0.9rem;
-	}
-	h1 {
-		margin: 0;
-		color: var(--green);
-		text-shadow: 0 0 18px var(--green);
-		text-transform: uppercase;
-		font-size: clamp(1.6rem, 5vw, 2.6rem);
-	}
 	ol {
 		list-style: none;
 		margin: 0;
-		padding: 0;
+		padding: 0 0.4rem;
 		display: grid;
-		gap: 0.8rem;
-		width: 100%;
+		gap: 0.35rem;
 	}
-	.mission,
-	.locked {
+	.mission {
 		display: flex;
-		gap: 1rem;
 		align-items: center;
-		padding: 1rem 1.25rem;
-		border: 2px solid var(--suit-lit);
-		border-radius: 10px;
-		background: color-mix(in srgb, var(--suit) 20%, transparent);
+		gap: 0.9rem;
+		padding: 0.7rem 0.8rem;
+		border: 1px solid color-mix(in srgb, var(--suit-lit) 35%, transparent);
+		border-radius: 3px;
+		background: rgba(3, 10, 8, 0.75);
 		text-decoration: none;
 		color: var(--text);
 	}
-	.mission:hover,
-	.mission:focus-visible {
+	a.mission:hover {
 		border-color: var(--green);
-		box-shadow: 0 0 24px color-mix(in srgb, var(--green) 25%, transparent);
+		background: color-mix(in srgb, var(--suit) 45%, rgba(3, 10, 8, 0.75));
 	}
-	.locked {
-		opacity: 0.4;
+	.mission.locked {
+		opacity: 0.45;
 		border-style: dashed;
-	}
-	.mission.done {
-		border-color: color-mix(in srgb, var(--suit-lit) 70%, transparent);
-	}
-	.stars {
-		margin-left: auto;
-		display: flex;
-		gap: 0.1rem;
-		font-size: 1rem;
-		color: #2a3a30;
-		white-space: nowrap;
-	}
-	.stars .on {
-		color: #ffe066;
-		text-shadow: 0 0 10px rgba(255, 224, 102, 0.6);
-	}
-	.note {
-		margin: -1rem 0 0;
-		font-size: 0.85rem;
-		color: var(--green);
 	}
 	.number {
 		font-family: var(--font-display);
-		font-size: 2rem;
-		font-weight: 900;
+		font-size: 1.1rem;
 		color: var(--green);
-		min-width: 2rem;
+		width: 1.6rem;
 		text-align: center;
+		flex-shrink: 0;
 	}
 	.text {
 		display: grid;
-		gap: 0.2rem;
+		gap: 0.15rem;
+		flex: 1;
 	}
-	strong {
+	.text strong {
 		font-family: var(--font-display);
 		letter-spacing: 0.04em;
 		color: var(--green);
 	}
-	small {
-		opacity: 0.6;
+	.text small {
+		font-size: 0.68rem;
 		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		font-size: 0.7rem;
+		letter-spacing: 0.1em;
+		opacity: 0.55;
 	}
-	.back {
-		font-size: 0.9rem;
+	.text span {
+		font-size: 0.85rem;
+		opacity: 0.8;
+	}
+	.stars {
+		color: #4b5b52;
+		letter-spacing: 0.1em;
+	}
+	.stars .on {
+		color: #ffd21e;
+	}
+	.rule {
+		height: 1px;
+		margin: 1rem 0 0.2rem;
+		background: linear-gradient(90deg, color-mix(in srgb, var(--suit-lit) 70%, transparent), transparent);
+	}
+	.plain {
+		display: flex;
+		gap: 1.4rem;
+	}
+	.plain a {
+		color: color-mix(in srgb, var(--text) 75%, transparent);
 		text-decoration: none;
-		opacity: 0.7;
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+		font-size: 0.78rem;
+		font-weight: 600;
+	}
+	.plain a:hover {
+		color: var(--green);
 	}
 </style>

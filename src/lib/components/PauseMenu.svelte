@@ -25,6 +25,16 @@
 	let tab = $state<'controls' | 'options' | 'pad'>('controls');
 	/** The ten construct slots are all obvious, so they stay folded away. */
 	let showSlots = $state(false);
+	/** What the panel on the right is explaining: whatever you last pointed at. */
+	let hint = $state<{ title: string; text: string } | null>(null);
+	const TAB_HELP: Record<'controls' | 'options' | 'pad', { title: string; text: string }> = {
+		controls: {
+			title: 'Controls',
+			text: 'Every key and mouse button, and what it does. Click one to change it, then press whatever you would rather use.'
+		},
+		options: { title: 'Options', text: 'Sound, the ring\u2019s help, and what the screen shows you. Everything here saves as you change it.' },
+		pad: { title: 'Phone pad', text: 'Use a phone as a controller: open the link on the phone and it pairs with this game.' }
+	};
 	const TOUCH_LABELS: Record<TouchControlsMode, string> = { auto: 'On touch screens', on: 'Always', off: 'Never' };
 	/** The action waiting for a new button, while rebinding. */
 	let listening = $state<Action | null>(null);
@@ -97,13 +107,18 @@
 <div class="backdrop" role="dialog" aria-modal="true" aria-label="Paused">
 	<div class="panel">
 		<header>
-			<span class="where">
-				<h2>Paused</h2>
-				{#if where}<p>{where}</p>{/if}
+			<span class="left">
+				<button class="back" onclick={onResume}>
+					<span aria-hidden="true">←</span> Resume {#if !game.touch}<kbd>Esc</kbd>{/if}
+				</button>
+				<span class="where">
+					<h2>Paused</h2>
+					{#if where}<p>{where}</p>{/if}
+				</span>
 			</span>
 			<span class="head-actions">
 				<FullscreenButton compact />
-				<button class="primary" onclick={onResume}>Resume {#if !game.touch}<kbd>Esc</kbd>{/if}</button>
+				<span class="wordmark">Lantern Corps</span>
 			</span>
 		</header>
 
@@ -113,6 +128,8 @@
 			{#if !game.touch}<button class:on={tab === 'pad'} onclick={() => (tab = 'pad')}>Phone pad</button>{/if}
 		</nav>
 
+		<div class="body">
+			<div class="content">
 		{#if tab === 'controls' && game.touch}
 			<ul class="touch-help">
 				<li><b>Left thumb</b> anywhere on the left: move</li>
@@ -212,7 +229,12 @@
 					</span>
 				</div>
 				{#each options as opt (opt.key)}
-					<label class="option">
+					<label
+						class="option"
+						onmouseenter={() => (hint = { title: opt.label, text: opt.help })}
+						onfocusin={() => (hint = { title: opt.label, text: opt.help })}
+						onmouseleave={() => (hint = null)}
+					>
 						<input
 							type="checkbox"
 							checked={settings.current[opt.key]}
@@ -223,12 +245,19 @@
 						/>
 						<span>
 							<strong>{opt.label}</strong>
-							<small>{opt.help}</small>
 						</span>
 					</label>
 				{/each}
 			</div>
 		{/if}
+
+			</div>
+
+			<aside class="help-panel">
+				<h3>{hint?.title ?? TAB_HELP[tab].title}</h3>
+				<p>{hint?.text ?? TAB_HELP[tab].text}</p>
+			</aside>
+		</div>
 
 		{#if links.length}
 			<footer>
@@ -244,29 +273,89 @@
 	.backdrop {
 		position: absolute;
 		inset: 0;
-		display: grid;
-		place-items: center;
-		padding: 1rem;
-		background: rgba(3, 6, 10, 0.72);
-		backdrop-filter: blur(3px);
+		background: rgba(2, 6, 4, 0.94);
+		backdrop-filter: blur(4px);
 		z-index: 10;
+		overflow: auto;
 	}
 	.panel {
-		width: min(46rem, 100%);
-		max-height: 100%;
-		overflow: auto;
+		width: min(72rem, 100%);
+		min-height: 100%;
+		margin: 0 auto;
 		box-sizing: border-box;
-		padding: 1.25rem 1.5rem;
-		border: 2px solid var(--suit-lit);
-		border-radius: 12px;
-		background: #06100b;
-		box-shadow: 0 0 40px color-mix(in srgb, var(--green) 12%, transparent);
+		padding: 1.4rem clamp(1rem, 3vw, 2.4rem) 2rem;
+		display: grid;
+		align-content: start;
+		gap: 0.9rem;
 	}
 	header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 1rem;
+		padding-bottom: 0.9rem;
+		border-bottom: 1px solid color-mix(in srgb, var(--suit-lit) 45%, transparent);
+	}
+	.left {
+		display: flex;
+		align-items: center;
+		gap: 1.2rem;
+	}
+	.back {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		font-size: 0.78rem;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		font-weight: 600;
+		padding: 0.4rem 0.9rem;
+	}
+	.wordmark {
+		font-family: var(--font-display);
+		font-size: 0.78rem;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--green);
+		opacity: 0.85;
+	}
+	.body {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 17rem);
+		gap: 1.6rem;
+		align-items: start;
+	}
+	.content {
+		display: grid;
+		gap: 0.75rem;
+		align-content: start;
+	}
+	.help-panel {
+		position: sticky;
+		top: 1rem;
+		border-left: 2px solid color-mix(in srgb, var(--green) 55%, transparent);
+		padding: 0.2rem 0 0.2rem 1rem;
+	}
+	.help-panel h3 {
+		margin: 0 0 0.4rem;
+		font-size: 0.72rem;
+		letter-spacing: 0.16em;
+		opacity: 0.9;
+		color: var(--green);
+	}
+	.help-panel p {
+		margin: 0;
+		font-size: 0.85rem;
+		line-height: 1.55;
+		opacity: 0.72;
+	}
+	@media (max-width: 860px) {
+		.body {
+			grid-template-columns: 1fr;
+		}
+		.help-panel {
+			display: none;
+		}
 	}
 	.head-actions {
 		display: flex;
@@ -299,20 +388,24 @@
 	button:focus-visible {
 		border-color: var(--green);
 	}
-	button.primary {
-		background: var(--suit);
-		color: var(--text);
-		border-color: var(--suit-lit);
-		font-weight: 700;
-	}
 	.tabs {
 		display: flex;
-		gap: 0.5rem;
-		margin: 1rem 0 0.75rem;
+		gap: 0.4rem;
+	}
+	.tabs button {
+		border-radius: 3px;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		font-size: 0.76rem;
+		font-weight: 600;
+		border-color: transparent;
+		opacity: 0.7;
 	}
 	.tabs button.on {
-		background: color-mix(in srgb, var(--suit) 75%, transparent);
+		background: color-mix(in srgb, var(--suit) 70%, transparent);
 		border-color: var(--green);
+		color: var(--green);
+		opacity: 1;
 	}
 	.help {
 		margin: 0 0 0.75rem;
@@ -326,10 +419,14 @@
 		gap: 0.8rem;
 	}
 	.groups section {
-		border: 1px solid color-mix(in srgb, var(--suit-lit) 45%, transparent);
-		border-radius: 8px;
-		padding: 0.7rem 0.8rem;
-		background: color-mix(in srgb, var(--suit) 12%, transparent);
+		border: 0;
+		border-top: 1px solid color-mix(in srgb, var(--suit-lit) 35%, transparent);
+		padding: 0.6rem 0 0;
+		background: none;
+	}
+	.groups h3 {
+		color: var(--green);
+		opacity: 1;
 	}
 	.where {
 		display: grid;
@@ -358,8 +455,12 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 0.5rem;
-		padding: 0.2rem 0;
-		font-size: 0.9rem;
+		padding: 0.22rem 0.3rem;
+		font-size: 0.88rem;
+		border-radius: 3px;
+	}
+	.row:hover {
+		background: color-mix(in srgb, var(--suit) 30%, transparent);
 	}
 	.bind {
 		min-width: 6.5rem;
@@ -379,12 +480,17 @@
 	}
 	.reset {
 		margin-top: 0.9rem;
-		font-size: 0.8rem;
+		font-size: 0.78rem;
 		opacity: 0.8;
+		justify-self: start;
+	}
+	.slots {
+		justify-self: start;
 	}
 	.options {
 		display: grid;
 		gap: 0.75rem;
+		max-width: 34rem;
 	}
 	.option {
 		display: flex;
