@@ -32,7 +32,12 @@ export type Behavior =
 	| 'armor' // press: a suit of construct armor for a while (less damage taken, arm cannon)
 	| 'lances' // press: a narrow fan of piercing projectiles that pass through everything
 	| 'grind' // hold: a spinning cutter held in front of you
-	| 'ram'; // press: something huge charges out along your aim, hitting everything in its path
+	| 'ram' // press: something huge charges out along your aim, hitting everything in its path
+	// Hal's pilot kit (see system.ts)
+	| 'eject' // press: the ejector seat: launched clear, untouchable for the arc, a shockwave where he was
+	| 'chaff' // press: flares that pull enemy shots off him for a while
+	| 'lock' // press: paints a target: everything he fires for a while hits harder
+	| 'wingman'; // press: a small jet that flies alongside him and fires with him
 
 /** Drawing style for a construct. Forge constructs will add their own. */
 type ConstructShape =
@@ -67,7 +72,16 @@ type ConstructShape =
 	| 'ironFist'
 	| 'wreckingBall'
 	| 'girder'
-	| 'cutter';
+	| 'cutter'
+	// Hal's pilot kit
+	| 'sidewinder'
+	| 'strafe'
+	| 'wingman'
+	| 'flak'
+	| 'ejector'
+	| 'cluster'
+	| 'chaff'
+	| 'lock';
 
 export interface ConstructDef {
 	id: string;
@@ -221,6 +235,47 @@ export const CONSTRUCTS = {
 		id: 'fighterJet', name: 'Fighter Jet', short: 'Jet', behavior: 'dash', shape: 'jet',
 		cost: 12, cooldown: 2.4, damage: 34, knockback: 460, range: 300, speed: 950, count: 2
 	},
+	// ---- Hal: a test pilot's kit. Everything he flew, made of ring ----
+	// A lock-on missile: one, fast, and it turns hard to follow whatever it's on
+	sidewinder: {
+		id: 'sidewinder', name: 'Sidewinder', short: 'Missile', behavior: 'volley', shape: 'sidewinder',
+		cost: 12, cooldown: 1.8, damage: 46, knockback: 420, range: 720, speed: 780, radius: 55, count: 1
+	},
+	// The jet pass, but the guns are the point: a line of cannon fire the whole way
+	strafingRun: {
+		id: 'strafingRun', name: 'Strafing Run', short: 'Strafe', behavior: 'dash', shape: 'strafe',
+		cost: 14, cooldown: 3, damage: 18, knockback: 260, range: 420, speed: 1000
+	},
+	// A small jet on his wing for a while, firing at what he fires at
+	wingman: {
+		id: 'wingman', name: 'Wingman', behavior: 'wingman', shape: 'wingman',
+		cost: 20, cooldown: 4, damage: 11, knockback: 70, range: 60, speed: 950, duration: 12, hp: 70, radius: 420
+	},
+	// An anti-air shell: it bursts wide, in a cloud of fragments
+	flakBurst: {
+		id: 'flakBurst', name: 'Flak Burst', short: 'Flak', behavior: 'heavy', shape: 'flak',
+		cost: 14, cooldown: 1.9, damage: 30, knockback: 300, range: 460, speed: 560, radius: 120
+	},
+	// The panic button: launched clear of whatever is about to happen, untouchable for the arc
+	ejectorSeat: {
+		id: 'ejectorSeat', name: 'Ejector Seat', short: 'Eject', behavior: 'eject', shape: 'ejector',
+		cost: 10, cooldown: 6, damage: 20, knockback: 620, range: 300, speed: 1100, radius: 110
+	},
+	// Dropped behind him as he goes: they go off when something follows
+	clusterBombs: {
+		id: 'clusterBombs', name: 'Cluster Bombs', short: 'Bombs', behavior: 'mine', shape: 'cluster',
+		cost: 12, cooldown: 2.2, damage: 28, knockback: 300, range: 95, radius: 70, duration: 20, count: 3
+	},
+	// Flares: enemy shots go for the light instead of him
+	chaff: {
+		id: 'chaff', name: 'Chaff', behavior: 'chaff', shape: 'chaff',
+		cost: 8, cooldown: 7, damage: 0, knockback: 0, range: 0, duration: 2.6
+	},
+	// Paint a target: everything he fires for a while hits harder
+	targetingLock: {
+		id: 'targetingLock', name: 'Targeting Lock', short: 'Lock', behavior: 'lock', shape: 'lock',
+		cost: 10, cooldown: 9, damage: 0, knockback: 0, range: 0, duration: 5
+	},
 	// Bigger and cruder than John's fist: brought down with a blast
 	megaHammer: {
 		id: 'megaHammer', name: 'Giant Hammer', short: 'Hammer', behavior: 'smash', shape: 'hammer',
@@ -365,7 +420,7 @@ export const STRUCTURE_BEHAVIORS: ReadonlySet<Behavior> = new Set(['barrier', 't
 /** Ten slots each, on keys 1-9 and 0. */
 export const LOADOUTS: Record<CrewId, ConstructId[]> = {
 	// Test pilot: flashy, fast and a little showy. He wills a giant glove into existence and punches with it
-	hal: ['glove', 'beam', 'fighterJet', 'megaHammer', 'halSaw', 'train', 'gatling', 'anvil', 'energySword', 'grenades'],
+	hal: ['glove', 'sidewinder', 'strafingRun', 'wingman', 'flakBurst', 'ejectorSeat', 'clusterBombs', 'energySword', 'chaff', 'targetingLock'],
 	// Marine and architect: he builds a rifle that works, down to the bolt
 	john: ['precisionRifle', 'rifle', 'fireteam', 'heavyCannon', 'powerArmor', 'ironFist', 'wreckingBall', 'missilePods', 'ibeams', 'cutter'],
 	// Hammers and fists first, always

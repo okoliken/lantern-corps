@@ -14,7 +14,7 @@ import { isStanding, type Dummy } from '../dummy';
 import type { Target } from '../targeting';
 import { GREEN } from './lantern';
 import { uiFont } from './fonts';
-import { drawAnvilDrop, drawCutter, drawGirder, drawGrenade, drawMarine, drawSpring, drawTrain, drawWreckingBall, glovePath, ironFistDetail, ironFistPath, riflePath } from './kits';
+import { drawAnvilDrop, drawClusterBomb, drawCutter, drawFlakShell, drawGirder, drawGrenade, drawMarine, drawSidewinder, drawSpring, drawTrain, drawWingman, drawWreckingBall, glovePath, ironFistDetail, ironFistPath, riflePath } from './kits';
 import { green, greenCore, GREEN_LIGHT, GREEN_CORE } from '../../theme';
 
 const CORE = GREEN_CORE;
@@ -351,6 +351,7 @@ export function drawLaserSight(
 
 /** An Auto-Turret construct: tripod legs, a body, and twin barrels that track targets. In space, a Sentry Drone. */
 export function drawAutoTurret(ctx: CanvasRenderingContext2D, t: Turret, time: number, space = false) {
+	if (t.def.shape === 'wingman') return drawWingman(ctx, t, time, space);
 	if (t.follow) return drawMarine(ctx, t, time, space);
 	if (space) return drawSentryDrone(ctx, t, time);
 	const fading = t.life < 1.5;
@@ -436,6 +437,8 @@ export function drawProjectile(ctx: CanvasRenderingContext2D, pr: Projectile, x:
 	if (pr.kind === 'train') return drawTrain(ctx, pr, x, y, lift, time);
 	if (pr.kind === 'girder') return drawGirder(ctx, pr, x, y, lift, time);
 	if (pr.kind === 'shell' && pr.def.shape === 'grenade') return drawGrenade(ctx, pr, x, y, lift, time);
+	if (pr.kind === 'shell' && pr.def.shape === 'flak') return drawFlakShell(ctx, pr, x, y, lift, time);
+	if (pr.kind === 'missile' && pr.def.shape === 'sidewinder') return drawSidewinder(ctx, pr, x, y, lift, time);
 	ctx.save();
 	ctx.lineCap = 'round';
 
@@ -661,6 +664,7 @@ export function drawTrap(ctx: CanvasRenderingContext2D, t: Trap, time: number) {
 
 /** A mine: a flat green disc with a blinking light, and a faint trigger ring. */
 function drawMine(ctx: CanvasRenderingContext2D, t: Trap, time: number) {
+	if (t.look === 'cluster') return drawClusterBomb(ctx, t, time);
 	const blink = Math.sin(time * 6 + t.x) > 0.6;
 	ctx.save();
 	ctx.translate(t.x, t.y);

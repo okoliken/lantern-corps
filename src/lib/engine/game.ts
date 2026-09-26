@@ -35,7 +35,7 @@ import { drawBattery, drawBeam, drawChargeLink, drawCrosshair, drawDownedNotice,
 import { drawEnemy, enemyMuzzle } from './draw/enemies';
 import { drawSpaceRock } from './draw/escort';
 import { drawRageTorpedo } from './draw/interceptor';
-import { drawArmorSuit } from './draw/kits';
+import { drawArmorSuit, drawChaff, drawLockReticle } from './draw/kits';
 import { drawFallingMeteors, drawRedBeam, drawRedCage, drawRedChain, drawRedEffect, drawRedGround, drawRedShot, drawBrand } from './draw/redConstructs';
 import { AllyInput } from './ally';
 import { HeroInput, heroFx, heroMoving, updateHero, updateHeroFx } from './heroes';
@@ -59,9 +59,9 @@ import {
 import { inTint } from './draw/corps';
 import { drawCorpsShot } from './draw/corpsConstructs';
 import { drawObstacle, drawPlanetGround, drawStarfield, makeStars, type WorldRect } from './draw/world';
-import { DUMMY_HALF_H, DUMMY_HALF_W, createDummy, isStanding, updateDummy, type Dummy } from './dummy';
+import { DUMMY_HALF_H, DUMMY_HALF_W, createDummy, hurtbox, isStanding, updateDummy, type Dummy } from './dummy';
 import { SIGNATURES, updateSignature, updateSignatureWorld } from './constructs/signature';
-import { drawCallout, drawFortressBack, drawFortressFront, drawJet } from './draw/signature';
+import { drawCallout, drawEjectorSeat, drawFortressBack, drawFortressFront, drawJet } from './draw/signature';
 import { ENVIRONMENT_RULES, type EnvironmentKind } from './environment';
 import {
 	ACTIONS,
@@ -553,6 +553,29 @@ export class Game {
 		return [x, y, width, height];
 	}
 
+	/** What a Targeting Lock is painted on: the enemy nearest the Lantern's aim, as a box to draw the reticle round. */
+	private lockTarget(p: Player): { x: number; y: number; height: number } | null {
+		let best: Dummy | null = null;
+		let score = Infinity;
+		for (const d of this.dummies) {
+			if (!isStanding(d)) continue;
+			const dx = d.x - p.x;
+			const dy = d.y - p.y;
+			const dist = Math.hypot(dx, dy);
+			if (dist > 800) continue;
+			// Distance, weighted toward what he's aiming at
+			const along = (dx * p.aimX + dy * p.aimY) / (dist || 1);
+			const s = dist * (1.6 - along);
+			if (s < score) {
+				score = s;
+				best = d;
+			}
+		}
+		if (!best) return null;
+		const box = hurtbox(best, 0);
+		return { x: box.x + box.w / 2, y: box.y + box.h, height: box.h };
+	}
+
 	private poseFor(p: Player): LanternPose {
 		const env = ENVIRONMENT_RULES[this.map.environment];
 		return {
@@ -684,7 +707,7 @@ export class Game {
 			const pose = this.poseFor(p);
 			const list = p.altitude > 0.5 ? air : ground;
 			// During Jet Strike (or the Fighter Jet) the Lantern is drawn as the jet's pilot instead (below)
-			const inJet = p.dash?.kind === 'jet' || p.dash?.look === 'jet';
+			const inJet = p.dash?.kind === 'jet' || !!p.dash?.look;
 			const hero = p.hero;
 			if (hero) {
 				if (hero.trail.length > 1) ground.push({ baseY: y - 0.01, draw: () => drawSpeedTrail(ctx, hero.trail, FIGURE_HEIGHT) });
@@ -697,6 +720,12 @@ export class Game {
 
 			// Branded by Razer: the sigil hangs over their head until their ring works again
 			if (p.branded > 0) overlays.push(() => drawBrand(ctx, x, y - p.bodyTop - 22, p.branded, this.time));
+			// Hal's Chaff: flares tumbling round him; his Targeting Lock: a reticle on what he's painted
+			if (p.chaff > 0) overlays.push(() => drawChaff(ctx, x, y - p.bodyTop * 0.5, p.chaff, this.time));
+			if (p.lockOn > 0) {
+				const mark = this.lockTarget(p);
+				if (mark) overlays.push(() => drawLockReticle(ctx, mark.x, mark.y - mark.height * 0.5, mark.height * 0.55, this.time));
+			}
 			// Grodd in their head: a psychic swirl round it
 			if (p.confused > 0) overlays.push(() => drawMindLock(ctx, x, y - p.bodyTop - 8, p.confused, this.time));
 
@@ -740,11 +769,12 @@ export class Game {
 
 		// Jet Strike (and the Fighter Jet construct): the fighter jet wrapped around Hal
 		for (const p of this.players) {
-			if (!p.dash || (p.dash.kind !== 'jet' && p.dash.look !== 'jet')) continue;
+			if (!p.dash || (p.dash.kind !== 'jet' && !p.dash.look)) continue;
 			const x = lerp(p.prevX, p.x, alpha);
 			const y = lerp(p.prevY, p.y, alpha);
 			const bodyY = y - this.poseFor(p).hoverHeight * 1.35 - 34;
-			drawJet(ctx, x, bodyY, p.dash.dx, p.dash.dy, this.time, p.def);
+			if (p.dash.look === 'ejector') drawEjectorSeat(ctx, x, bodyY, p.dash.dx, p.dash.dy, this.time, p.def);
+			else drawJet(ctx, x, bodyY, p.dash.dx, p.dash.dy, this.time, p.def);
 		}
 		// Fortress domes go over whoever is inside (they're see-through)
 		for (const f of cw.fortresses) drawFortressFront(ctx, f, this.time, inSpace);

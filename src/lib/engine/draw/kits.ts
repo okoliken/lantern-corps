@@ -9,6 +9,7 @@ import type { Effect, Projectile, Turret } from '../constructs/system';
 import { computeSkeleton, turnScale, HEAD_R, type LanternPose } from '../animation';
 import { energy, sparks } from './constructs';
 import { GREEN } from './lantern';
+import { uiFont } from './fonts';
 import { green, greenCore, GREEN_CORE } from '../../theme';
 
 const TAU = Math.PI * 2;
@@ -597,4 +598,278 @@ export function drawCutter(ctx: CanvasRenderingContext2D, reach: number, radius:
 	energy(ctx, blade, { time, edge: 1.4, body: 0.9 });
 	ctx.restore();
 	sparks(ctx, reach + radius * 0.6, radius * 0.4, 14, 8, time * 3);
+}
+
+// ------------------------------------------------------------ Hal: the pilot's kit
+
+/** A small jet, nose along +x: Hal's Wingman and the Sidewinder share it. */
+function jetPath(s: number): Path2D {
+	const p = new Path2D();
+	p.moveTo(s * 1.1, 0); // nose
+	p.quadraticCurveTo(s * 0.7, -s * 0.16, s * 0.2, -s * 0.18);
+	p.lineTo(-s * 0.15, -s * 0.62); // wing
+	p.lineTo(-s * 0.4, -s * 0.62);
+	p.lineTo(-s * 0.28, -s * 0.18);
+	p.lineTo(-s * 0.65, -s * 0.16);
+	p.lineTo(-s * 0.85, -s * 0.42); // fin
+	p.lineTo(-s * 0.98, -s * 0.42);
+	p.lineTo(-s * 0.82, -s * 0.06);
+	p.lineTo(-s * 0.82, s * 0.06);
+	p.lineTo(-s * 0.98, s * 0.3);
+	p.lineTo(-s * 0.85, s * 0.3);
+	p.lineTo(-s * 0.65, s * 0.16);
+	p.lineTo(-s * 0.28, s * 0.18);
+	p.lineTo(-s * 0.4, s * 0.62);
+	p.lineTo(-s * 0.15, s * 0.62);
+	p.lineTo(s * 0.2, s * 0.18);
+	p.quadraticCurveTo(s * 0.7, s * 0.16, s * 1.1, 0);
+	p.closePath();
+	return p;
+}
+
+/** Exhaust flame behind a jet drawn along +x. */
+function exhaust(ctx: CanvasRenderingContext2D, from: number, len: number, half: number, time: number) {
+	const flicker = 0.8 + 0.2 * Math.sin(time * 60 + from);
+	const flame = ctx.createLinearGradient(from - len, 0, from, 0);
+	flame.addColorStop(0, green(0));
+	flame.addColorStop(0.6, green(0.5 * flicker));
+	flame.addColorStop(1, CORE);
+	ctx.fillStyle = flame;
+	ctx.beginPath();
+	ctx.moveTo(from, -half);
+	ctx.lineTo(from - len * flicker, 0);
+	ctx.lineTo(from, half);
+	ctx.closePath();
+	ctx.fill();
+}
+
+/** Hal's Wingman: a small jet flying on his wing, banking as it turns. */
+export function drawWingman(ctx: CanvasRenderingContext2D, t: Turret, time: number, space: boolean) {
+	const fading = t.life < 1.5;
+	const alpha = fading ? 0.5 + 0.5 * Math.sin(time * 20) : 1;
+	const grow = Math.min(1, (t.maxLife - t.life) / 0.25);
+	const hurt = t.hp < t.maxHp * 0.4;
+	const hover = space ? 40 : 96;
+	const bob = Math.sin(time * 3 + t.follow!.dx) * 4;
+	ctx.save();
+	ctx.globalAlpha = alpha * (hurt ? 0.75 : 1);
+	if (!space) {
+		ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+		ctx.beginPath();
+		ctx.ellipse(t.x, t.y, 24, 6, 0, 0, TAU);
+		ctx.fill();
+	}
+	ctx.translate(t.x, t.y - hover + bob);
+	ctx.scale(grow, grow);
+	ctx.rotate(t.aim);
+	if (Math.cos(t.aim) < 0) ctx.scale(1, -1);
+	// Banks into its turn
+	ctx.scale(1, 0.85 + 0.15 * Math.cos(time * 2));
+	exhaust(ctx, -30, 34, 4, time);
+	energy(ctx, jetPath(32), { time, edge: 1.6, body: 0.55 });
+	// Canopy
+	ctx.strokeStyle = greenCore(0.6);
+	ctx.lineWidth = 1;
+	ctx.beginPath();
+	ctx.moveTo(-2, -5);
+	ctx.quadraticCurveTo(8, -9, 16, -4);
+	ctx.stroke();
+	// Muzzle flash when it just fired
+	if (t.cooldown > 0.15) {
+		ctx.fillStyle = CORE;
+		ctx.beginPath();
+		ctx.moveTo(36, 0);
+		ctx.lineTo(48, -4);
+		ctx.lineTo(44, 0);
+		ctx.lineTo(48, 4);
+		ctx.closePath();
+		ctx.fill();
+	}
+	ctx.restore();
+}
+
+/** Sidewinder: a real missile: long body, four fins, a fat exhaust, and a spiralling smoke trail. */
+export function drawSidewinder(ctx: CanvasRenderingContext2D, pr: Projectile, x: number, y: number, lift: number, time: number) {
+	const dy = y - lift;
+	const speed = Math.hypot(pr.vx, pr.vy) || 1;
+	const ux = pr.vx / speed;
+	const uy = pr.vy / speed;
+	ctx.save();
+	// Smoke rings left behind, spiralling
+	ctx.strokeStyle = green(0.28);
+	ctx.lineWidth = 1.5;
+	for (let i = 1; i <= 7; i++) {
+		const back = i * 14;
+		const wob = Math.sin(time * 30 + i) * 4;
+		ctx.globalAlpha = 0.5 * (1 - i / 8);
+		ctx.beginPath();
+		ctx.arc(x - ux * back - uy * wob, dy - uy * back + ux * wob, 3 + i * 1.2, 0, TAU);
+		ctx.stroke();
+	}
+	ctx.globalAlpha = 1;
+	ctx.translate(x, dy);
+	ctx.rotate(Math.atan2(uy, ux));
+	exhaust(ctx, -16, 34, 4, time);
+	const body = new Path2D();
+	body.moveTo(18, 0);
+	body.lineTo(10, -3.5);
+	body.lineTo(-14, -3.5);
+	body.lineTo(-14, 3.5);
+	body.lineTo(10, 3.5);
+	body.closePath();
+	// Nose fins and tail fins
+	body.moveTo(4, -3.5);
+	body.lineTo(0, -9);
+	body.lineTo(-4, -3.5);
+	body.moveTo(4, 3.5);
+	body.lineTo(0, 9);
+	body.lineTo(-4, 3.5);
+	body.moveTo(-9, -3.5);
+	body.lineTo(-16, -11);
+	body.lineTo(-16, -3.5);
+	body.moveTo(-9, 3.5);
+	body.lineTo(-16, 11);
+	body.lineTo(-16, 3.5);
+	energy(ctx, body, { time, edge: 1.5, body: 0.6 });
+	// Seeker head
+	ctx.fillStyle = CORE;
+	ctx.beginPath();
+	ctx.arc(14, 0, 2.2, 0, TAU);
+	ctx.fill();
+	ctx.restore();
+}
+
+/** Flak Burst in flight: a stubby anti-air shell, spinning, with a timer light ticking. */
+export function drawFlakShell(ctx: CanvasRenderingContext2D, pr: Projectile, x: number, y: number, lift: number, time: number) {
+	const dy = y - lift;
+	const speed = Math.hypot(pr.vx, pr.vy) || 1;
+	ctx.save();
+	// Tracer
+	ctx.strokeStyle = green(0.35);
+	ctx.lineWidth = 3;
+	ctx.lineCap = 'round';
+	ctx.beginPath();
+	ctx.moveTo(x, dy);
+	ctx.lineTo(x - (pr.vx / speed) * 28, dy - (pr.vy / speed) * 28);
+	ctx.stroke();
+	ctx.translate(x, dy);
+	ctx.rotate(Math.atan2(pr.vy, pr.vx) + time * 18);
+	const shell = new Path2D();
+	shell.moveTo(9, 0);
+	shell.lineTo(4, -6);
+	shell.lineTo(-8, -6);
+	shell.lineTo(-8, 6);
+	shell.lineTo(4, 6);
+	shell.closePath();
+	shell.moveTo(-8, -6);
+	shell.lineTo(-11, -8);
+	shell.lineTo(-11, 8);
+	shell.lineTo(-8, 6);
+	energy(ctx, shell, { time, edge: 1.6, body: 0.7 });
+	ctx.fillStyle = Math.sin(time * 40) > 0 ? CORE : green(0.4);
+	ctx.beginPath();
+	ctx.arc(-2, 0, 1.8, 0, TAU);
+	ctx.fill();
+	ctx.restore();
+}
+
+/** One of Hal's Cluster Bombs: a finned bomb standing on its nose, its fuse light ticking. */
+export function drawClusterBomb(ctx: CanvasRenderingContext2D, t: { x: number; y: number; radius: number; life: number }, time: number) {
+	const blink = Math.sin(time * 9 + t.x) > 0.5;
+	ctx.save();
+	ctx.translate(t.x, t.y);
+	// Trigger ring on the ground
+	ctx.save();
+	ctx.scale(1, 0.45);
+	ctx.strokeStyle = green(0.18);
+	ctx.setLineDash([4, 5]);
+	ctx.lineDashOffset = -time * 10;
+	ctx.lineWidth = 1.5;
+	ctx.beginPath();
+	ctx.arc(0, 0, t.radius, 0, TAU);
+	ctx.stroke();
+	ctx.restore();
+	// Leaning a little, the way a dropped bomb lands
+	ctx.rotate(0.15 * Math.sin(t.x));
+	const bomb = new Path2D();
+	bomb.moveTo(0, 2); // nose on the ground
+	bomb.quadraticCurveTo(-7, -6, -6, -18);
+	bomb.lineTo(-4, -26);
+	bomb.lineTo(-9, -34);
+	bomb.lineTo(-3, -30);
+	bomb.lineTo(0, -34);
+	bomb.lineTo(3, -30);
+	bomb.lineTo(9, -34);
+	bomb.lineTo(4, -26);
+	bomb.lineTo(6, -18);
+	bomb.quadraticCurveTo(7, -6, 0, 2);
+	bomb.closePath();
+	energy(ctx, bomb, { time, edge: 1.5, body: 0.6 });
+	ctx.strokeStyle = greenCore(0.45);
+	ctx.lineWidth = 1;
+	ctx.beginPath();
+	ctx.moveTo(-5, -14);
+	ctx.lineTo(5, -14);
+	ctx.stroke();
+	ctx.shadowColor = GREEN;
+	ctx.shadowBlur = blink ? 12 : 3;
+	ctx.fillStyle = blink ? CORE : GREEN;
+	ctx.beginPath();
+	ctx.arc(0, -21, blink ? 2.4 : 1.6, 0, TAU);
+	ctx.fill();
+	ctx.restore();
+}
+
+/** Chaff: flares tumbling around a Lantern while it holds, pulling shots. */
+export function drawChaff(ctx: CanvasRenderingContext2D, x: number, y: number, left: number, time: number) {
+	const fade = Math.min(1, left / 0.5);
+	ctx.save();
+	ctx.globalAlpha = fade;
+	for (let i = 0; i < 7; i++) {
+		const a = time * 2.2 + (i / 7) * TAU;
+		const r = 46 + 10 * Math.sin(time * 5 + i);
+		const fx = x + Math.cos(a) * r;
+		const fy = y + Math.sin(a) * r * 0.5 - 10 * Math.sin(time * 7 + i * 2);
+		// Each flare: a bright spark with a short falling ribbon of light
+		ctx.strokeStyle = green(0.35);
+		ctx.lineWidth = 2;
+		ctx.beginPath();
+		ctx.moveTo(fx, fy);
+		ctx.lineTo(fx - Math.cos(a) * 10, fy + 14);
+		ctx.stroke();
+		ctx.shadowColor = GREEN;
+		ctx.shadowBlur = 14;
+		ctx.fillStyle = CORE;
+		ctx.beginPath();
+		ctx.arc(fx, fy, 2.6 + Math.sin(time * 30 + i), 0, TAU);
+		ctx.fill();
+		ctx.shadowBlur = 0;
+	}
+	ctx.restore();
+}
+
+/** Targeting Lock: a HUD reticle over whatever it's painted on, corners closing in. */
+export function drawLockReticle(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, time: number) {
+	const gap = size + 6 * (0.5 + 0.5 * Math.sin(time * 8));
+	ctx.save();
+	ctx.strokeStyle = greenCore(0.85);
+	ctx.lineWidth = 2;
+	ctx.shadowColor = GREEN;
+	ctx.shadowBlur = 8;
+	const arm = size * 0.35;
+	for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]] as const) {
+		ctx.beginPath();
+		ctx.moveTo(x + sx * gap, y + sy * (gap - arm));
+		ctx.lineTo(x + sx * gap, y + sy * gap);
+		ctx.lineTo(x + sx * (gap - arm), y + sy * gap);
+		ctx.stroke();
+	}
+	ctx.beginPath();
+	ctx.arc(x, y, 3, 0, TAU);
+	ctx.stroke();
+	ctx.font = uiFont(700, 10);
+	ctx.textAlign = 'center';
+	ctx.fillStyle = greenCore(0.9);
+	ctx.fillText('LOCK', x, y - gap - 5);
+	ctx.restore();
 }

@@ -32,9 +32,9 @@ describe('smart ring', () => {
 		expect(['volley', 'lances', 'heavy']).toContain(picked(p, w));
 	});
 
-	it('sends the locomotive through a line of enemies', () => {
+	it('fires down a line of enemies', () => {
 		const { p, w } = setup('hal', [[250, 0], [330, 10], [410, -10]]);
-		expect(picked(p, w)).toBe('ram');
+		expect(['volley', 'dash', 'heavy']).toContain(picked(p, w));
 	});
 
 	it('snipes a lone enemy far away', () => {

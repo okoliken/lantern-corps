@@ -58,6 +58,8 @@ export interface Projectile {
 	homing?: Dummy | null;
 	/** Hits from this don't fill the owner's surge meter (signature ability damage). */
 	noSurge?: boolean;
+	/** Homing: how hard it can turn (radians per second), if not the usual. */
+	turn?: number;
 	/** Seconds of flight it started with (grenades arc over their whole flight). */
 	startLife?: number;
 	/** Buzzsaw: heading back to its thrower, and who it already cut on this pass. */
@@ -90,6 +92,8 @@ export interface Trap {
 	life: number;
 	/** Cage: how long it holds what it catches. */
 	hold: number;
+	/** Drawn as one of Hal's cluster bombs instead of a mine. */
+	look?: 'cluster';
 	/** Mine: its blast. */
 	blast?: { radius: number; damage: number; knockback: number };
 }
@@ -350,6 +354,8 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
 	if (p.actionTimer === 0) p.actionShape = null;
 	p.branded = Math.max(0, p.branded - dt);
 	p.chilled = Math.max(0, p.chilled - dt);
+	p.chaff = Math.max(0, p.chaff - dt);
+	p.lockOn = Math.max(0, p.lockOn - dt);
 	if (p.armor) {
 		p.armor.time -= dt;
 		if (p.armor.time <= 0) {
@@ -656,6 +662,19 @@ function perform(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 		}
 		case 'dash':
 			return afterburner(p, def, w);
+		case 'eject':
+			return eject(p, def, w);
+		case 'chaff':
+			p.chaff = durable(p, def.duration ?? 2.5);
+			for (let i = 0; i < 5; i++) w.effects.push({ kind: 'snap', x: p.x + (Math.random() - 0.5) * 120, y: p.y + (Math.random() - 0.5) * 60, age: -i * 0.06, life: 0.5, radius: 22 });
+			w.effects.push({ kind: 'callout', x: p.x, y: p.y, age: 0, life: 1, text: 'CHAFF', owner: p });
+			return true;
+		case 'lock':
+			p.lockOn = durable(p, def.duration ?? 5);
+			w.effects.push({ kind: 'callout', x: p.x, y: p.y, age: 0, life: 1.1, text: 'LOCKED ON', owner: p });
+			return true;
+		case 'wingman':
+			return callWingman(p, def, w);
 		case 'squad':
 			return callFireteam(p, def, w);
 		case 'armor':
@@ -865,8 +884,12 @@ function volley(p: Player, def: ConstructDef, w: ConstructWorld) {
 		const m = launch(p, def, 'missile', Math.cos(angle), Math.sin(angle), w);
 		m.homing = targets.length > 0 ? targets[i % targets.length] : null;
 		m.life = (def.range / (def.speed ?? 500)) * 1.3;
+		if (def.shape === 'sidewinder') m.turn = SIDEWINDER_TURN_RATE;
 	}
 }
+
+/** A Sidewinder turns twice as hard as a pod missile. */
+const SIDEWINDER_TURN_RATE = 14;
 
 /** Shotgun: a short-range fan of pellets. */
 function spread(p: Player, def: ConstructDef, w: ConstructWorld) {
@@ -900,6 +923,7 @@ function afterburner(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 	p.firing = false;
 	w.effects.push({ kind: 'snap', x: p.x, y: p.y, age: 0, life: 0.3, radius: 30 });
 	// The Fighter Jet: built around Hal, and it lets its missiles go as it launches
+	if (def.shape === 'strafe') p.dash.look = 'strafe';
 	if (def.shape === 'jet' && def.count) {
 		p.dash.look = 'jet';
 		const missile: ConstructDef = { ...def, damage: def.damage * 0.6, knockback: 200, speed: 620, range: 560, radius: 40 };
@@ -943,6 +967,8 @@ function lob(p: Player, def: ConstructDef, w: ConstructWorld) {
 
 /** Seconds between a Marine's shots. */
 const MARINE_FIRE_EVERY = 0.6;
+/** A Wingman's cannon is faster. */
+const WINGMAN_FIRE_EVERY = 0.22;
 /** Where each Marine stands around its Lantern. */
 const FIRETEAM_SPOTS: [number, number][] = [
 	[-70, -46],
@@ -1016,7 +1042,7 @@ function moveMarine(t: Turret, w: ConstructWorld, dt: number): Dummy | null {
 	const dist = Math.hypot(dx, dy);
 	m.moving = dist > 10;
 	if (m.moving) {
-		const step = Math.min(dist, MARINE_SPEED * dt);
+		const step = Math.min(dist, (t.def.shape === 'wingman' ? t.def.speed ?? MARINE_SPEED : MARINE_SPEED) * dt);
 		t.x += (dx / dist) * step;
 		t.y += (dy / dist) * step;
 		m.stride += step * 0.09;
@@ -1156,22 +1182,75 @@ function breakWard(w: ConstructWorld, d: Dummy) {
 }
 
 function placeMine(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
-	const x = p.x + p.aimX * def.range;
-	const y = p.y + p.aimY * def.range;
-	if (w.obstacles.some((o) => boxOverlap(x, y, 6, 4, o))) return false;
-	const mine = w.traps.filter((t) => t.owner === p && t.kind === 'mine');
-	if (mine.length >= MAX_MINES_PER_PLAYER) w.traps.splice(w.traps.indexOf(mine[0]), 1);
-	w.traps.push({
-		kind: 'mine',
+	// Cluster bombs go BEHIND him, a few at once, for whatever is following
+	const cluster = def.shape === 'cluster';
+	const n = cluster ? (def.count ?? 3) : 1;
+	let placed = 0;
+	for (let i = 0; i < n; i++) {
+		const spread = cluster ? (i - (n - 1) / 2) * 0.75 : 0;
+		const ang = Math.atan2(cluster ? -p.aimY : p.aimY, cluster ? -p.aimX : p.aimX) + spread;
+		const x = p.x + Math.cos(ang) * def.range;
+		const y = p.y + Math.sin(ang) * def.range * 0.7;
+		if (w.obstacles.some((o) => boxOverlap(x, y, 6, 4, o))) continue;
+		const mine = w.traps.filter((t) => t.owner === p && t.kind === 'mine');
+		const cap = cluster ? MAX_MINES_PER_PLAYER + 2 : MAX_MINES_PER_PLAYER;
+		if (mine.length >= cap) w.traps.splice(w.traps.indexOf(mine[0]), 1);
+		w.traps.push({
+			kind: 'mine',
+			owner: p,
+			x,
+			y,
+			radius: cluster ? 40 : 34,
+			life: durable(p, def.duration ?? 40),
+			hold: 0,
+			look: cluster ? 'cluster' : undefined,
+			blast: { radius: def.radius ?? 60, damage: power(p, def.damage), knockback: power(p, def.knockback) }
+		});
+		w.effects.push({ kind: 'snap', x, y, age: 0, life: 0.3, radius: 20 });
+		placed++;
+	}
+	return placed > 0;
+}
+
+/** Ejector Seat: launched straight back, clear of whatever is coming, untouchable for the arc; a shockwave where he was. */
+function eject(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
+	const len = Math.hypot(p.aimX, p.aimY) || 1;
+	const speed = def.speed ?? 1100;
+	const time = def.range / speed;
+	p.dash = { kind: 'burn', dx: -p.aimX / len, dy: -p.aimY / len, speed, time, blocked: false, hit: [], damage: 0, knockback: 0, look: 'ejector' };
+	p.invuln = Math.max(p.invuln, time + 0.35);
+	p.firing = false;
+	// The seat goes; the blast is where he was
+	const r = def.radius ?? 110;
+	for (const d of w.dummies) {
+		if (isStanding(d) && footprintGap(d, p.x, p.y) <= r) hitDummyWithFx(w, d, power(p, def.damage), power(p, def.knockback), p.x, p.y, p);
+	}
+	w.effects.push({ kind: 'shockwave', x: p.x, y: p.y, age: 0, life: 0.5, radius: r, owner: p });
+	w.effects.push({ kind: 'callout', x: p.x, y: p.y, age: 0, life: 0.9, text: 'EJECT', owner: p });
+	return true;
+}
+
+/** Wingman: a small jet on his wing that fires at what he fires at, for a while. */
+function callWingman(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
+	w.turrets = w.turrets.filter((t) => t.owner !== p || t.def.shape !== 'wingman');
+	const life = durable(p, def.duration ?? 12);
+	const hp = durable(p, def.hp ?? 70);
+	const x = p.x - p.dir * 70;
+	const y = p.y - 40;
+	w.turrets.push({
 		owner: p,
+		def,
 		x,
 		y,
-		radius: 34,
-		life: durable(p, def.duration ?? 40),
-		hold: 0,
-		blast: { radius: def.radius ?? 60, damage: power(p, def.damage), knockback: power(p, def.knockback) }
+		aim: Math.atan2(p.aimY, p.aimX),
+		cooldown: 0.3,
+		life,
+		maxLife: life,
+		hp,
+		maxHp: hp,
+		follow: { dx: -70, dy: -40 }
 	});
-	w.effects.push({ kind: 'snap', x, y, age: 0, life: 0.3, radius: 20 });
+	w.effects.push({ kind: 'snap', x, y, age: 0, life: 0.4, radius: 30 });
 	return true;
 }
 
@@ -1410,7 +1489,8 @@ function steerMissile(pr: Projectile, dt: number) {
 	const [tx, ty] = aimPoint(t, pr.lift);
 	const wanted = Math.atan2(ty - pr.y, tx - pr.x);
 	const diff = Math.atan2(Math.sin(wanted - current), Math.cos(wanted - current));
-	const turn = Math.max(-MISSILE_TURN_RATE * dt, Math.min(MISSILE_TURN_RATE * dt, diff));
+	const rate = pr.turn ?? MISSILE_TURN_RATE;
+	const turn = Math.max(-rate * dt, Math.min(rate * dt, diff));
 	pr.vx = Math.cos(current + turn) * speed;
 	pr.vy = Math.sin(current + turn) * speed;
 }
@@ -1564,7 +1644,7 @@ function updateTurrets(w: ConstructWorld, dt: number) {
 		t.aim = Math.atan2(target.y - t.y, target.x - t.x);
 		if (t.cooldown > 0) continue;
 
-		t.cooldown = t.follow ? MARINE_FIRE_EVERY : 0.35;
+		t.cooldown = t.def.shape === 'wingman' ? WINGMAN_FIRE_EVERY : t.follow ? MARINE_FIRE_EVERY : 0.35;
 		const boltDef = { ...t.def, range: range + 40, damage: power(t.owner, t.def.damage), knockback: t.def.knockback };
 		const bolt = launch(t.owner, boltDef, 'bolt', Math.cos(t.aim), Math.sin(t.aim), w, {
 			x: t.x + Math.cos(t.aim) * 16,
@@ -1664,6 +1744,9 @@ function castAtTargets(x: number, y: number, dx: number, dy: number, range: numb
  * `by` is who dealt it: they get the XP if it's defeated, and surge unless
  * `surge` is false (signature ability damage doesn't refill the meter).
  */
+/** How much harder a locked-on Lantern hits. */
+const LOCK_ON_BONUS = 1.5;
+
 export function hitDummyWithFx(
 	w: ConstructWorld,
 	d: Dummy,
@@ -1682,6 +1765,11 @@ export function hitDummyWithFx(
 	if (by && brain) {
 		brain.grudge = by;
 		brain.grudgeAgo = 0;
+	}
+	// Targeting Lock: everything Hal fires while it holds hits harder
+	if (by && by.lockOn > 0) {
+		damage *= LOCK_ON_BONUS;
+		shown *= LOCK_ON_BONUS;
 	}
 	const broke = hitDummy(d, damage, knockback, fromX, fromY);
 	if (broke && by) w.events.push({ type: 'defeat', by, what: d });

@@ -8,6 +8,8 @@ import { LANTERNS, type LanternId } from '../lanterns';
 import { CRATE_HP, type Obstacle } from '../map';
 import { createPlayer, updatePlayer, type Player } from '../player';
 import { updateSignature } from './signature';
+import { createEnemy } from '../enemies/enemies';
+import { updateRedConstructs } from '../enemies/redConstructs';
 import { ARMOR_TAKES, damagePlayer } from '../combat';
 import { MAX_WILLPOWER, RESTART_THRESHOLD } from '../willpower';
 import { BUBBLE_SHIELD, RING_SHOT, RING_SHOT_BURST, RING_SHOT_GAP, CONSTRUCTS, LOADOUTS, constructLabel, MAX_MINES_PER_PLAYER, MAX_TRAPS_PER_PLAYER, MAX_TURRETS_PER_PLAYER, type ConstructDef, type ConstructId } from './defs';
@@ -861,5 +863,116 @@ describe("Hal's and John's new kits", () => {
 		press(p, w, 0.6);
 		expect(d.ward).toBeUndefined();
 		expect(d.hp).toBeLessThan(DUMMY_HP);
+	});
+});
+
+describe("Hal's pilot kit", () => {
+	it('Sidewinder is one missile that turns hard onto a target off his line', () => {
+		const d = createDummy(320, 200);
+		const { p, w } = setup('hal', 'sidewinder', [d]);
+		run(p, w, FIRE, DT);
+		const missiles = w.projectiles.filter((pr) => pr.kind === 'missile');
+		expect(missiles).toHaveLength(1);
+		expect(missiles[0].homing).toBe(d);
+		expect(missiles[0].turn).toBeGreaterThan(7);
+		run(p, w, IDLE, 1.5);
+		expect(d.hp).toBeLessThan(DUMMY_HP);
+	});
+
+	it('Strafing Run: cannon fire the whole way along the pass', () => {
+		const ds = [createDummy(160, 0), createDummy(300, 8), createDummy(400, -8)];
+		const { p, w } = setup('hal', 'strafingRun', ds);
+		run(p, w, FIRE, DT);
+		expect(p.dash?.look).toBe('strafe');
+		const fly = (ticks: number) => {
+			for (let i = 0; i < ticks; i++) {
+				updatePlayer(p, IDLE, DT);
+				updateSignature(p, IDLE, DT, w);
+				updateConstructWorld(w, DT);
+			}
+		};
+		// The first one is under fire before the jet even reaches it
+		fly(9);
+		expect(ds[0].hp).toBeLessThan(DUMMY_HP);
+		fly(60);
+		expect(ds.filter((d) => d.hp < DUMMY_HP).length).toBeGreaterThanOrEqual(2);
+	});
+
+	it('Wingman flies on his wing and fires at his target, one at a time', () => {
+		const d = createDummy(320, 0);
+		const { p, w } = setup('hal', 'wingman', [d]);
+		press(p, w, 0.1);
+		const wing = w.turrets.filter((t) => t.def.shape === 'wingman');
+		expect(wing).toHaveLength(1);
+		expect(wing[0].follow).toBeTruthy();
+		run(p, w, IDLE, 2.5);
+		expect(d.hp).toBeLessThan(DUMMY_HP);
+		p.cooldowns[p.selected] = 0;
+		p.willpower = MAX_WILLPOWER;
+		press(p, w, 0.1);
+		expect(w.turrets.filter((t) => t.def.shape === 'wingman')).toHaveLength(1);
+	});
+
+	it('Flak Burst goes off wide: two enemies standing apart both take it', () => {
+		const a = createDummy(300, 0);
+		const b = createDummy(370, 30);
+		const { p, w } = setup('hal', 'flakBurst', [a, b]);
+		press(p, w, 1.2);
+		expect(a.hp).toBeLessThan(DUMMY_HP);
+		expect(b.hp).toBeLessThan(DUMMY_HP);
+	});
+
+	it('Ejector Seat throws him clear, untouchable, and blows back what was on him', () => {
+		const d = createDummy(60, 0);
+		const { p, w } = setup('hal', 'ejectorSeat', [d]);
+		run(p, w, FIRE, DT);
+		expect(p.dash?.look).toBe('ejector');
+		expect(p.invuln).toBeGreaterThan(0);
+		expect(d.hp).toBeLessThan(DUMMY_HP);
+		for (let i = 0; i < 30; i++) {
+			updatePlayer(p, IDLE, DT);
+			updateSignature(p, IDLE, DT, w);
+			updateConstructWorld(w, DT);
+		}
+		// Aiming right, the seat goes left
+		expect(p.x).toBeLessThan(-100);
+	});
+
+	it('Cluster Bombs drop behind him, three at a time', () => {
+		const { p, w } = setup('hal', 'clusterBombs');
+		press(p, w, 0.1);
+		const bombs = w.traps.filter((t) => t.kind === 'mine');
+		expect(bombs).toHaveLength(3);
+		for (const b of bombs) {
+			expect(b.look).toBe('cluster');
+			expect(b.x).toBeLessThan(0);
+		}
+	});
+
+	it('Targeting Lock: everything he fires hits harder while it holds', () => {
+		const plain = createDummy(90, 0);
+		const first = setup('hal', 'glove', [plain]);
+		press(first.p, first.w, 0.6);
+		const painted = createDummy(90, 0);
+		const second = setup('hal', 'glove', [painted]);
+		second.p.lockOn = 5;
+		press(second.p, second.w, 0.6);
+		expect(DUMMY_HP - painted.hp).toBeGreaterThan(DUMMY_HP - plain.hp);
+		run(second.p, second.w, IDLE, 5.5);
+		expect(second.p.lockOn).toBe(0);
+	});
+
+	it('Chaff: a red bolt goes for the flares and never reaches him', () => {
+		const { p, w } = setup('hal', 'chaff');
+		w.players = [p];
+		press(p, w, 0.05);
+		expect(p.chaff).toBeGreaterThan(0);
+		const foe = createEnemy('rageGrunt', 400, 0);
+		w.dummies.push(foe);
+		const before = p.health;
+		w.red.shots.push({ kind: 'bolt', owner: foe, x: 120, y: 0, prevX: 120, prevY: 0, vx: -700, vy: 0, life: 2, speed: 700, damage: 20, knockback: 100, ignore: [], hit: [], travelled: 0, out: 0, returning: false });
+		for (let i = 0; i < 30; i++) updateRedConstructs(w, [p], DT);
+		expect(p.health).toBe(before);
+		expect(w.red.shots).toHaveLength(0);
 	});
 });

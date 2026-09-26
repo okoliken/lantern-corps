@@ -34,7 +34,8 @@ function tinyPlanet(obstacles: Obstacle[]): GameMap {
 }
 
 function gameWith(map: GameMap, intent: Intent) {
-	const game = new Game({ players: [{ lantern: 'hal', keys: 'solo' }], map });
+	// Kilowog: the beam is on his slots (Hal's kit is all jet)
+	const game = new Game({ players: [{ lantern: 'kilowog', keys: 'solo' }], map });
 	game.setView({ width: 800, height: 600 });
 	game.players[0].input = { read: () => intent };
 	game.players[0].selected = game.players[0].loadout.findIndex((d) => d.id === 'beam');

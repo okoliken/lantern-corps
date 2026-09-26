@@ -1446,6 +1446,11 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 		if (p.downed || s.hit.includes(p)) continue;
 		// Hits what it's drawn touching: the Lantern's body, not a spot at their feet
 		if (!touches(p, s)) continue;
+		// Chaff: the shot goes for the flares instead, and bursts on them
+		if (p.chaff > 0 && s.kind !== 'hook') {
+			w.effects.push({ kind: 'burst', x: s.x + (Math.random() - 0.5) * 60, y: s.y - 20, age: 0, life: 0.4 });
+			return false;
+		}
 		if (s.kind === 'shell') {
 			shellBurst(w, s, players);
 			return false;

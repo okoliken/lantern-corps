@@ -137,6 +137,10 @@ export interface Player {
 	branded: number;
 	/** Seconds left moving at a crawl (Superman's freezing breath). */
 	chilled: number;
+	/** Hal's Chaff: seconds left with enemy shots going for the flares instead of him. */
+	chaff: number;
+	/** Hal's Targeting Lock: seconds left hitting harder. */
+	lockOn: number;
 	/** How much each construct has been used this fight, by id (a cast counts 1; a held one, time). Manhunter Prime reads it. */
 	usage: Record<string, number>;
 	/** Constructs Manhunter Prime has learned: they can't be made until the fight is over. */
@@ -172,8 +176,8 @@ interface Dash {
 	/** Afterburner: what it does to anything in the way. */
 	damage?: number;
 	knockback?: number;
-	/** Drawn as a fighter jet around the Lantern (the Fighter Jet construct). */
-	look?: 'jet';
+	/** Drawn as a fighter jet around the Lantern (the Fighter Jet construct); a strafing run fires as it goes; the ejector seat hits nothing. */
+	look?: 'jet' | 'strafe' | 'ejector';
 }
 
 /** John's Power Armor while it's on: less damage taken, and the ring shot becomes an arm cannon. */
@@ -251,6 +255,8 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		armor: null,
 		branded: 0,
 		chilled: 0,
+		chaff: 0,
+		lockOn: 0,
 		usage: {},
 		locked: new Set(),
 		confused: 0,

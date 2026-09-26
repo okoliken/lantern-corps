@@ -201,9 +201,30 @@ function runJet(p: Player, dt: number, w: ConstructWorld) {
 	if (d.time <= 0 || d.blocked) finishJet(p, w);
 }
 
+/** Strafing Run: cannon fire along the whole pass. */
+function strafe(p: Player, dt: number, w: ConstructWorld) {
+	const d = p.dash!;
+	const def = p.loadout.find((c) => c.shape === 'strafe');
+	if (!def) return;
+	let clock = (strafeClock.get(p) ?? 0) + dt;
+	while (clock >= STRAFE_EVERY) {
+		clock -= STRAFE_EVERY;
+		const ang = Math.atan2(d.dy, d.dx) + (Math.random() - 0.5) * 0.12;
+		launch(p, { ...def, range: STRAFE_REACH, speed: STRAFE_ROUND_SPEED }, 'bullet', Math.cos(ang), Math.sin(ang), w);
+	}
+	strafeClock.set(p, clock);
+}
+const STRAFE_EVERY = 0.055;
+const STRAFE_REACH = 520;
+const STRAFE_ROUND_SPEED = 1400;
+const strafeClock = new WeakMap<Player, number>();
+
 /** Afterburner (a construct, not the signature): the same kind of run, shorter, with no jet and no missiles. */
 function runBurn(p: Player, dt: number, w: ConstructWorld) {
 	const d = p.dash!;
+	if (d.look === 'strafe') strafe(p, dt, w);
+	// The ejector seat is an escape: it hits nothing on the way
+	if (d.look === 'ejector') return;
 	for (const t of w.dummies) {
 		if (!isStanding(t) || d.hit.includes(t) || footprintGap(t, p.x, p.y) > JET.hitRadius) continue;
 		d.hit.push(t);

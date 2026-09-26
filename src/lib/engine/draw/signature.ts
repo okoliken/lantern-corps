@@ -434,3 +434,98 @@ export function drawCallout(ctx: CanvasRenderingContext2D, text: string, x: numb
 }
 
 const easeOut = (k: number) => 1 - (1 - k) ** 3;
+
+/**
+ * Hal's Ejector Seat: the seat and its rocket flying him clear, backwards,
+ * the canopy tumbling away and a shockwave where the cockpit was.
+ */
+export function drawEjectorSeat(
+	ctx: CanvasRenderingContext2D,
+	x: number,
+	y: number,
+	dx: number,
+	dy: number,
+	time: number,
+	pilot: LanternDef
+) {
+	ctx.save();
+	ctx.translate(x, y);
+	const facing = dx < 0 ? -1 : 1;
+	ctx.scale(facing, 1);
+	// Rocket under the seat, firing down and back
+	const flicker = 0.8 + 0.2 * Math.sin(time * 70);
+	const flame = ctx.createLinearGradient(0, 30, 0, 90);
+	flame.addColorStop(0, CORE);
+	flame.addColorStop(0.5, green(0.5 * flicker));
+	flame.addColorStop(1, green(0));
+	ctx.fillStyle = flame;
+	ctx.beginPath();
+	ctx.moveTo(-10, 30);
+	ctx.lineTo(-4, 80 + 14 * flicker);
+	ctx.lineTo(10, 30);
+	ctx.closePath();
+	ctx.fill();
+	// The seat: back, base, head rest, rails
+	const seat = new Path2D();
+	seat.moveTo(-18, 34);
+	seat.lineTo(-18, -34);
+	seat.lineTo(-10, -42);
+	seat.lineTo(-4, -42);
+	seat.lineTo(-4, -30);
+	seat.lineTo(-10, -30);
+	seat.lineTo(-10, 18);
+	seat.lineTo(22, 18);
+	seat.lineTo(22, 34);
+	seat.closePath();
+	ctx.shadowColor = GREEN;
+	ctx.shadowBlur = 18;
+	ctx.fillStyle = green(0.2);
+	ctx.fill(seat);
+	ctx.strokeStyle = GREEN;
+	ctx.lineWidth = 2.5;
+	ctx.stroke(seat);
+	ctx.shadowBlur = 0;
+	ctx.strokeStyle = greenCore(0.6);
+	ctx.lineWidth = 1;
+	ctx.stroke(seat);
+	// Harness straps
+	ctx.strokeStyle = greenCore(0.5);
+	ctx.beginPath();
+	ctx.moveTo(-8, -20);
+	ctx.lineTo(8, 10);
+	ctx.moveTo(-8, 10);
+	ctx.lineTo(8, -20);
+	ctx.stroke();
+	// Hal, strapped in: head, body, knees up, hands on the handle
+	ctx.fillStyle = pilot.look.skin;
+	ctx.beginPath();
+	ctx.arc(2, -24, 8, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.fillStyle = pilot.look.hair;
+	ctx.beginPath();
+	ctx.arc(2, -27, 8, Math.PI, Math.PI * 2);
+	ctx.fill();
+	ctx.fillStyle = SUIT_GREEN;
+	ctx.strokeStyle = GREEN;
+	ctx.lineWidth = 1.5;
+	ctx.beginPath();
+	ctx.roundRect(-6, -16, 16, 28, 4);
+	ctx.fill();
+	ctx.stroke();
+	ctx.beginPath();
+	ctx.roundRect(4, 4, 18, 9, 3);
+	ctx.fill();
+	ctx.stroke();
+	// The canopy, tumbling off behind
+	ctx.strokeStyle = greenCore(0.45);
+	ctx.lineWidth = 1.5;
+	ctx.save();
+	ctx.translate(-50, 30 + Math.sin(time * 9) * 6);
+	ctx.rotate(time * 6);
+	ctx.beginPath();
+	ctx.moveTo(-16, 6);
+	ctx.quadraticCurveTo(0, -14, 16, 6);
+	ctx.stroke();
+	ctx.restore();
+	ctx.restore();
+}
