@@ -5,7 +5,7 @@
 // about taking what the universe throws at you; Katma's hall is about not
 // being where it lands.
 
-import { absorbWithShield } from '../constructs/system';
+import { damagePlayer } from '../combat';
 import { createDummy, isStanding, type Dummy } from '../dummy';
 import { drawMarker, drawPracticeBolt, drawPracticeDrone } from '../draw/training';
 import type { Drawable, Game } from '../game';
@@ -91,6 +91,7 @@ const TARGETS_UP = 4;
 const TARGET_HP = 45;
 const BOLT_SPEED = 260;
 const BOLT_DAMAGE = 14;
+const BOLT_KNOCK = 160;
 const DRONE_EVERY = 1.1;
 /** Running on Empty starts you here, with nothing to recharge from. */
 const EMPTY_WILL = 0.25;
@@ -265,9 +266,14 @@ export class School {
 			const gone = bolt.x < 0 || bolt.y < 0 || bolt.x > this.map.width || bolt.y > this.map.height;
 			if (!hit && !gone) continue;
 			if (hit) {
-				const through = absorbWithShield(game.constructs, me, bolt.heavy ? BOLT_DAMAGE * 1.6 : BOLT_DAMAGE);
+				// The bubble takes it first; whatever is left of it comes off the
+				// Lantern. Was a bubble actually up? A hit that lands during the
+				// moment of mercy after the last one is not a block.
+				const bubble = game.constructs.shields.some((s) => s.target === me);
+				const damage = bolt.heavy ? BOLT_DAMAGE * 1.6 : BOLT_DAMAGE;
+				const through = damagePlayer(game.constructs, me, damage, bolt.x, bolt.y, BOLT_KNOCK);
 				// Taking it on the bubble is the whole lesson
-				if (bolt.heavy && through <= 0) this.score += 1;
+				if (bolt.heavy && bubble && through <= 0) this.score += 1;
 			}
 			this.bolts.splice(this.bolts.indexOf(bolt), 1);
 		}

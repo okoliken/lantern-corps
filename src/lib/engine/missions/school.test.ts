@@ -29,6 +29,34 @@ describe('Survival School', () => {
 		}
 	});
 
+	it("the drill yard's bolts actually hurt: they were being absorbed into nothing", () => {
+		const { game, school, run } = setup('shields');
+		run(3.4);
+		const me = game.players[0];
+		const full = me.health;
+		// Stand still in the open, no bubble, and let the drones work
+		run(12, () => {
+			me.x = me.prevX = 900;
+			me.y = me.prevY = 700;
+		});
+		expect(school.state).toBe('running');
+		expect(me.health).toBeLessThan(full);
+	});
+
+	it('Take the Hit only scores a heavy bolt that a bubble was actually up for', () => {
+		const { game, school, run } = setup('take-the-hit');
+		run(3.4);
+		const me = game.players[0];
+		const full = me.health;
+		run(12, () => {
+			me.x = me.prevX = 900;
+			me.y = me.prevY = 700;
+		});
+		// No bubble the whole time, so nothing braced and it hurt
+		expect(school.score).toBe(0);
+		expect(me.health).toBeLessThan(full);
+	});
+
 	it('Shields First only counts targets broken with the bubble up', () => {
 		const { game, school, run } = setup('shields');
 		run(3.4);
