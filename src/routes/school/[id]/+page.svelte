@@ -4,9 +4,8 @@
 	import GameCanvas from '$lib/components/GameCanvas.svelte';
 	import PauseMenu from '$lib/components/PauseMenu.svelte';
 	import { Game } from '$lib/engine/game';
-	import { School, TEACHERS, type SchoolState } from '$lib/engine/missions/school';
-	import { buildTrainingMap } from '$lib/engine/missions/training';
-	import { profiles } from '$lib/profiles.svelte';
+	import { School, TEACHERS, buildSchoolMap, type SchoolState } from '$lib/engine/missions/school';
+		import { profiles } from '$lib/profiles.svelte';
 	import { records } from '$lib/records.svelte';
 	import { settings } from '$lib/settings.svelte';
 
@@ -15,7 +14,7 @@
 	let round = $state(0);
 	const setup = $derived.by(() => {
 		void round; // Another go builds a fresh yard
-		const map = buildTrainingMap();
+		const map = buildSchoolMap(data.lesson);
 		const game = new Game({
 			players: [{ lantern: data.lantern, keys: 'solo' }],
 			map,

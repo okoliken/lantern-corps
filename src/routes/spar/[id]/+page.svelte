@@ -7,7 +7,7 @@
 	import { Game } from '$lib/engine/game';
 	import { LANTERNS } from '$lib/engine/lanterns';
 	import { Sparring, type SparState } from '$lib/engine/missions/sparring';
-	import { buildTrainingMap } from '$lib/engine/missions/training';
+	import { buildSparringMap } from '$lib/engine/missions/sparring';
 	import { profiles } from '$lib/profiles.svelte';
 	import { records } from '$lib/records.svelte';
 	import { settings } from '$lib/settings.svelte';
@@ -21,7 +21,7 @@
 	let round = $state(0);
 	const setup = $derived.by(() => {
 		void round; // Rematch builds a fresh fight
-		const map = buildTrainingMap();
+		const map = buildSparringMap();
 		const game = new Game({
 			players: [{ lantern: data.lantern, keys: 'solo' }],
 			map,

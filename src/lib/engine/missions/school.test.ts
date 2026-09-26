@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { Game } from '../game';
-import { buildTrainingMap } from './training';
-import { BOLT_LIFT, LESSONS, lessonById, School, TEACHERS } from './school';
+import { BOLT_LIFT, LESSONS, buildSchoolMap, lessonById, School, TEACHERS } from './school';
 import { hitsBody } from '../player';
 import { MAX_WILLPOWER } from '../willpower';
 
 function setup(id: string) {
-	const map = buildTrainingMap();
+	const map = buildSchoolMap(lessonById(id)!);
 	const game = new Game({ players: [{ lantern: 'hal', keys: 'solo' }], map });
 	game.setView({ width: 1400, height: 800 });
 	const school = new School(lessonById(id)!, map);
@@ -103,6 +102,11 @@ describe('Survival School', () => {
 	});
 
 	it('Running on Empty starts you low with no battery to lean on', () => {
+		{
+			const { game } = setup('empty');
+			// No battery at all: the Game reads that once, when it is built
+			expect(game.batteries.length).toBe(0);
+		}
 		const { game, school, run } = setup('empty');
 		run(3.4);
 		expect(game.players[0].willpower).toBeLessThan(MAX_WILLPOWER * 0.4);

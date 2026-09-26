@@ -14,6 +14,7 @@ import type { Game } from '../game';
 import type { GameMap } from '../map';
 import type { Player } from '../player';
 import type { LessonId } from './school';
+import { buildTrainingMap } from './training';
 
 export type SparState = 'intro' | 'fighting' | 'won' | 'lost';
 export type TierId = 'corps' | 'league' | 'heavy' | 'rivals';
@@ -274,6 +275,18 @@ export const EXTRAS: Opponent[] = [
 ];
 
 export const ROSTER = [...OPPONENTS, ...EXTRAS];
+
+/**
+ * The ring: the training grounds with no battery in them. Sparring is you
+ * against them on the charge you walked in with; standing next to a Lantern
+ * and blasting for free is not a fight. (The Game reads noBattery when it is
+ * built, so this has to be on the map before then.)
+ */
+export function buildSparringMap(): GameMap {
+	const map = buildTrainingMap();
+	map.noBattery = true;
+	return map;
+}
 export const opponentById = (id: string) => ROSTER.find((o) => o.id === id);
 /** Everyone you can actually fight today. */
 export const isReady = (o: Opponent) => o.kind !== null;
@@ -306,11 +319,7 @@ export class Sparring {
 		private readonly map: GameMap,
 		/** The kind to spawn, if the fight picks it (Hal vs. John). */
 		private readonly kind: EnemyKind
-	) {
-		// No battery in the ring. Sparring is you against them on the charge you walked in with:
-		// standing next to a Lantern and blasting for free is not a fight
-		map.noBattery = true;
-	}
+	) {}
 
 	/** 0..1 of the opponent's health left. */
 	get health(): number {

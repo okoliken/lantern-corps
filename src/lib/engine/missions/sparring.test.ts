@@ -3,12 +3,11 @@ import { Game } from '../game';
 import { isStanding } from '../dummy';
 import { damagePlayer } from '../combat';
 import { ENEMIES } from '../enemies/enemies';
-import { buildTrainingMap } from './training';
-import { EXTRAS, OPPONENTS, ROSTER, TIERS, isReady, opponentById, Sparring } from './sparring';
+import { EXTRAS, OPPONENTS, ROSTER, TIERS, buildSparringMap, isReady, opponentById, Sparring } from './sparring';
 
 function setup(id: string, as: 'hal' | 'john' = 'hal') {
 	const opponent = opponentById(id)!;
-	const map = buildTrainingMap();
+	const map = buildSparringMap();
 	const game = new Game({ players: [{ lantern: as, keys: 'solo' }], map });
 	game.setView({ width: 1400, height: 800 });
 	// Hal vs. John: you fight the one you are not playing
@@ -103,7 +102,8 @@ describe('Sparring · One on One', () => {
 
 	it('there is no battery in the ring: you fight on the charge you walked in with', () => {
 		const { game } = setup('sinestro');
-		expect(game.map.noBattery).toBe(true);
+		// The real thing, not the flag: the Game reads the flag once, when built
+		expect(game.batteries.length).toBe(0);
 	});
 
 	it('experience shows: Sinestro hits harder than Hal, and Hal harder than John', () => {

@@ -11,6 +11,7 @@ import { createDummy, isStanding, type Dummy } from '../dummy';
 import { drawMarker, drawPracticeBolt, drawPracticeDrone } from '../draw/training';
 import type { Drawable, Game } from '../game';
 import type { GameMap } from '../map';
+import { buildTrainingMap } from './training';
 import { MAX_WILLPOWER } from '../willpower';
 
 export type Teacher = 'kilowog' | 'katma';
@@ -84,6 +85,16 @@ export const LESSONS: Lesson[] = [
 ];
 
 export const lessonById = (id: string) => LESSONS.find((l) => l.id === id);
+
+/**
+ * The yard for a lesson. Running on Empty has no battery: the Game reads
+ * that when it is built, so it has to be on the map before then.
+ */
+export function buildSchoolMap(lesson: Lesson): GameMap {
+	const map = buildTrainingMap();
+	if (lesson.id === 'empty') map.noBattery = true;
+	return map;
+}
 
 export type SchoolState = 'intro' | 'running' | 'over';
 
@@ -211,9 +222,8 @@ export class School {
 				this.drones = ring(3, 460);
 				break;
 			case 'empty':
-				// A quarter of a charge, and the battery is switched off
+				// A quarter of a charge, and no battery (buildSchoolMap took it out)
 				game.players[0].willpower = MAX_WILLPOWER * EMPTY_WILL;
-				this.map.noBattery = true;
 				this.drones = ring(2, 560);
 				for (let i = 0; i < TARGETS_UP; i++) this.addTarget(game, i);
 				break;
