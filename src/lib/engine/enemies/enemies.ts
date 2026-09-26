@@ -350,6 +350,26 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		lieutenant: true
 	},
 
+	aquamanSpar: {
+		kind: 'aquamanSpar',
+		name: 'Aquaman',
+		faction: 'rogue',
+		description: 'Under water, and at home there. The trident up close and thrown; a wall of water off his hand; sharks from the dark; and a whirlpool that takes you where it wants you.',
+		mind: 'rage',
+		hp: 1900,
+		speed: 330,
+		accel: 7,
+		sight: 1400,
+		poise: 500,
+		scale: 1.04,
+		agility: 0.7,
+		movement: 'hover',
+		kit: ['tridentThrust', 'tridentThrow', 'tidalWave', 'sharks', 'whirlpool'],
+		range: 240,
+		leans: { aggression: 0.55, caution: 0, patience: 0.1 },
+		lieutenant: true
+	},
+
 	// ---- The Justice League, sparring on the Watchtower ----
 	// They are not trying to put you down. They are trying to find out what you do.
 	flashSpar: {

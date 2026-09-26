@@ -137,11 +137,11 @@ export const OPPONENTS: Opponent[] = [
 		tier: 'league',
 		tests: "Underwater arena. Constructs move differently, and he's at home where you aren't.",
 		key: 'fear',
-		kind: null,
-		might: 1,
-		health: 1,
-		opening: '',
-		over: ''
+		kind: 'aquamanSpar',
+		might: 2.4,
+		health: 2.8,
+		opening: 'YOU ARE IN MY HOUSE.',
+		over: 'THE SEA DOES NOT CARE ABOUT YOUR RING.'
 	},
 	{
 		id: 'jonn',
@@ -295,9 +295,15 @@ export const ROSTER = [...OPPONENTS, ...EXTRAS];
  * and blasting for free is not a fight. (The Game reads noBattery when it is
  * built, so this has to be on the map before then.)
  */
-export function buildSparringMap(): GameMap {
+export function buildSparringMap(opponent?: Opponent): GameMap {
 	const map = buildTrainingMap();
 	map.noBattery = true;
+	if (opponent?.id === 'aquaman') {
+		// Aquaman's fight is under water: the sea floor, the light blue, and a Lantern who is slow in it
+		map.name = 'Off Atlantis · the sea floor';
+		map.ground = 'sea';
+		map.underwater = true;
+	}
 	return map;
 }
 export const opponentById = (id: string) => ROSTER.find((o) => o.id === id);

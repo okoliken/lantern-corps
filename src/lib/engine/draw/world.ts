@@ -78,7 +78,7 @@ export function drawStarfield(
 const GROUND_TILE = 64;
 
 /** How a planet's surface looks: 'dust' (Coast City's outskirts), 'oa' (the Corps' home), 'ash' (a burnt outpost). */
-export type GroundStyle = 'dust' | 'oa' | 'ash' | 'meadow' | 'bloodMoon' | 'street' | 'nightStreet' | 'vault' | 'deck';
+export type GroundStyle = 'dust' | 'oa' | 'ash' | 'meadow' | 'bloodMoon' | 'street' | 'nightStreet' | 'vault' | 'deck' | 'sea';
 
 const GROUNDS: Record<GroundStyle, { void: string; base: string; dark: string; light: string; inlay?: string }> = {
 	dust: { void: '#15150f', base: '#3b3a2e', dark: 'rgba(20, 18, 12, 0.35)', light: 'rgba(120, 112, 88, 0.3)' },
@@ -96,7 +96,9 @@ const GROUNDS: Record<GroundStyle, { void: string; base: string; dark: string; l
 	// The same streets after dark (Detroit): everything under a blue night
 	nightStreet: { void: '#05060a', base: '#4a4a4c', dark: 'rgba(20, 20, 22, 0.3)', light: 'rgba(150, 150, 155, 0.18)' },
 	// The Watchtower's training deck: steel plating, seams lit from below, space past the edge
-	deck: { void: '#02040a', base: '#2a3040', dark: 'rgba(8, 10, 18, 0.5)', light: 'rgba(160, 180, 220, 0.14)', inlay: 'rgba(120, 170, 255, 0.13)' }
+	deck: { void: '#02040a', base: '#2a3040', dark: 'rgba(8, 10, 18, 0.5)', light: 'rgba(160, 180, 220, 0.14)', inlay: 'rgba(120, 170, 255, 0.13)' },
+	// The sea floor off Atlantis: sand and rock under a lot of blue water
+	sea: { void: '#02101c', base: '#1e4a5c', dark: 'rgba(6, 30, 40, 0.5)', light: 'rgba(160, 220, 220, 0.16)' }
 };
 
 /**
@@ -168,11 +170,43 @@ export function drawPlanetGround(ctx: CanvasRenderingContext2D, visible: WorldRe
 		ctx.fillStyle = 'rgba(6, 10, 34, 0.55)';
 		ctx.fillRect(0, 0, mapW, mapH);
 	}
+	if (ground === 'sea') drawSea(ctx, visible, mapW, mapH);
 
 	// Map edge
 	ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
 	ctx.lineWidth = 6;
 	ctx.strokeRect(0, 0, mapW, mapH);
+}
+
+/** Under water: the blue over everything, caustics wandering across the sand, and bubbles going up. */
+function drawSea(ctx: CanvasRenderingContext2D, visible: WorldRect, mapW: number, mapH: number) {
+	const t = performance.now() / 1000;
+	ctx.fillStyle = 'rgba(10, 60, 110, 0.42)';
+	ctx.fillRect(0, 0, mapW, mapH);
+	ctx.strokeStyle = 'rgba(190, 240, 255, 0.11)';
+	ctx.lineWidth = 3;
+	const left = Math.max(0, visible.left);
+	const right = Math.min(mapW, visible.right);
+	const top = Math.max(0, visible.top);
+	const bottom = Math.min(mapH, visible.bottom);
+	for (let y = Math.floor(top / 140) * 140; y < bottom; y += 140) {
+		ctx.beginPath();
+		for (let x = left; x <= right; x += 24) {
+			const yy = y + Math.sin(x * 0.02 + t * 1.3 + y) * 14 + Math.sin(x * 0.007 - t * 0.7) * 20;
+			if (x === left) ctx.moveTo(x, yy);
+			else ctx.lineTo(x, yy);
+		}
+		ctx.stroke();
+	}
+	ctx.fillStyle = 'rgba(220, 245, 255, 0.35)';
+	for (let i = 0; i < 40; i++) {
+		const bx = left + ((i * 431) % Math.max(1, right - left));
+		const rise = (t * (30 + (i % 5) * 12) + i * 97) % (bottom - top + 200);
+		const by = bottom - rise;
+		ctx.beginPath();
+		ctx.arc(bx + Math.sin(t * 2 + i) * 6, by, 2 + (i % 3), 0, Math.PI * 2);
+		ctx.fill();
+	}
 }
 
 /** Asphalt roads over the concrete, with lane lines, kerbs and crosswalks at every junction. */

@@ -138,6 +138,9 @@ export interface Director {
 	callBackup?(game: Game, caller: Player): void;
 }
 
+/** How fast a Lantern moves under water, next to dry land. */
+const UNDERWATER_SPEED = 0.72;
+
 /** Constructs drawn in the Lantern's hand while they're in use. */
 const HELD_LOOKS: ReadonlySet<string> = new Set(['minigun', 'cannon', 'sniper', 'shotgun', 'rockets', 'rifle', 'cutter']);
 
@@ -241,7 +244,7 @@ export class Game {
 		this.onProgress = onProgress;
 		this.map = map ?? buildTestMap(environment);
 		const env = ENVIRONMENT_RULES[this.map.environment];
-		this.rules = { solids: this.map.obstacles, alwaysFlying: env.alwaysFlying };
+		this.rules = { solids: this.map.obstacles, alwaysFlying: env.alwaysFlying, speed: this.map.underwater ? UNDERWATER_SPEED : 1 };
 		this.batteries = this.map.noBattery ? [] : [{ ...this.map.battery, charge: BATTERY_MAX_CHARGE }];
 		this.dummies = this.map.dummies.map((d) => createDummy(d.x, d.y));
 		// The construct world shares the map's obstacle array, so walls a

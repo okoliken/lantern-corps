@@ -37,6 +37,14 @@ const BAT_GREY_DARK = '#4d535b';
 const BAT_BLACK = '#15171c';
 const BAT_BLACK_LIT = '#2a2e36';
 const BAT_YELLOW = '#e9c33b';
+// Aquaman: the orange scale shirt, green below, gold at the belt, and the trident
+const AQ_ORANGE = '#e8901f';
+const AQ_ORANGE_LIT = '#f4b04a';
+const AQ_ORANGE_DARK = '#b56a12';
+const AQ_GREEN = '#1f6b3a';
+const AQ_GREEN_LIT = '#2f8a4c';
+const AQ_GOLD = '#f2c94c';
+const AQ_BLOND = '#e9d27a';
 
 // ------------------------------------------------------------------- Superman
 
@@ -343,6 +351,153 @@ function drawBatHead(ctx: CanvasRenderingContext2D, sk: Skeleton) {
 	ctx.lineTo(R * 0.3, -0.5);
 	ctx.closePath();
 	ctx.fill();
+	ctx.restore();
+}
+
+/** Aquaman. King of the sea, and he brought the trident. */
+export function drawAquamanBody(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look, time: number, pose: LanternPose) {
+	void time;
+	void pose;
+	drawAqArm(ctx, sk.back, true, look, false);
+	drawAqLeg(ctx, sk.back, true);
+	drawAqTorso(ctx, sk);
+	drawAqLeg(ctx, sk.front, false);
+	drawAqHead(ctx, sk, look);
+	drawAqArm(ctx, sk.front, false, look, true);
+}
+
+function drawAqLeg(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean) {
+	const green = far ? AQ_GREEN : AQ_GREEN_LIT;
+	segment(ctx, l.hipJoint, l.knee, 3.9, 3.0, green);
+	segment(ctx, l.knee, l.foot, 3.0, 2.6, green);
+	const shin = Math.atan2(l.foot[1] - l.knee[1], l.foot[0] - l.knee[0]);
+	const toe: Point = [l.foot[0] + Math.cos(shin - Math.PI / 2) * 4.4, l.foot[1] + Math.sin(shin - Math.PI / 2) * 4.4];
+	segment(ctx, l.foot, toe, 2.2, 1.5, green);
+	// The fins at the calf
+	ctx.fillStyle = AQ_GOLD;
+	const calf = lerpP(l.knee, l.foot, 0.5);
+	ctx.beginPath();
+	ctx.moveTo(calf[0] + Math.cos(shin + Math.PI / 2) * 2.6, calf[1] + Math.sin(shin + Math.PI / 2) * 2.6);
+	ctx.lineTo(calf[0] + Math.cos(shin + Math.PI / 2) * 5.6 + Math.cos(shin) * 3, calf[1] + Math.sin(shin + Math.PI / 2) * 5.6 + Math.sin(shin) * 3);
+	ctx.lineTo(calf[0] + Math.cos(shin + Math.PI / 2) * 2.6 + Math.cos(shin) * 4.5, calf[1] + Math.sin(shin + Math.PI / 2) * 2.6 + Math.sin(shin) * 4.5);
+	ctx.closePath();
+	ctx.fill();
+}
+
+function drawAqArm(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean, look: Look, trident: boolean) {
+	segment(ctx, l.shoulder, l.elbow, 3.3, 2.7, far ? AQ_ORANGE_DARK : AQ_ORANGE);
+	segment(ctx, l.elbow, l.hand, 2.6, 2.2, far ? shadeColor(look.skin, -0.2) : look.skin);
+	// Green gloves
+	const cuff = lerpP(l.elbow, l.hand, 0.6);
+	segment(ctx, cuff, l.hand, 2.5, 2.2, far ? AQ_GREEN : AQ_GREEN_LIT);
+	if (trident) {
+		// Held upright in the hand: the shaft down past the hip, the three tines up over the shoulder
+		const [hx, hy] = l.hand;
+		ctx.save();
+		ctx.translate(hx, hy);
+		ctx.rotate(-0.15);
+		ctx.strokeStyle = AQ_GOLD;
+		ctx.lineWidth = 1.6;
+		ctx.beginPath();
+		ctx.moveTo(0, 22);
+		ctx.lineTo(0, -26);
+		ctx.stroke();
+		ctx.lineWidth = 1.3;
+		ctx.beginPath();
+		ctx.moveTo(-5, -22);
+		ctx.lineTo(-5, -34);
+		ctx.moveTo(0, -26);
+		ctx.lineTo(0, -38);
+		ctx.moveTo(5, -22);
+		ctx.lineTo(5, -34);
+		ctx.moveTo(-5, -24);
+		ctx.quadraticCurveTo(0, -20, 5, -24);
+		ctx.stroke();
+		ctx.restore();
+	}
+	ctx.fillStyle = far ? AQ_GREEN : AQ_GREEN_LIT;
+	ctx.beginPath();
+	ctx.arc(l.hand[0], l.hand[1], 2.4, 0, TAU);
+	ctx.fill();
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.stroke();
+}
+
+function drawAqTorso(ctx: CanvasRenderingContext2D, sk: Skeleton) {
+	const at = frame(sk);
+	const body = torsoShape(at, -0.4);
+	const [bx, by] = at(8, -6);
+	const [fx, fy] = at(8, 7);
+	const shade = ctx.createLinearGradient(bx, by, fx, fy);
+	shade.addColorStop(0, AQ_ORANGE_DARK);
+	shade.addColorStop(1, AQ_ORANGE_LIT);
+	ctx.fillStyle = shade;
+	ctx.fill(body);
+	ctx.save();
+	ctx.clip(body);
+	// The scales: rows of little arcs
+	ctx.strokeStyle = 'rgba(120, 70, 10, 0.45)';
+	ctx.lineWidth = 0.7;
+	for (let row = 4; row < 17; row += 2.2) {
+		for (let col = -5; col < 7; col += 2.4) {
+			const [cx, cy] = at(row, col + (row % 4.4 < 2.2 ? 1.2 : 0));
+			ctx.beginPath();
+			ctx.arc(cx, cy, 1.3, Math.PI, 0);
+			ctx.stroke();
+		}
+	}
+	// Green below the belt
+	ctx.fillStyle = AQ_GREEN;
+	ctx.fill(poly([at(-3, -8), at(2.2, -8), at(2.2, 9), at(-3, 9)]));
+	ctx.restore();
+	// The gold belt
+	ctx.strokeStyle = AQ_GOLD;
+	ctx.lineWidth = 1.8;
+	ctx.beginPath();
+	ctx.moveTo(...at(2.4, -4.8));
+	ctx.lineTo(...at(2.4, 5.4));
+	ctx.stroke();
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.9;
+	ctx.stroke(body);
+	segment(ctx, sk.neck, lerpP(sk.neck, sk.headCenter, 0.45), 2, 1.9, '#e6b892');
+}
+
+function drawAqHead(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look) {
+	const R = HEAD_R;
+	ctx.save();
+	ctx.translate(...sk.headCenter);
+	ctx.rotate(sk.headAngle);
+	const face = faceShape();
+	ctx.fillStyle = look.skin;
+	ctx.fill(face);
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.stroke(face);
+	drawEye(ctx, '#2f7a9a');
+	// The beard along the jaw
+	ctx.fillStyle = AQ_BLOND;
+	ctx.beginPath();
+	ctx.moveTo(R * 0.2, 1.4);
+	ctx.quadraticCurveTo(R + 0.4, 1.6, R * 0.55, R + 0.6);
+	ctx.quadraticCurveTo(-R * 0.1, R + 1.4, -R * 0.4, R * 0.4);
+	ctx.quadraticCurveTo(R * 0.1, R * 0.3, R * 0.2, 1.4);
+	ctx.closePath();
+	ctx.fill();
+	// Long blond hair, swept back
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.6;
+	ctx.beginPath();
+	ctx.moveTo(-R - 0.6, 3.2);
+	ctx.arc(0, -0.2, R + 0.7, Math.PI * 0.9, Math.PI * 1.9);
+	ctx.quadraticCurveTo(R - 1, -3.4, R * 0.3, -2.2);
+	ctx.quadraticCurveTo(-1, -2.4, -2, 0);
+	ctx.quadraticCurveTo(-R - 2, 3, -R - 2.6, 7);
+	ctx.quadraticCurveTo(-R - 1, 6, -R - 0.6, 3.2);
+	ctx.closePath();
+	ctx.fill();
+	ctx.stroke();
 	ctx.restore();
 }
 

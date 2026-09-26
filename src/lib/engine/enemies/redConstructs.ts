@@ -102,7 +102,13 @@ export type AbilityId =
 	| 'smokeBomb'
 	| 'grapple'
 	| 'fearToxin'
-	| 'ringSteal';
+	| 'ringSteal'
+	// Aquaman (league.ts)
+	| 'tridentThrust'
+	| 'tridentThrow'
+	| 'tidalWave'
+	| 'sharks'
+	| 'whirlpool';
 
 /** How far away a construct is used from. Kits take some of each. */
 type Band = 'close' | 'mid' | 'long' | 'support';
@@ -486,6 +492,31 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	ringSteal: def({
 		id: 'ringSteal', name: 'Sleight of Hand', band: 'close', tell: 'strike', windup: 0.3, active: 0.25, recover: 0.5, cooldown: 14,
 		minRange: 0, maxRange: 72, damage: 10, knockback: 300, melee: true, heavy: false, chance: 1
+	}),
+	// Aquaman: the trident, up close
+	tridentThrust: def({
+		id: 'tridentThrust', name: 'Trident', band: 'close', tell: 'strike', windup: 0.4, active: 0.2, recover: 0.45, cooldown: 1.6,
+		minRange: 0, maxRange: 96, damage: 16, knockback: 640, melee: true, heavy: false, chance: 1, radius: 100
+	}),
+	// The trident thrown, out and back on a line
+	tridentThrow: def({
+		id: 'tridentThrow', name: 'Trident Throw', band: 'long', tell: 'aim', windup: 0.5, active: 0.7, recover: 0.4, cooldown: 4.2,
+		minRange: 140, maxRange: 620, damage: 20, knockback: 420, melee: false, heavy: false, chance: 0.85, speed: 1100
+	}),
+	// A wall of water off his hand: everything in front of him goes
+	tidalWave: def({
+		id: 'tidalWave', name: 'Tidal Wave', band: 'mid', tell: 'heavy', windup: 0.7, active: 0.5, recover: 0.6, cooldown: 7,
+		minRange: 60, maxRange: 380, damage: 12, knockback: 700, melee: false, heavy: true, chance: 0.75, radius: 340
+	}),
+	// He is at home here, and so are they
+	sharks: def({
+		id: 'sharks', name: 'Sharks', band: 'long', tell: 'aim', windup: 0.6, active: 1.6, recover: 0.5, cooldown: 9,
+		minRange: 120, maxRange: 800, damage: 12, knockback: 320, melee: false, heavy: false, chance: 0.8
+	}),
+	// The water turns, and you go where it goes
+	whirlpool: def({
+		id: 'whirlpool', name: 'Whirlpool', band: 'mid', tell: 'build', windup: 0.5, active: 2.2, recover: 0.5, cooldown: 10,
+		minRange: 100, maxRange: 520, damage: 4, knockback: 0, melee: false, heavy: true, chance: 0.7, radius: 240
 	}),
 	// A mace swing up close
 	maceSwing: def({

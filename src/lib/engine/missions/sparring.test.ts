@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { Game } from '../game';
 import { isStanding } from '../dummy';
 import { damagePlayer } from '../combat';
+import { IDLE } from '../input';
 import { beginWindup } from '../enemies/enemies';
 import { ENEMIES } from '../enemies/enemies';
 import { EXTRAS, OPPONENTS, ROSTER, TIERS, buildSparringMap, isReady, opponentById, Sparring } from './sparring';
 
 function setup(id: string, as: 'hal' | 'john' = 'hal') {
 	const opponent = opponentById(id)!;
-	const map = buildSparringMap();
+	const map = buildSparringMap(opponent);
 	const game = new Game({ players: [{ lantern: as, keys: 'solo' }], map });
 	game.setView({ width: 1400, height: 800 });
 	// Hal vs. John: you fight the one you are not playing
@@ -38,9 +39,9 @@ describe('Sparring · One on One', () => {
 	it('nothing is locked: every opponent that has a figure can be fought straight away', () => {
 		// The mode is not a ladder. If they are built, they are available.
 		const ready = ROSTER.filter(isReady);
-		expect(ready.length).toBeGreaterThanOrEqual(14);
+		expect(ready.length).toBeGreaterThanOrEqual(15);
 		// The League fight here the moment they exist, not when somebody remembers to switch them on
-		for (const id of ['wonderwoman', 'flash', 'superman', 'hawkgirl', 'batman', 'tomar', 'guy', 'kyle']) expect(isReady(opponentById(id)!)).toBe(true);
+		for (const id of ['wonderwoman', 'flash', 'superman', 'hawkgirl', 'batman', 'tomar', 'guy', 'kyle', 'aquaman']) expect(isReady(opponentById(id)!)).toBe(true);
 		for (const foe of ready) expect(ENEMIES[foe.kind!]).toBeTruthy();
 	});
 
@@ -48,7 +49,7 @@ describe('Sparring · One on One', () => {
 		const toCome = OPPONENTS.filter((o) => !isReady(o));
 		// They still carry their roster entry, so the list reads complete
 		for (const foe of toCome) expect(foe.tests.length).toBeGreaterThan(20);
-		expect(toCome.map((o) => o.id)).toContain('aquaman');
+		expect(toCome.map((o) => o.id)).toContain('jonn');
 	});
 
 	it('the Corps fight in Corps green, and the League fight as themselves', () => {
@@ -171,6 +172,29 @@ describe('Sparring · One on One', () => {
 			me.invuln = 1;
 		});
 		expect(me.branded).toBeGreaterThan(3);
+	});
+
+	it("Aquaman's fight is under water, and you are slow in it", () => {
+		const wet = setup('aquaman');
+		expect(wet.game.map.underwater).toBe(true);
+		expect(wet.game.map.ground).toBe('sea');
+		const dry = setup('sinestro');
+		// Same stick, same second, on dry land and under water
+		const top = (s: ReturnType<typeof setup>) => {
+			s.run(3);
+			const me = s.game.players[0];
+			me.input = { read: () => ({ ...IDLE, moveX: 1 }) };
+			let best = 0;
+			s.run(1.5, () => {
+				me.invuln = 1;
+				best = Math.max(best, Math.abs(me.vx));
+			});
+			return best;
+		};
+		const dryTop = top(dry);
+		const wetTop = top(wet);
+		expect(dryTop).toBeGreaterThan(100);
+		expect(wetTop).toBeLessThan(dryTop * 0.75);
 	});
 
 	it('the teachers are there to spar with too', () => {

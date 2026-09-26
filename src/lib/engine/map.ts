@@ -41,6 +41,8 @@ export interface GameMap {
 	battery: { x: number; y: number };
 	/** No battery here (Earth, before John has one): willpower only comes back on its own. */
 	noBattery?: boolean;
+	/** Under water: Lanterns move slowly, constructs are heavy, and the light is blue. */
+	underwater?: boolean;
 	/** How the surface looks on a planet (default dust). */
 	ground?: GroundStyle;
 	/** Training dummies to practise constructs on (test maps only). */

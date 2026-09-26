@@ -21,7 +21,7 @@
 	let round = $state(0);
 	const setup = $derived.by(() => {
 		void round; // Rematch builds a fresh fight
-		const map = buildSparringMap();
+		const map = buildSparringMap(data.opponent);
 		const game = new Game({
 			players: [{ lantern: data.lantern, keys: 'solo' }],
 			map,

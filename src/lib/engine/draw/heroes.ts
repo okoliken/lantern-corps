@@ -14,7 +14,7 @@ import { createEnemy, type Enemy } from '../enemies/enemies';
 import type { Player } from '../player';
 import { drawLieutenant } from './lieutenants';
 import { enemyPose } from './enemies';
-import { LASSO_GOLD, drawBatmanBody, drawSupermanBody, drawWonderWomanBody } from './league';
+import { LASSO_GOLD, drawAquamanBody, drawBatmanBody, drawSupermanBody, drawWonderWomanBody } from './league';
 import { FIGURE_HEIGHT, lerpP, poly, segment, shadeColor } from './lantern';
 
 const FIGURE_SCALE = 1.35;
@@ -890,6 +890,102 @@ export function drawHeroFx(ctx: CanvasRenderingContext2D, list: readonly HeroFx[
 				ctx.fill();
 				break;
 			}
+			case 'trident': {
+				// Out along the line and back to his hand
+				const lift = f.lift ?? 40;
+				const out = Math.min(1, f.age / 0.3);
+				const back = f.age <= 0.3 ? 0 : Math.min(1, (f.age - 0.3) / Math.max(0.05, f.life - 0.3));
+				const t = out - back;
+				const hx = f.x + (f.x2! - f.x) * t;
+				const hy = f.y - lift + (f.y2! - f.y) * t;
+				const ang = Math.atan2(f.y2! - f.y, f.x2! - f.x) + (back > 0 ? Math.PI : 0);
+				ctx.translate(hx, hy);
+				ctx.rotate(ang);
+				ctx.strokeStyle = '#f2c94c';
+				ctx.shadowColor = '#f2c94c';
+				ctx.shadowBlur = 8;
+				ctx.lineWidth = 2.4;
+				ctx.beginPath();
+				ctx.moveTo(-30, 0);
+				ctx.lineTo(18, 0);
+				ctx.moveTo(14, -7);
+				ctx.lineTo(28, -7);
+				ctx.moveTo(18, 0);
+				ctx.lineTo(34, 0);
+				ctx.moveTo(14, 7);
+				ctx.lineTo(28, 7);
+				ctx.moveTo(14, -7);
+				ctx.quadraticCurveTo(10, 0, 14, 7);
+				ctx.stroke();
+				break;
+			}
+			case 'wave': {
+				// A wall of water rolling out of his hand
+				const a = f.angle ?? 0;
+				const r = (f.radius ?? 340) * Math.min(1, 0.2 + k * 1.1);
+				const lift = f.lift ?? 30;
+				ctx.translate(f.x, f.y - lift);
+				const g = ctx.createRadialGradient(0, 0, r * 0.5, 0, 0, r);
+				g.addColorStop(0, 'rgba(120, 200, 255, 0)');
+				g.addColorStop(0.7, `rgba(140, 210, 255, ${0.55 * fade})`);
+				g.addColorStop(1, `rgba(235, 250, 255, ${0.8 * fade})`);
+				ctx.fillStyle = g;
+				ctx.beginPath();
+				ctx.moveTo(0, 0);
+				ctx.arc(0, 0, r, a - 0.8, a + 0.8);
+				ctx.closePath();
+				ctx.fill();
+				break;
+			}
+			case 'shark': {
+				// A dark shape crossing fast, fin up, a tail behind
+				const t = Math.min(1, k);
+				const sx = f.x + (f.x2! - f.x) * t;
+				const sy = f.y - (f.lift ?? 30) + (f.y2! - f.y) * t;
+				const ang = Math.atan2(f.y2! - f.y, f.x2! - f.x);
+				ctx.translate(sx, sy);
+				ctx.rotate(ang);
+				ctx.fillStyle = `rgba(70, 90, 110, ${Math.min(1, fade * 2)})`;
+				ctx.strokeStyle = '#1a2530';
+				ctx.lineWidth = 1;
+				ctx.beginPath();
+				ctx.moveTo(34, 0);
+				ctx.quadraticCurveTo(10, -14, -22, -6);
+				ctx.lineTo(-38, -16);
+				ctx.lineTo(-30, 0);
+				ctx.lineTo(-38, 14);
+				ctx.lineTo(-22, 6);
+				ctx.quadraticCurveTo(10, 14, 34, 0);
+				ctx.closePath();
+				ctx.fill();
+				ctx.stroke();
+				ctx.beginPath();
+				ctx.moveTo(0, -8);
+				ctx.lineTo(-6, -24);
+				ctx.lineTo(-14, -8);
+				ctx.closePath();
+				ctx.fill();
+				ctx.stroke();
+				ctx.fillStyle = '#f4f4f0';
+				ctx.beginPath();
+				ctx.arc(22, -3, 1.6, 0, TAU);
+				ctx.fill();
+				break;
+			}
+			case 'whirl': {
+				// The water turning: rings drawn in, tighter toward the middle
+				const r = f.radius ?? 240;
+				ctx.translate(f.x, f.y);
+				ctx.strokeStyle = `rgba(190, 235, 255, ${0.5 * fade})`;
+				ctx.lineWidth = 2.5;
+				for (let i = 0; i < 4; i++) {
+					const rr = r * (0.25 + i * 0.22);
+					ctx.beginPath();
+					ctx.ellipse(0, 0, rr, rr * 0.5, 0, time * (2.5 - i * 0.4) + i, time * (2.5 - i * 0.4) + i + 4.6);
+					ctx.stroke();
+				}
+				break;
+			}
 			case 'lasso': {
 				// The golden lasso: a glowing rope from her hand to a loop round them
 				const [a, b] = f.track ?? [{ x: f.x, y: f.y }, { x: f.x2!, y: f.y2! }];
@@ -1088,6 +1184,40 @@ export function batmanHand(e: Enemy, x: number, y: number): [number, number] {
 	return [x + e.dir * 16, y - 52];
 }
 export const batmanTop = (y: number) => y - FIGURE_HEIGHT - 12;
+
+/** Aquaman, sparring: he swims where you fly, and faster. */
+export const isAquamanKind = (kind: string): boolean => kind === 'aquamanSpar';
+export const AQUAMAN_COLOR = '#f4b04a';
+const AQUAMAN_LOOK: Look = { skin: '#e9c3a0', hair: '#e9d27a', hairStyle: 'swept', mask: false };
+export function drawAquamanEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number) {
+	const pose: LanternPose = { ...enemyPose(e, hasGround, time), glow: false };
+	const s = FIGURE_SCALE;
+	const sk = computeSkeleton(pose, time);
+	ctx.save();
+	ctx.globalAlpha = !isStanding(e) ? Math.min(1, e.down / 0.5) : 1;
+	if (e.flash > 0) ctx.globalAlpha *= 0.55;
+	ctx.translate(x, y);
+	ctx.scale(s, s);
+	if (hasGround) {
+		const k = 1 - 0.35 * pose.altitude;
+		ctx.fillStyle = `rgba(0, 0, 0, ${0.45 * k})`;
+		ctx.beginPath();
+		ctx.ellipse(0, 0, 12 * k, 3.8 * k, 0, 0, TAU);
+		ctx.fill();
+	}
+	ctx.scale(pose.dir * turnScale(pose), 1);
+	ctx.lineJoin = 'round';
+	ctx.lineCap = 'round';
+	drawAquamanBody(ctx, sk, AQUAMAN_LOOK, time, pose);
+	ctx.restore();
+}
+export function aquamanHand(e: Enemy, x: number, y: number): [number, number] {
+	const pose = enemyPose(e, true, 0);
+	return [x + e.dir * 16, y - 52 - pose.hoverHeight * FIGURE_SCALE];
+}
+export function aquamanTop(e: Enemy, y: number): number {
+	return y - FIGURE_HEIGHT - 8 - enemyPose(e, true, 0).hoverHeight * FIGURE_SCALE;
+}
 
 /** Where a League member's hand is, and the top of their head (for tells and the name). */
 export function leagueHand(e: Enemy, x: number, y: number): [number, number] {

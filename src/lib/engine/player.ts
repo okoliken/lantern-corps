@@ -188,6 +188,8 @@ export interface WorldRules {
 	solids: readonly Solid[];
 	/** Space: no landing allowed. */
 	alwaysFlying: boolean;
+	/** Top speed multiplier: under water a Lantern is slow, and Aquaman is not. */
+	speed?: number;
 }
 
 const OPEN_WORLD: WorldRules = { solids: [], alwaysFlying: false };
@@ -342,7 +344,8 @@ export function updatePlayer(p: Player, intent: Intent, dt: number, world: World
 		(p.flying ? FLY_SPEED_BONUS : 1) *
 		(p.firing ? FIRING_SPEED_FACTOR : 1) *
 		(backpedal ? BACKPEDAL_SPEED_FACTOR : 1) *
-		(p.chilled > 0 ? CHILLED_SPEED_FACTOR : 1);
+		(p.chilled > 0 ? CHILLED_SPEED_FACTOR : 1) *
+		(world.speed ?? 1);
 
 	// Steer velocity toward where the input points. Speeding up uses accel,
 	// coasting to a stop uses decel. That gives a slight "flying" feel

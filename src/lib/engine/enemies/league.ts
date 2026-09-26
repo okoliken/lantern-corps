@@ -75,7 +75,12 @@ export const LEAGUE_ABILITIES: ReadonlySet<AbilityId> = new Set<AbilityId>([
 	'smokeBomb',
 	'grapple',
 	'fearToxin',
-	'ringSteal'
+	'ringSteal',
+	'tridentThrust',
+	'tridentThrow',
+	'tidalWave',
+	'sharks',
+	'whirlpool'
 ]);
 
 /** How high moves at hand height are drawn, and where Superman's eyes are on a hovering figure. */
@@ -98,6 +103,10 @@ const BATARANG = { count: 3, gap: 0.12, flight: 0.32 };
 const GRAPNEL = { flight: 0.14, pull: 0.45, stop: 60 };
 const TOXIN = { time: 2.8 };
 const STEAL = { time: 5 };
+/** Aquaman: the trident's flight out and back; sharks, how many and how often; the whirlpool's pull. */
+const TRIDENT = { out: 0.3, reach: 40 };
+const SHARKS = { count: 3, gap: 0.4, flight: 0.55, lane: 46 };
+const WHIRL = { pull: 300, tick: 0.4 };
 /** Wing Guard: what the wings take before they give, and for how long. */
 const WING = { hp: 70, life: 2.4 };
 /** The Flash reads a shot coming and is somewhere else: how far, how soon, how often. */
@@ -199,6 +208,50 @@ export function startLeagueAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, p
 			w.effects.push({ kind: 'fizzle', x: t.x, y: t.y - 40, age: 0, life: 0.6 });
 			break;
 		}
+		case 'tridentThrust': {
+			const ang = Math.atan2(b.aimY, b.aimX);
+			heroFx(w).push({ kind: 'cut', x: e.x, y: e.y, age: 0, life: 0.22, angle: ang, radius: (a.radius ?? 100) + 10, lift: HAND_LIFT });
+			for (const p of players) {
+				if (p.downed || dist(p, e) > (a.radius ?? 100) + 10) continue;
+				const to = Math.atan2(p.y - e.y, p.x - e.x);
+				if (Math.abs(Math.atan2(Math.sin(to - ang), Math.cos(to - ang))) > 0.9) continue;
+				p.invuln = 0;
+				const dmg = power(e, a);
+				const bubbled = shred(w, p, dmg * 1.4);
+				damagePlayer(w, p, bubbled ? dmg * THROUGH_BUBBLE : dmg, e.x, e.y, a.knockback, true);
+				w.effects.push({ kind: 'impact', x: p.x, y: p.y, age: 0, life: 0.2, lift: 40 });
+			}
+			break;
+		}
+		case 'tridentThrow': {
+			if (!t) return;
+			b.struck = [];
+			const d = dist(t, e) || 1;
+			b.aimX = (t.x - e.x) / d;
+			b.aimY = (t.y - e.y) / d;
+			heroFx(w).push({ kind: 'trident', x: e.x, y: e.y, x2: e.x + b.aimX * a.maxRange, y2: e.y + b.aimY * a.maxRange, age: 0, life: a.active, lift: HAND_LIFT, track: [e, e] });
+			break;
+		}
+		case 'tidalWave': {
+			const ang = Math.atan2(b.aimY, b.aimX);
+			heroFx(w).push({ kind: 'wave', x: e.x, y: e.y, age: 0, life: 0.7, angle: ang, radius: a.radius ?? 340, lift: 30 });
+			for (const p of players) {
+				if (p.downed || dist(p, e) > (a.radius ?? 340)) continue;
+				const to = Math.atan2(p.y - e.y, p.x - e.x);
+				if (Math.abs(Math.atan2(Math.sin(to - ang), Math.cos(to - ang))) > 0.75) continue;
+				const dmg = power(e, a);
+				const bubbled = shred(w, p, dmg);
+				damagePlayer(w, p, bubbled ? dmg * THROUGH_BUBBLE : dmg, e.x, e.y, a.knockback, true);
+			}
+			break;
+		}
+		case 'sharks':
+			break;
+		case 'whirlpool':
+			b.markX = t ? t.x : e.x;
+			b.markY = t ? t.y : e.y;
+			heroFx(w).push({ kind: 'whirl', x: b.markX, y: b.markY, age: 0, life: a.active + 0.3, radius: a.radius ?? 240, lift: 0 });
+			break;
 		case 'flashRush':
 		case 'swordRush':
 		case 'haymaker':
@@ -207,6 +260,7 @@ export function startLeagueAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, p
 			if (t) heroFx(w).push({ kind: 'zip', x: e.x, y: e.y, x2: t.x, y2: t.y, age: 0, life: 0.25 });
 			break;
 		case 'heatVision':
+		case 'whirlpool':
 			ticks.set(e, 0);
 			break;
 		case 'frostBreath': {
@@ -533,11 +587,85 @@ export function updateLeagueAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, 
 			}
 			return;
 		}
+		case 'tridentThrow': {
+			steer(e, 0, 0, 8, dt);
+			// Out along the line, then back to his hand: it hits on the way out
+			const out = Math.min(1, b.elapsed / TRIDENT.out);
+			const back = b.elapsed <= TRIDENT.out ? 0 : Math.min(1, (b.elapsed - TRIDENT.out) / (a.active - TRIDENT.out));
+			const reach = a.maxRange * (out - back);
+			const hx = e.x + b.aimX * reach;
+			const hy = e.y + b.aimY * reach;
+			for (const p of players) {
+				if (p.downed || b.struck.includes(p) || Math.hypot(p.x - hx, p.y - hy) > TRIDENT.reach) continue;
+				b.struck.push(p);
+				p.invuln = 0;
+				const dmg = power(e, a);
+				const bubbled = shred(w, p, dmg * 1.2);
+				damagePlayer(w, p, bubbled ? dmg * THROUGH_BUBBLE : dmg, e.x, e.y, a.knockback, true);
+				w.effects.push({ kind: 'impact', x: p.x, y: p.y, age: 0, life: 0.2, lift: 40 });
+			}
+			return;
+		}
+		case 'sharks': {
+			steer(e, 0, 0, 8, dt);
+			if (!t || t.downed) return;
+			// One at a time, each from a different side, across where they are
+			if (b.fired < SHARKS.count && b.elapsed >= b.fired * SHARKS.gap) {
+				b.fired++;
+				const ang = (b.fired * 2.1 + e.homeX) % (Math.PI * 2);
+				const fromX = t.x + Math.cos(ang) * 700;
+				const fromY = t.y + Math.sin(ang) * 420;
+				const toX = t.x - Math.cos(ang) * 700;
+				const toY = t.y - Math.sin(ang) * 420;
+				heroFx(w).push({ kind: 'shark', x: fromX, y: fromY, x2: toX, y2: toY, age: 0, life: SHARKS.flight, lift: 30 });
+				thrown.set(e, [...(thrown.get(e) ?? []), { x: t.x, y: t.y, at: b.elapsed + SHARKS.flight * 0.5 }]);
+			}
+			const list = thrown.get(e) ?? [];
+			for (const bite of [...list]) {
+				if (b.elapsed < bite.at) continue;
+				list.splice(list.indexOf(bite), 1);
+				for (const p of players) {
+					if (p.downed || Math.abs(p.x - bite.x) > SHARKS.lane || Math.abs(p.y - bite.y) > SHARKS.lane) continue;
+					p.invuln = 0;
+					const dmg = power(e, a);
+					const bubbled = shred(w, p, dmg * 1.3);
+					damagePlayer(w, p, bubbled ? dmg * THROUGH_BUBBLE : dmg, bite.x - 40, bite.y, a.knockback, true);
+					w.effects.push({ kind: 'impact', x: p.x, y: p.y, age: 0, life: 0.2, lift: 30 });
+				}
+			}
+			return;
+		}
+		case 'whirlpool': {
+			steer(e, 0, 0, 8, dt);
+			const r = a.radius ?? 240;
+			for (const p of players) {
+				if (p.downed) continue;
+				const d = Math.hypot(p.x - b.markX, p.y - b.markY);
+				if (d > r) continue;
+				// Drawn in, spun, and worn down while they are in it
+				const pull = WHIRL.pull * (1 - d / r) * dt;
+				p.x += ((b.markX - p.x) / (d || 1)) * pull;
+				p.y += ((b.markY - p.y) / (d || 1)) * pull;
+				p.vx += (-(p.y - b.markY) / (d || 1)) * 900 * dt;
+				p.vy += ((p.x - b.markX) / (d || 1)) * 900 * dt;
+			}
+			if (b.elapsed >= (ticks.get(e) ?? 0) * WHIRL.tick) {
+				ticks.set(e, (ticks.get(e) ?? 0) + 1);
+				for (const p of players) {
+					if (p.downed || Math.hypot(p.x - b.markX, p.y - b.markY) > r) continue;
+					p.invuln = 0;
+					damagePlayer(w, p, power(e, a), b.markX, b.markY, 0);
+				}
+			}
+			return;
+		}
 		case 'smokeBomb':
 		case 'fearToxin':
 		case 'ringSteal':
 		case 'flashBolt':
 		case 'maceSwing':
+		case 'tridentThrust':
+		case 'tidalWave':
 			steer(e, 0, 0, 8, dt);
 			return;
 	}

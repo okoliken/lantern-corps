@@ -762,7 +762,8 @@ describe('Red Lanterns build constructs too', () => {
 		const w = createConstructWorld([], pack);
 		const p = lantern();
 		let shielded = false;
-		run(w, [p], 6, () => {
+		// Raising it is a dice roll on each think tick, so give it long enough that the roll is not the test
+		run(w, [p], 16, () => {
 			p.invuln = 1;
 			p.health = p.maxHealth;
 			// The Lantern keeps shooting whoever is attacking
@@ -874,8 +875,13 @@ describe('every Lantern can shield', () => {
 		e.maxHp = 100000;
 		e.hp = e.brain.lastHp = 60000;
 		let shielded = false;
-		run(w, [p], 6, () => {
+		const home = { x: e.x, y: e.y };
+		// Held out of claw reach: up close, a grunt with a claw ready claws, and never gets round to
+		// the shield. The question here is whether it shields when shielding is what there is to do
+		run(w, [p], 12, () => {
 			p.invuln = 1;
+			e.x = e.prevX = home.x;
+			e.y = e.prevY = home.y;
 			if (!e.ward) hitDummy(e, 1, 0, p.x, p.y);
 			if (e.ward) shielded = true;
 		});
