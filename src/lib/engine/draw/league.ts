@@ -51,7 +51,6 @@ const GUY_BLACK_LIT = '#262c33';
 const GUY_GREEN = '#2aa657';
 const GUY_GREEN_LIT = '#3fc06c';
 const GUY_GREEN_DARK = '#1f7f43';
-const GUY_GLOW = '#6dff9a';
 
 // ------------------------------------------------------------------- Superman
 
@@ -510,12 +509,12 @@ function drawAqHead(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look) {
 
 /**
  * Guy Gardner. No sleeves, a green vest over a black suit, black gloves with no
- * fingers, green boots, the red brush-cut, and a baseball bat made of ring over
- * his shoulder because of course it is.
+ * fingers, green boots, the red brush-cut. (The bat in the reference is a
+ * construct he made for the picture, not part of the suit.)
  */
 export function drawGuyBody(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look, time: number, pose: LanternPose) {
 	void pose;
-	drawGuyBat(ctx, sk, time);
+	void time;
 	drawGuyArm(ctx, sk.back, true, look);
 	drawGuyLeg(ctx, sk.back, true);
 	drawGuyTorso(ctx, sk);
@@ -652,22 +651,6 @@ function drawGuyHead(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look) {
 	ctx.closePath();
 	ctx.fill();
 	ctx.stroke();
-	ctx.restore();
-}
-
-/** The bat: a ring-made baseball bat resting on his back shoulder. */
-function drawGuyBat(ctx: CanvasRenderingContext2D, sk: Skeleton, time: number) {
-	const hand = sk.back.hand;
-	const shoulder = sk.back.shoulder;
-	// From the hand up over the shoulder and out behind
-	const ang = Math.atan2(shoulder[1] - hand[1], shoulder[0] - hand[0]) - 0.35;
-	const len = 34;
-	const tip: Point = [hand[0] + Math.cos(ang) * len, hand[1] + Math.sin(ang) * len];
-	ctx.save();
-	ctx.shadowColor = GUY_GLOW;
-	ctx.shadowBlur = 8 + Math.sin(time * 5) * 2;
-	segment(ctx, hand, lerpP(hand, tip, 0.3), 1.6, 2, GUY_GREEN_LIT);
-	segment(ctx, lerpP(hand, tip, 0.3), tip, 2.2, 3.4, GUY_GLOW);
 	ctx.restore();
 }
 
