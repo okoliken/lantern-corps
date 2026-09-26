@@ -134,6 +134,39 @@ describe('the Watchtower', () => {
 		expect(me.health).toBe(before);
 	});
 
+	it("Wonder Woman's sword actually lands: she keeps closing and cuts in reach", () => {
+		const { game, mission, run } = reach('wonderwoman');
+		const me = game.players[0];
+		const f = mission.fighter!;
+		// He stands still 300px off; she has to come to him, and she does
+		const spot = { x: f.x + f.dir * 300, y: f.y };
+		let taken = 0;
+		let last = me.health;
+		beginWindup(f, 'swordRush', me);
+		run(2.5, () => {
+			me.x = me.prevX = spot.x;
+			me.y = me.prevY = spot.y;
+			if (me.health < last) taken += last - me.health;
+			last = me.health;
+		});
+		expect(taken).toBeGreaterThan(0);
+	});
+
+	it("the lasso does not go through a bubble: it takes the bubble instead", () => {
+		const { game, mission, run } = reach('wonderwoman');
+		const me = game.players[0];
+		const f = mission.fighter!;
+		game.constructs.shields.push({ owner: me, target: me, hp: 100000, maxHp: 100000, life: 30, maxLife: 30, ripple: 0 } as never);
+		const before = { x: me.x, y: me.y };
+		beginWindup(f, 'lasso', me);
+		run(1.3, () => {
+			me.invuln = 1;
+		});
+		expect(game.constructs.shields.some((s) => s.target === me)).toBe(false);
+		// And he was not dragged anywhere
+		expect(Math.hypot(me.x - before.x, me.y - before.y)).toBeLessThan(60);
+	});
+
 	it("Hawkgirl's wings come up as a guard your shots have to get through", () => {
 		const { game, mission, run } = reach('hawkgirl');
 		const f = mission.fighter!;

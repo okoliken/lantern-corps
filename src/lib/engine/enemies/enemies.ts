@@ -453,7 +453,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		kind: 'batmanSpar',
 		name: 'Batman',
 		faction: 'rogue',
-		description: 'No powers, all preparation. Batarangs from the dark, smoke and gone, a grapnel that takes you off your feet, fear toxin, and hands quick enough to have the ring off your finger before you know he touched you.',
+		description: 'No powers, all preparation. Batarangs from the dark, smoke you cannot see through, a flying kick from behind, fear toxin, and hands quick enough to have the ring off your finger before you know he touched you.',
 		mind: 'rage',
 		hp: 1300,
 		speed: 310,
@@ -463,7 +463,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		scale: 1,
 		agility: 1,
 		movement: 'hover',
-		kit: ['batarang', 'smokeBomb', 'grapple', 'fearToxin', 'ringSteal'],
+		kit: ['batarang', 'smokeBomb', 'batKick', 'fearToxin', 'ringSteal'],
 		range: 260,
 		leans: { aggression: 0.4, caution: 0.5, patience: 0.4 },
 		lieutenant: true

@@ -100,7 +100,7 @@ export type AbilityId =
 	// Batman (league.ts)
 	| 'batarang'
 	| 'smokeBomb'
-	| 'grapple'
+	| 'batKick'
 	| 'fearToxin'
 	| 'ringSteal'
 	// Aquaman (league.ts)
@@ -478,10 +478,10 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 		id: 'smokeBomb', name: 'Smoke', band: 'mid', tell: 'build', windup: 0.2, active: 0.35, recover: 0.15, cooldown: 6,
 		minRange: 0, maxRange: 400, damage: 0, knockback: 0, melee: false, heavy: false, chance: 0.7
 	}),
-	// The grapnel: takes you off your feet and into a kick
-	grapple: def({
-		id: 'grapple', name: 'Grapnel', band: 'mid', tell: 'aim', windup: 0.45, active: 0.8, recover: 0.4, cooldown: 6.5,
-		minRange: 150, maxRange: 480, damage: 14, knockback: 520, melee: false, heavy: false, chance: 0.8
+	// Over you, and the kick from behind
+	batKick: def({
+		id: 'batKick', name: 'Flying Kick', band: 'mid', tell: 'strike', windup: 0.3, active: 0.5, recover: 0.45, cooldown: 3.2,
+		minRange: 60, maxRange: 300, damage: 15, knockback: 560, melee: false, heavy: false, chance: 0.9
 	}),
 	// A capsule at your feet: for a while, everything you do goes the wrong way
 	fearToxin: def({

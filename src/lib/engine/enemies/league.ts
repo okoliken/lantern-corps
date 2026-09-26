@@ -73,7 +73,7 @@ export const LEAGUE_ABILITIES: ReadonlySet<AbilityId> = new Set<AbilityId>([
 	'talonThrow',
 	'batarang',
 	'smokeBomb',
-	'grapple',
+	'batKick',
 	'fearToxin',
 	'ringSteal',
 	'tridentThrust',
@@ -85,7 +85,7 @@ export const LEAGUE_ABILITIES: ReadonlySet<AbilityId> = new Set<AbilityId>([
 
 /** How high moves at hand height are drawn, and where Superman's eyes are on a hovering figure. */
 const HAND_LIFT = 40;
-const EYE_LIFT = 92;
+const EYE_LIFT = 82;
 const RUSH = { speed: 1250, reach: 44, punches: 4, gap: 0.07 };
 const HAYMAKER = { speed: 1050, reach: 40 };
 const FLY_PUNCH = { speed: 1400, reach: 52 };
@@ -100,7 +100,6 @@ const DIVE = { riseTime: 0.3, rise: 160 };
 const TALON = { carry: 0.55, hold: 0.3, lift: 0.9 };
 /** Batman: three batarangs, how long each takes to arrive; the grapnel; the toxin; how long the ring is gone. */
 const BATARANG = { count: 3, gap: 0.12, flight: 0.32 };
-const GRAPNEL = { flight: 0.14, pull: 0.45, stop: 60 };
 const TOXIN = { time: 2.8 };
 const STEAL = { time: 5 };
 /** Aquaman: the trident's flight out and back; sharks, how many and how often; the whirlpool's pull. */
@@ -158,23 +157,22 @@ export function startLeagueAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, p
 			// Thrown one at a time from the update; nothing to do yet
 			break;
 		case 'smokeBomb': {
-			// Gone in the smoke, and behind them before it clears
-			for (let i = 0; i < 3; i++) w.effects.push({ kind: 'burst', x: e.x + (i - 1) * 22, y: e.y - 20 - (i % 2) * 18, age: 0, life: 0.9 });
-			heroFx(w).push({ kind: 'smoke', x: e.x, y: e.y, age: 0, life: 1.1, radius: 90, lift: 30 });
-			if (t && !t.downed) {
-				const away = Math.atan2(t.y - e.y, t.x - e.x);
-				e.x = t.x + Math.cos(away) * 110;
-				e.y = t.y + Math.sin(away) * 40;
-				e.prevX = e.x;
-				e.prevY = e.y;
-				e.dir = t.x > e.x ? 1 : -1;
-				heroFx(w).push({ kind: 'smoke', x: e.x, y: e.y, age: 0, life: 0.8, radius: 60, lift: 30 });
-			}
+			// A pellet at YOUR feet: a pall you cannot see through, and he is gone in it
+			if (!t) break;
+			heroFx(w).push({ kind: 'smoke', x: t.x, y: t.y, age: 0, life: 2.6, radius: 260, lift: 40 });
+			const away = Math.atan2(t.y - e.y, t.x - e.x);
+			e.x = t.x + Math.cos(away) * 150;
+			e.y = t.y + Math.sin(away) * 60;
+			e.prevX = e.x;
+			e.prevY = e.y;
+			e.dir = t.x > e.x ? 1 : -1;
 			break;
 		}
-		case 'grapple': {
+		case 'batKick': {
+			// Over you and the kick lands from behind: he does not lift a Lantern, he goes round one
 			if (!t || t.downed) return;
-			heroFx(w).push({ kind: 'grapnel', x: e.x, y: e.y, x2: t.x, y2: t.y, age: 0, life: GRAPNEL.flight + GRAPNEL.pull + 0.1, lift: HAND_LIFT, track: [e, t] });
+			b.struck = [];
+			heroFx(w).push({ kind: 'zip', x: e.x, y: e.y, x2: t.x, y2: t.y - 120, age: 0, life: 0.25 });
 			break;
 		}
 		case 'fearToxin': {
@@ -270,6 +268,15 @@ export function startLeagueAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, p
 		}
 		case 'lasso': {
 			if (!t || t.downed) return;
+			const sh = w.shields.find((s) => s.target === t);
+			if (sh) {
+				// Thrown at a bubble, it comes off the bubble - and takes the bubble
+				w.shields.splice(w.shields.indexOf(sh), 1);
+				w.effects.push({ kind: 'pop', x: t.x, y: t.y, age: 0, life: 0.45, owner: t });
+				heroFx(w).push({ kind: 'spark', x: t.x, y: t.y, age: 0, life: 0.3, lift: 40, gold: true });
+				b.timer = 0;
+				return;
+			}
 			heroFx(w).push({ kind: 'lasso', x: e.x, y: e.y, x2: t.x, y2: t.y, age: 0, life: LASSO.flight + LASSO.pullTime + 0.2, lift: HAND_LIFT, gold: true, track: [e, t] });
 			damagePlayer(w, t, power(e, a), e.x, e.y, 0);
 			break;
@@ -307,16 +314,17 @@ export function updateLeagueAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, 
 				return;
 			}
 			const d = dist(t, e);
-			// Close, then three cuts, then a step back
-			if (d > SWORD.reach && b.fired === 0) {
+			// She closes the whole time - a Lantern backing off does not get away from her -
+			// and cuts as soon as she is in reach, three times
+			if (d > SWORD.reach) {
 				e.vx = ((t.x - e.x) / d) * SWORD.speed;
 				e.vy = ((t.y - e.y) / d) * SWORD.speed;
-				e.dir = t.x > e.x ? 1 : -1;
-				return;
+			} else {
+				steer(e, (t.x - e.x) * 4, (t.y - e.y) * 4, 8, dt);
+				if (!contact.has(e)) contact.set(e, b.elapsed);
 			}
-			if (b.fired === 0) contact.set(e, b.elapsed);
-			steer(e, (t.x - e.x) * 4, (t.y - e.y) * 4, 8, dt);
 			e.dir = t.x > e.x ? 1 : -1;
+			if (b.fired === 0 && !contact.has(e)) return;
 			const since = b.elapsed - (contact.get(e) ?? b.elapsed);
 			if (b.fired < SWORD.cuts.length && since >= SWORD.cuts[b.fired]) {
 				b.fired++;
@@ -333,6 +341,7 @@ export function updateLeagueAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, 
 			}
 			if (b.fired >= SWORD.cuts.length && !b.hitDone) {
 				b.hitDone = true;
+				contact.delete(e);
 				const away = Math.atan2(e.y - t.y, e.x - t.x);
 				e.vx = Math.cos(away) * 420;
 				e.vy = Math.sin(away) * 300;
@@ -561,25 +570,32 @@ export function updateLeagueAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, 
 			}
 			return;
 		}
-		case 'grapple': {
-			steer(e, 0, 0, 8, dt);
-			if (!t || t.downed) return;
-			e.dir = t.x > e.x ? 1 : -1;
-			if (b.elapsed > GRAPNEL.flight && b.elapsed <= GRAPNEL.flight + GRAPNEL.pull) {
-				const k = Math.min(1, dt * 8);
-				const d = dist(t, e);
-				if (d > GRAPNEL.stop) {
-					t.x += ((e.x - t.x) / d) * (d - GRAPNEL.stop) * k;
-					t.y += ((e.y - t.y) / d) * (d - GRAPNEL.stop) * k;
-					t.vx *= 0.3;
-					t.vy *= 0.3;
-				}
+		case 'batKick': {
+			if (!t || t.downed) {
+				steer(e, 0, 0, 8, dt);
 				return;
 			}
-			// ...and the kick when they arrive
-			if (!b.hitDone && b.elapsed > GRAPNEL.flight + GRAPNEL.pull) {
+			// The flip: up and over them in the first part of the move, landing behind
+			if (b.elapsed < 0.3) {
+				const side = t.x > e.x ? 1 : -1;
+				const k = b.elapsed / 0.3;
+				const fromX = b.markX || (b.markX = e.x);
+				const fromY = b.markY || (b.markY = e.y);
+				e.x = fromX + (t.x + side * 70 - fromX) * k;
+				e.y = fromY + (t.y - fromY) * k;
+				e.prevX = e.x;
+				e.prevY = e.y;
+				b.air = Math.sin(k * Math.PI);
+				e.dir = t.x > e.x ? 1 : -1;
+				return;
+			}
+			b.air = 0;
+			steer(e, 0, 0, 8, dt);
+			e.dir = t.x > e.x ? 1 : -1;
+			if (!b.hitDone) {
 				b.hitDone = true;
-				if (dist(t, e) <= GRAPNEL.stop + 40) {
+				b.markX = b.markY = 0;
+				if (dist(t, e) <= 110) {
 					t.invuln = 0;
 					damagePlayer(w, t, power(e, a), e.x, e.y, a.knockback, true);
 					w.effects.push({ kind: 'impact', x: t.x, y: t.y, age: 0, life: 0.2, lift: 40 });

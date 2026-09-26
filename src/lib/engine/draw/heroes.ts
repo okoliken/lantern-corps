@@ -847,11 +847,12 @@ export function drawHeroFx(ctx: CanvasRenderingContext2D, list: readonly HeroFx[
 				break;
 			}
 			case 'smoke': {
-				// A pall of grey, spreading and thinning
-				const r = (f.radius ?? 80) * (0.5 + k * 0.9);
+				// A pall of grey you cannot see through, spreading fast and thinning slowly
+				const r = (f.radius ?? 80) * Math.min(1, 0.3 + k * 2.5);
 				const lift = f.lift ?? 30;
 				const g = ctx.createRadialGradient(f.x, f.y - lift, r * 0.1, f.x, f.y - lift, r);
-				g.addColorStop(0, `rgba(150, 156, 168, ${0.8 * fade})`);
+				g.addColorStop(0, `rgba(140, 146, 158, ${Math.min(1, fade * 1.6)})`);
+				g.addColorStop(0.7, `rgba(120, 126, 138, ${0.85 * Math.min(1, fade * 1.6)})`);
 				g.addColorStop(1, 'rgba(120, 126, 138, 0)');
 				ctx.fillStyle = g;
 				ctx.beginPath();
@@ -869,121 +870,6 @@ export function drawHeroFx(ctx: CanvasRenderingContext2D, list: readonly HeroFx[
 				ctx.beginPath();
 				ctx.ellipse(f.x, f.y - 10, r, r * 0.5, 0, 0, TAU);
 				ctx.fill();
-				break;
-			}
-			case 'grapnel': {
-				// A steel line from his gauntlet to the hook on them
-				const [a, b] = f.track ?? [{ x: f.x, y: f.y }, { x: f.x2!, y: f.y2! }];
-				const lift = f.lift ?? 40;
-				const reach = Math.min(1, f.age / 0.14);
-				const bx = a.x + (b.x - a.x) * reach;
-				const by = a.y - lift + (b.y - 50 - (a.y - lift)) * reach;
-				ctx.strokeStyle = `rgba(200, 208, 218, ${Math.min(1, fade * 3)})`;
-				ctx.lineWidth = 2;
-				ctx.beginPath();
-				ctx.moveTo(a.x, a.y - lift);
-				ctx.lineTo(bx, by);
-				ctx.stroke();
-				ctx.fillStyle = '#c9d1da';
-				ctx.beginPath();
-				ctx.arc(bx, by, 4, 0, TAU);
-				ctx.fill();
-				break;
-			}
-			case 'trident': {
-				// Out along the line and back to his hand
-				const lift = f.lift ?? 40;
-				const out = Math.min(1, f.age / 0.3);
-				const back = f.age <= 0.3 ? 0 : Math.min(1, (f.age - 0.3) / Math.max(0.05, f.life - 0.3));
-				const t = out - back;
-				const hx = f.x + (f.x2! - f.x) * t;
-				const hy = f.y - lift + (f.y2! - f.y) * t;
-				const ang = Math.atan2(f.y2! - f.y, f.x2! - f.x) + (back > 0 ? Math.PI : 0);
-				ctx.translate(hx, hy);
-				ctx.rotate(ang);
-				ctx.strokeStyle = '#f2c94c';
-				ctx.shadowColor = '#f2c94c';
-				ctx.shadowBlur = 8;
-				ctx.lineWidth = 2.4;
-				ctx.beginPath();
-				ctx.moveTo(-30, 0);
-				ctx.lineTo(18, 0);
-				ctx.moveTo(14, -7);
-				ctx.lineTo(28, -7);
-				ctx.moveTo(18, 0);
-				ctx.lineTo(34, 0);
-				ctx.moveTo(14, 7);
-				ctx.lineTo(28, 7);
-				ctx.moveTo(14, -7);
-				ctx.quadraticCurveTo(10, 0, 14, 7);
-				ctx.stroke();
-				break;
-			}
-			case 'wave': {
-				// A wall of water rolling out of his hand
-				const a = f.angle ?? 0;
-				const r = (f.radius ?? 340) * Math.min(1, 0.2 + k * 1.1);
-				const lift = f.lift ?? 30;
-				ctx.translate(f.x, f.y - lift);
-				const g = ctx.createRadialGradient(0, 0, r * 0.5, 0, 0, r);
-				g.addColorStop(0, 'rgba(120, 200, 255, 0)');
-				g.addColorStop(0.7, `rgba(140, 210, 255, ${0.55 * fade})`);
-				g.addColorStop(1, `rgba(235, 250, 255, ${0.8 * fade})`);
-				ctx.fillStyle = g;
-				ctx.beginPath();
-				ctx.moveTo(0, 0);
-				ctx.arc(0, 0, r, a - 0.8, a + 0.8);
-				ctx.closePath();
-				ctx.fill();
-				break;
-			}
-			case 'shark': {
-				// A dark shape crossing fast, fin up, a tail behind
-				const t = Math.min(1, k);
-				const sx = f.x + (f.x2! - f.x) * t;
-				const sy = f.y - (f.lift ?? 30) + (f.y2! - f.y) * t;
-				const ang = Math.atan2(f.y2! - f.y, f.x2! - f.x);
-				ctx.translate(sx, sy);
-				ctx.rotate(ang);
-				ctx.fillStyle = `rgba(70, 90, 110, ${Math.min(1, fade * 2)})`;
-				ctx.strokeStyle = '#1a2530';
-				ctx.lineWidth = 1;
-				ctx.beginPath();
-				ctx.moveTo(34, 0);
-				ctx.quadraticCurveTo(10, -14, -22, -6);
-				ctx.lineTo(-38, -16);
-				ctx.lineTo(-30, 0);
-				ctx.lineTo(-38, 14);
-				ctx.lineTo(-22, 6);
-				ctx.quadraticCurveTo(10, 14, 34, 0);
-				ctx.closePath();
-				ctx.fill();
-				ctx.stroke();
-				ctx.beginPath();
-				ctx.moveTo(0, -8);
-				ctx.lineTo(-6, -24);
-				ctx.lineTo(-14, -8);
-				ctx.closePath();
-				ctx.fill();
-				ctx.stroke();
-				ctx.fillStyle = '#f4f4f0';
-				ctx.beginPath();
-				ctx.arc(22, -3, 1.6, 0, TAU);
-				ctx.fill();
-				break;
-			}
-			case 'whirl': {
-				// The water turning: rings drawn in, tighter toward the middle
-				const r = f.radius ?? 240;
-				ctx.translate(f.x, f.y);
-				ctx.strokeStyle = `rgba(190, 235, 255, ${0.5 * fade})`;
-				ctx.lineWidth = 2.5;
-				for (let i = 0; i < 4; i++) {
-					const rr = r * (0.25 + i * 0.22);
-					ctx.beginPath();
-					ctx.ellipse(0, 0, rr, rr * 0.5, 0, time * (2.5 - i * 0.4) + i, time * (2.5 - i * 0.4) + i + 4.6);
-					ctx.stroke();
-				}
 				break;
 			}
 			case 'lasso': {

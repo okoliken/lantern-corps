@@ -197,6 +197,27 @@ describe('Sparring · One on One', () => {
 		expect(wetTop).toBeLessThan(dryTop * 0.75);
 	});
 
+	it('Batman does not pull a Lantern about: he goes over you, and the kick lands from behind', () => {
+		const { game, sparring, run } = setup('batman');
+		run(3);
+		const me = game.players[0];
+		const f = sparring.foe!;
+		expect(f.brain.kit).not.toContain('grapple');
+		me.x = me.prevX = f.x + f.dir * 160;
+		me.y = me.prevY = f.y;
+		const sideBefore = Math.sign(f.x - me.x);
+		let taken = 0;
+		let last = me.health;
+		beginWindup(f, 'batKick', me);
+		run(0.9, () => {
+			me.x = me.prevX = me.x; // he stands still; Batman does the moving
+			if (me.health < last) taken += last - me.health;
+			last = me.health;
+		});
+		expect(taken).toBeGreaterThan(0);
+		expect(Math.sign(f.x - me.x)).toBe(-sideBefore);
+	});
+
 	it('the teachers are there to spar with too', () => {
 		expect(EXTRAS.map((o) => o.id)).toContain('kilowog');
 		expect(EXTRAS.every(isReady)).toBe(true);

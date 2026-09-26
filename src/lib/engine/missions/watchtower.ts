@@ -307,6 +307,8 @@ export class Watchtower implements MissionDirector {
 			if (at >= 0) game.dummies.splice(at, 1);
 			heroFx(game.constructs).push({ kind: 'zip', x: f.x, y: f.y, x2: STATIONS[bout].x, y2: STATIONS[bout].y, age: 0, life: 0.4 });
 		}
+		// Nothing of the last bout lingers into the next: no lightning still drawn on the deck
+		heroFx(game.constructs).length = 0;
 		this.fighter = null;
 		this.handover = HANDOVER;
 		this.comms.scene(yielded ? YIELD_LINE[bout] : TIME_LINE[bout]);
