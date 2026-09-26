@@ -6,6 +6,8 @@ import type { Tint } from '../enemies/enemies';
 import type { LanternPose } from '../animation';
 import { LANTERNS } from '../lanterns';
 import { drawLantern, ringPosition, FIGURE_HEIGHT, GREEN, type Figure } from './lantern';
+import { computeSkeleton, turnScale } from '../animation';
+import { drawGuyBody } from './league';
 
 export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar';
 
@@ -84,6 +86,28 @@ export const isCorpsKind = (kind: string): kind is CorpsKind => kind in CORPS;
 const posed = (kind: CorpsKind, pose: LanternPose): LanternPose => ({ ...pose, build: CORPS[kind].build, hunch: CORPS[kind].hunch });
 
 export function drawCorpsLantern(ctx: CanvasRenderingContext2D, kind: CorpsKind, x: number, y: number, pose: LanternPose, time: number) {
+	// Guy Gardner does not wear the uniform: his own suit, on the same skeleton
+	if (kind === 'guySpar') {
+		const p = posed(kind, pose);
+		const s = 1.35 * CORPS[kind].scale;
+		const sk = computeSkeleton(p, time);
+		ctx.save();
+		ctx.translate(x, y);
+		ctx.scale(s, s);
+		if (p.shadow) {
+			const k = 1 - 0.35 * p.altitude;
+			ctx.fillStyle = `rgba(0, 0, 0, ${0.45 * k})`;
+			ctx.beginPath();
+			ctx.ellipse(0, 0, 12 * k * 1.18, 3.8 * k, 0, 0, Math.PI * 2);
+			ctx.fill();
+		}
+		ctx.scale(p.dir * turnScale(p), 1);
+		ctx.lineJoin = 'round';
+		ctx.lineCap = 'round';
+		drawGuyBody(ctx, sk, CORPS[kind].figure.look, time, p);
+		ctx.restore();
+		return;
+	}
 	drawLantern(ctx, CORPS[kind].figure, x, y, posed(kind, pose), time, CORPS[kind].scale);
 }
 

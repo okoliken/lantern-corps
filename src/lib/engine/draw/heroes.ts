@@ -1002,8 +1002,12 @@ const LEAGUE_KINDS: Record<string, HeroId> = { flashSpar: 'flash', supermanSpar:
 export const isLeagueKind = (kind: string): boolean => kind in LEAGUE_KINDS;
 export const leagueHero = (kind: string): HeroId => LEAGUE_KINDS[kind];
 /** Their name and bar over the ring: their colour, not a Red Lantern's. */
-const LEAGUE_COLORS: Record<HeroId, string> = { flash: '#ffd23f', superman: '#4f8bff', wonderwoman: LASSO_GOLD, hawkgirl: '#e0a458', razer: '#ff2a2a' };
-export const leagueColor = (kind: string): string => LEAGUE_COLORS[leagueHero(kind)];
+// Built when asked, not when the module loads: this file sits in an import cycle with
+// league.ts, and LASSO_GOLD is not initialised yet if this module is evaluated first
+export function leagueColor(kind: string): string {
+	const colors: Record<HeroId, string> = { flash: '#ffd23f', superman: '#4f8bff', wonderwoman: LASSO_GOLD, hawkgirl: '#e0a458', razer: '#ff2a2a' };
+	return colors[leagueHero(kind)];
+}
 
 const LEAGUE_TRAIL = new WeakMap<Enemy, { x: number; y: number; t: number }[]>();
 

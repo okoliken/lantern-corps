@@ -45,6 +45,13 @@ const AQ_GREEN = '#1f6b3a';
 const AQ_GREEN_LIT = '#2f8a4c';
 const AQ_GOLD = '#f2c94c';
 const AQ_BLOND = '#e9d27a';
+// Guy Gardner, from the animated series: the sleeveless black suit, the green vest, bare arms, the bat
+const GUY_BLACK = '#14181c';
+const GUY_BLACK_LIT = '#262c33';
+const GUY_GREEN = '#2aa657';
+const GUY_GREEN_LIT = '#3fc06c';
+const GUY_GREEN_DARK = '#1f7f43';
+const GUY_GLOW = '#6dff9a';
 
 // ------------------------------------------------------------------- Superman
 
@@ -498,6 +505,169 @@ function drawAqHead(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look) {
 	ctx.closePath();
 	ctx.fill();
 	ctx.stroke();
+	ctx.restore();
+}
+
+/**
+ * Guy Gardner. No sleeves, a green vest over a black suit, black gloves with no
+ * fingers, green boots, the red brush-cut, and a baseball bat made of ring over
+ * his shoulder because of course it is.
+ */
+export function drawGuyBody(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look, time: number, pose: LanternPose) {
+	void pose;
+	drawGuyBat(ctx, sk, time);
+	drawGuyArm(ctx, sk.back, true, look);
+	drawGuyLeg(ctx, sk.back, true);
+	drawGuyTorso(ctx, sk);
+	drawGuyLeg(ctx, sk.front, false);
+	drawGuyHead(ctx, sk, look);
+	drawGuyArm(ctx, sk.front, false, look);
+}
+
+function drawGuyLeg(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean) {
+	const suit = far ? GUY_BLACK : GUY_BLACK_LIT;
+	const boot = far ? GUY_GREEN_DARK : GUY_GREEN;
+	segment(ctx, l.hipJoint, l.knee, 3.9, 3.0, suit);
+	const bootTop = lerpP(l.knee, l.foot, 0.42);
+	segment(ctx, l.knee, bootTop, 3.0, 2.7, suit);
+	// The boot: green, with the black band at the top
+	segment(ctx, bootTop, l.foot, 3.1, 2.6, boot);
+	segment(ctx, bootTop, lerpP(bootTop, l.foot, 0.18), 3.2, 3.0, GUY_BLACK);
+	const shin = Math.atan2(l.foot[1] - l.knee[1], l.foot[0] - l.knee[0]);
+	const toe: Point = [l.foot[0] + Math.cos(shin - Math.PI / 2) * 4.4, l.foot[1] + Math.sin(shin - Math.PI / 2) * 4.4];
+	segment(ctx, l.foot, toe, 2.3, 1.6, boot);
+}
+
+function drawGuyArm(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean, look: Look) {
+	// Bare arms, and big ones
+	const skin = far ? shadeColor(look.skin, -0.2) : look.skin;
+	segment(ctx, l.shoulder, l.elbow, 3.6, 2.9, skin);
+	segment(ctx, l.elbow, l.hand, 2.9, 2.3, skin);
+	// A fingerless glove: a black cuff at the wrist, black across the palm, the fingers bare
+	const wrist = lerpP(l.elbow, l.hand, 0.72);
+	segment(ctx, wrist, l.hand, 2.6, 2.4, far ? GUY_BLACK : GUY_BLACK_LIT);
+	ctx.fillStyle = far ? GUY_BLACK : GUY_BLACK_LIT;
+	ctx.beginPath();
+	ctx.arc(l.hand[0], l.hand[1], 2.5, 0, TAU);
+	ctx.fill();
+	ctx.fillStyle = skin;
+	ctx.beginPath();
+	ctx.arc(l.hand[0], l.hand[1], 1.3, 0, TAU);
+	ctx.fill();
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.beginPath();
+	ctx.arc(l.hand[0], l.hand[1], 2.5, 0, TAU);
+	ctx.stroke();
+}
+
+function drawGuyTorso(ctx: CanvasRenderingContext2D, sk: Skeleton) {
+	const at = frame(sk);
+	const body = torsoShape(at, -0.2);
+	const [bx, by] = at(8, -6);
+	const [fx, fy] = at(8, 7);
+	const shade = ctx.createLinearGradient(bx, by, fx, fy);
+	shade.addColorStop(0, GUY_BLACK);
+	shade.addColorStop(1, GUY_BLACK_LIT);
+	ctx.fillStyle = shade;
+	ctx.fill(body);
+	ctx.save();
+	ctx.clip(body);
+	// The vest: green down the front from the shoulders to the belt, a V at the neck
+	const vest = poly([at(17.4, -1.2), at(15.6, 1.8), at(9.5, 3.2), at(2.6, 2.4), at(2.6, -4.2), at(9.5, -5.2), at(15.6, -4.2)]);
+	const vg = ctx.createLinearGradient(...at(9, -5), ...at(9, 3));
+	vg.addColorStop(0, GUY_GREEN_DARK);
+	vg.addColorStop(1, GUY_GREEN_LIT);
+	ctx.fillStyle = vg;
+	ctx.fill(vest);
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.7;
+	ctx.stroke(vest);
+	ctx.restore();
+	// Black band at the belt
+	ctx.strokeStyle = GUY_BLACK;
+	ctx.lineWidth = 1.6;
+	ctx.beginPath();
+	ctx.moveTo(...at(2.4, -5));
+	ctx.lineTo(...at(2.4, 5.4));
+	ctx.stroke();
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.9;
+	ctx.stroke(body);
+	// The emblem on the chest: a white disc, the ring and the bars
+	const [ex, ey] = at(11.8, 0.6);
+	ctx.save();
+	ctx.translate(ex, ey);
+	ctx.rotate(sk.torsoAngle);
+	ctx.fillStyle = '#eefbf1';
+	ctx.beginPath();
+	ctx.arc(0, 0, 3.1, 0, TAU);
+	ctx.fill();
+	ctx.strokeStyle = GUY_GREEN_DARK;
+	ctx.lineWidth = 0.8;
+	ctx.beginPath();
+	ctx.arc(0, 0, 1.3, 0, TAU);
+	ctx.stroke();
+	ctx.fillStyle = GUY_GREEN_DARK;
+	ctx.fillRect(-3.1, -2.6, 6.2, 0.9);
+	ctx.fillRect(-3.1, 1.7, 6.2, 0.9);
+	ctx.restore();
+	segment(ctx, sk.neck, lerpP(sk.neck, sk.headCenter, 0.45), 2.2, 2, '#e6b892');
+}
+
+function drawGuyHead(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look) {
+	const R = HEAD_R;
+	ctx.save();
+	ctx.translate(...sk.headCenter);
+	ctx.rotate(sk.headAngle);
+	const face = faceShape();
+	ctx.fillStyle = look.skin;
+	ctx.fill(face);
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.stroke(face);
+	// Stubble along the jaw
+	ctx.fillStyle = 'rgba(80, 50, 30, 0.28)';
+	ctx.beginPath();
+	ctx.moveTo(R * 0.3, 1.8);
+	ctx.quadraticCurveTo(R + 0.2, 2, R * 0.55, R + 0.4);
+	ctx.quadraticCurveTo(-R * 0.1, R + 1, -R * 0.35, R * 0.5);
+	ctx.quadraticCurveTo(R * 0.2, R * 0.2, R * 0.3, 1.8);
+	ctx.closePath();
+	ctx.fill();
+	drawEye(ctx, '#3f6f9a');
+	drawMouth(ctx, look);
+	// The brush-cut: red, short, up and back
+	ctx.fillStyle = look.hair;
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.6;
+	ctx.beginPath();
+	ctx.moveTo(-R - 0.5, 2);
+	ctx.lineTo(-R - 0.6, -R * 0.55);
+	ctx.lineTo(-R * 0.35, -R - 2.2);
+	ctx.lineTo(R * 0.55, -R - 2);
+	ctx.lineTo(R + 0.2, -R * 0.6);
+	ctx.quadraticCurveTo(R - 1.6, -2.4, -0.4, -1.4);
+	ctx.quadraticCurveTo(-R * 0.6, -0.4, -R - 0.5, 2);
+	ctx.closePath();
+	ctx.fill();
+	ctx.stroke();
+	ctx.restore();
+}
+
+/** The bat: a ring-made baseball bat resting on his back shoulder. */
+function drawGuyBat(ctx: CanvasRenderingContext2D, sk: Skeleton, time: number) {
+	const hand = sk.back.hand;
+	const shoulder = sk.back.shoulder;
+	// From the hand up over the shoulder and out behind
+	const ang = Math.atan2(shoulder[1] - hand[1], shoulder[0] - hand[0]) - 0.35;
+	const len = 34;
+	const tip: Point = [hand[0] + Math.cos(ang) * len, hand[1] + Math.sin(ang) * len];
+	ctx.save();
+	ctx.shadowColor = GUY_GLOW;
+	ctx.shadowBlur = 8 + Math.sin(time * 5) * 2;
+	segment(ctx, hand, lerpP(hand, tip, 0.3), 1.6, 2, GUY_GREEN_LIT);
+	segment(ctx, lerpP(hand, tip, 0.3), tip, 2.2, 3.4, GUY_GLOW);
 	ctx.restore();
 }
 
