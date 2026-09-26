@@ -23,8 +23,11 @@
 		const { ctx, view, destroy } = fitCanvas(canvas);
 		let last = performance.now();
 		let frame = requestAnimationFrame(function tick(now) {
-			// Clamp the step so a background tab doesn't jump the scene ahead
-			scene.update(Math.min(0.05, (now - last) / 1000));
+			// Clamp the step so a background tab doesn't jump the scene ahead, and
+			// never go backwards: a frame's timestamp can sit a hair before the
+			// performance.now() we started from, and a negative clock made the
+			// scenes draw negative radii.
+			scene.update(Math.max(0, Math.min(0.05, (now - last) / 1000)));
 			last = now;
 			scene.draw(ctx, view);
 			const line = scene.current;

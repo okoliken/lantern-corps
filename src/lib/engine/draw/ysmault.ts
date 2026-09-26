@@ -44,7 +44,7 @@ export function drawBloodAltar(ctx: CanvasRenderingContext2D, x: number, y: numb
 	ctx.strokeStyle = `rgba(255, 120, 110, ${0.25 + 0.2 * power})`;
 	ctx.lineWidth = 2;
 	for (let i = 0; i < 3; i++) {
-		const k = (time * 0.3 + i / 3) % 1;
+		const k = Math.abs(time * 0.3 + i / 3) % 1;
 		ctx.beginPath();
 		ctx.ellipse(0, 0, r * k, r * k * 0.45, 0, 0, TAU);
 		ctx.stroke();
