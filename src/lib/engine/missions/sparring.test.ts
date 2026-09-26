@@ -37,7 +37,9 @@ describe('Sparring · One on One', () => {
 	it('nothing is locked: every opponent that has a figure can be fought straight away', () => {
 		// The mode is not a ladder. If they are built, they are available.
 		const ready = ROSTER.filter(isReady);
-		expect(ready.length).toBeGreaterThanOrEqual(6);
+		expect(ready.length).toBeGreaterThanOrEqual(10);
+		// The League fight here the moment they exist, not when somebody remembers to switch them on
+		for (const id of ['wonderwoman', 'flash', 'superman', 'hawkgirl']) expect(isReady(opponentById(id)!)).toBe(true);
 		for (const foe of ready) expect(ENEMIES[foe.kind!]).toBeTruthy();
 	});
 
@@ -48,11 +50,13 @@ describe('Sparring · One on One', () => {
 		expect(toCome.map((o) => o.id)).toContain('batman');
 	});
 
-	it('every sparring Lantern fights in Corps green, not Red Lantern red', () => {
+	it('the Corps fight in Corps green, and the League fight as themselves', () => {
 		for (const foe of ROSTER.filter(isReady)) {
 			const def = ENEMIES[foe.kind!];
-			expect(def.faction).toBe('corps');
-			expect(def.tint).toBe('corps');
+			expect(def.faction).not.toBe('red');
+			// Green Lanterns: Corps green. Everyone else fights in their own colours
+			if (def.faction === 'corps') expect(def.tint).toBe('corps');
+			else expect(def.tint).toBeUndefined();
 		}
 	});
 

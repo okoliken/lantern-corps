@@ -113,11 +113,11 @@ export const OPPONENTS: Opponent[] = [
 		tier: 'league',
 		tests: 'Close-quarters fighting. She closes distance fast, so you have to fight without room to build.',
 		key: 'shields',
-		kind: null,
-		might: 1,
-		health: 1,
-		opening: '',
-		over: ''
+		kind: 'wonderwomanSpar',
+		might: 2.9,
+		health: 3.0,
+		opening: 'YOU BUILD AT A DISTANCE. I AM TAKING THE DISTANCE.',
+		over: 'THAT IS WHY YOU FIGHT WITHOUT ROOM.'
 	},
 	{
 		id: 'flash',
@@ -125,11 +125,11 @@ export const OPPONENTS: Opponent[] = [
 		tier: 'league',
 		tests: "Speed. Build faster than he moves or don't build at all.",
 		key: 'empty',
-		kind: null,
-		might: 1,
-		health: 1,
-		opening: '',
-		over: ''
+		kind: 'flashSpar',
+		might: 2.3,
+		health: 2.6,
+		opening: 'READY? YOU ARE NOT. GO.',
+		over: 'TOO SLOW. EVERYONE IS.'
 	},
 	{
 		id: 'aquaman',
@@ -187,11 +187,11 @@ export const OPPONENTS: Opponent[] = [
 		tier: 'heavy',
 		tests: 'Raw strength. Constructs that hold against anyone else crack against him.',
 		key: 'shields',
-		kind: null,
-		might: 1,
-		health: 1,
-		opening: '',
-		over: ''
+		kind: 'supermanSpar',
+		might: 3.4,
+		health: 3.8,
+		opening: 'EVERY PUNCH IS PULLED. THEY STILL GO THROUGH.',
+		over: 'ON YOUR FEET. THAT IS WHY THEY ARE PULLED.'
 	},
 	{
 		id: 'lobo',
@@ -260,6 +260,18 @@ export const EXTRAS: Opponent[] = [
 		health: 2.8,
 		opening: 'SHOW ME WHAT YOU LEARNED.',
 		over: 'YOU COMMITTED TOO EARLY.'
+	},
+	{
+		id: 'hawkgirl',
+		name: 'Hawkgirl',
+		tier: 'league',
+		tests: 'Wings, a war cry and an Nth metal mace. She climbs, she circles, and she comes down where you were standing.',
+		key: 'shields',
+		kind: 'hawkgirlSpar',
+		might: 2.7,
+		health: 3.0,
+		opening: 'SHIELD GOES UP BEFORE I LAND.',
+		over: 'AFTER IS A FUNERAL.'
 	},
 	{
 		id: 'boodikka',
