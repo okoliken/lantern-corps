@@ -5,7 +5,7 @@ import type { LanternId } from '../lanterns';
 import { BLOOD_OATH, LAST_LIGHT } from '../../story/scenes';
 import { BloodOath } from '../scenes/bloodOath';
 import { LastLight } from '../scenes/lastLight';
-import { AtrocitusBoss, BOOK_AT, PAGE, RAGE_AT, WARD_BREAKERS, WARD_TAKES, buildFinaleMap } from './atrocitusBoss';
+import { ALTAR, AtrocitusBoss, BOOK_AT, HOLD, PAGE, RAGE_AT, SPEAKS, SPEAKS_AT, WARD_BREAKERS, WARD_TAKES, buildFinaleMap } from './atrocitusBoss';
 
 function setup(me: LanternId = 'hal') {
 	const game = new Game({
@@ -105,6 +105,54 @@ describe('Act 3, the finale: Atrocitus', () => {
 			if (me.branded > 0) quiet = true;
 		});
 		expect(quiet).toBe(true);
+	});
+
+	it('he holds the altar instead of chasing a Lantern off the map', () => {
+		const { game, mission, run } = setup();
+		run(3.1);
+		const a = mission.atrocitus!;
+		let furthest = 0;
+		// Everyone scatters to the far corners: he should not follow them out
+		run(40, () => {
+			for (const p of game.players) p.invuln = 1;
+			game.players[0].x = game.players[0].prevX = 120;
+			game.players[0].y = game.players[0].prevY = 120;
+			for (const p of game.players.slice(1)) {
+				p.x = p.prevX = 2880;
+				p.y = p.prevY = 1880;
+			}
+			if (mission.speaking === 0) furthest = Math.max(furthest, Math.hypot(a.x - ALTAR.x, a.y - ALTAR.y));
+		});
+		expect(furthest).toBeLessThan(HOLD + 80);
+	});
+
+	it('the Book speaks: every ring goes dark, nothing touches him, and then it shuts', () => {
+		const { game, mission, run, away, hurtTo } = setup();
+		run(3.1);
+		hurtTo(BOOK_AT);
+		run(0.1, away);
+		hurtTo(SPEAKS_AT[0]);
+		run(0.1, away);
+		expect(mission.speaking).toBeGreaterThan(0);
+		// Rings dark: no constructs, no shields
+		// Every green ring, that is. Razer's is red: the Book has no hold on it
+		expect(game.players.filter((p) => !p.hero).every((p) => p.branded > 0)).toBe(true);
+		expect(game.players.find((p) => p.def.id === 'razer')!.branded).toBe(0);
+		// And he feels nothing at all, however many of them hit him
+		const a = mission.atrocitus!;
+		for (const p of game.players) {
+			a.brain.grudge = p;
+			a.brain.grudgeAgo = 0;
+			run(2 / 60, away);
+		}
+		const before = a.hp;
+		a.hp -= 1000;
+		run(1 / 60, away);
+		expect(a.hp).toBe(before);
+		// It shuts on its own, and the rings come back
+		run(SPEAKS.time, away);
+		expect(mission.speaking).toBe(0);
+		expect(game.players.every((p) => p.branded === 0)).toBe(true);
 	});
 
 	it('at 25% the rage takes him, and when he falls every Red Lantern drops', () => {

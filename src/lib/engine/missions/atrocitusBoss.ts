@@ -5,6 +5,9 @@
 // of them. Hal and John (you choose), Razer and Arisia start the fight;
 // Kilowog, Katma Tui and Boodikka arrive from Oa.
 //
+// He does not chase anybody. The altar is his, he holds the ground around it,
+// and the Corps has to come to him.
+//
 //   oath      Atrocitus swore a Blood Oath: a ward that turns most of any one
 //             Lantern's attack. It breaks when four or more Lanterns hit him
 //             at once (within a couple of seconds): then, for a few seconds,
@@ -15,6 +18,10 @@
 //             Dex-Starr comes back for revenge, with more Red Lanterns
 //   rage      (25%) the rage takes him: faster, stronger, and blood rains
 //             down across the plain (a red ring first: get out of it)
+//   speaks    (40%, and again at 12%) the Book speaks. Every ring on the plain
+//             goes dark, nothing the Corps throws touches him, and he leaves
+//             the altar to hunt whoever is nearest. You don't win this. You
+//             live through it
 //   fallen    he falls. Ganthet binds the Book
 //
 // Lose: your Lantern goes down 3 times.
@@ -24,6 +31,7 @@ import { hitDummyWithFx } from '../constructs/system';
 import { drawBloodAltar } from '../draw/ysmault';
 import { isStanding } from '../dummy';
 import type { Enemy, EnemyKind, Role } from '../enemies/enemies';
+import type { AbilityId } from '../enemies/redConstructs';
 import type { Drawable, Game } from '../game';
 import { heroFx } from '../heroes';
 import type { CrewId } from '../lanterns';
@@ -39,7 +47,7 @@ const INTRO_TIME = 3;
 const PAR_TIME = 480;
 /** Atrocitus: health and might on top of his base; where the Book opens and where the rage takes him. */
 const ATROCITUS_HEALTH = 20;
-const ATROCITUS_MIGHT = 3.8;
+const ATROCITUS_MIGHT = 6.1;
 export const BOOK_AT = 0.6;
 export const RAGE_AT = 0.25;
 const RAGE = { might: 1.2, speed: 1.2 };
@@ -66,11 +74,28 @@ const TOUGHNESS = 3.8;
 const MIGHT = 4.2;
 const DEX_HEALTH = 10;
 /** The most one hit can take off a Lantern. */
-const MAX_HIT = 38;
+const MAX_HIT = 52;
+/**
+ * The Book speaks: at these shares of his health he shuts every ring on the
+ * plain, stops feeling anything, and hunts. How long it lasts, and how much
+ * faster it makes him.
+ */
+export const SPEAKS_AT = [0.4, 0.12];
+export const SPEAKS = { time: 8, speed: 1.35 };
+/**
+ * He holds the altar. This is how far from it he will go, and how fast he
+ * turns back at the edge of it (faster than he flies, so nobody leads him off).
+ */
+export const HOLD = 700;
+const TURN_BACK = 260;
+/** How much harder the Lantern you play pulls him than the rest of the Corps. */
+const LEAD_PULL = 260;
+/** What he fights with. The Corps crowds him, so he answers crowds. */
+const KIT: AbilityId[] = ['claws', 'slam', 'vomit', 'meteors', 'beam', 'charge', 'skulls', 'roar', 'chain', 'cage'];
 
 const W = 3000;
 const H = 2000;
-const ALTAR = { x: 1500, y: 900 };
+export const ALTAR = { x: 1500, y: 900 };
 const ENTRY = { x: 1500, y: 1700 };
 
 type Wave = [EnemyKind, number, number, Role?][];
@@ -128,6 +153,10 @@ export class AtrocitusBoss implements MissionDirector {
 	dex: Enemy | null = null;
 	/** Seconds left with his Blood Oath broken (0 = the ward is up). */
 	wardDown = 0;
+	/** Seconds left of the Book speaking (0 = it is shut). */
+	speaking = 0;
+	/** How many times it has spoken. */
+	private spoken = 0;
 	/** Who has hit him lately, and when. */
 	private hitters = new Map<Player, number>();
 	private held = 0;
@@ -146,6 +175,7 @@ export class AtrocitusBoss implements MissionDirector {
 	// ------------------------------------------------------------ reporting
 
 	get objective(): string {
+		if (this.speaking > 0) return 'Your rings are dark and he cannot be hurt. Stay alive until the Book shuts.';
 		switch (this.phase) {
 			case 'oath':
 				return this.wardDown > 0 ? 'His Blood Oath is broken: everything on him, now!' : 'Break his Blood Oath: four Lanterns or more, all hitting him at once';
@@ -166,11 +196,16 @@ export class AtrocitusBoss implements MissionDirector {
 		const a = this.atrocitus;
 		if (!a || !isStanding(a)) return [];
 		const list: MissionMeter[] = [{ label: 'Atrocitus', value: a.hp / a.maxHp, text: '' }];
+		if (this.speaking > 0) {
+			list.push({ label: 'The Book', value: this.speaking / SPEAKS.time, text: 'Speaking', low: true });
+			return list;
+		}
 		list.push({ label: 'Blood Oath', value: this.wardDown > 0 ? this.wardDown / WARD_DOWN : 1, text: this.wardDown > 0 ? 'Broken' : 'Warded', low: this.wardDown > 0 });
 		return list;
 	}
 
 	warning(): string | null {
+		if (this.speaking > 0) return 'THE BOOK IS SPEAKING: YOUR RING IS DARK — RUN';
 		if (this.reading > 0) return 'HE IS READING FROM THE BOOK: GET AWAY FROM HIM';
 		return null;
 	}
@@ -230,8 +265,11 @@ export class AtrocitusBoss implements MissionDirector {
 			this.fall(game, a);
 			return;
 		}
+		this.hold(game, a, dt);
 		this.oath(game, a, dt);
 		const hp = a.hp / a.maxHp;
+		if (this.speaking > 0) this.speak(game, a, dt);
+		else if (this.spoken < SPEAKS_AT.length && hp <= SPEAKS_AT[this.spoken]) this.openMouth(game, a);
 		if (this.phase === 'oath' && hp <= BOOK_AT) this.openBook(game, a);
 		if (this.phase === 'book' && hp <= RAGE_AT) this.enrage(game, a);
 		if (this.phase === 'book' || this.phase === 'rage') this.book(game, a, dt);
@@ -247,6 +285,9 @@ export class AtrocitusBoss implements MissionDirector {
 		a.brain.might = ATROCITUS_MIGHT;
 		a.brain.grit = TOUGHNESS;
 		a.brain.alert = 10;
+		a.brain.kit = [...KIT];
+		// The mission says who he is after, not the pack's usual rules (see hold)
+		a.brain.directed = true;
 		this.atrocitus = a;
 		this.held = a.hp;
 		this.spawnWave(game, GUARD);
@@ -278,6 +319,57 @@ export class AtrocitusBoss implements MissionDirector {
 	}
 
 	/**
+	 * He holds the altar.
+	 *
+	 * Left to the usual rules he picks whichever of the seven Lanterns is
+	 * nearest and goes to them, and since they scatter he ends up chasing one
+	 * across the plain, off the edge of the screen, with the fight strung out
+	 * behind him. He is the Red Lanterns' master standing on his own altar: he
+	 * does not run anybody down. So he takes whoever comes to the altar (the
+	 * Lantern you play hardest of all), and he turns back at the edge of his
+	 * ground.
+	 */
+	private hold(game: Game, a: Enemy, dt: number) {
+		const b = a.brain;
+		const up = game.players.filter((p) => !p.downed && !p.hero);
+		if (up.length > 0) {
+			// Hunting, he takes whoever is nearest HIM. Holding, whoever comes
+			// to the altar, with the Lantern you play counted nearer than they are.
+			const hunting = this.speaking > 0;
+			const from = hunting ? a : ALTAR;
+			const fromAltar = (p: { x: number; y: number }) => Math.hypot(p.x - from.x, p.y - from.y);
+			let want = up[0];
+			let best = Infinity;
+			for (const p of up) {
+				const score = fromAltar(p) - (!hunting && p.slot === 0 ? LEAD_PULL : 0);
+				if (score < best) {
+					best = score;
+					want = p;
+				}
+			}
+			if (b.target !== want) {
+				b.target = want;
+				b.engaged = false;
+				b.focusTime = 0;
+			}
+			b.directed = true;
+		}
+		// The edge of his ground: he turns back faster than he flies out. The
+		// one time he leaves it is when the Book has him hunting.
+		if (this.speaking > 0) return;
+		const dx = a.x - ALTAR.x;
+		const dy = a.y - ALTAR.y;
+		const out = Math.hypot(dx, dy);
+		if (out > HOLD) {
+			const back = Math.min(out - HOLD, TURN_BACK * dt);
+			a.x -= (dx / out) * back;
+			a.y -= (dy / out) * back;
+			a.prevX = a.x;
+			a.prevY = a.y;
+		}
+	}
+
+	/**
 	 * The Blood Oath: most of any hit is turned, unless enough Lanterns have
 	 * hit him in the last couple of seconds, which breaks it for a while.
 	 */
@@ -286,6 +378,11 @@ export class AtrocitusBoss implements MissionDirector {
 		const b = a.brain;
 		if (b.grudge && b.grudgeAgo < dt * 1.5) this.hitters.set(b.grudge, this.elapsed);
 		for (const [p, at] of this.hitters) if (this.elapsed - at > WARD_WINDOW || p.downed) this.hitters.delete(p);
+		// While the Book speaks nothing touches him at all, oath or no oath
+		if (this.speaking > 0) {
+			const held = this.held - a.hp;
+			if (held > 0) a.hp = a.brain.lastHp = this.held;
+		}
 		if (this.wardDown > 0) {
 			this.wardDown = Math.max(0, this.wardDown - dt);
 			if (this.wardDown === 0) {
@@ -298,7 +395,7 @@ export class AtrocitusBoss implements MissionDirector {
 			const lost = this.held - a.hp;
 			if (lost > 0) a.hp = a.brain.lastHp = this.held - lost * WARD_TAKES;
 			this.wardHolds = Math.max(0, this.wardHolds - dt);
-			if (this.wardHolds === 0 && this.hitters.size >= WARD_BREAKERS) {
+			if (this.wardHolds === 0 && this.speaking === 0 && this.hitters.size >= WARD_BREAKERS) {
 				this.wardDown = WARD_DOWN;
 				this.wardBreaks++;
 				game.constructs.effects.push({ kind: 'callout', x: a.x, y: a.y - 260, age: 0, life: 1.8, text: 'BLOOD OATH BROKEN' });
@@ -307,6 +404,56 @@ export class AtrocitusBoss implements MissionDirector {
 			}
 		}
 		this.held = a.hp;
+	}
+
+	/**
+	 * The Book speaks. Every green ring on the plain goes dark (they still
+	 * shoot; they build nothing), the bubbles already up burst, nothing the
+	 * Corps throws reaches him, and he comes off the altar after whoever is
+	 * nearest. There is no way to win these eight seconds. You live through
+	 * them. Razer's ring is red, and the Book has no hold on it.
+	 */
+	private openMouth(game: Game, a: Enemy) {
+		this.speaking = SPEAKS.time;
+		this.spoken++;
+		a.brain.speedMul *= SPEAKS.speed;
+		a.brain.rage = 1;
+		// Every bubble on the plain bursts
+		for (const sh of [...game.constructs.shields]) {
+			game.constructs.effects.push({ kind: 'fizzle', x: sh.target.x, y: sh.target.y - 30, age: 0, life: 0.6 });
+			game.constructs.shields.splice(game.constructs.shields.indexOf(sh), 1);
+		}
+		game.constructs.effects.push({ kind: 'callout', x: a.x, y: a.y - 280, age: 0, life: 2.4, text: 'THE BOOK OF THE BLACK SPEAKS', hurt: true });
+		game.constructs.effects.push({ kind: 'pulse', x: a.x, y: a.y, age: 0, life: 0.9, radius: 900 });
+		this.comms.clear();
+		this.comms.scene(
+			this.spoken === 1
+				? [
+						['Atrocitus', 'You want the Book to speak? Then hear it.'],
+						['Kilowog', 'My ring — I got nothin\'! NOTHIN\'!'],
+						['John', "Then we don't fight him. RUN. Everybody, RUN!"]
+					]
+				: [
+						['Atrocitus', 'AGAIN. Let it speak again.'],
+						['Katma Tui', 'Scatter! Do not let him have two of us at once!']
+					]
+		);
+	}
+
+	/** While it speaks: rings stay dark, and he hunts. */
+	private speak(game: Game, a: Enemy, dt: number) {
+		this.speaking = Math.max(0, this.speaking - dt);
+		for (const p of game.players) {
+			if (p.hero) continue;
+			p.branded = Math.max(p.branded, this.speaking);
+		}
+		a.brain.rage = 1;
+		if (this.speaking > 0) return;
+		// It shuts
+		a.brain.speedMul /= SPEAKS.speed;
+		game.constructs.effects.push({ kind: 'callout', x: a.x, y: a.y - 260, age: 0, life: 1.8, text: 'THE BOOK SHUTS' });
+		for (const p of game.players) p.branded = 0;
+		this.once(`shut${this.spoken}`, () => this.comms.say('Hal', 'Rings are back. On him — all of us, NOW!', true));
 	}
 
 	private openBook(game: Game, a: Enemy) {
@@ -388,6 +535,7 @@ export class AtrocitusBoss implements MissionDirector {
 		this.clock = 0;
 		this.drops = [];
 		this.reading = 0;
+		this.speaking = 0;
 		for (const e of game.enemies) {
 			if (!isStanding(e)) continue;
 			hitDummyWithFx(game.constructs, e, e.hp + 1, 500, a.x, a.y, null, 0);
