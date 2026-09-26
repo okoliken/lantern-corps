@@ -829,8 +829,8 @@ export function drawHeroFx(ctx: CanvasRenderingContext2D, list: readonly HeroFx[
 				const by = a.y - lift + (b.y - 60 - (a.y - lift)) * reach;
 				ctx.strokeStyle = `rgba(255, 215, 102, ${Math.min(1, fade * 3)})`;
 				ctx.shadowColor = LASSO_GOLD;
-				ctx.shadowBlur = 10;
-				ctx.lineWidth = 2.5;
+				ctx.shadowBlur = 14;
+				ctx.lineWidth = 4;
 				ctx.beginPath();
 				ctx.moveTo(a.x, a.y - lift);
 				ctx.quadraticCurveTo((a.x + bx) / 2, Math.min(a.y - lift, by) - 26 + Math.sin(time * 18) * 5, bx, by);
@@ -982,8 +982,8 @@ export function drawLeagueEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: numb
 	ctx.save();
 	ctx.globalAlpha = defeated ? Math.min(1, e.down / 0.5) : 1;
 	if (e.flash > 0) ctx.globalAlpha *= 0.55;
-	// Wonder Woman's bracelets come up while she is closing
-	const guard = id === 'wonderwoman' && b.state === 'windup' ? 1 : 0;
+	// Wonder Woman's bracelets come up while she is closing; Hawkgirl's wings wrap round her while the guard holds
+	const guard = id === 'wonderwoman' && b.state === 'windup' ? 1 : id === 'hawkgirl' && e.ward ? 1 : 0;
 	drawHero(ctx, id, def.look, x, y, pose, time, 1, { guard });
 	ctx.restore();
 }

@@ -20,7 +20,8 @@ import { drawEarthWindow, drawRing, drawStation } from '../draw/watchtower';
 import { HOVER_PLANET, type LanternPose } from '../draw/lantern';
 import { isStanding } from '../dummy';
 import { beginWindup, type Enemy, type EnemyKind } from '../enemies/enemies';
-import { ABILITIES, type AbilityId } from '../enemies/redConstructs';
+import { ABILITIES, leagueCtx, type AbilityId } from '../enemies/redConstructs';
+import { dodgeIfShot } from '../enemies/league';
 import type { Drawable, Game } from '../game';
 import { heroFx } from '../heroes';
 import { LANTERNS, type HeroId } from '../lanterns';
@@ -50,19 +51,21 @@ const INTENT_EVERY = 0.3;
 const MIGHT: Record<Exclude<Bout, 'done'>, number> = { flash: 2.4, superman: 3.2, wonderwoman: 2.8, hawkgirl: 2.7 };
 
 const W = 2600;
-const H = 1300;
-export const CENTRE = { x: W / 2, y: 760 };
+const H = 1500;
+/** The glass wall is the top of the deck: nobody flies into it. The floor starts under the sill. */
+const SILL = 740;
+export const CENTRE = { x: W / 2, y: 1090 };
 /** The ring they fight in, and where the other three stand to watch. */
-const RING = { rx: 620, ry: 380 };
+const RING = { rx: 620, ry: 310 };
 const STATIONS: Record<Exclude<Bout, 'done'>, { x: number; y: number }> = {
-	flash: { x: CENTRE.x - 900, y: CENTRE.y - 160 },
-	superman: { x: CENTRE.x + 900, y: CENTRE.y - 160 },
-	wonderwoman: { x: CENTRE.x + 900, y: CENTRE.y + 320 },
-	hawkgirl: { x: CENTRE.x - 900, y: CENTRE.y + 320 }
+	flash: { x: CENTRE.x - 900, y: SILL + 70 },
+	superman: { x: CENTRE.x + 900, y: SILL + 70 },
+	wonderwoman: { x: CENTRE.x + 900, y: CENTRE.y + 300 },
+	hawkgirl: { x: CENTRE.x - 900, y: CENTRE.y + 300 }
 };
 /** The window along the top wall. */
 /** The glass runs the whole top wall, floor to ceiling: the ring is at its foot, so the Earth is over every bout. */
-const WINDOW = { x: 120, y: 30, w: W - 240, h: 690 };
+const WINDOW = { x: 120, y: 30, w: W - 240, h: SILL - 50 };
 
 /** The Watchtower's training deck: a wide floor, and no battery in orbit. */
 export function buildWatchtowerMap(): GameMap {
@@ -72,11 +75,12 @@ export function buildWatchtowerMap(): GameMap {
 		ground: 'deck',
 		width: W,
 		height: H,
-		spawn: { x: CENTRE.x, y: CENTRE.y + 180 },
+		spawn: { x: CENTRE.x, y: CENTRE.y + 170 },
 		battery: { x: CENTRE.x, y: CENTRE.y },
 		noBattery: true,
 		dummies: [],
-		obstacles: []
+		// The wall: an unseen solid the whole width of the deck, so the glass is a wall and not a floor
+		obstacles: [{ kind: 'wall', x: 0, y: 0, w: W, h: SILL, height: 400, seed: 0, blocksFlying: true, hidden: true }]
 	};
 }
 
@@ -219,6 +223,7 @@ export class Watchtower implements MissionDirector {
 		f.brain.target = me;
 		f.brain.directed = true;
 		f.brain.alert = 10;
+		dodgeIfShot(f, game.constructs, game.time, leagueCtx());
 		this.intent(f, me, dt);
 
 		// Nobody goes down on this deck. He hits the floor, and they let him up

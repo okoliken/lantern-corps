@@ -324,7 +324,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		scale: 1.04,
 		agility: 0.4,
 		movement: 'hover',
-		kit: ['haymaker', 'heatVision', 'frostBreath'],
+		kit: ['haymaker', 'flyPunch', 'heatVision', 'frostBreath'],
 		range: 300,
 		leans: { aggression: 0.4, caution: 0, patience: 0.3 },
 		lieutenant: true
@@ -362,7 +362,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		scale: 1,
 		agility: 0.85,
 		movement: 'hover',
-		kit: ['maceDive', 'maceSwing'],
+		kit: ['maceDive', 'maceSwing', 'talonThrow', 'wingGuard'],
 		range: 200,
 		leans: { aggression: 0.6, caution: -0.1, patience: -0.2 },
 		lieutenant: true

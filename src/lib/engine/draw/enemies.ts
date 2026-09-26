@@ -166,7 +166,8 @@ function drawEnemyOverlay(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 	const color = isLeagueKind(e.kind) ? leagueColor(e.kind) : def.tint && def.tint !== 'corps' ? TINT_COLORS[def.tint] : def.faction === 'manhunter' ? '#ffb040' : RED;
 
 	// A Rage Shield around it
-	if (e.ward) drawWard(ctx, x, (y + top) / 2 + 4, (y - top) * 0.5, e.ward.hp / e.ward.maxHp, time);
+	// (The League's guard is drawn on the figure - Hawkgirl's wings - not as a rage bubble)
+	if (e.ward && !isLeagueKind(e.kind)) drawWard(ctx, x, (y + top) / 2 + 4, (y - top) * 0.5, e.ward.hp / e.ward.maxHp, time);
 
 	// Weapon constructs forming in the hand during the windup (only while winding up: rare enough to tint)
 	if ((winding === 'axe' || winding === 'mace' || winding === 'cannon') && def.tint && def.tint !== 'corps') {

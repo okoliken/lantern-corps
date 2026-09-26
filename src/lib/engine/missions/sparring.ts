@@ -9,7 +9,8 @@
 
 import { isStanding } from '../dummy';
 import { beginWindup, type Enemy, type EnemyKind } from '../enemies/enemies';
-import { ABILITIES, type AbilityId } from '../enemies/redConstructs';
+import { ABILITIES, leagueCtx, type AbilityId } from '../enemies/redConstructs';
+import { dodgeIfShot } from '../enemies/league';
 import type { Game } from '../game';
 import type { GameMap } from '../map';
 import type { Player } from '../player';
@@ -347,6 +348,7 @@ export class Sparring {
 			case 'fighting': {
 				this.elapsed += dt;
 				const foe = this.foe;
+				if (foe && isStanding(foe)) dodgeIfShot(foe, game.constructs, game.time, leagueCtx());
 				if (foe && isStanding(foe) && !me.downed) this.intent(game, foe, me, dt);
 				if (foe && !isStanding(foe)) {
 					this.state = 'won';

@@ -40,6 +40,12 @@ export interface LeagueCtx {
  * the bubble and land anyway, at a share of what they would have done.
  */
 const THROUGH_BUBBLE = 0.6;
+/**
+ * The Flash is fast, not strong. His punches take a bite out of a bubble
+ * (a big one - there are a lot of them) and none of it gets through until
+ * the bubble is gone.
+ */
+const FLASH_BITE = 1.4;
 function shred(w: ConstructWorld, t: Player, bite: number) {
 	const sh = w.shields.find((s) => s.target === t);
 	if (!sh) return false;
@@ -56,23 +62,36 @@ export const LEAGUE_ABILITIES: ReadonlySet<AbilityId> = new Set<AbilityId>([
 	'flashRush',
 	'flashBolt',
 	'haymaker',
+	'flyPunch',
 	'heatVision',
 	'frostBreath',
 	'swordRush',
 	'lasso',
 	'maceDive',
-	'maceSwing'
+	'maceSwing',
+	'wingGuard',
+	'talonThrow'
 ]);
 
-/** How high moves at hand height are drawn. */
+/** How high moves at hand height are drawn, and where Superman's eyes are on a hovering figure. */
 const HAND_LIFT = 40;
+const EYE_LIFT = 92;
 const RUSH = { speed: 1250, reach: 44, punches: 4, gap: 0.07 };
 const HAYMAKER = { speed: 1050, reach: 40 };
+const FLY_PUNCH = { speed: 1400, reach: 52 };
 const HEAT = { tick: 0.15, width: 30 };
-const FROST = { arc: 0.55, slow: 0.12 };
+/** Freezing breath: the cone, and how long the cold stays on you after it. */
+const FROST = { arc: 0.55, chill: 1.7 };
 const SWORD = { speed: 900, reach: 60, cuts: [0.14, 0.32, 0.5] };
-const LASSO = { pullTime: 0.7 };
+/** The lasso: the rope flies out first, then the pull. */
+const LASSO = { flight: 0.15, pullTime: 0.7 };
 const DIVE = { riseTime: 0.3, rise: 160 };
+/** Talon Throw: carried up, held, and put down hard. */
+const TALON = { carry: 0.55, hold: 0.3, lift: 0.9 };
+/** Wing Guard: what the wings take before they give, and for how long. */
+const WING = { hp: 70, life: 2.4 };
+/** The Flash reads a shot coming and is somewhere else: how far, how soon, how often. */
+const DODGE = { lookahead: 0.32, miss: 64, hop: 150, every: 0.8 };
 
 /** When a combo made contact (seconds into the move), and how many ticks a beam has done. */
 const contact = new WeakMap<Enemy, number>();
@@ -92,9 +111,32 @@ export function startLeagueAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, p
 			heroFx(w).push({ kind: 'bolt', x: e.x + e.dir * 10, y: e.y, x2: t.x, y2: t.y, age: 0, life: 0.3, lift: 36 });
 			break;
 		}
+		case 'wingGuard': {
+			const hp = WING.hp * b.might;
+			e.ward = { hp, maxHp: hp, life: WING.life };
+			w.effects.push({ kind: 'callout', x: e.x, y: e.y - 150, age: 0, life: 1, text: 'WING GUARD' });
+			break;
+		}
+		case 'talonThrow': {
+			if (!t || t.downed || dist(t, e) > a.maxRange + 80) {
+				b.timer = 0;
+				return;
+			}
+			b.struck = [t];
+			// A bubble does not stop a grab; it goes
+			const sh = w.shields.find((s) => s.target === t);
+			if (sh) {
+				w.shields.splice(w.shields.indexOf(sh), 1);
+				w.effects.push({ kind: 'pop', x: t.x, y: t.y, age: 0, life: 0.45, owner: t });
+			}
+			heroFx(w).push({ kind: 'zip', x: e.x, y: e.y, x2: t.x, y2: t.y, age: 0, life: 0.25 });
+			w.effects.push({ kind: 'callout', x: t.x, y: t.y - 100, age: 0, life: 1.2, text: 'TALONS', hurt: true, owner: t });
+			break;
+		}
 		case 'flashRush':
 		case 'swordRush':
 		case 'haymaker':
+		case 'flyPunch':
 			b.struck = [];
 			if (t) heroFx(w).push({ kind: 'zip', x: e.x, y: e.y, x2: t.x, y2: t.y, age: 0, life: 0.25 });
 			break;
@@ -108,7 +150,7 @@ export function startLeagueAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, p
 		}
 		case 'lasso': {
 			if (!t || t.downed) return;
-			heroFx(w).push({ kind: 'lasso', x: e.x, y: e.y, x2: t.x, y2: t.y, age: 0, life: LASSO.pullTime + 0.15, lift: HAND_LIFT, gold: true, track: [e, t] });
+			heroFx(w).push({ kind: 'lasso', x: e.x, y: e.y, x2: t.x, y2: t.y, age: 0, life: LASSO.flight + LASSO.pullTime + 0.2, lift: HAND_LIFT, gold: true, track: [e, t] });
 			damagePlayer(w, t, power(e, a), e.x, e.y, 0);
 			break;
 		}
@@ -204,6 +246,81 @@ export function updateLeagueAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, 
 			e.vy *= 0.1;
 			return;
 		}
+		case 'flyPunch': {
+			// Straight through at flying speed; whoever is on the line gets the fist
+			if (!t || t.downed) {
+				steer(e, 0, 0, 8, dt);
+				return;
+			}
+			if (b.fired === 0) {
+				const d = dist(t, e) || 1;
+				b.aimX = (t.x - e.x) / d;
+				b.aimY = (t.y - e.y) / d;
+				b.fired = 1;
+			}
+			e.vx = b.aimX * FLY_PUNCH.speed;
+			e.vy = b.aimY * FLY_PUNCH.speed;
+			e.dir = b.aimX > 0 ? 1 : -1;
+			for (const p of players) {
+				if (p.downed || b.struck.includes(p) || dist(p, e) > FLY_PUNCH.reach) continue;
+				b.struck.push(p);
+				p.invuln = 0;
+				const dmg = power(e, a);
+				const bubbled = shred(w, p, dmg * 1.5);
+				damagePlayer(w, p, bubbled ? dmg * THROUGH_BUBBLE : dmg, e.x - b.aimX * 30, e.y - b.aimY * 30, a.knockback, true);
+				w.effects.push({ kind: 'impact', x: p.x, y: p.y, age: 0, life: 0.25, lift: 50 });
+				heroFx(w).push({ kind: 'boom', x: p.x, y: p.y, age: 0, life: 0.5, radius: 100 });
+			}
+			return;
+		}
+		case 'wingGuard':
+			steer(e, 0, 0, 8, dt);
+			return;
+		case 'talonThrow': {
+			const held = b.struck[0];
+			if (!held || b.hitDone) {
+				steer(e, 0, 0, 8, dt);
+				return;
+			}
+			if (held.downed) {
+				b.hitDone = true;
+				return;
+			}
+			// In fast, then up with them
+			const d = dist(held, e);
+			if (b.elapsed < 0.25 && d > 40) {
+				e.vx = ((held.x - e.x) / d) * 1100;
+				e.vy = ((held.y - e.y) / d) * 1100;
+				e.dir = held.x > e.x ? 1 : -1;
+				return;
+			}
+			steer(e, 0, 0, 10, dt);
+			if (held.hero) held.hero.move = null;
+			held.branded = Math.max(held.branded, 0.1);
+			const up = Math.min(1, Math.max(0, (b.elapsed - 0.25) / TALON.carry));
+			b.air = up;
+			held.altitude = Math.max(held.altitude, TALON.lift * up);
+			if (b.elapsed < 0.25 + TALON.carry + TALON.hold) {
+				const k = Math.min(1, dt * 10);
+				held.prevX = held.x;
+				held.prevY = held.y;
+				held.x += (e.x + e.dir * 20 - held.x) * k;
+				held.y += (e.y + 8 - held.y) * k;
+				held.vx = held.vy = 0;
+				return;
+			}
+			// ...and into the deck
+			b.hitDone = true;
+			b.air = 0;
+			held.altitude = 0;
+			held.invuln = 0;
+			damagePlayer(w, held, power(e, a), e.x, e.y - 40, 0, true);
+			held.vx = e.dir * 260;
+			held.vy = 520;
+			heroFx(w).push({ kind: 'quake', x: held.x, y: held.y + 30, age: 0, life: 0.55, radius: 120 });
+			w.effects.push({ kind: 'impact', x: held.x, y: held.y, age: 0, life: 0.3, lift: 20 });
+			return;
+		}
 		case 'heatVision': {
 			steer(e, 0, 0, 8, dt);
 			if (!t || t.downed) return;
@@ -217,7 +334,7 @@ export function updateLeagueAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, 
 				const d = Math.hypot(dx, dy) || 1;
 				const ex = e.x + (dx / d) * (a.maxRange + 60);
 				const ey = e.y + (dy / d) * (a.maxRange + 60);
-				heroFx(w).push({ kind: 'heat', x: e.x + e.dir * 8, y: e.y, x2: ex, y2: ey, age: 0, life: HEAT.tick + 0.05, lift: 70 });
+				heroFx(w).push({ kind: 'heat', x: e.x + e.dir * 6, y: e.y, x2: ex, y2: ey, age: 0, life: HEAT.tick + 0.05, lift: EYE_LIFT });
 				for (const p of players) {
 					if (p.downed) continue;
 					// Distance from the player's body to the line
@@ -244,9 +361,11 @@ export function updateLeagueAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, 
 				const to = Math.atan2(p.y - e.y, p.x - e.x);
 				const diff = Math.atan2(Math.sin(to - ang), Math.cos(to - ang));
 				if (Math.abs(diff) > FROST.arc) continue;
-				// Slowed to a crawl while the breath is on them, and a little cold
-				p.vx *= FROST.slow;
-				p.vy *= FROST.slow;
+				// Frozen: they move at a crawl for a while after, and a little cold
+				if (p.chilled <= 0) w.effects.push({ kind: 'callout', x: p.x, y: p.y - 100, age: 0, life: 1.2, text: 'FROZEN', hurt: true, owner: p });
+				p.chilled = Math.max(p.chilled, FROST.chill);
+				p.vx *= 0.3;
+				p.vy *= 0.3;
 				if (!b.hitDone) damagePlayer(w, p, power(e, a), e.x, e.y, a.knockback);
 			}
 			b.hitDone = true;
@@ -255,8 +374,8 @@ export function updateLeagueAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, 
 		case 'lasso': {
 			steer(e, 0, 0, 8, dt);
 			if (!t || t.downed) return;
-			// Reeled in over the pull time, then held a moment
-			if (b.elapsed <= LASSO.pullTime) {
+			// The rope flies out, then they are reeled in, then held a moment
+			if (b.elapsed > LASSO.flight && b.elapsed <= LASSO.flight + LASSO.pullTime) {
 				const k = Math.min(1, dt * 7);
 				const stop = 70;
 				const d = dist(t, e);
@@ -331,8 +450,8 @@ function rushAndPunch(e: Enemy, a: AbilityDef, w: ConstructWorld, dt: number, sp
 		const last = b.fired === hits;
 		t.invuln = 0;
 		const dmg = power(e, a);
-		const bubbled = shred(w, t, dmg);
-		damagePlayer(w, t, bubbled ? dmg * THROUGH_BUBBLE : dmg, e.x, e.y, last ? a.knockback : 50, true);
+		const bubbled = shred(w, t, dmg * FLASH_BITE);
+		if (!bubbled) damagePlayer(w, t, dmg, e.x, e.y, last ? a.knockback : 50, true);
 		w.effects.push({ kind: 'impact', x: t.x, y: t.y, age: 0, life: 0.15, lift: 34 });
 	}
 	if (b.fired >= hits) {
@@ -343,4 +462,45 @@ function rushAndPunch(e: Enemy, a: AbilityDef, w: ConstructWorld, dt: number, sp
 			e.vy = Math.sin(away) * speed * 0.5;
 		}
 	}
+}
+
+/**
+ * The Flash sees a shot coming and is somewhere else by the time it arrives.
+ * The missions call this every tick he is free; it does nothing for anyone
+ * else. Returns true if he moved.
+ */
+const dodgedAt = new WeakMap<Enemy, number>();
+export function dodgeIfShot(e: Enemy, w: ConstructWorld, time: number, ctx: LeagueCtx): boolean {
+	if (e.kind !== 'flashSpar') return false;
+	const b = e.brain;
+	if (b.state !== 'move' && b.state !== 'idle') return false;
+	if (time - (dodgedAt.get(e) ?? -10) < DODGE.every) return false;
+	for (const pr of w.projectiles) {
+		const v2 = pr.vx * pr.vx + pr.vy * pr.vy;
+		if (v2 < 1) continue;
+		const rx = e.x - pr.x;
+		const ry = e.y - pr.y;
+		const when = (rx * pr.vx + ry * pr.vy) / v2;
+		if (when < 0 || when > DODGE.lookahead) continue;
+		const px = pr.x + pr.vx * when;
+		const py = pr.y + pr.vy * when;
+		if (Math.hypot(e.x - px, e.y - py) > DODGE.miss) continue;
+		const len = Math.sqrt(v2);
+		let nx = -pr.vy / len;
+		let ny = pr.vx / len;
+		if ((e.x - px) * nx + (e.y - py) * ny < 0) {
+			nx = -nx;
+			ny = -ny;
+		}
+		const fromX = e.x;
+		const fromY = e.y;
+		e.x += nx * DODGE.hop;
+		e.y += ny * DODGE.hop;
+		e.prevX = e.x;
+		e.prevY = e.y;
+		ctx.heroFx(w).push({ kind: 'zip', x: fromX, y: fromY, x2: e.x, y2: e.y, age: 0, life: 0.22 });
+		dodgedAt.set(e, time);
+		return true;
+	}
+	return false;
 }

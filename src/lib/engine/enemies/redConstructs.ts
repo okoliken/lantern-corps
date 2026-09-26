@@ -93,7 +93,10 @@ export type AbilityId =
 	| 'swordRush'
 	| 'lasso'
 	| 'maceDive'
-	| 'maceSwing';
+	| 'maceSwing'
+	| 'flyPunch'
+	| 'wingGuard'
+	| 'talonThrow';
 
 /** How far away a construct is used from. Kits take some of each. */
 type Band = 'close' | 'mid' | 'long' | 'support';
@@ -411,7 +414,7 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	// Superman: a straight punch you can see coming from across the deck
 	haymaker: def({
 		id: 'haymaker', name: 'Haymaker', band: 'mid', tell: 'heavy', windup: 0.7, active: 0.55, recover: 0.7, cooldown: 3.2,
-		minRange: 100, maxRange: 540, damage: 22, knockback: 780, melee: false, heavy: true, chance: 0.8
+		minRange: 100, maxRange: 540, damage: 22, knockback: 1150, melee: false, heavy: true, chance: 0.8
 	}),
 	// A line of heat across the deck, ticking while it's on you (damage per second)
 	heatVision: def({
@@ -437,6 +440,21 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	maceDive: def({
 		id: 'maceDive', name: 'Mace Dive', band: 'mid', tell: 'sky', windup: 0.75, active: 0.65, recover: 0.7, cooldown: 2.8,
 		minRange: 80, maxRange: 560, damage: 20, knockback: 520, melee: false, heavy: true, chance: 0.8, radius: 110
+	}),
+	// Superman: straight through you at flying speed, fist first
+	flyPunch: def({
+		id: 'flyPunch', name: 'Flying Punch', band: 'long', tell: 'strike', windup: 0.45, active: 0.55, recover: 0.6, cooldown: 4.4,
+		minRange: 220, maxRange: 760, damage: 18, knockback: 1100, melee: false, heavy: false, chance: 0.9
+	}),
+	// Hawkgirl: wings wrapped round her, and your shots come off them
+	wingGuard: def({
+		id: 'wingGuard', name: 'Wing Guard', band: 'mid', tell: 'build', windup: 0.25, active: 0.3, recover: 0.2, cooldown: 7.5,
+		minRange: 0, maxRange: 900, damage: 0, knockback: 0, melee: false, heavy: false, chance: 0.7
+	}),
+	// Hawkgirl: picks you up, climbs, and puts you into the deck
+	talonThrow: def({
+		id: 'talonThrow', name: 'Talon Throw', band: 'mid', tell: 'heavy', windup: 0.5, active: 1.35, recover: 0.7, cooldown: 8,
+		minRange: 60, maxRange: 420, damage: 24, knockback: 0, melee: false, heavy: true, chance: 0.8, speed: 1150
 	}),
 	// A mace swing up close
 	maceSwing: def({
@@ -634,7 +652,7 @@ export function power(e: Enemy, a: AbilityDef): number {
 
 /** The windup is over: the construct happens. */
 /** What the League's moves borrow from this module's imports (see LeagueCtx). */
-const leagueCtx = (): LeagueCtx => ({ damagePlayer, heroFx, steer, power });
+export const leagueCtx = (): LeagueCtx => ({ damagePlayer, heroFx, steer, power });
 
 export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Player[]) {
 	const b = e.brain;

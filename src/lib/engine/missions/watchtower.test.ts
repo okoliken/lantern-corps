@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { damagePlayer } from '../combat';
+import { beginWindup } from '../enemies/enemies';
 import { isStanding } from '../dummy';
 import { ENEMIES } from '../enemies/enemies';
 import { Game } from '../game';
@@ -87,6 +88,59 @@ describe('the Watchtower', () => {
 		});
 		expect(mission.results.flash).toBeTruthy();
 		expect(mission.results.flash?.won).toBe(false);
+	});
+
+	/** Skip ahead to a bout by making the earlier ones yield. */
+	function reach(bout: string) {
+		const s = setup();
+		s.run(5);
+		for (let guard = 0; guard < 6 && s.mission.bout !== bout; guard++) {
+			const f = s.mission.fighter;
+			if (f) f.hp = Math.floor(f.maxHp * YIELD_AT) - 1;
+			s.run(4.2);
+		}
+		expect(s.mission.bout).toBe(bout);
+		return s;
+	}
+
+	it("Superman's freezing breath actually freezes: you move at a crawl after it", () => {
+		const { game, mission, run } = reach('superman');
+		const me = game.players[0];
+		const f = mission.fighter!;
+		// Right in front of him, in the cone
+		me.x = me.prevX = f.x + f.dir * 120;
+		me.y = me.prevY = f.y;
+		beginWindup(f, 'frostBreath', me);
+		run(1.2, () => {
+			me.invuln = 1;
+			me.x = me.prevX = f.x + f.dir * 120;
+			me.y = me.prevY = f.y;
+		});
+		expect(me.chilled).toBeGreaterThan(0);
+	});
+
+	it("the Flash's punches do not go through a bubble: fast, not strong", () => {
+		const { game, mission, run } = setup();
+		run(5);
+		const me = game.players[0];
+		const f = mission.fighter!;
+		game.constructs.shields.push({ owner: me, target: me, hp: 100000, maxHp: 100000, life: 30, maxLife: 30, ripple: 0 } as never);
+		const before = me.health;
+		beginWindup(f, 'flashRush', me);
+		run(1.5, () => {
+			me.x = me.prevX = f.x + 30;
+			me.y = me.prevY = f.y;
+		});
+		expect(me.health).toBe(before);
+	});
+
+	it("Hawkgirl's wings come up as a guard your shots have to get through", () => {
+		const { game, mission, run } = reach('hawkgirl');
+		const f = mission.fighter!;
+		beginWindup(f, 'wingGuard', game.players[0]);
+		run(0.6);
+		expect(f.ward).toBeTruthy();
+		expect(f.ward!.hp).toBeGreaterThan(0);
 	});
 
 	it('runs all four bouts and finishes the session', () => {

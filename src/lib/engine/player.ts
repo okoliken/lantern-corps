@@ -135,6 +135,8 @@ export interface Player {
 	armor: ArmorSuit | null;
 	/** Seconds left of a Rage Brand (Razer): the ring can't build constructs or shields. */
 	branded: number;
+	/** Seconds left moving at a crawl (Superman's freezing breath). */
+	chilled: number;
 	/** How much each construct has been used this fight, by id (a cast counts 1; a held one, time). Manhunter Prime reads it. */
 	usage: Record<string, number>;
 	/** Constructs Manhunter Prime has learned: they can't be made until the fight is over. */
@@ -192,6 +194,8 @@ const OPEN_WORLD: WorldRules = { solids: [], alwaysFlying: false };
 
 /** Flying is faster than walking. */
 export const FLY_SPEED_BONUS = 1.25;
+/** Frozen breath: how fast you move while the cold is on you. */
+const CHILLED_SPEED_FACTOR = 0.22;
 /** Holding the beam or minigun steady slows you down. */
 const FIRING_SPEED_FACTOR = 0.55;
 /** Moving away from the way you face (backing off while shooting) is slower. */
@@ -244,6 +248,7 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		dash: null,
 		armor: null,
 		branded: 0,
+		chilled: 0,
 		usage: {},
 		locked: new Set(),
 		confused: 0,
@@ -336,7 +341,8 @@ export function updatePlayer(p: Player, intent: Intent, dt: number, world: World
 		p.def.maxSpeed *
 		(p.flying ? FLY_SPEED_BONUS : 1) *
 		(p.firing ? FIRING_SPEED_FACTOR : 1) *
-		(backpedal ? BACKPEDAL_SPEED_FACTOR : 1);
+		(backpedal ? BACKPEDAL_SPEED_FACTOR : 1) *
+		(p.chilled > 0 ? CHILLED_SPEED_FACTOR : 1);
 
 	// Steer velocity toward where the input points. Speeding up uses accel,
 	// coasting to a stop uses decel. That gives a slight "flying" feel

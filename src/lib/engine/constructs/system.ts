@@ -349,6 +349,7 @@ export function updatePlayerConstructs(p: Player, intent: Intent, dt: number, w:
 	p.actionTimer = Math.max(0, p.actionTimer - dt);
 	if (p.actionTimer === 0) p.actionShape = null;
 	p.branded = Math.max(0, p.branded - dt);
+	p.chilled = Math.max(0, p.chilled - dt);
 	if (p.armor) {
 		p.armor.time -= dt;
 		if (p.armor.time <= 0) {
