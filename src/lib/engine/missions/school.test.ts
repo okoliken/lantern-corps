@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { Game } from '../game';
 import { buildTrainingMap } from './training';
-import { LESSONS, lessonById, School, TEACHERS } from './school';
+import { BOLT_LIFT, LESSONS, lessonById, School, TEACHERS } from './school';
+import { hitsBody } from '../player';
 import { MAX_WILLPOWER } from '../willpower';
 
 function setup(id: string) {
@@ -29,32 +30,56 @@ describe('Survival School', () => {
 		}
 	});
 
-	it("the drill yard's bolts actually hurt: they were being absorbed into nothing", () => {
-		const { game, school, run } = setup('shields');
+	/**
+	 * Stand still in the open and add up everything the drones take off you.
+	 * Health regrows between hits, so the total is what matters, not what is
+	 * left at the end.
+	 */
+	function takeAStand(id: string, seconds = 20) {
+		const { game, school, run } = setup(id);
 		run(3.4);
 		const me = game.players[0];
-		const full = me.health;
-		// Stand still in the open, no bubble, and let the drones work
-		run(12, () => {
-			me.x = me.prevX = 900;
-			me.y = me.prevY = 700;
+		let taken = 0;
+		let last = me.health;
+		run(seconds, () => {
+			me.x = me.prevX = 1200;
+			me.y = me.prevY = 800;
+			if (me.health < last) taken += last - me.health;
+			last = me.health;
 		});
+		return { game, school, me, taken };
+	}
+
+	it("the drill yard's bolts actually hurt: they were being absorbed into nothing", () => {
+		const { school, taken } = takeAStand('shields');
 		expect(school.state).toBe('running');
-		expect(me.health).toBeLessThan(full);
+		expect(taken).toBeGreaterThan(0);
+	});
+
+	it('the bolts hit the body, not the boots', () => {
+		const { game, run } = setup('take-the-hit');
+		run(3.4);
+		const me = game.players[0];
+		// A bolt drawn level with the top of the Lantern's body
+		const x = me.x;
+		const y = me.y - me.bodyTop + BOLT_LIFT;
+		expect(hitsBody(me, x, y, BOLT_LIFT)).toBe(true);
+		// The old test was a 28-unit circle round the FEET, which this misses by
+		// a mile: that is why bolts sailed through the chest and only the legs
+		// ever registered.
+		expect(Math.hypot(x - me.x, y - me.y)).toBeGreaterThan(28);
+	});
+
+	it('standing still in the drill yard is punishing', () => {
+		const { taken } = takeAStand('take-the-hit');
+		expect(taken).toBeGreaterThan(100);
 	});
 
 	it('Take the Hit only scores a heavy bolt that a bubble was actually up for', () => {
-		const { game, school, run } = setup('take-the-hit');
-		run(3.4);
-		const me = game.players[0];
-		const full = me.health;
-		run(12, () => {
-			me.x = me.prevX = 900;
-			me.y = me.prevY = 700;
-		});
-		// No bubble the whole time, so nothing braced and it hurt
+		const { school, taken } = takeAStand('take-the-hit');
+		// No bubble the whole time, so nothing braced and all of it landed
 		expect(school.score).toBe(0);
-		expect(me.health).toBeLessThan(full);
+		expect(taken).toBeGreaterThan(0);
 	});
 
 	it('Shields First only counts targets broken with the bubble up', () => {

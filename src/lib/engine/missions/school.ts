@@ -6,6 +6,7 @@
 // being where it lands.
 
 import { damagePlayer } from '../combat';
+import { bodyAim, hitsBody, type Player } from '../player';
 import { createDummy, isStanding, type Dummy } from '../dummy';
 import { drawMarker, drawPracticeBolt, drawPracticeDrone } from '../draw/training';
 import type { Drawable, Game } from '../game';
@@ -90,8 +91,16 @@ const INTRO = 3.2;
 const TARGETS_UP = 4;
 const TARGET_HP = 45;
 const BOLT_SPEED = 260;
+/**
+ * How high a bolt is drawn above the ground plane it travels on. The drill
+ * yard fires at the Lantern's BODY, and a bolt that looks like it hit you did.
+ */
+export const BOLT_LIFT = 40;
 const BOLT_DAMAGE = 14;
 const BOLT_KNOCK = 160;
+/** Kilowog's own swings: what they take off you, and how far they put you. */
+const HEAVY_DAMAGE = 30;
+const HEAVY_KNOCK = 520;
 const DRONE_EVERY = 1.1;
 /** Running on Empty starts you here, with nothing to recharge from. */
 const EMPTY_WILL = 0.25;
@@ -166,11 +175,11 @@ export class School {
 			case 'shields':
 			case 'empty':
 				this.targetsUp(game);
-				this.fire(game, dt, me.x, me.y);
+				this.fire(game, dt, me);
 				this.flyBolts(game, dt);
 				break;
 			case 'take-the-hit':
-				this.fire(game, dt, me.x, me.y, 0.75, true);
+				this.fire(game, dt, me, 0.75, true);
 				this.flyBolts(game, dt);
 				break;
 			case 'fear': {
@@ -244,15 +253,17 @@ export class School {
 	}
 
 	/** Fire at the Lantern. Kilowog's heavy swings are the ones worth bracing. */
-	private fire(game: Game, dt: number, atX: number, atY: number, rate = 1, heavy = false) {
+	private fire(game: Game, dt: number, at: Player, rate = 1, heavy = false) {
 		void game;
 		this.boltIn -= dt;
 		if (this.boltIn > 0) return;
 		this.boltIn = Math.max(0.35, DRONE_EVERY * rate - this.elapsed * 0.005);
 		const drone = this.drones[Math.floor(Math.random() * this.drones.length)];
 		if (!drone) return;
-		const dx = atX - drone.x;
-		const dy = atY - drone.y;
+		// Lead it at the middle of the body, the way a Red Lantern's shot is aimed
+		const aim = bodyAim(at, BOLT_LIFT);
+		const dx = aim.x - drone.x;
+		const dy = aim.y - drone.y;
 		const len = Math.hypot(dx, dy) || 1;
 		this.bolts.push({ x: drone.x, y: drone.y, vx: (dx / len) * BOLT_SPEED, vy: (dy / len) * BOLT_SPEED, heavy });
 	}
@@ -262,7 +273,7 @@ export class School {
 		for (const bolt of [...this.bolts]) {
 			bolt.x += bolt.vx * dt;
 			bolt.y += bolt.vy * dt;
-			const hit = Math.hypot(bolt.x - me.x, bolt.y - me.y) < 28;
+			const hit = hitsBody(me, bolt.x, bolt.y, BOLT_LIFT);
 			const gone = bolt.x < 0 || bolt.y < 0 || bolt.x > this.map.width || bolt.y > this.map.height;
 			if (!hit && !gone) continue;
 			if (hit) {
@@ -270,8 +281,9 @@ export class School {
 				// Lantern. Was a bubble actually up? A hit that lands during the
 				// moment of mercy after the last one is not a block.
 				const bubble = game.constructs.shields.some((s) => s.target === me);
-				const damage = bolt.heavy ? BOLT_DAMAGE * 1.6 : BOLT_DAMAGE;
-				const through = damagePlayer(game.constructs, me, damage, bolt.x, bolt.y, BOLT_KNOCK);
+				const damage = bolt.heavy ? HEAVY_DAMAGE : BOLT_DAMAGE;
+				const knock = bolt.heavy ? HEAVY_KNOCK : BOLT_KNOCK;
+				const through = damagePlayer(game.constructs, me, damage, bolt.x, bolt.y, knock);
 				// Taking it on the bubble is the whole lesson
 				if (bolt.heavy && bubble && through <= 0) this.score += 1;
 			}
