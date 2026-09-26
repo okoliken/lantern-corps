@@ -8,7 +8,7 @@
 
 import { HEAD_R, TORSO, computeSkeleton, turnScale, type LanternPose, type Point, type Skeleton } from '../animation';
 import type { HeroFx } from '../heroes';
-import type { HeroId, Look } from '../lanterns';
+import { LANTERNS, type HeroId, type Look } from '../lanterns';
 import { isStanding } from '../dummy';
 import { createEnemy, type Enemy } from '../enemies/enemies';
 import type { Player } from '../player';
@@ -941,6 +941,64 @@ export function drawReverseFlash(ctx: CanvasRenderingContext2D, e: Enemy, x: num
 	if (e.flash > 0) ctx.globalAlpha *= 0.55;
 	drawSpeedsterBody(ctx, sk, RF_LOOK, time, REVERSE_FLASH_COLORS);
 	ctx.restore();
+}
+
+// ---------------------------------------------------------- the League, sparring
+
+/** The League fighting John on the Watchtower: the same figures as when they fight beside him. */
+const LEAGUE_KINDS: Record<string, HeroId> = { flashSpar: 'flash', supermanSpar: 'superman', wonderwomanSpar: 'wonderwoman', hawkgirlSpar: 'hawkgirl' };
+export const isLeagueKind = (kind: string): boolean => kind in LEAGUE_KINDS;
+export const leagueHero = (kind: string): HeroId => LEAGUE_KINDS[kind];
+/** Their name and bar over the ring: their colour, not a Red Lantern's. */
+const LEAGUE_COLORS: Record<HeroId, string> = { flash: '#ffd23f', superman: '#4f8bff', wonderwoman: LASSO_GOLD, hawkgirl: '#e0a458', razer: '#ff2a2a' };
+export const leagueColor = (kind: string): string => LEAGUE_COLORS[leagueHero(kind)];
+
+const LEAGUE_TRAIL = new WeakMap<Enemy, { x: number; y: number; t: number }[]>();
+
+export function drawLeagueEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number) {
+	const id = leagueHero(e.kind);
+	const def = LANTERNS[id];
+	const speed = Math.hypot(e.vx, e.vy);
+	const base = enemyPose(e, hasGround, time);
+	const b = e.brain;
+	// The Flash runs; the rest fly. Hawkgirl climbs for a dive
+	const runs = id === 'flash';
+	const pose: LanternPose = {
+		...base,
+		altitude: runs ? 0 : 1,
+		hoverHeight: runs ? 0 : base.hoverHeight,
+		lean: runs ? 0 : base.lean,
+		walkPhase: runs && speed > 14 ? time * Math.min(speed, 600) * 0.05 + e.homeX : 0,
+		glow: false
+	};
+	if (runs) {
+		const trail = LEAGUE_TRAIL.get(e) ?? [];
+		LEAGUE_TRAIL.set(e, trail);
+		if (speed > 280 && isStanding(e)) trail.push({ x, y, t: time });
+		while (trail.length && time - trail[0].t > 0.25) trail.shift();
+		if (trail.length > 1) drawSpeedTrail(ctx, trail.map((p) => ({ x: p.x, y: p.y, age: Math.max(0, time - p.t) })), FIGURE_HEIGHT);
+	}
+	const defeated = !isStanding(e);
+	ctx.save();
+	ctx.globalAlpha = defeated ? Math.min(1, e.down / 0.5) : 1;
+	if (e.flash > 0) ctx.globalAlpha *= 0.55;
+	// Wonder Woman's bracelets come up while she is closing
+	const guard = id === 'wonderwoman' && b.state === 'windup' ? 1 : 0;
+	drawHero(ctx, id, def.look, x, y, pose, time, 1, { guard });
+	ctx.restore();
+}
+
+/** Where a League member's hand is, and the top of their head (for tells and the name). */
+export function leagueHand(e: Enemy, x: number, y: number): [number, number] {
+	const pose = enemyPose(e, true, 0);
+	const runs = leagueHero(e.kind) === 'flash';
+	const lift = runs ? 0 : pose.hoverHeight * FIGURE_SCALE;
+	return [x + e.dir * 16, y - 52 - lift];
+}
+export function leagueTop(e: Enemy, y: number): number {
+	const pose = enemyPose(e, true, 0);
+	const runs = leagueHero(e.kind) === 'flash';
+	return y - FIGURE_HEIGHT - 6 - (runs ? 0 : pose.hoverHeight * FIGURE_SCALE);
 }
 
 /** Where Reverse-Flash's hand is, and the top of his head (for his tells and name). */

@@ -949,3 +949,17 @@ describe('enemies fight with intent', () => {
 		expect(e.brain.target).toBe(hal);
 	});
 });
+
+describe('random kits stay red', () => {
+	it("a Rage Grunt never draws the League's moves, or any other named fighter's", () => {
+		// The League's moves went into the ability table for the Watchtower, and
+		// every grunt's random kit is drawn from that table: they must be kept out
+		const named = new Set<string>(['flashRush', 'flashBolt', 'haymaker', 'heatVision', 'frostBreath', 'swordRush', 'lasso', 'maceDive', 'maceSwing', 'rfBlitz', 'bigHammer', 'twinBlades']);
+		for (let i = 0; i < 200; i++) {
+			for (const role of ['berserker', 'hunter', 'gunner'] as const) {
+				const e = createEnemy('rageGrunt', 0, 0, role);
+				for (const id of e.brain.kit) expect(named.has(id)).toBe(false);
+			}
+		}
+	});
+});

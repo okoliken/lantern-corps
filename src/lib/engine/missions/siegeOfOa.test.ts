@@ -75,6 +75,9 @@ describe('Act 3, Mission 1: Siege of Oa', () => {
 		run(3, () => {
 			e.x = BATTERY.x + DRAIN_RANGE / 2;
 			e.y = BATTERY.y;
+			// John's turrets sit by the battery and would finish an already-hurt
+			// Red in a second; this is about the drinking, so keep it standing
+			e.hp = Math.max(e.hp, e.maxHp * 0.5);
 			for (const p of game.players) {
 				p.invuln = 1;
 				p.x = BATTERY.x - 900;

@@ -12,6 +12,7 @@
 
 import { castBeam } from '../beam';
 import { damagePlayer } from '../combat';
+import { heroFx } from '../heroes';
 import { absorbWithShield, removeObstacle, type ConstructWorld } from '../constructs/system';
 import { DUMMY_HALF_W, isStanding } from '../dummy';
 import type { Obstacle } from '../map';
@@ -22,6 +23,7 @@ import { CORPS_ABILITIES, startCorpsAbility, updateCorpsAbility } from './corpsC
 import { RAZER_ABILITIES, startRazerAbility, updateRazerAbility } from './razer';
 import { GRODD_ABILITIES, startGroddAbility, updateGroddAbility, updatePsychicFx } from './grodd';
 import { REVERSE_FLASH_ABILITIES, startReverseFlashAbility, updateReverseFlashAbility } from './reverseFlash';
+import { LEAGUE_ABILITIES, startLeagueAbility, updateLeagueAbility, type LeagueCtx } from './league';
 
 export type AbilityId =
 	| 'claws'
@@ -81,7 +83,17 @@ export type AbilityId =
 	// Reverse-Flash (reverseFlash.ts)
 	| 'rfBlitz'
 	| 'rfBeatdown'
-	| 'rfLightning';
+	| 'rfLightning'
+	// The Justice League, sparring (league.ts)
+	| 'flashRush'
+	| 'flashBolt'
+	| 'haymaker'
+	| 'heatVision'
+	| 'frostBreath'
+	| 'swordRush'
+	| 'lasso'
+	| 'maceDive'
+	| 'maceSwing';
 
 /** How far away a construct is used from. Kits take some of each. */
 type Band = 'close' | 'mid' | 'long' | 'support';
@@ -385,6 +397,53 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 		id: 'rfLightning', name: 'Red Lightning', band: 'long', tell: 'aim', windup: 0.45, active: 0.1, recover: 0.3, cooldown: 3.5,
 		minRange: 150, maxRange: 650, damage: 8, knockback: 320, melee: false, heavy: false, chance: 0.8
 	}),
+	// ---- The Justice League, sparring on the Watchtower (league.ts) ----
+	// The Flash: in at a blur, a handful of punches, and gone before you turn round
+	flashRush: def({
+		id: 'flashRush', name: 'Speed Rush', band: 'close', tell: 'strike', windup: 0.3, active: 0.8, recover: 0.3, cooldown: 1.1,
+		minRange: 0, maxRange: 560, damage: 5, knockback: 380, melee: false, heavy: false, chance: 1
+	}),
+	// Speed Force lightning, thrown from wherever he stopped
+	flashBolt: def({
+		id: 'flashBolt', name: 'Lightning', band: 'long', tell: 'aim', windup: 0.4, active: 0.1, recover: 0.3, cooldown: 2.4,
+		minRange: 160, maxRange: 640, damage: 9, knockback: 260, melee: false, heavy: false, chance: 0.7
+	}),
+	// Superman: a straight punch you can see coming from across the deck
+	haymaker: def({
+		id: 'haymaker', name: 'Haymaker', band: 'mid', tell: 'heavy', windup: 0.7, active: 0.55, recover: 0.7, cooldown: 3.2,
+		minRange: 100, maxRange: 540, damage: 22, knockback: 780, melee: false, heavy: true, chance: 0.8
+	}),
+	// A line of heat across the deck, ticking while it's on you (damage per second)
+	heatVision: def({
+		id: 'heatVision', name: 'Heat Vision', band: 'long', tell: 'aim', windup: 0.6, active: 0.9, recover: 0.5, cooldown: 4,
+		minRange: 160, maxRange: 700, damage: 14, knockback: 40, melee: false, heavy: false, chance: 0.7
+	}),
+	// A cone of freezing breath: it does not hurt much, it stops you moving
+	frostBreath: def({
+		id: 'frostBreath', name: 'Freeze Breath', band: 'mid', tell: 'heavy', windup: 0.55, active: 0.6, recover: 0.5, cooldown: 5.5,
+		minRange: 60, maxRange: 300, damage: 4, knockback: 120, melee: false, heavy: true, chance: 0.6, radius: 260
+	}),
+	// Wonder Woman: closes the distance and cuts, three times
+	swordRush: def({
+		id: 'swordRush', name: 'Sword Rush', band: 'mid', tell: 'strike', windup: 0.4, active: 0.75, recover: 0.45, cooldown: 1.5,
+		minRange: 0, maxRange: 380, damage: 8, knockback: 240, melee: false, heavy: false, chance: 1
+	}),
+	// The lasso: it takes you to her, and there is no arguing with it
+	lasso: def({
+		id: 'lasso', name: 'Golden Lasso', band: 'long', tell: 'aim', windup: 0.55, active: 1, recover: 0.4, cooldown: 4.2,
+		minRange: 200, maxRange: 620, damage: 4, knockback: 0, melee: false, heavy: false, chance: 0.75
+	}),
+	// Hawkgirl: climbs, and comes down on the spot you were standing on
+	maceDive: def({
+		id: 'maceDive', name: 'Mace Dive', band: 'mid', tell: 'sky', windup: 0.75, active: 0.65, recover: 0.7, cooldown: 2.8,
+		minRange: 80, maxRange: 560, damage: 20, knockback: 520, melee: false, heavy: true, chance: 0.8, radius: 110
+	}),
+	// A mace swing up close
+	maceSwing: def({
+		id: 'maceSwing', name: 'Mace Swing', band: 'close', tell: 'strike', windup: 0.45, active: 0.2, recover: 0.5, cooldown: 1.1,
+		minRange: 0, maxRange: 80, damage: 11, knockback: 400, melee: true, heavy: false, chance: 1, radius: 90
+	}),
+
 	// Lifts someone with his mind, carries them to him and hurls them across the street
 	tkGrip: def({
 		id: 'tkGrip', name: 'Telekinetic Grip', band: 'long', tell: 'aim', windup: 0.6, active: 1.3, recover: 0.5, cooldown: 5.5,
@@ -400,12 +459,17 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 /** What the machines use. They're never part of a Red Lantern's random kit. */
 const MACHINE_ABILITIES: readonly AbilityId[] = ['eyeLaser', 'sweep', 'pulse', 'strafe', 'bombs'];
 /** Signature moves of named Red Lanterns, never handed out in random kits. */
-const SIGNATURE_ABILITIES: readonly AbilityId[] = ['swoop', ...CORPS_ABILITIES, ...RAZER_ABILITIES, ...GRODD_ABILITIES, ...REVERSE_FLASH_ABILITIES];
+const SIGNATURE_ABILITIES: readonly AbilityId[] = ['swoop', ...CORPS_ABILITIES, ...RAZER_ABILITIES, ...GRODD_ABILITIES, ...REVERSE_FLASH_ABILITIES, ...LEAGUE_ABILITIES];
 
-/** Every red construct a Red Lantern's kit can be built from. */
-const ABILITY_LIST = (Object.keys(ABILITIES) as AbilityId[]).filter(
-	(id) => !MACHINE_ABILITIES.includes(id) && !SIGNATURE_ABILITIES.includes(id)
-);
+/**
+ * Every red construct a Red Lantern's kit can be built from. Built the first
+ * time it is needed, not when the module loads: the signature sets come from
+ * files that import this one back, and depending on which file a page loads
+ * first, one of them can still be empty while this module is evaluating.
+ */
+let abilityList: AbilityId[] | null = null;
+const ABILITY_LIST = (): AbilityId[] =>
+	(abilityList ??= (Object.keys(ABILITIES) as AbilityId[]).filter((id) => !MACHINE_ABILITIES.includes(id) && !SIGNATURE_ABILITIES.includes(id)));
 
 /** Which bands each role's kit is built from ('any' = a random fighting band). Everyone gets one support construct. */
 const KIT_PLAN: Record<Role, (Band | 'any')[]> = {
@@ -420,8 +484,8 @@ export function randomKit(role: Role, rand = Math.random): AbilityId[] {
 	const bands: Band[] = ['close', 'mid', 'long'];
 	for (const slot of KIT_PLAN[role]) {
 		const band = slot === 'any' ? bands[Math.floor(rand() * bands.length)] : slot;
-		let pool = ABILITY_LIST.filter((id) => ABILITIES[id].band === band && !kit.includes(id));
-		if (pool.length === 0) pool = ABILITY_LIST.filter((id) => !kit.includes(id));
+		let pool = ABILITY_LIST().filter((id) => ABILITIES[id].band === band && !kit.includes(id));
+		if (pool.length === 0) pool = ABILITY_LIST().filter((id) => !kit.includes(id));
 		kit.push(pool[Math.floor(rand() * pool.length)]);
 	}
 	return kit;
@@ -569,6 +633,9 @@ export function power(e: Enemy, a: AbilityDef): number {
 // --------------------------------------------------------------- using them
 
 /** The windup is over: the construct happens. */
+/** What the League's moves borrow from this module's imports (see LeagueCtx). */
+const leagueCtx = (): LeagueCtx => ({ damagePlayer, heroFx, steer, power });
+
 export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Player[]) {
 	const b = e.brain;
 	const a = ABILITIES[b.ability!];
@@ -583,6 +650,7 @@ export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Play
 	if (RAZER_ABILITIES.has(a.id)) return startRazerAbility(e, a, w, players);
 	if (GRODD_ABILITIES.has(a.id)) return startGroddAbility(e, a, w);
 	if (REVERSE_FLASH_ABILITIES.has(a.id)) return startReverseFlashAbility(e, a, w);
+	if (LEAGUE_ABILITIES.has(a.id)) return startLeagueAbility(e, a, w, players, leagueCtx());
 	switch (a.id) {
 		case 'claws':
 			e.vx += b.aimX * 340;
@@ -758,6 +826,10 @@ export function updateAbility(e: Enemy, w: ConstructWorld, players: readonly Pla
 	}
 	if (REVERSE_FLASH_ABILITIES.has(a.id)) {
 		updateReverseFlashAbility(e, a, w, dt);
+		return b.timer <= 0;
+	}
+	if (LEAGUE_ABILITIES.has(a.id)) {
+		updateLeagueAbility(e, a, w, players, dt, leagueCtx());
 		return b.timer <= 0;
 	}
 	if (CORPS_ABILITIES.has(a.id)) {

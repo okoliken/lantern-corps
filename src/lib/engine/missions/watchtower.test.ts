@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { damagePlayer } from '../combat';
+import { isStanding } from '../dummy';
+import { ENEMIES } from '../enemies/enemies';
 import { Game } from '../game';
-import { DRILLS, Watchtower, buildWatchtowerMap } from './watchtower';
+import { BOUTS, BOUT_TIME, FLOOR_AT, Watchtower, YIELD_AT, buildWatchtowerMap } from './watchtower';
 
 function setup() {
 	const game = new Game({ players: [{ lantern: 'john', keys: 'solo' }], map: buildWatchtowerMap() });
@@ -17,47 +20,88 @@ function setup() {
 }
 
 describe('the Watchtower', () => {
-	it('has the League on the deck before the first drill', () => {
+	it('the Flash steps into the ring once the introductions are over', () => {
 		const { game, mission, run } = setup();
-		run(0.2);
-		expect(mission.crew.map((p) => p.def.id).sort()).toEqual(['flash', 'hawkgirl', 'superman', 'wonderwoman']);
-		expect(game.players[0].def.id).toBe('john');
-	});
-
-	it('starts on the laps once the introductions are over', () => {
-		const { mission, run } = setup();
 		expect(mission.state).toBe('intro');
 		run(5);
 		expect(mission.state).toBe('playing');
-		expect(mission.drill).toBe('laps');
-		expect(mission.objective).toContain('markers');
+		expect(mission.bout).toBe('flash');
+		expect(mission.fighter?.kind).toBe('flashSpar');
+		// One in the ring with him, and nobody else
+		expect(game.enemies.filter(isStanding).length).toBe(1);
+		expect(mission.objective).toContain('Flash');
 	});
 
-	it('nothing on this deck can hurt him', () => {
-		const { game, mission, run } = setup();
-		run(6);
+	it('the League fight as themselves, not as Red Lanterns', () => {
+		for (const kind of ['flashSpar', 'supermanSpar', 'wonderwomanSpar', 'hawkgirlSpar'] as const) {
+			expect(ENEMIES[kind].faction).not.toBe('red');
+			expect(ENEMIES[kind].tint).toBeUndefined();
+			expect(ENEMIES[kind].kit?.length ?? 0).toBeGreaterThan(0);
+		}
+	});
+
+	it('it is a real fight: standing there, he gets hit', () => {
+		const { game, run } = setup();
+		run(5);
 		const me = game.players[0];
-		const health = me.health;
-		run(20);
-		expect(me.health).toBe(health);
-		expect(mission.lives).toBe(3);
+		let taken = 0;
+		let last = me.health;
+		run(20, () => {
+			if (me.health < last) taken += last - me.health;
+			last = me.health;
+		});
+		expect(taken).toBeGreaterThan(0);
 	});
 
-	it('runs every drill in order and finishes', () => {
+	it('but nobody goes down on this deck: the floor picks him up', () => {
+		const { game, mission, run } = setup();
+		run(5);
+		const me = game.players[0];
+		damagePlayer(game.constructs, me, me.maxHealth * 2, me.x + 30, me.y, 0);
+		run(0.1);
+		expect(me.downed).toBe(false);
+		expect(me.health).toBeGreaterThan(me.maxHealth * FLOOR_AT);
+		expect(mission.floors).toBe(1);
+		expect(mission.lives).toBe(3);
+		expect(mission.state).toBe('playing');
+	});
+
+	it('they yield with a third left, and the next one steps in', () => {
+		const { mission, run } = setup();
+		run(5);
+		const flash = mission.fighter!;
+		flash.hp = Math.floor(flash.maxHp * YIELD_AT) - 1;
+		run(0.1);
+		expect(mission.results.flash?.won).toBe(true);
+		expect(mission.fighter).toBeNull();
+		run(4);
+		expect(mission.bout).toBe('superman');
+		expect(mission.fighter?.kind).toBe('supermanSpar');
+	});
+
+	it('a bout they cannot finish gets called on time', () => {
+		const { game, mission, run } = setup();
+		run(5);
+		run(BOUT_TIME + 0.5, () => {
+			game.players[0].invuln = 1;
+		});
+		expect(mission.results.flash).toBeTruthy();
+		expect(mission.results.flash?.won).toBe(false);
+	});
+
+	it('runs all four bouts and finishes the session', () => {
 		const { mission, run } = setup();
 		const seen = new Set<string>();
-		run(180, () => seen.add(mission.drill));
-		for (const drill of DRILLS) expect(seen.has(drill)).toBe(true);
+		run(5);
+		// Win each bout as it comes
+		run(60, () => {
+			seen.add(mission.bout);
+			const f = mission.fighter;
+			if (f) f.hp = Math.min(f.hp, Math.floor(f.maxHp * YIELD_AT) - 1);
+		});
+		for (const bout of BOUTS) expect(seen.has(bout)).toBe(true);
 		expect(mission.state).toBe('won');
-		expect(mission.drill).toBe('done');
-	});
-
-	it('dropping things costs the second star, and the clock costs the third', () => {
-		const { mission, run } = setup();
-		run(180);
-		expect(mission.stars).toBeGreaterThanOrEqual(1);
-		// The bot does nothing at all, so it drops everything
-		expect(mission.stars).toBeLessThan(3);
-		expect(mission.stats().some((s) => s.label === 'Dropped')).toBe(true);
+		expect(mission.bout).toBe('done');
+		expect(mission.stars).toBeGreaterThanOrEqual(2);
 	});
 });

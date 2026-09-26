@@ -72,9 +72,15 @@ describe("Act 2, Mission 4: The Guardians' Shame", () => {
 		const hp = red.hp;
 		run(3, () => {
 			safe();
-			// Only Razer's doing
+			// Only Razer's doing, and only this Red: he picks his own target, so
+			// the rest of the pack is parked out of his reach
 			game.players[0].x = 100;
 			game.players[1].x = 100;
+			for (const o of game.enemies) {
+				if (o === red) continue;
+				o.x = 2400;
+				o.brain.speedMul = 0;
+			}
 		});
 		expect(red.hp).toBeLessThan(hp);
 	});

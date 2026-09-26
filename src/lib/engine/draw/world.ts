@@ -78,7 +78,7 @@ export function drawStarfield(
 const GROUND_TILE = 64;
 
 /** How a planet's surface looks: 'dust' (Coast City's outskirts), 'oa' (the Corps' home), 'ash' (a burnt outpost). */
-export type GroundStyle = 'dust' | 'oa' | 'ash' | 'meadow' | 'bloodMoon' | 'street' | 'nightStreet' | 'vault';
+export type GroundStyle = 'dust' | 'oa' | 'ash' | 'meadow' | 'bloodMoon' | 'street' | 'nightStreet' | 'vault' | 'deck';
 
 const GROUNDS: Record<GroundStyle, { void: string; base: string; dark: string; light: string; inlay?: string }> = {
 	dust: { void: '#15150f', base: '#3b3a2e', dark: 'rgba(20, 18, 12, 0.35)', light: 'rgba(120, 112, 88, 0.3)' },
@@ -94,7 +94,9 @@ const GROUNDS: Record<GroundStyle, { void: string; base: string; dark: string; l
 	// A city on Earth: concrete sidewalks between asphalt roads (see drawStreets)
 	street: { void: '#0b0c0e', base: '#4a4a4c', dark: 'rgba(20, 20, 22, 0.3)', light: 'rgba(150, 150, 155, 0.18)' },
 	// The same streets after dark (Detroit): everything under a blue night
-	nightStreet: { void: '#05060a', base: '#4a4a4c', dark: 'rgba(20, 20, 22, 0.3)', light: 'rgba(150, 150, 155, 0.18)' }
+	nightStreet: { void: '#05060a', base: '#4a4a4c', dark: 'rgba(20, 20, 22, 0.3)', light: 'rgba(150, 150, 155, 0.18)' },
+	// The Watchtower's training deck: steel plating, seams lit from below, space past the edge
+	deck: { void: '#02040a', base: '#2a3040', dark: 'rgba(8, 10, 18, 0.5)', light: 'rgba(160, 180, 220, 0.14)', inlay: 'rgba(120, 170, 255, 0.13)' }
 };
 
 /**
