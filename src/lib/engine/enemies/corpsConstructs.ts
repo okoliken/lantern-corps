@@ -53,7 +53,7 @@ export function startCorpsAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, pl
 				const d = Math.hypot(p.x - x, p.y - y);
 				if (!p.downed && d > r + 10 && d <= r + SHOCKWAVE) damagePlayer(w, p, power(e, a) * 0.3, x, y, a.knockback * 0.45);
 			}
-			w.effects.push({ kind: 'bigHammer', x: e.x, y: e.y, age: 0, life: 0.7, angle, value: reach, radius: r, lift: 40 });
+			w.effects.push({ kind: 'bigHammer', x: e.x, y: e.y, age: 0, life: 0.7, angle, value: reach, radius: r, lift: 40, form: e.kind === 'guySpar' ? 'bat' : undefined });
 			break;
 		}
 		case 'hammerThrow': {
@@ -129,7 +129,7 @@ export function updateCorpsAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, p
 			}
 			// Everyone can be hit again each turn of the spin
 			if (b.elapsed % SPIN_REHIT < dt) b.struck = [];
-			w.effects.push({ kind: 'hammerSpin', x: e.x, y: e.y, age: 0, life: 0.1, angle: b.elapsed * 14, radius: r, lift: 40 });
+			w.effects.push({ kind: 'hammerSpin', x: e.x, y: e.y, age: 0, life: 0.1, angle: b.elapsed * 14, radius: r, lift: 40, form: e.kind === 'guySpar' ? 'bat' : undefined });
 			break;
 		}
 		case 'sword':

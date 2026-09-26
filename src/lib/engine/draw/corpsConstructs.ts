@@ -34,6 +34,31 @@ function hammerAt(ctx: CanvasRenderingContext2D, x: number, y: number, size: num
 	ctx.restore();
 }
 
+/** Guy Gardner's answer to a hammer: a baseball bat. Same orientation as the hammer (barrel up, handle down). */
+function batPath(size: number): Path2D {
+	const p = new Path2D();
+	// The barrel: fat at the top, tapering toward the handle
+	p.moveTo(-size * 0.17, -size * 0.55);
+	p.quadraticCurveTo(-size * 0.2, -size * 0.7, 0, -size * 0.72);
+	p.quadraticCurveTo(size * 0.2, -size * 0.7, size * 0.17, -size * 0.55);
+	p.lineTo(size * 0.09, size * 0.6);
+	p.lineTo(-size * 0.09, size * 0.6);
+	p.closePath();
+	// The handle and the knob
+	p.rect(-size * 0.06, size * 0.6, size * 0.12, size * 0.7);
+	p.rect(-size * 0.11, size * 1.28, size * 0.22, size * 0.12);
+	return p;
+}
+function batAt(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, angle: number, time: number, alpha = 1) {
+	ctx.save();
+	ctx.translate(x, y);
+	ctx.rotate(angle);
+	energy(ctx, batPath(size * 1.15), { time, edge: Math.max(2, size / 26), alpha });
+	ctx.restore();
+}
+/** Which swing to draw: Guy swings a bat, everyone else a hammer. */
+const swingFor = (bat: boolean) => (bat ? batAt : hammerAt);
+
 // ---------------------------------------------------------------- windups
 
 /**
@@ -48,13 +73,14 @@ export function drawCorpsWindup(ctx: CanvasRenderingContext2D, e: Enemy, hand: [
 	const [hx, hy] = hand;
 	const aim = Math.atan2(b.aimY, b.aimX);
 	const facing = b.aimX >= 0 ? 1 : -1;
+	const swing = swingFor(e.kind === 'guySpar');
 	switch (b.ability) {
 		case 'bigHammer':
 			// Raised high over his head, growing as he winds up
-			hammerAt(ctx, hx - facing * 10, top - 30 - k * 20, 40 + 60 * k, -facing * (0.3 + 0.4 * k), time);
+			swing(ctx, hx - facing * 10, top - 30 - k * 20, 40 + 60 * k, -facing * (0.3 + 0.4 * k), time);
 			break;
 		case 'hammerSpin':
-			hammerAt(ctx, hx + facing * 22, hy - 10, 46, facing * (1.2 + k), time);
+			swing(ctx, hx + facing * 22, hy - 10, 46, facing * (1.2 + k), time);
 			break;
 		case 'hammerThrow':
 			hammerAt(ctx, hx - facing * 14, hy - 26, 36 + 10 * k, -facing * (0.6 + 0.8 * k), time);
@@ -181,7 +207,7 @@ export function drawCorpsEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: 
 			const hx = e.x - facing * 20 + (ix - e.x + facing * 20) * swing;
 			// Head over, then down onto the ground; the handle ends up pointing back up at his hand
 			const hy = e.y - lift - 150 + (iy - 25 - (e.y - lift - 150)) * swing;
-			hammerAt(ctx, hx, hy, 100, facing * (-0.5 + swing * Math.PI * 0.85), time, Math.max(0, 1 - Math.max(0, t - 0.5) / 0.5));
+			swingFor(e.form === 'bat')(ctx, hx, hy, 100, facing * (-0.5 + swing * Math.PI * 0.85), time, Math.max(0, 1 - Math.max(0, t - 0.5) / 0.5));
 			if (swing >= 1) {
 				const k = (t - 0.15) / 0.85;
 				shockwave(ctx, ix, iy, r, k, 1);
@@ -204,7 +230,7 @@ export function drawCorpsEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: 
 				const ang = a + side;
 				const x = e.x + Math.cos(ang) * r * 0.85;
 				const y = cy + Math.sin(ang) * r * 0.38;
-				hammerAt(ctx, x, y, 40, ang + Math.PI / 2, time);
+				swingFor(e.form === 'bat')(ctx, x, y, 40, ang + Math.PI / 2, time);
 			}
 			break;
 		}
