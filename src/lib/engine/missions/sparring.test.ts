@@ -101,6 +101,37 @@ describe('Sparring · One on One', () => {
 		expect(asJohn.sparring.foe!.kind).toBe('sparHal');
 	});
 
+	it('there is no battery in the ring: you fight on the charge you walked in with', () => {
+		const { game } = setup('sinestro');
+		expect(game.map.noBattery).toBe(true);
+	});
+
+	it('experience shows: Sinestro hits harder than Hal, and Hal harder than John', () => {
+		const hal = setup('mirror', 'john');
+		hal.run(3);
+		const john = setup('mirror', 'hal');
+		john.run(3);
+		const sin = setup('sinestro');
+		sin.run(3);
+		expect(sin.sparring.foe!.brain.might).toBeGreaterThan(hal.sparring.foe!.brain.might);
+		expect(hal.sparring.foe!.brain.might).toBeGreaterThan(john.sparring.foe!.brain.might);
+		// And they are all a long way past a Rage Grunt
+		expect(john.sparring.foe!.brain.might).toBeGreaterThan(2);
+	});
+
+	it('a pro comes for a camper', () => {
+		const { game, sparring, run } = setup('sinestro');
+		run(3);
+		const me = game.players[0];
+		const spot = { x: me.x, y: me.y };
+		run(5, () => {
+			me.x = me.prevX = spot.x;
+			me.y = me.prevY = spot.y;
+			me.invuln = 1;
+		});
+		expect(sparring.camping).toBeGreaterThan(0);
+	});
+
 	it('the teachers are there to spar with too', () => {
 		expect(EXTRAS.map((o) => o.id)).toContain('kilowog');
 		expect(EXTRAS.every(isReady)).toBe(true);
