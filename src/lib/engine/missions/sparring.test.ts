@@ -1,78 +1,108 @@
 import { describe, expect, it } from 'vitest';
 import { Game } from '../game';
+import { isStanding } from '../dummy';
+import { damagePlayer } from '../combat';
 import { ENEMIES } from '../enemies/enemies';
-import { Sparring } from './sparring';
-import type { Effect } from '../constructs/system';
 import { buildTrainingMap } from './training';
+import { EXTRAS, OPPONENTS, ROSTER, TIERS, isReady, opponentById, Sparring } from './sparring';
 
-function setup() {
+function setup(id: string, as: 'hal' | 'john' = 'hal') {
+	const opponent = opponentById(id)!;
 	const map = buildTrainingMap();
-	const game = new Game({ players: [{ lantern: 'hal', keys: 'solo' }], map });
+	const game = new Game({ players: [{ lantern: as, keys: 'solo' }], map });
 	game.setView({ width: 1400, height: 800 });
-	const sparring = new Sparring(map);
+	// Hal vs. John: you fight the one you are not playing
+	const kind = opponent.id === 'mirror' ? (as === 'hal' ? 'sparJohn' : 'sparHal') : opponent.kind!;
+	const sparring = new Sparring(opponent, map, kind);
 	game.director = sparring;
-	const run = (seconds: number) => {
-		for (let i = 0; i < Math.round(seconds * 60); i++) game.update(1 / 60);
+	const run = (seconds: number, each: () => void = () => {}) => {
+		for (let i = 0; i < Math.round(seconds * 60); i++) {
+			game.update(1 / 60);
+			each();
+		}
 	};
-	return { game, sparring, p: game.players[0], run };
+	return { game, sparring, run };
 }
 
-describe('Sparring with Kilowog', () => {
-	it('Kilowog arrives, then Sinestro, both fighting as Green Lanterns', () => {
-		const { sparring, run } = setup();
-		expect(sparring.foes.kilowog).toBeUndefined();
-		run(3);
-		expect(sparring.state).toBe('fighting');
-		expect(sparring.foes.kilowog?.kind).toBe('kilowog');
-		run(1.5);
-		expect(sparring.foes.sinestro?.kind).toBe('sinestro');
-		expect(ENEMIES.kilowog.faction).toBe('corps');
-		expect(ENEMIES.sinestro.faction).toBe('corps');
-	});
-
-	it('Kilowog fights with hammers; Sinestro is the fiercer of the two', () => {
-		expect(ENEMIES.kilowog.kit?.filter((a) => a.startsWith('hammer') || a === 'bigHammer').length).toBeGreaterThanOrEqual(4);
-		expect(ENEMIES.sinestro.hp).toBeGreaterThan(ENEMIES.kilowog.hp);
-		expect(ENEMIES.sinestro.speed).toBeGreaterThan(ENEMIES.kilowog.speed);
-	});
-
-	it('his constructs are drawn green', () => {
-		const { game, run } = setup();
-		run(3);
-		const seen = new Set<Effect>();
-		for (let i = 0; i < 60 * 12; i++) {
-			game.update(1 / 60);
-			for (const e of game.constructs.effects) seen.add(e);
+describe('Sparring · One on One', () => {
+	it('has every opponent from the roster, in four tiers', () => {
+		expect(OPPONENTS.length).toBe(14);
+		for (const tier of TIERS) expect(OPPONENTS.some((o) => o.tier === tier.id)).toBe(true);
+		for (const foe of ROSTER) {
+			expect(foe.tests.length).toBeGreaterThan(20);
+			expect(TIERS.some((t) => t.id === foe.tier)).toBe(true);
+			expect(opponentById(foe.id)).toBe(foe);
 		}
-		const his = [...seen].filter((e) => e.kind === 'redBlast' || e.kind === 'redMace' || e.kind === 'redAxe' || e.kind === 'slamMark' || e.kind === 'roar' || e.kind === 'bigHammer' || e.kind === 'swordArc');
-		expect(his.length).toBeGreaterThan(0);
-		// Red art gets recolored; their own constructs are drawn green already
-		const native = new Set(['bigHammer', 'hammerSpin', 'hammerDrop', 'swordArc']);
-		expect(his.filter((e) => e.tint !== 'corps' && !native.has(e.kind)).map((e) => e.kind)).toEqual([]);
-		expect(his.filter((e) => e.tint && native.has(e.kind))).toEqual([]);
 	});
 
-	it('beating both wins; beating one is not enough', () => {
-		const { sparring, run } = setup();
-		run(4.5);
-		sparring.foes.kilowog!.hp = 0;
-		sparring.foes.kilowog!.down = 1;
-		run(0.1);
+	it('nothing is locked: every opponent that has a figure can be fought straight away', () => {
+		// The mode is not a ladder. If they are built, they are available.
+		const ready = ROSTER.filter(isReady);
+		expect(ready.length).toBeGreaterThanOrEqual(6);
+		for (const foe of ready) expect(ENEMIES[foe.kind!]).toBeTruthy();
+	});
+
+	it('the ones still being drawn are marked, not hidden', () => {
+		const toCome = OPPONENTS.filter((o) => !isReady(o));
+		// They still carry their roster entry, so the list reads complete
+		for (const foe of toCome) expect(foe.tests.length).toBeGreaterThan(20);
+		expect(toCome.map((o) => o.id)).toContain('batman');
+	});
+
+	it('every sparring Lantern fights in Corps green, not Red Lantern red', () => {
+		for (const foe of ROSTER.filter(isReady)) {
+			const def = ENEMIES[foe.kind!];
+			expect(def.faction).toBe('corps');
+			expect(def.tint).toBe('corps');
+		}
+	});
+
+	it('it is one on one: exactly one opponent, and nobody else', () => {
+		const { game, sparring, run } = setup('arisia');
+		run(3);
 		expect(sparring.state).toBe('fighting');
-		sparring.foes.sinestro!.hp = 0;
-		sparring.foes.sinestro!.down = 1;
+		expect(sparring.foe).not.toBeNull();
+		expect(game.enemies.filter(isStanding).length).toBe(1);
+		expect(sparring.foe!.kind).toBe('sparArisia');
+	});
+
+	it('beating them wins it, and the clock is the score', () => {
+		const { sparring, run } = setup('sinestro');
+		run(3);
+		const foe = sparring.foe!;
+		run(2, () => {
+			for (const p of [foe]) void p;
+		});
+		foe.hp = 0;
+		foe.down = 1;
 		run(0.1);
 		expect(sparring.state).toBe('won');
+		expect(sparring.elapsed).toBeGreaterThan(1);
 	});
 
-	it('going down loses, and you stay down', () => {
-		const { sparring, p, run } = setup();
+	it('going down loses it, and you stay down', () => {
+		const { game, sparring, run } = setup('boodikka');
 		run(3);
-		p.health = 0;
-		p.downed = true;
-		p.downTimer = 0.1;
-		run(3);
+		const me = game.players[0];
+		// Health regrows, so put them down properly rather than setting the flag
+		damagePlayer(game.constructs, me, me.health + 10, me.x + 40, me.y, 0);
+		run(0.1);
 		expect(sparring.state).toBe('lost');
-		expect(p.downed).toBe(true);
+		expect(me.downTimer).toBeGreaterThan(0);
+	});
+
+	it('Hal vs. John puts you against the other one', () => {
+		const asHal = setup('mirror', 'hal');
+		asHal.run(3);
+		expect(asHal.sparring.foe!.kind).toBe('sparJohn');
+
+		const asJohn = setup('mirror', 'john');
+		asJohn.run(3);
+		expect(asJohn.sparring.foe!.kind).toBe('sparHal');
+	});
+
+	it('the teachers are there to spar with too', () => {
+		expect(EXTRAS.map((o) => o.id)).toContain('kilowog');
+		expect(EXTRAS.every(isReady)).toBe(true);
 	});
 });

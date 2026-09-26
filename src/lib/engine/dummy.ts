@@ -19,7 +19,7 @@ const DUMMY_RESPAWN = 3;
 const DEFEAT_LINGER = 0.9;
 
 /** What kind of target: a training dummy, or which enemy. */
-export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterPrime' | 'manhunterCore' | 'reverseFlash' | 'signalSpire' | 'dexStarr' | 'rageBubble' | 'bloodConduit' | 'atrocitus';
+export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterPrime' | 'manhunterCore' | 'reverseFlash' | 'signalSpire' | 'dexStarr' | 'rageBubble' | 'bloodConduit' | 'atrocitus';
 
 export interface Dummy {
 	kind: TargetKind;
@@ -199,6 +199,12 @@ export const BODY: Record<TargetKind, { halfWidth: number; height: number }> = {
 	rageTurret: { halfWidth: 18, height: 76 },
 	kilowog: { halfWidth: 28, height: 100 },
 	sinestro: { halfWidth: 18, height: 96 },
+	// Lanterns in the sparring ring: the same size they are at your side
+	sparArisia: { halfWidth: 16, height: 88 },
+	sparKatma: { halfWidth: 17, height: 92 },
+	sparBoodikka: { halfWidth: 20, height: 98 },
+	sparHal: { halfWidth: 18, height: 94 },
+	sparJohn: { halfWidth: 19, height: 96 },
 	razer: { halfWidth: 18, height: 100 },
 	// Real size comes from its drift radius
 	spaceRock: { halfWidth: 20, height: 40 },

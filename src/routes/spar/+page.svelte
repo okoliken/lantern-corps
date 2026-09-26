@@ -1,264 +1,335 @@
 <script lang="ts">
-	// Sparring with Kilowog and Sinestro on Oa's training grounds. The rules
-	// are in $lib/engine/missions/sparring.ts.
-	import { onMount, untrack } from 'svelte';
-	import GameCanvas from '$lib/components/GameCanvas.svelte';
-	import PauseMenu from '$lib/components/PauseMenu.svelte';
-	import { Game } from '$lib/engine/game';
-	import { LANTERNS } from '$lib/engine/lanterns';
-	import { Sparring, type SparState } from '$lib/engine/missions/sparring';
-	import { buildTrainingMap } from '$lib/engine/missions/training';
-	import { profiles } from '$lib/profiles.svelte';
-	import { settings } from '$lib/settings.svelte';
+	// Sparring · One on One. Nothing is locked: pick anybody, any time.
+	import MenuPoster from '$lib/components/MenuPoster.svelte';
+	import Emblem from '$lib/components/Emblem.svelte';
+	import { EXTRAS, OPPONENTS, TIERS, isReady, type TierId } from '$lib/engine/missions/sparring';
+	import { PLAYABLE, LANTERNS } from '$lib/engine/lanterns';
+	import { records } from '$lib/records.svelte';
 
-	let { data } = $props();
-
-	let round = $state(0);
-	const setup = $derived.by(() => {
-		void round; // Rematch builds a fresh fight
-		const map = buildTrainingMap();
-		const game = new Game({
-			players: [{ lantern: data.lantern, keys: 'solo' }],
-			map,
-			settings: untrack(() => settings.snapshot()),
-			profiles: untrack(() => profiles.snapshot())
-		});
-		const sparring = new Sparring(map);
-		game.director = sparring;
-		return { game, sparring };
-	});
-
-	let paused = $state(false);
-	function setPaused(value: boolean) {
-		paused = value;
-		setup.game.paused = value;
-		setup.game.buttons.clear();
-	}
-
-	let status = $state({ state: 'intro' as SparState, kilowog: 1, sinestro: 1, elapsed: 0 });
-	const over = $derived(status.state === 'won' || status.state === 'lost');
-
-	function onKeydown(e: KeyboardEvent) {
-		if (e.code !== 'Escape' || over) return;
-		e.preventDefault();
-		setPaused(!paused);
-	}
-
-	onMount(() => {
-		const id = setInterval(() => {
-			const s = setup.sparring;
-			status = { state: s.state, kilowog: s.health('kilowog'), sinestro: s.health('sinestro'), elapsed: Math.round(s.elapsed) };
-		}, 100);
-		return () => clearInterval(id);
-	});
-
-	function rematch() {
-		round++;
-		paused = false;
-	}
+	let as = $state<'hal' | 'john'>('hal');
+	const inTier = (t: TierId) => OPPONENTS.filter((o) => o.tier === t);
+	const extrasIn = (t: TierId) => EXTRAS.filter((o) => o.tier === t);
+	/** Best time in seconds, or 0 if they have never been beaten. */
+	const bestOf = (id: string) => records.best(`spar:${id}:${as}`);
 </script>
 
-<svelte:window onkeydown={onKeydown} />
+<MenuPoster />
+<div class="shade"></div>
 
-<div class="screen">
-	{#key setup}
-		<GameCanvas game={setup.game} />
-	{/key}
+<header class="bar">
+	<a class="brand" href="/">
+		<Emblem size={26} />
+		<span class="name">Lantern Corps</span>
+	</a>
+	<nav class="tabs">
+		<a href="/missions">Missions</a>
+		<a href="/school">Training</a>
+		<a class="on" href="/spar">Sparring</a>
+		<a href="/skirmish">Skirmish</a>
+		<a href="/hq">Corps HQ</a>
+	</nav>
+</header>
 
-	<button class="pause" onclick={() => setPaused(true)} aria-label="Pause">❚❚ <kbd>Esc</kbd></button>
+<main>
+	<div class="rail">
+		<h1>One on One</h1>
+		<p class="lead">No missions, no stakes. Just you and the best in the universe. Nothing is locked — take anyone, in any order.</p>
 
-	{#if !over}
-		<section class="boss">
-			<div class="row">
-				<span class="name">Kilowog</span>
-				<span class="sub">Sparring · first one down loses</span>
-			</div>
-			<span class="track"><span class="fill" style:width="{status.kilowog * 100}%"></span></span>
-			<div class="row">
-				<span class="name sinestro">Sinestro</span>
-			</div>
-			<span class="track"><span class="fill" style:width="{status.sinestro * 100}%"></span></span>
-			{#if status.state === 'intro'}
-				<p class="tip">Two on one. Anything goes: ring shots, constructs, shields, your signature. Watch for the hammer overhead and keep moving.</p>
-			{/if}
-		</section>
-	{:else}
-		<div class="end" role="dialog" aria-label="Result" class:won={status.state === 'won'}>
-			<h2>{status.state === 'won' ? 'You beat them both!' : 'Down you go'}</h2>
-			<p class="line">
-				{status.state === 'won'
-					? `"You pass, poozer." Sinestro just nods. From him, that's a lot.`
-					: `"Get up, poozer! A Red Lantern won't wait for you to catch your breath."`}
-			</p>
-			{#if status.state === 'won'}<p>Took {status.elapsed} seconds as {LANTERNS[data.lantern].name}.</p>{/if}
-			<div class="actions">
-				<button class="primary" onclick={rematch}>{status.state === 'won' ? 'Again' : 'Rematch'}</button>
-				<a href="/missions">Missions</a>
-				<a href="/">Main menu</a>
-			</div>
+		<div class="who">
+			<span class="label">Fight as</span>
+			{#each PLAYABLE as id (id)}
+				<button class:on={as === id} onclick={() => (as = id)}>{LANTERNS[id].name}</button>
+			{/each}
 		</div>
-	{/if}
 
-	{#if paused && !over}
-		<PauseMenu
-			game={setup.game}
-			onResume={() => setPaused(false)}
-			links={[
-				{ href: '/missions', label: '← Missions' },
-				{ href: '/', label: 'Main menu' }
-			]}
-		/>
-	{/if}
-</div>
+		{#each TIERS as tier (tier.id)}
+			<section>
+				<header class="teacher">
+					<h2>{tier.name}</h2>
+					<p>{tier.blurb}</p>
+				</header>
+
+				{#each [...inTier(tier.id), ...extrasIn(tier.id)] as foe (foe.id)}
+					{@const best = bestOf(foe.id)}
+					{#if isReady(foe)}
+						<a class="card" class:passed={best > 0} href="/spar/{foe.id}?as={as}">
+							<span class="text">
+								<strong>{foe.name}</strong>
+								<small>One on one · as {LANTERNS[as].name}</small>
+								<span>{foe.tests}</span>
+							</span>
+							<span class="score">
+								{#if best > 0}
+									<b>{best}s</b><i>best</i>
+								{:else}
+									<i>not fought</i>
+								{/if}
+							</span>
+						</a>
+					{:else}
+						<div class="card locked">
+							<span class="text">
+								<strong>{foe.name}</strong>
+								<small>One on one · being built</small>
+								<span>{foe.tests}</span>
+							</span>
+						</div>
+					{/if}
+				{/each}
+			</section>
+		{/each}
+
+		<div class="rule"></div>
+		<nav class="plain"><a href="/">Main menu</a></nav>
+	</div>
+</main>
 
 <style>
-	.screen {
+	:global(body) {
+		overflow-y: auto;
+	}
+	.shade {
 		position: fixed;
 		inset: 0;
+		background: linear-gradient(90deg, rgba(2, 8, 6, 0.94) 0%, rgba(2, 8, 6, 0.86) 42%, rgba(2, 8, 6, 0.35) 100%);
+		z-index: 0;
 	}
-	.pause {
-		position: absolute;
-		top: 8px;
-		left: max(10px, env(safe-area-inset-left));
-		font: inherit;
-		font-size: 0.85rem;
-		color: var(--green);
-		background: rgba(3, 6, 10, 0.6);
-		border: 1px solid var(--suit-lit);
-		border-radius: 6px;
-		padding: 0.25rem 0.6rem;
-		cursor: pointer;
-		opacity: 0.85;
-	}
-	.pause kbd {
-		font-size: 0.7rem;
-		opacity: 0.7;
-	}
-	.boss {
-		position: absolute;
-		top: 12px;
-		left: 50%;
-		translate: -50% 0;
-		width: min(30rem, calc(100% - 180px));
-		display: grid;
-		gap: 0.35rem;
-		padding: 0.6rem 0.9rem;
-		border-radius: 10px;
-		background: rgba(3, 10, 6, 0.8);
-		border: 1px solid var(--suit-lit);
-		pointer-events: none;
-	}
-	.row {
+	.bar {
+		position: relative;
+		z-index: 2;
 		display: flex;
-		justify-content: space-between;
-		align-items: baseline;
-		gap: 1rem;
+		align-items: stretch;
+		gap: clamp(1rem, 4vw, 2.5rem);
+		min-height: 3.4rem;
+		padding: 0 clamp(0.8rem, 4vw, 3rem);
+		background: linear-gradient(rgba(2, 8, 6, 0.94), rgba(2, 8, 6, 0.6));
+		border-bottom: 1px solid color-mix(in srgb, var(--suit-lit) 55%, transparent);
+	}
+	.brand {
+		display: flex;
+		align-items: center;
+		gap: 0.55rem;
+		text-decoration: none;
+		color: var(--text);
+		flex-shrink: 0;
 	}
 	.name {
 		font-family: var(--font-display);
-		font-weight: 800;
-		font-size: 0.85rem;
-		letter-spacing: 0.1em;
+		font-weight: 700;
 		text-transform: uppercase;
-		color: #e0b4b8;
+		letter-spacing: 0.14em;
+		font-size: 0.82rem;
 	}
-	.name.sinestro {
-		color: #e07aa8;
-	}
-	.sub {
-		font-size: 0.75rem;
-		opacity: 0.7;
-	}
-	.track {
-		height: 10px;
-		border-radius: 5px;
-		background: rgba(255, 255, 255, 0.08);
-		overflow: hidden;
-	}
-	.fill {
-		display: block;
-		height: 100%;
-		background: var(--suit);
-		box-shadow: 0 0 10px var(--green);
-		transition: width 0.15s;
-	}
-	.tip {
-		margin: 0.2rem 0 0;
-		font-size: 0.8rem;
-		opacity: 0.75;
-	}
-	.end {
-		position: absolute;
-		top: 55%;
-		left: 50%;
-		translate: -50% -50%;
-		width: min(30rem, 92vw);
-		box-sizing: border-box;
-		padding: 1.5rem 1.75rem;
-		border-radius: 12px;
-		text-align: center;
-		background: rgba(3, 10, 6, 0.92);
-		border: 2px solid #e0b4b8;
-		box-shadow: 0 0 40px rgba(224, 180, 184, 0.15);
-	}
-	.end.won {
-		border-color: var(--suit-lit);
-		box-shadow: 0 0 40px color-mix(in srgb, var(--green) 20%, transparent);
-	}
-	.end h2 {
-		margin: 0 0 0.5rem;
-		font-size: 1.5rem;
-		text-transform: uppercase;
-		color: #e0b4b8;
-	}
-	.end.won h2 {
-		color: var(--green);
-		text-shadow: 0 0 16px var(--green);
-	}
-	.line {
-		font-style: italic;
-		opacity: 0.85;
-		line-height: 1.45;
-	}
-	.actions {
+	.tabs {
 		display: flex;
-		flex-wrap: wrap;
-		justify-content: center;
+		align-items: stretch;
+		gap: clamp(0.9rem, 3vw, 1.6rem);
+		overflow-x: auto;
+		scrollbar-width: none;
+		margin-bottom: -1px;
+	}
+	.tabs::-webkit-scrollbar {
+		display: none;
+	}
+	.tabs a {
+		display: flex;
 		align-items: center;
-		gap: 0.75rem 1.25rem;
-		margin-top: 1.25rem;
-	}
-	.actions a {
-		font-size: 0.9rem;
+		white-space: nowrap;
 		text-decoration: none;
+		color: color-mix(in srgb, var(--text) 62%, transparent);
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+		font-size: 0.76rem;
+		font-weight: 600;
+		border-bottom: 3px solid transparent;
 	}
-	.primary {
-		font: inherit;
-		font-weight: 800;
-		padding: 0.55rem 1.5rem;
-		border-radius: 6px;
-		border: none;
-		background: var(--suit);
+	.tabs a:hover {
 		color: var(--text);
-		cursor: pointer;
+	}
+	.tabs a.on {
+		color: var(--green);
+		border-bottom-color: var(--green);
+	}
+	main {
+		position: relative;
+		z-index: 1;
+		padding: 1.4rem clamp(1rem, 4vw, 3rem) 4rem;
+	}
+	.rail {
+		display: grid;
+		gap: 0.6rem;
+		width: min(40rem, 100%);
+	}
+	h1 {
+		margin: 0;
+		font-size: 1.6rem;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: var(--green);
+	}
+	.lead {
+		margin: 0 0 0.6rem;
+		font-size: 0.86rem;
+		opacity: 0.6;
+		max-width: 32rem;
+	}
+	section {
+		display: grid;
+		gap: 0.5rem;
+		margin-top: 0.8rem;
+	}
+	.teacher {
+		border-left: 3px solid var(--green);
+		padding-left: 0.8rem;
+	}
+	.teacher h2 {
+		margin: 0;
+		font-size: 1.05rem;
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
 	}
+	.teacher p {
+		margin: 0;
+		font-size: 0.74rem;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		color: var(--green);
+		opacity: 0.85;
+	}
+	.card {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 0.75rem 0.9rem;
+		border: 1px solid color-mix(in srgb, var(--suit-lit) 40%, transparent);
+		border-left: 3px solid transparent;
+		border-radius: 4px;
+		background: rgba(4, 14, 10, 0.75);
+		text-decoration: none;
+		color: var(--text);
+	}
+	a.card:hover {
+		border-color: var(--green);
+		border-left-color: var(--green);
+		background: color-mix(in srgb, var(--suit) 40%, rgba(4, 14, 10, 0.75));
+	}
+	.card.passed {
+		border-left-color: #ffd21e;
+	}
+	.card.locked {
+		opacity: 0.42;
+		border-style: dashed;
+	}
+	.text {
+		display: grid;
+		gap: 0.15rem;
+	}
+	.text strong {
+		font-family: var(--font-display);
+		letter-spacing: 0.05em;
+		color: var(--green);
+		text-transform: uppercase;
+		font-size: 0.95rem;
+	}
+	.text small {
+		font-size: 0.66rem;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		opacity: 0.55;
+	}
+	.text span {
+		font-size: 0.84rem;
+		opacity: 0.78;
+		max-width: 28rem;
+	}
+	.score {
+		display: grid;
+		justify-items: end;
+		gap: 0.1rem;
+		white-space: nowrap;
+		color: var(--green);
+	}
+	.score b {
+		font-family: var(--font-display);
+		font-size: 1.3rem;
+	}
+	.score i {
+		font-style: normal;
+		font-size: 0.66rem;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		opacity: 0.6;
+	}
+	.rule {
+		height: 1px;
+		margin: 1rem 0 0.2rem;
+		background: linear-gradient(90deg, color-mix(in srgb, var(--suit-lit) 70%, transparent), transparent);
+	}
+	.plain a {
+		color: color-mix(in srgb, var(--text) 75%, transparent);
+		text-decoration: none;
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+		font-size: 0.78rem;
+		font-weight: 600;
+	}
+	.plain a:hover {
+		color: var(--green);
+	}
+	@media (max-height: 560px) {
+		.bar {
+			min-height: 2.5rem;
+		}
+		main {
+			padding: 0.7rem clamp(0.6rem, 3vw, 1.4rem) 2rem;
+		}
+		h1 {
+			font-size: 1.15rem;
+		}
+		.lead {
+			font-size: 0.74rem;
+		}
+		.card {
+			padding: 0.5rem 0.6rem;
+		}
+		.text strong {
+			font-size: 0.85rem;
+		}
+		.text span {
+			font-size: 0.72rem;
+		}
+		.score b {
+			font-size: 1rem;
+		}
+	}
 
-	/* A phone on its side: your bars take the top left, so the fight's go top right */
-	@media (max-height: 520px) and (orientation: landscape) {
-		.pause kbd {
-			display: none;
-		}
-		.boss {
-			left: auto;
-			right: max(10px, env(safe-area-inset-right));
-			translate: none;
-			width: min(20rem, 40vw);
-			padding: 0.45rem 0.65rem;
-		}
-		.tip {
-			display: none;
-		}
+	.who {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 0 0 1rem;
+	}
+	.who .label {
+		font-size: 0.8rem;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		opacity: 0.6;
+	}
+	.who button {
+		padding: 0.35rem 0.9rem;
+		font: inherit;
+		font-size: 0.9rem;
+		color: var(--text);
+		background: rgba(3, 12, 8, 0.6);
+		border: 1px solid var(--suit-lit);
+		border-radius: 999px;
+		cursor: pointer;
+	}
+	.who button.on {
+		color: #05130b;
+		background: var(--green);
+		border-color: var(--green);
+		font-weight: 700;
 	}
 </style>

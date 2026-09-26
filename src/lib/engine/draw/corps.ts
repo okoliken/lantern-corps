@@ -7,7 +7,7 @@ import type { LanternPose } from '../animation';
 import { LANTERNS } from '../lanterns';
 import { drawLantern, ringPosition, FIGURE_HEIGHT, GREEN, type Figure } from './lantern';
 
-export type CorpsKind = 'kilowog' | 'sinestro';
+export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn';
 
 interface CorpsFigure {
 	figure: Figure;
@@ -37,8 +37,26 @@ const CORPS: Record<CorpsKind, CorpsFigure> = {
 		scale: 1.12,
 		build: { leg: 1.12, torso: 1.05, arm: 1.08, neck: 1.1 },
 		hunch: -0.04
-	}
+	},
+	// Lanterns you spar with in the ring. Same figures the Corps fights beside,
+	// drawn from the other side of the fight.
+	sparArisia: fromCrew('arisia'),
+	sparKatma: fromCrew('katma'),
+	sparBoodikka: fromCrew('boodikka'),
+	sparHal: fromCrew('hal'),
+	sparJohn: fromCrew('john')
 };
+
+/** A sparring partner built from the Lantern the Corps already knows. */
+function fromCrew(id: 'arisia' | 'katma' | 'boodikka' | 'hal' | 'john'): CorpsFigure {
+	const def = LANTERNS[id];
+	return {
+		figure: def,
+		scale: def.figureScale ?? 1,
+		build: def.build ?? { leg: 1, torso: 1, arm: 1, neck: 1 },
+		hunch: def.hunch ?? 0
+	};
+}
 
 export const isCorpsKind = (kind: string): kind is CorpsKind => kind in CORPS;
 

@@ -29,9 +29,13 @@ class RecordStore {
 		return this.current[id] ?? 0;
 	}
 
-	/** Keep it if it beats what was there. Returns true if it did. */
-	submit(id: string, score: number): boolean {
-		const beat = score > this.best(id);
+	/**
+	 * Keep it if it beats what was there. Returns true if it did. A drill score
+	 * is better when it is higher; a sparring time is better when it is lower.
+	 */
+	submit(id: string, score: number, opts?: { lower?: boolean }): boolean {
+		const current = this.best(id);
+		const beat = opts?.lower ? current === 0 || score < current : score > current;
 		if (beat) {
 			this.current = { ...this.current, [id]: Math.round(score) };
 			this.save();
