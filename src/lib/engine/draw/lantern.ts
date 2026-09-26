@@ -189,6 +189,20 @@ function drawArm(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boole
 		ctx.stroke();
 		return;
 	}
+	if (def.look.arisia) {
+		// Bare shoulders and upper arms; long green gloves from just above the elbow
+		const skin = far ? shadeColor(def.look.skin, -0.2) : def.look.skin;
+		segment(ctx, l.shoulder, lerpP(l.shoulder, l.elbow, 0.85), 2.9 * k, 2.4 * k, skin);
+		segment(ctx, lerpP(l.shoulder, l.elbow, 0.85), l.hand, 2.5 * k, 2.1 * k, far ? SUIT_GREEN_DARK : SUIT_GREEN);
+		ctx.fillStyle = far ? SUIT_GREEN_DARK : SUIT_GREEN_LIT;
+		ctx.beginPath();
+		ctx.arc(l.hand[0], l.hand[1], 2.4 * k, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.strokeStyle = OUTLINE;
+		ctx.lineWidth = 0.8;
+		ctx.stroke();
+		return;
+	}
 	const black = far ? BLACK : BLACK_LIT;
 	segment(ctx, l.shoulder, l.elbow, 3.1 * k, 2.5 * k, black);
 	segment(ctx, l.elbow, l.hand, 2.4 * k, 2.1 * k, black);
@@ -266,6 +280,50 @@ function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, k: 
 		ctx.strokeStyle = OUTLINE;
 		ctx.lineWidth = 0.9;
 		ctx.stroke(body);
+		segment(ctx, neck, lerpP(neck, sk.headCenter, 0.45), 1.9 * k, 1.8 * k, def.look.skin);
+		return;
+	}
+
+	if (def.look.arisia) {
+		// A white strapless bodice, a green yoke round the neck that carries the emblem, a green skirt
+		ctx.save();
+		ctx.clip(body);
+		const white = ctx.createLinearGradient(bx, by, fx, fy);
+		white.addColorStop(0, '#d9d4c6');
+		white.addColorStop(1, '#f6f2e8');
+		ctx.fillStyle = white;
+		ctx.fill(poly([at(4, -8), at(16.2, -8), at(16.2, 9), at(4, 9)]));
+		ctx.fillStyle = SUIT_GREEN;
+		ctx.fill(poly([at(0.5, -8), at(4.4, -8), at(4.4, 9), at(0.5, 9)]));
+		const yoke = poly([at(19.4, -3.6), at(19.4, 4.6), at(17.4, 6.6), at(12.4, 6.6), at(15.4, 1.6), at(15.4, -1.6), at(12.4, -6), at(17.4, -6)]);
+		const yg = ctx.createLinearGradient(bx, by, fx, fy);
+		yg.addColorStop(0, SUIT_GREEN_DARK);
+		yg.addColorStop(1, SUIT_GREEN_LIT);
+		ctx.fillStyle = yg;
+		ctx.fill(yoke);
+		ctx.restore();
+		ctx.strokeStyle = OUTLINE;
+		ctx.lineWidth = 0.9;
+		ctx.stroke(body);
+		const [ex, ey] = at(14.2, 2.4);
+		ctx.save();
+		ctx.translate(ex, ey);
+		ctx.rotate(torsoAngle);
+		ctx.fillStyle = WHITE;
+		ctx.beginPath();
+		ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.fillStyle = SUIT_GREEN;
+		ctx.beginPath();
+		ctx.arc(0, 0, 1.8, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.fillStyle = WHITE;
+		ctx.fillRect(-2, -1, 4, 0.55);
+		ctx.fillRect(-2, 0.45, 4, 0.55);
+		ctx.beginPath();
+		ctx.arc(0, 0, 0.7, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.restore();
 		segment(ctx, neck, lerpP(neck, sk.headCenter, 0.45), 1.9 * k, 1.8 * k, def.look.skin);
 		return;
 	}
@@ -377,6 +435,20 @@ function drawHead(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, ring
 	ctx.ellipse(-1.2, 0.8, 1.4, 2, 0, 0, Math.PI * 2);
 	ctx.fill();
 
+	if (def.look.pointedEars) {
+		// Pointed ears, out past the hair line
+		const R = HEAD_R;
+		ctx.fillStyle = def.look.skin;
+		ctx.strokeStyle = OUTLINE;
+		ctx.lineWidth = 0.6;
+		ctx.beginPath();
+		ctx.moveTo(-R + 0.6, -0.4);
+		ctx.lineTo(-R - 3.6, -2.6);
+		ctx.lineTo(-R + 0.2, 1.8);
+		ctx.closePath();
+		ctx.fill();
+		ctx.stroke();
+	}
 	drawHair(ctx, def);
 	if (def.outfit?.hardHat) drawHardHat(ctx, def.outfit.hardHat);
 
@@ -657,6 +729,17 @@ function drawHair(ctx: CanvasRenderingContext2D, def: Figure) {
 		hair.quadraticCurveTo(R + 1.6, -R - 0.9, R + 0.6, -R + 1.6);
 		hair.quadraticCurveTo(3.2, -3.3, 0.8, -2.2);
 		hair.quadraticCurveTo(-1.6, -1.2, -1.4, 2.2);
+		hair.closePath();
+	} else if (def.look.hairStyle === 'bob') {
+		// Arisia: a straight blonde bob to the jaw, with a fringe
+		hair.moveTo(-R - 1.6, R * 0.9);
+		hair.lineTo(-R - 1.4, -R * 0.4);
+		hair.quadraticCurveTo(-R - 0.6, -R - 1.6, 0.4, -R - 1.7);
+		hair.quadraticCurveTo(R + 1.2, -R - 1.2, R + 1, -R * 0.2);
+		hair.lineTo(R + 0.6, -1.6);
+		hair.quadraticCurveTo(R - 1, -2.6, 0.6, -2.4);
+		hair.quadraticCurveTo(-R * 0.4, -2, -R * 0.55, 0.4);
+		hair.lineTo(-R * 0.45, R * 0.9);
 		hair.closePath();
 	} else if (def.look.hairStyle === 'peak') {
 		// Sinestro: slicked straight back, coming to a sharp widow's peak over the brow

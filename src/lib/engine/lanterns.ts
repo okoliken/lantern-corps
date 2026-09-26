@@ -18,7 +18,7 @@ export interface Look {
 	skin: string;
 	hair: string;
 	/** Hal's hair sits up with a side sweep; John's is cropped short; Sinestro's is slicked back to a widow's peak. */
-	hairStyle: 'swept' | 'cropped' | 'peak';
+	hairStyle: 'swept' | 'cropped' | 'peak' | 'bob';
 	/** Hal wears the domino mask; John goes without one. */
 	mask: boolean;
 	/** A beaked, crested head instead of a human one (Tomar-Re). */
@@ -27,6 +27,10 @@ export interface Look {
 	bolovaxian?: boolean;
 	/** A thin pencil mustache (Sinestro). */
 	mustache?: boolean;
+	/** Pointed ears (Arisia of Graxos IV). */
+	pointedEars?: boolean;
+	/** Arisia's suit from the animated series: a white bodice with the emblem at the collar, bare arms, a green skirt. */
+	arisia?: boolean;
 }
 
 export interface LanternDef {
@@ -113,7 +117,7 @@ export const LANTERNS: Record<CrewId, LanternDef> = {
 		accel: 2500,
 		decel: 2200,
 		traits: { power: 1.05, durability: 0.9, cooldown: 0.9, structureCost: 1 },
-		look: { skin: '#f1d9c4', hair: '#f0cf6a', hairStyle: 'swept', mask: false }
+		look: { skin: '#f3d6b4', hair: '#f2d27a', hairStyle: 'bob', mask: false, pointedEars: true, arisia: true }
 	},
 	katma: {
 		id: 'katma',

@@ -370,6 +370,67 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		lieutenant: true
 	},
 
+	chpSpar: {
+		kind: 'chpSpar',
+		name: "Ch'p",
+		faction: 'corps',
+		tint: 'corps',
+		description: 'A squirrel, a third the size of anyone in the Corps, and never where you are aiming. He is under your guard before you have found him, and gone before you have hit him.',
+		mind: 'rage',
+		hp: 1100,
+		speed: 260,
+		accel: 8,
+		sight: 1100,
+		poise: 120,
+		scale: 0.55,
+		agility: 1,
+		movement: 'hover',
+		kit: ['sword', 'bladeFan', 'blast', 'cage'],
+		range: 180,
+		leans: { aggression: 0.5, caution: 0.2, patience: -0.5 },
+		lieutenant: true
+	},
+	salaakSpar: {
+		kind: 'salaakSpar',
+		name: 'Salaak',
+		faction: 'corps',
+		tint: 'corps',
+		description: 'Four arms, and he uses all of them: two constructs at once, by the book, without a wasted move. A creature of protocol who has read the protocol on you.',
+		mind: 'rage',
+		hp: 1900,
+		speed: 170,
+		accel: 5,
+		sight: 1200,
+		poise: 360,
+		scale: 1.12,
+		agility: 0.6,
+		movement: 'hover',
+		kit: ['beam', 'cage', 'bladeFan', 'bigFist', 'hammerRain', 'redWall'],
+		range: 280,
+		leans: { aggression: 0.2, caution: 0.35, patience: 0.6 },
+		lieutenant: true
+	},
+	gnortSpar: {
+		kind: 'gnortSpar',
+		name: "G'nort",
+		faction: 'corps',
+		tint: 'corps',
+		description: 'A dog with a ring and the best of intentions. Sloppy, brave and loud, and when he is hurt he stops thinking and starts hitting, which is when he is dangerous.',
+		mind: 'rage',
+		hp: 1500,
+		speed: 185,
+		accel: 5,
+		sight: 1000,
+		poise: 200,
+		scale: 1.02,
+		agility: 0.45,
+		movement: 'hover',
+		kit: ['bigFist', 'charge', 'roar', 'blast', 'hammerThrow'],
+		range: 170,
+		leans: { aggression: 0.7, caution: -0.5, patience: -0.4 },
+		lieutenant: true
+	},
+
 	// ---- The Justice League, sparring on the Watchtower ----
 	// They are not trying to put you down. They are trying to find out what you do.
 	flashSpar: {

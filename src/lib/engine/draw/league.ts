@@ -51,6 +51,20 @@ const GUY_BLACK_LIT = '#262c33';
 const GUY_GREEN = '#2aa657';
 const GUY_GREEN_LIT = '#3fc06c';
 const GUY_GREEN_DARK = '#1f7f43';
+// The Corps' suit colours for the aliens, and their own skins and furs
+const SUIT_BLACK = '#101513';
+const SUIT_BLACK_LIT = '#1d2521';
+const CORPS_GREEN = '#22a355';
+const CORPS_GREEN_LIT = '#37c46c';
+const CORPS_GREEN_DARK = '#177a3d';
+const CHP_FUR = '#a56a3a';
+const CHP_FUR_DARK = '#7d4e28';
+const CHP_BELLY = '#e8c79a';
+const SALAAK_SKIN = '#e2825e';
+const SALAAK_SKIN_DARK = '#b8623f';
+const GNORT_FUR = '#d8462c';
+const GNORT_FUR_DARK = '#a8321e';
+const GNORT_MUZZLE = '#f4e9d6';
 
 // ------------------------------------------------------------------- Superman
 
@@ -652,6 +666,271 @@ function drawGuyHead(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look) {
 	ctx.fill();
 	ctx.stroke();
 	ctx.restore();
+}
+
+/** The Corps emblem, at a point, upright to the torso. */
+function corpsEmblem(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, r: number) {
+	ctx.save();
+	ctx.translate(x, y);
+	ctx.rotate(angle);
+	ctx.fillStyle = '#eefbf1';
+	ctx.beginPath();
+	ctx.arc(0, 0, r, 0, TAU);
+	ctx.fill();
+	ctx.fillStyle = CORPS_GREEN;
+	ctx.beginPath();
+	ctx.arc(0, 0, r * 0.7, 0, TAU);
+	ctx.fill();
+	ctx.fillStyle = '#eefbf1';
+	ctx.fillRect(-r * 0.8, -r * 0.4, r * 1.6, r * 0.22);
+	ctx.fillRect(-r * 0.8, r * 0.18, r * 1.6, r * 0.22);
+	ctx.beginPath();
+	ctx.arc(0, 0, r * 0.27, 0, TAU);
+	ctx.fill();
+	ctx.restore();
+}
+
+/** The Corps suit on a body: black, a green panel down the front, green boots and gloves. */
+function corpsSuitLeg(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean, k = 1) {
+	const black = far ? SUIT_BLACK : SUIT_BLACK_LIT;
+	const green = far ? CORPS_GREEN_DARK : CORPS_GREEN;
+	segment(ctx, l.hipJoint, l.knee, 3.9 * k, 3.0 * k, black);
+	const bootTop = lerpP(l.knee, l.foot, 0.4);
+	segment(ctx, l.knee, bootTop, 3.0 * k, 2.7 * k, black);
+	segment(ctx, bootTop, l.foot, 3.0 * k, 2.5 * k, green);
+	const shin = Math.atan2(l.foot[1] - l.knee[1], l.foot[0] - l.knee[0]);
+	const toe: Point = [l.foot[0] + Math.cos(shin - Math.PI / 2) * 4.2 * k, l.foot[1] + Math.sin(shin - Math.PI / 2) * 4.2 * k];
+	segment(ctx, l.foot, toe, 2.3 * k, 1.6 * k, green);
+}
+function corpsSuitArm(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean, sleeve: string, glove: string, k = 1) {
+	segment(ctx, l.shoulder, l.elbow, 3.1 * k, 2.5 * k, sleeve);
+	segment(ctx, l.elbow, l.hand, 2.4 * k, 2.1 * k, sleeve);
+	const cuff = lerpP(l.elbow, l.hand, 0.62);
+	segment(ctx, cuff, l.hand, 2.5 * k, 2.2 * k, glove);
+	ctx.fillStyle = glove;
+	ctx.beginPath();
+	ctx.arc(l.hand[0], l.hand[1], 2.5 * k, 0, TAU);
+	ctx.fill();
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.stroke();
+}
+function corpsSuitTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, neckColor: string, slim = 0) {
+	const at = frame(sk);
+	const body = torsoShape(at, slim);
+	const [bx, by] = at(8, -6);
+	const [fx, fy] = at(8, 7);
+	const shade = ctx.createLinearGradient(bx, by, fx, fy);
+	shade.addColorStop(0, SUIT_BLACK);
+	shade.addColorStop(1, SUIT_BLACK_LIT);
+	ctx.fillStyle = shade;
+	ctx.fill(body);
+	ctx.save();
+	ctx.clip(body);
+	const g = ctx.createLinearGradient(bx, by, fx, fy);
+	g.addColorStop(0, CORPS_GREEN_DARK);
+	g.addColorStop(1, CORPS_GREEN_LIT);
+	ctx.fillStyle = g;
+	ctx.fill(poly([at(9, -5.6), at(14, -6.2), at(18.2, -4.4), at(18.8, 3.2), at(14.5, 7.8), at(9.5, 6.4)]));
+	ctx.restore();
+	ctx.strokeStyle = '#050706';
+	ctx.lineWidth = 1.6;
+	ctx.beginPath();
+	ctx.moveTo(...at(1.2, -4.6));
+	ctx.lineTo(...at(1.2, 5.1));
+	ctx.stroke();
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.9;
+	ctx.stroke(body);
+	const [ex, ey] = at(13.2, 5.4);
+	corpsEmblem(ctx, ex, ey, sk.torsoAngle, 2.7);
+	segment(ctx, sk.neck, lerpP(sk.neck, sk.headCenter, 0.45), 1.9, 1.8, neckColor);
+}
+
+/** Ch'p. A squirrel in the Corps' suit: the mask across his eyes, the ears, and a tail bigger than he is. */
+export function drawChpBody(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look, time: number, pose: LanternPose) {
+	void look;
+	// The tail: up and over behind him, curling
+	const at = frame(sk);
+	const base = at(2, -5);
+	ctx.save();
+	ctx.strokeStyle = CHP_FUR;
+	ctx.lineCap = 'round';
+	ctx.lineWidth = 9;
+	ctx.beginPath();
+	ctx.moveTo(...base);
+	const w = Math.sin(time * 3) * 2;
+	ctx.bezierCurveTo(base[0] - 14, base[1] + 2, base[0] - 22 + w, base[1] - 18, base[0] - 12, base[1] - 30);
+	ctx.stroke();
+	ctx.strokeStyle = CHP_FUR_DARK;
+	ctx.lineWidth = 3;
+	ctx.stroke();
+	ctx.restore();
+	corpsSuitArm(ctx, sk.back, true, CHP_FUR_DARK, CORPS_GREEN_DARK, 0.9);
+	corpsSuitLeg(ctx, sk.back, true, 0.9);
+	corpsSuitTorso(ctx, sk, CHP_FUR, 0.4);
+	corpsSuitLeg(ctx, sk.front, false, 0.9);
+	// The head: fur, a pale muzzle, the black mask, big round ears, buck teeth
+	const R = HEAD_R * 1.15;
+	ctx.save();
+	ctx.translate(...sk.headCenter);
+	ctx.rotate(sk.headAngle);
+	ctx.fillStyle = CHP_FUR;
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.7;
+	for (const ex of [-R * 0.75, R * 0.35]) {
+		ctx.beginPath();
+		ctx.arc(ex, -R - 1.2, 3.2, 0, TAU);
+		ctx.fill();
+		ctx.stroke();
+	}
+	ctx.beginPath();
+	ctx.arc(0, 0, R, 0, TAU);
+	ctx.fill();
+	ctx.stroke();
+	ctx.fillStyle = CHP_BELLY;
+	ctx.beginPath();
+	ctx.ellipse(R * 0.55, R * 0.35, R * 0.62, R * 0.5, 0, 0, TAU);
+	ctx.fill();
+	ctx.fillStyle = '#111';
+	ctx.beginPath();
+	ctx.ellipse(R * 0.95, R * 0.05, 1.6, 1.2, 0, 0, TAU);
+	ctx.fill();
+	// The mask across the eyes, with the eyes in it
+	ctx.fillStyle = '#15171c';
+	ctx.fillRect(-R * 0.4, -R * 0.55, R * 1.5, R * 0.7);
+	ctx.fillStyle = '#f4f4f0';
+	ctx.beginPath();
+	ctx.ellipse(R * 0.55, -R * 0.2, 1.8, 1.4, 0, 0, TAU);
+	ctx.fill();
+	ctx.fillStyle = '#111';
+	ctx.beginPath();
+	ctx.arc(R * 0.75, -R * 0.2, 0.8, 0, TAU);
+	ctx.fill();
+	// Buck teeth
+	ctx.fillStyle = '#f8f8f4';
+	ctx.fillRect(R * 0.55, R * 0.55, 1.4, 2.2);
+	ctx.fillRect(R * 0.2, R * 0.55, 1.4, 2.2);
+	ctx.restore();
+	corpsSuitArm(ctx, sk.front, false, CHP_FUR, CORPS_GREEN, 0.9);
+	void pose;
+}
+
+/** Salaak. Tall and thin, pinkish-orange, the long head sloping back, and four arms, all busy. */
+export function drawSalaakBody(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look, time: number, pose: LanternPose) {
+	void look;
+	void pose;
+	// The second pair of arms, lower on the torso, drawn from shifted copies of the limbs
+	const lower = (l: Skeleton['front'], side: number): Skeleton['front'] => ({
+		...l,
+		shoulder: [l.shoulder[0] + side * 1.5, l.shoulder[1] + 7],
+		elbow: [l.elbow[0] + side * 3 + Math.sin(time * 2 + side) * 1.5, l.elbow[1] + 8],
+		hand: [l.hand[0] + side * 5, l.hand[1] + 5]
+	});
+	corpsSuitArm(ctx, sk.back, true, SALAAK_SKIN_DARK, '#e6e6e0', 0.85);
+	corpsSuitArm(ctx, lower(sk.back, -1), true, SALAAK_SKIN_DARK, '#e6e6e0', 0.8);
+	corpsSuitLeg(ctx, sk.back, true, 0.9);
+	corpsSuitTorso(ctx, sk, SALAAK_SKIN, 0.9);
+	corpsSuitLeg(ctx, sk.front, false, 0.9);
+	// The head: a long dome sloping up and back, no nose, a slit mouth, small eyes
+	const R = HEAD_R;
+	ctx.save();
+	ctx.translate(...sk.headCenter);
+	ctx.rotate(sk.headAngle);
+	ctx.fillStyle = SALAAK_SKIN;
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.beginPath();
+	ctx.moveTo(R * 0.9, R * 0.8);
+	ctx.quadraticCurveTo(R + 1, -R * 0.2, R * 0.4, -R * 0.9);
+	ctx.quadraticCurveTo(-R * 1.2, -R * 2.2, -R * 2.6, -R * 0.4);
+	ctx.quadraticCurveTo(-R * 1.6, R * 0.6, -R * 0.4, R * 0.9);
+	ctx.closePath();
+	ctx.fill();
+	ctx.stroke();
+	// The ridge down the crown
+	ctx.strokeStyle = SALAAK_SKIN_DARK;
+	ctx.lineWidth = 1;
+	ctx.beginPath();
+	ctx.moveTo(R * 0.2, -R * 0.8);
+	ctx.quadraticCurveTo(-R, -R * 1.9, -R * 2.3, -R * 0.5);
+	ctx.stroke();
+	ctx.fillStyle = '#f4f4f0';
+	ctx.beginPath();
+	ctx.ellipse(R * 0.5, -R * 0.1, 1.4, 1.1, 0, 0, TAU);
+	ctx.fill();
+	ctx.fillStyle = '#111';
+	ctx.beginPath();
+	ctx.arc(R * 0.7, -R * 0.1, 0.6, 0, TAU);
+	ctx.fill();
+	ctx.strokeStyle = SALAAK_SKIN_DARK;
+	ctx.lineWidth = 0.7;
+	ctx.beginPath();
+	ctx.moveTo(R * 0.1, R * 0.55);
+	ctx.lineTo(R * 0.85, R * 0.5);
+	ctx.stroke();
+	ctx.restore();
+	corpsSuitArm(ctx, lower(sk.front, 1), false, SALAAK_SKIN, '#f4f4f0', 0.8);
+	corpsSuitArm(ctx, sk.front, false, SALAAK_SKIN, '#f4f4f0', 0.85);
+}
+
+/** G'nort. A dog in the Corps' suit: red fur, tall ears, the white muzzle and moustache. */
+export function drawGnortBody(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look, time: number, pose: LanternPose) {
+	void look;
+	void time;
+	void pose;
+	corpsSuitArm(ctx, sk.back, true, GNORT_FUR_DARK, CORPS_GREEN_DARK);
+	corpsSuitLeg(ctx, sk.back, true);
+	corpsSuitTorso(ctx, sk, GNORT_FUR);
+	corpsSuitLeg(ctx, sk.front, false);
+	const R = HEAD_R * 1.05;
+	ctx.save();
+	ctx.translate(...sk.headCenter);
+	ctx.rotate(sk.headAngle);
+	// Ears, tall and pointed
+	ctx.fillStyle = GNORT_FUR;
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.7;
+	for (const [ex, lean] of [[-R * 0.6, -0.4], [R * 0.2, 0.3]] as const) {
+		ctx.beginPath();
+		ctx.moveTo(ex - 2.2, -R * 0.7);
+		ctx.lineTo(ex + lean * 3, -R - 7.5);
+		ctx.lineTo(ex + 2.4, -R * 0.75);
+		ctx.closePath();
+		ctx.fill();
+		ctx.stroke();
+	}
+	ctx.beginPath();
+	ctx.arc(0, 0, R, 0, TAU);
+	ctx.fill();
+	ctx.stroke();
+	// The muzzle out front, white, with the nose and the moustache
+	ctx.fillStyle = GNORT_MUZZLE;
+	ctx.beginPath();
+	ctx.ellipse(R * 0.85, R * 0.3, R * 0.85, R * 0.55, 0, 0, TAU);
+	ctx.fill();
+	ctx.stroke();
+	ctx.fillStyle = '#1a1214';
+	ctx.beginPath();
+	ctx.ellipse(R * 1.55, R * 0.05, 1.8, 1.4, 0, 0, TAU);
+	ctx.fill();
+	ctx.strokeStyle = GNORT_MUZZLE;
+	ctx.lineWidth = 1.4;
+	ctx.beginPath();
+	ctx.moveTo(R * 1.3, R * 0.5);
+	ctx.quadraticCurveTo(R * 0.9, R * 0.9, R * 0.5, R * 0.6);
+	ctx.stroke();
+	// Eyes
+	ctx.fillStyle = '#f4f4f0';
+	ctx.beginPath();
+	ctx.ellipse(R * 0.5, -R * 0.25, 1.6, 1.3, 0, 0, TAU);
+	ctx.fill();
+	ctx.fillStyle = '#111';
+	ctx.beginPath();
+	ctx.arc(R * 0.7, -R * 0.25, 0.7, 0, TAU);
+	ctx.fill();
+	ctx.restore();
+	corpsSuitArm(ctx, sk.front, false, GNORT_FUR, CORPS_GREEN);
 }
 
 /** An eye and a brow on a face drawn with faceShape. */

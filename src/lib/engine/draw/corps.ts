@@ -7,9 +7,9 @@ import type { LanternPose } from '../animation';
 import { LANTERNS } from '../lanterns';
 import { drawLantern, ringPosition, FIGURE_HEIGHT, GREEN, type Figure } from './lantern';
 import { computeSkeleton, turnScale } from '../animation';
-import { drawGuyBody } from './league';
+import { drawChpBody, drawGnortBody, drawGuyBody, drawSalaakBody } from './league';
 
-export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar';
+export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar';
 
 interface CorpsFigure {
 	figure: Figure;
@@ -61,6 +61,27 @@ const CORPS: Record<CorpsKind, CorpsFigure> = {
 		build: { leg: 0.98, torso: 1.06, arm: 1.12, neck: 0.9 },
 		hunch: 0.05
 	},
+	/** Ch'p of H'lven: a squirrel, a third the size of anyone, and never where you are aiming. */
+	chpSpar: {
+		figure: { id: 'chpSpar', look: { skin: '#a56a3a', hair: '#6b4324', hairStyle: 'cropped', mask: true }, bulk: 0.9 },
+		scale: 0.55,
+		build: { leg: 0.8, torso: 0.9, arm: 0.85, neck: 0.6 },
+		hunch: 0.1
+	},
+	/** Salaak of Slyggia: tall, thin, pinkish-orange, the long sloping head, and four arms. */
+	salaakSpar: {
+		figure: { id: 'salaakSpar', look: { skin: '#e2825e', hair: '#e2825e', hairStyle: 'cropped', mask: false }, bulk: 0.85 },
+		scale: 1.12,
+		build: { leg: 1.15, torso: 1.1, arm: 1.15, neck: 1.3 },
+		hunch: -0.02
+	},
+	/** G'nort of G'newt: a red-furred dog on two legs, the ears, the moustache, and the best of intentions. */
+	gnortSpar: {
+		figure: { id: 'gnortSpar', look: { skin: '#d8462c', hair: '#d8462c', hairStyle: 'cropped', mask: false }, bulk: 1.05 },
+		scale: 1.02,
+		build: { leg: 0.95, torso: 1.02, arm: 1.05, neck: 1 },
+		hunch: 0.06
+	},
 	/** Kyle Rayner: the artist. Lean and loose, black hair in his eyes, the crab mask. */
 	kyleSpar: {
 		figure: { id: 'kyleSpar', look: { skin: '#e2b892', hair: '#13111a', hairStyle: 'swept', mask: true }, bulk: 0.95 },
@@ -86,8 +107,9 @@ export const isCorpsKind = (kind: string): kind is CorpsKind => kind in CORPS;
 const posed = (kind: CorpsKind, pose: LanternPose): LanternPose => ({ ...pose, build: CORPS[kind].build, hunch: CORPS[kind].hunch });
 
 export function drawCorpsLantern(ctx: CanvasRenderingContext2D, kind: CorpsKind, x: number, y: number, pose: LanternPose, time: number) {
-	// Guy Gardner does not wear the uniform: his own suit, on the same skeleton
-	if (kind === 'guySpar') {
+	// Their own bodies, on the same skeleton: Guy's suit, and the aliens
+	const own = kind === 'guySpar' ? drawGuyBody : kind === 'chpSpar' ? drawChpBody : kind === 'salaakSpar' ? drawSalaakBody : kind === 'gnortSpar' ? drawGnortBody : null;
+	if (own) {
 		const p = posed(kind, pose);
 		const s = 1.35 * CORPS[kind].scale;
 		const sk = computeSkeleton(p, time);
@@ -104,7 +126,7 @@ export function drawCorpsLantern(ctx: CanvasRenderingContext2D, kind: CorpsKind,
 		ctx.scale(p.dir * turnScale(p), 1);
 		ctx.lineJoin = 'round';
 		ctx.lineCap = 'round';
-		drawGuyBody(ctx, sk, CORPS[kind].figure.look, time, p);
+		own(ctx, sk, CORPS[kind].figure.look, time, p);
 		ctx.restore();
 		return;
 	}

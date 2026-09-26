@@ -19,7 +19,7 @@ const DUMMY_RESPAWN = 3;
 const DEFEAT_LINGER = 0.9;
 
 /** What kind of target: a training dummy, or which enemy. */
-export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'flashSpar' | 'supermanSpar' | 'wonderwomanSpar' | 'hawkgirlSpar' | 'batmanSpar' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'aquamanSpar' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterPrime' | 'manhunterCore' | 'reverseFlash' | 'signalSpire' | 'dexStarr' | 'rageBubble' | 'bloodConduit' | 'atrocitus';
+export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'flashSpar' | 'supermanSpar' | 'wonderwomanSpar' | 'hawkgirlSpar' | 'batmanSpar' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'aquamanSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterPrime' | 'manhunterCore' | 'reverseFlash' | 'signalSpire' | 'dexStarr' | 'rageBubble' | 'bloodConduit' | 'atrocitus';
 
 export interface Dummy {
 	kind: TargetKind;
@@ -215,6 +215,9 @@ export const BODY: Record<TargetKind, { halfWidth: number; height: number }> = {
 	guySpar: { halfWidth: 22, height: 96 },
 	kyleSpar: { halfWidth: 18, height: 94 },
 	aquamanSpar: { halfWidth: 20, height: 98 },
+	chpSpar: { halfWidth: 12, height: 52 },
+	salaakSpar: { halfWidth: 18, height: 108 },
+	gnortSpar: { halfWidth: 20, height: 96 },
 	razer: { halfWidth: 18, height: 100 },
 	// Real size comes from its drift radius
 	spaceRock: { halfWidth: 20, height: 40 },

@@ -274,6 +274,42 @@ export const EXTRAS: Opponent[] = [
 		over: 'AFTER IS A FUNERAL.'
 	},
 	{
+		id: 'chp',
+		name: "Ch'p",
+		tier: 'corps',
+		tests: 'A third your size and never where you are aiming. Can you hit something small that will not stand still?',
+		key: 'fear',
+		kind: 'chpSpar',
+		might: 2.0,
+		health: 2.4,
+		opening: 'DOWN HERE. NO, HERE.',
+		over: 'TOO BIG. TOO SLOW.'
+	},
+	{
+		id: 'salaak',
+		name: 'Salaak',
+		tier: 'corps',
+		tests: 'Four arms, two constructs at once, and every one of them by the book. Can you keep up with someone who never wastes a move?',
+		key: 'empty',
+		kind: 'salaakSpar',
+		might: 2.5,
+		health: 2.9,
+		opening: 'PROTOCOL SEVEN. BEGIN.',
+		over: 'AS THE BOOK SAID YOU WOULD.'
+	},
+	{
+		id: 'gnort',
+		name: "G'nort",
+		tier: 'corps',
+		tests: 'Sloppy, brave and loud, until he is hurt. Then he stops thinking. Can you finish him before he gets angry?',
+		key: 'take-the-hit',
+		kind: 'gnortSpar',
+		might: 2.2,
+		health: 2.6,
+		opening: 'I GOT THIS. I TOTALLY GOT THIS.',
+		over: 'HA! ...WAIT, DID I WIN?'
+	},
+	{
 		id: 'boodikka',
 		name: 'Boodikka',
 		tier: 'corps',
