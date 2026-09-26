@@ -161,11 +161,11 @@ export const OPPONENTS: Opponent[] = [
 		tier: 'league',
 		tests: "No powers, all preparation. Dampeners, traps, and fear toxin. He's the only fight where you're the one being studied.",
 		key: 'fear',
-		kind: null,
-		might: 1,
-		health: 1,
-		opening: '',
-		over: ''
+		kind: 'batmanSpar',
+		might: 2.4,
+		health: 2.6,
+		opening: 'I HAVE READ YOUR FILE.',
+		over: 'I HAD THE RING BEFORE YOU KNEW I WAS THERE.'
 	},
 
 	// ---- Tier 3: Heavy Hitters ----

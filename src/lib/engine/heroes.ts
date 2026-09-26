@@ -79,7 +79,7 @@ export interface HeroState {
 
 /** A flash of lightning, a tornado, a shockwave: drawn by draw/heroes.ts. */
 export interface HeroFx {
-	kind: 'bolt' | 'tornado' | 'thunder' | 'quake' | 'mace' | 'zip' | 'chakram' | 'nova' | 'cut' | 'heat' | 'frost' | 'lasso' | 'spark' | 'boom';
+	kind: 'bolt' | 'tornado' | 'thunder' | 'quake' | 'mace' | 'zip' | 'chakram' | 'nova' | 'cut' | 'heat' | 'frost' | 'lasso' | 'spark' | 'boom' | 'batarang' | 'smoke' | 'toxin' | 'grapnel';
 	x: number;
 	y: number;
 	/** Bolts and zips: the other end. */

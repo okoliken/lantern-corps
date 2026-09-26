@@ -14,7 +14,7 @@ import { createEnemy, type Enemy } from '../enemies/enemies';
 import type { Player } from '../player';
 import { drawLieutenant } from './lieutenants';
 import { enemyPose } from './enemies';
-import { LASSO_GOLD, drawSupermanBody, drawWonderWomanBody } from './league';
+import { LASSO_GOLD, drawBatmanBody, drawSupermanBody, drawWonderWomanBody } from './league';
 import { FIGURE_HEIGHT, lerpP, poly, segment, shadeColor } from './lantern';
 
 const FIGURE_SCALE = 1.35;
@@ -820,6 +820,76 @@ export function drawHeroFx(ctx: CanvasRenderingContext2D, list: readonly HeroFx[
 				}
 				break;
 			}
+			case 'batarang': {
+				// A steel bat spinning along a curve to where they will be
+				const lift = f.lift ?? 40;
+				const t = Math.min(1, k);
+				const mx = (f.x + f.x2!) / 2 + (f.y2! - f.y) * 0.2;
+				const my = (f.y + f.y2!) / 2 - (f.x2! - f.x) * 0.2 - lift - 30;
+				const bx = (1 - t) ** 2 * f.x + 2 * (1 - t) * t * mx + t * t * f.x2!;
+				const by = (1 - t) ** 2 * (f.y - lift) + 2 * (1 - t) * t * my + t * t * (f.y2! - 40);
+				ctx.translate(bx, by);
+				ctx.rotate(time * 30);
+				ctx.fillStyle = '#c9d1da';
+				ctx.strokeStyle = '#1a1d24';
+				ctx.lineWidth = 1;
+				ctx.beginPath();
+				ctx.moveTo(0, -2);
+				ctx.quadraticCurveTo(-5, -7, -12, -3);
+				ctx.quadraticCurveTo(-8, 1, -10, 5);
+				ctx.quadraticCurveTo(-4, 2, 0, 6);
+				ctx.quadraticCurveTo(4, 2, 10, 5);
+				ctx.quadraticCurveTo(8, 1, 12, -3);
+				ctx.quadraticCurveTo(5, -7, 0, -2);
+				ctx.closePath();
+				ctx.fill();
+				ctx.stroke();
+				break;
+			}
+			case 'smoke': {
+				// A pall of grey, spreading and thinning
+				const r = (f.radius ?? 80) * (0.5 + k * 0.9);
+				const lift = f.lift ?? 30;
+				const g = ctx.createRadialGradient(f.x, f.y - lift, r * 0.1, f.x, f.y - lift, r);
+				g.addColorStop(0, `rgba(150, 156, 168, ${0.8 * fade})`);
+				g.addColorStop(1, 'rgba(120, 126, 138, 0)');
+				ctx.fillStyle = g;
+				ctx.beginPath();
+				ctx.arc(f.x, f.y - lift, r, 0, TAU);
+				ctx.fill();
+				break;
+			}
+			case 'toxin': {
+				// A sick green cloud at ankle height
+				const r = (f.radius ?? 130) * (0.6 + k * 0.5);
+				const g = ctx.createRadialGradient(f.x, f.y - 10, r * 0.15, f.x, f.y - 10, r);
+				g.addColorStop(0, `rgba(160, 220, 80, ${0.55 * fade})`);
+				g.addColorStop(1, 'rgba(120, 190, 60, 0)');
+				ctx.fillStyle = g;
+				ctx.beginPath();
+				ctx.ellipse(f.x, f.y - 10, r, r * 0.5, 0, 0, TAU);
+				ctx.fill();
+				break;
+			}
+			case 'grapnel': {
+				// A steel line from his gauntlet to the hook on them
+				const [a, b] = f.track ?? [{ x: f.x, y: f.y }, { x: f.x2!, y: f.y2! }];
+				const lift = f.lift ?? 40;
+				const reach = Math.min(1, f.age / 0.14);
+				const bx = a.x + (b.x - a.x) * reach;
+				const by = a.y - lift + (b.y - 50 - (a.y - lift)) * reach;
+				ctx.strokeStyle = `rgba(200, 208, 218, ${Math.min(1, fade * 3)})`;
+				ctx.lineWidth = 2;
+				ctx.beginPath();
+				ctx.moveTo(a.x, a.y - lift);
+				ctx.lineTo(bx, by);
+				ctx.stroke();
+				ctx.fillStyle = '#c9d1da';
+				ctx.beginPath();
+				ctx.arc(bx, by, 4, 0, TAU);
+				ctx.fill();
+				break;
+			}
 			case 'lasso': {
 				// The golden lasso: a glowing rope from her hand to a loop round them
 				const [a, b] = f.track ?? [{ x: f.x, y: f.y }, { x: f.x2!, y: f.y2! }];
@@ -987,6 +1057,37 @@ export function drawLeagueEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: numb
 	drawHero(ctx, id, def.look, x, y, pose, time, 1, { guard });
 	ctx.restore();
 }
+
+/** Batman, sparring: on foot, and most of him is cape. */
+export const isBatmanKind = (kind: string): boolean => kind === 'batmanSpar';
+export const BATMAN_COLOR = '#aeb6c0';
+export function drawBatmanEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number) {
+	const speed = Math.hypot(e.vx, e.vy);
+	const base = enemyPose(e, hasGround, time);
+	const pose: LanternPose = { ...base, altitude: 0, hoverHeight: 0, lean: 0, walkPhase: speed > 14 ? time * Math.min(speed, 500) * 0.05 + e.homeX : 0, glow: false };
+	const s = FIGURE_SCALE;
+	const sk = computeSkeleton(pose, time);
+	ctx.save();
+	ctx.globalAlpha = !isStanding(e) ? Math.min(1, e.down / 0.5) : 1;
+	if (e.flash > 0) ctx.globalAlpha *= 0.55;
+	ctx.translate(x, y);
+	ctx.scale(s, s);
+	if (hasGround) {
+		ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+		ctx.beginPath();
+		ctx.ellipse(0, 0, 12, 3.8, 0, 0, TAU);
+		ctx.fill();
+	}
+	ctx.scale(pose.dir * turnScale(pose), 1);
+	ctx.lineJoin = 'round';
+	ctx.lineCap = 'round';
+	drawBatmanBody(ctx, sk, time, pose);
+	ctx.restore();
+}
+export function batmanHand(e: Enemy, x: number, y: number): [number, number] {
+	return [x + e.dir * 16, y - 52];
+}
+export const batmanTop = (y: number) => y - FIGURE_HEIGHT - 12;
 
 /** Where a League member's hand is, and the top of their head (for tells and the name). */
 export function leagueHand(e: Enemy, x: number, y: number): [number, number] {

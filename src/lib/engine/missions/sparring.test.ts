@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Game } from '../game';
 import { isStanding } from '../dummy';
 import { damagePlayer } from '../combat';
+import { beginWindup } from '../enemies/enemies';
 import { ENEMIES } from '../enemies/enemies';
 import { EXTRAS, OPPONENTS, ROSTER, TIERS, buildSparringMap, isReady, opponentById, Sparring } from './sparring';
 
@@ -39,7 +40,7 @@ describe('Sparring · One on One', () => {
 		const ready = ROSTER.filter(isReady);
 		expect(ready.length).toBeGreaterThanOrEqual(10);
 		// The League fight here the moment they exist, not when somebody remembers to switch them on
-		for (const id of ['wonderwoman', 'flash', 'superman', 'hawkgirl']) expect(isReady(opponentById(id)!)).toBe(true);
+		for (const id of ['wonderwoman', 'flash', 'superman', 'hawkgirl', 'batman']) expect(isReady(opponentById(id)!)).toBe(true);
 		for (const foe of ready) expect(ENEMIES[foe.kind!]).toBeTruthy();
 	});
 
@@ -47,7 +48,7 @@ describe('Sparring · One on One', () => {
 		const toCome = OPPONENTS.filter((o) => !isReady(o));
 		// They still carry their roster entry, so the list reads complete
 		for (const foe of toCome) expect(foe.tests.length).toBeGreaterThan(20);
-		expect(toCome.map((o) => o.id)).toContain('batman');
+		expect(toCome.map((o) => o.id)).toContain('aquaman');
 	});
 
 	it('the Corps fight in Corps green, and the League fight as themselves', () => {
@@ -134,6 +135,42 @@ describe('Sparring · One on One', () => {
 			me.invuln = 1;
 		});
 		expect(sparring.camping).toBeGreaterThan(0);
+	});
+
+	it('Batman: fear toxin turns your every move the wrong way', () => {
+		const { game, sparring, run } = setup('batman');
+		run(3);
+		const me = game.players[0];
+		beginWindup(sparring.foe!, 'fearToxin', me);
+		run(1, () => {
+			me.invuln = 1;
+		});
+		expect(me.confused).toBeGreaterThan(0);
+	});
+
+	it("Batman: up close, the ring is off your hand - unless a bubble is up, and then the bubble goes", () => {
+		const { game, sparring, run } = setup('batman');
+		run(3);
+		const me = game.players[0];
+		const f = sparring.foe!;
+		// Bubbled: it pops, and the ring stays
+		game.constructs.shields.push({ owner: me, target: me, hp: 1000, maxHp: 1000, life: 30, maxLife: 30, ripple: 0 } as never);
+		beginWindup(f, 'ringSteal', me);
+		run(0.8, () => {
+			me.x = me.prevX = f.x + f.dir * 40;
+			me.y = me.prevY = f.y;
+		});
+		expect(game.constructs.shields.some((s) => s.target === me)).toBe(false);
+		expect(me.branded).toBe(0);
+		// No bubble: gone for a while
+		f.brain.cooldowns.ringSteal = 0;
+		beginWindup(f, 'ringSteal', me);
+		run(0.8, () => {
+			me.x = me.prevX = f.x + f.dir * 40;
+			me.y = me.prevY = f.y;
+			me.invuln = 1;
+		});
+		expect(me.branded).toBeGreaterThan(3);
 	});
 
 	it('the teachers are there to spar with too', () => {

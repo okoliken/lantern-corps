@@ -30,6 +30,13 @@ const WW_BLUE = '#1b3a8c';
 const WW_GOLD = '#e8b93c';
 const SILVER = '#c9d1da';
 export const LASSO_GOLD = '#ffd766';
+// Batman: grey suit, black cowl, cape and gloves, the yellow belt
+const BAT_GREY = '#6f7680';
+const BAT_GREY_LIT = '#8b939d';
+const BAT_GREY_DARK = '#4d535b';
+const BAT_BLACK = '#15171c';
+const BAT_BLACK_LIT = '#2a2e36';
+const BAT_YELLOW = '#e9c33b';
 
 // ------------------------------------------------------------------- Superman
 
@@ -44,7 +51,7 @@ export function drawSupermanBody(ctx: CanvasRenderingContext2D, sk: Skeleton, lo
 }
 
 /** The cape: from the shoulders, hanging down his back on the ground, streaming out behind him in the air. */
-function drawCape(ctx: CanvasRenderingContext2D, sk: Skeleton, time: number, pose: LanternPose) {
+function drawCape(ctx: CanvasRenderingContext2D, sk: Skeleton, time: number, pose: LanternPose, colors: [string, string] = [CAPE, CAPE_DARK]) {
 	const at = frame(sk);
 	const air = pose.downed ? 0 : pose.altitude;
 	// From straight down (0) round toward straight back (PI/2)
@@ -71,8 +78,8 @@ function drawCape(ctx: CanvasRenderingContext2D, sk: Skeleton, time: number, pos
 	cape.quadraticCurveTo(mid2[0], mid2[1], ...top);
 	cape.closePath();
 	const shade = ctx.createLinearGradient(back[0], back[1], back[0] + dir[0] * length, back[1] + dir[1] * length);
-	shade.addColorStop(0, CAPE);
-	shade.addColorStop(1, CAPE_DARK);
+	shade.addColorStop(0, colors[0]);
+	shade.addColorStop(1, colors[1]);
 	ctx.fillStyle = shade;
 	ctx.fill(cape);
 	ctx.strokeStyle = OUTLINE;
@@ -192,6 +199,150 @@ function drawSuperHead(ctx: CanvasRenderingContext2D, sk: Skeleton, look: Look) 
 	ctx.moveTo(R - 1.4, -3.4);
 	ctx.quadraticCurveTo(R + 0.9, -3, R - 0.2, -1.6);
 	ctx.stroke();
+	ctx.restore();
+}
+
+/** Batman. No powers: a man in a grey suit and a black cowl, and the cape is most of him. */
+export function drawBatmanBody(ctx: CanvasRenderingContext2D, sk: Skeleton, time: number, pose: LanternPose) {
+	drawCape(ctx, sk, time, pose, [BAT_BLACK_LIT, BAT_BLACK]);
+	drawBatArm(ctx, sk.back, true);
+	drawBatLeg(ctx, sk.back, true);
+	drawBatTorso(ctx, sk);
+	drawBatLeg(ctx, sk.front, false);
+	drawBatHead(ctx, sk);
+	drawBatArm(ctx, sk.front, false);
+}
+
+function drawBatLeg(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean) {
+	const grey = far ? BAT_GREY_DARK : BAT_GREY;
+	const boot = far ? BAT_BLACK : BAT_BLACK_LIT;
+	segment(ctx, l.hipJoint, l.knee, 3.8, 3.0, grey);
+	const bootTop = lerpP(l.knee, l.foot, 0.35);
+	segment(ctx, l.knee, bootTop, 3.0, 2.7, grey);
+	segment(ctx, bootTop, l.foot, 2.9, 2.5, boot);
+	const shin = Math.atan2(l.foot[1] - l.knee[1], l.foot[0] - l.knee[0]);
+	const toe: Point = [l.foot[0] + Math.cos(shin - Math.PI / 2) * 4.2, l.foot[1] + Math.sin(shin - Math.PI / 2) * 4.2];
+	segment(ctx, l.foot, toe, 2.2, 1.5, boot);
+}
+
+function drawBatArm(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean) {
+	segment(ctx, l.shoulder, l.elbow, 3.1, 2.5, far ? BAT_GREY_DARK : BAT_GREY);
+	// Gauntlets, with the fins
+	const cuff = lerpP(l.elbow, l.hand, 0.45);
+	segment(ctx, l.elbow, cuff, 2.5, 2.2, far ? BAT_GREY_DARK : BAT_GREY_LIT);
+	segment(ctx, cuff, l.hand, 2.4, 2.1, far ? BAT_BLACK : BAT_BLACK_LIT);
+	const ang = Math.atan2(l.hand[1] - l.elbow[1], l.hand[0] - l.elbow[0]);
+	ctx.fillStyle = far ? BAT_BLACK : BAT_BLACK_LIT;
+	for (let i = 0; i < 3; i++) {
+		const along = lerpP(cuff, l.hand, 0.15 + i * 0.28);
+		ctx.beginPath();
+		ctx.moveTo(along[0] + Math.cos(ang + Math.PI / 2) * 2.2, along[1] + Math.sin(ang + Math.PI / 2) * 2.2);
+		ctx.lineTo(along[0] + Math.cos(ang + Math.PI / 2) * 4.6 + Math.cos(ang) * 1.2, along[1] + Math.sin(ang + Math.PI / 2) * 4.6 + Math.sin(ang) * 1.2);
+		ctx.lineTo(along[0] + Math.cos(ang + Math.PI / 2) * 2.2 + Math.cos(ang) * 1.6, along[1] + Math.sin(ang + Math.PI / 2) * 2.2 + Math.sin(ang) * 1.6);
+		ctx.closePath();
+		ctx.fill();
+	}
+	ctx.fillStyle = far ? BAT_BLACK : BAT_BLACK_LIT;
+	ctx.beginPath();
+	ctx.arc(l.hand[0], l.hand[1], 2.3, 0, TAU);
+	ctx.fill();
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.stroke();
+}
+
+function drawBatTorso(ctx: CanvasRenderingContext2D, sk: Skeleton) {
+	const at = frame(sk);
+	const body = torsoShape(at, -0.3);
+	const [bx, by] = at(8, -6);
+	const [fx, fy] = at(8, 7);
+	const shade = ctx.createLinearGradient(bx, by, fx, fy);
+	shade.addColorStop(0, BAT_GREY_DARK);
+	shade.addColorStop(1, BAT_GREY_LIT);
+	ctx.fillStyle = shade;
+	ctx.fill(body);
+	ctx.save();
+	ctx.clip(body);
+	// Black trunks
+	ctx.fillStyle = BAT_BLACK;
+	ctx.fill(poly([at(-3, -8), at(2, -8), at(2, 9), at(-3, 9)]));
+	ctx.restore();
+	// The utility belt
+	ctx.strokeStyle = BAT_YELLOW;
+	ctx.lineWidth = 1.7;
+	ctx.beginPath();
+	ctx.moveTo(...at(2.4, -4.8));
+	ctx.lineTo(...at(2.4, 5.4));
+	ctx.stroke();
+	ctx.fillStyle = BAT_YELLOW;
+	for (const s of [-3, -0.6, 1.8, 4.2]) {
+		const [px, py] = at(2.4, s);
+		ctx.fillRect(px - 0.9, py - 1.2, 1.8, 2.4);
+	}
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.9;
+	ctx.stroke(body);
+	// The bat on the chest
+	const [ex, ey] = at(12.4, 2.2);
+	ctx.save();
+	ctx.translate(ex, ey);
+	ctx.rotate(sk.torsoAngle);
+	ctx.fillStyle = BAT_BLACK;
+	ctx.beginPath();
+	ctx.moveTo(0, -1.2);
+	ctx.quadraticCurveTo(-2.2, -3, -5.2, -1.6);
+	ctx.quadraticCurveTo(-3.6, 0.2, -4.6, 2);
+	ctx.quadraticCurveTo(-2, 1.2, 0, 2.6);
+	ctx.quadraticCurveTo(2, 1.2, 4.6, 2);
+	ctx.quadraticCurveTo(3.6, 0.2, 5.2, -1.6);
+	ctx.quadraticCurveTo(2.2, -3, 0, -1.2);
+	ctx.closePath();
+	ctx.fill();
+	ctx.restore();
+	segment(ctx, sk.neck, lerpP(sk.neck, sk.headCenter, 0.45), 2, 1.9, BAT_BLACK_LIT);
+}
+
+function drawBatHead(ctx: CanvasRenderingContext2D, sk: Skeleton) {
+	const R = HEAD_R;
+	ctx.save();
+	ctx.translate(...sk.headCenter);
+	ctx.rotate(sk.headAngle);
+	// The cowl: the whole head, with the ears, and a mouth left open at the front
+	ctx.fillStyle = BAT_BLACK_LIT;
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.beginPath();
+	ctx.arc(0, 0, R + 0.4, 0, TAU);
+	ctx.fill();
+	ctx.stroke();
+	ctx.beginPath();
+	ctx.moveTo(-R * 0.55, -R * 0.75);
+	ctx.lineTo(-R * 0.5, -R - 4.2);
+	ctx.lineTo(-R * 0.1, -R * 0.9);
+	ctx.moveTo(R * 0.15, -R * 0.95);
+	ctx.lineTo(R * 0.5, -R - 4.2);
+	ctx.lineTo(R * 0.6, -R * 0.7);
+	ctx.closePath();
+	ctx.fill();
+	ctx.stroke();
+	// The jaw
+	ctx.fillStyle = '#e2b58e';
+	ctx.beginPath();
+	ctx.moveTo(R * 0.15, 0.6);
+	ctx.quadraticCurveTo(R + 0.2, 1.2, R * 0.6, R * 0.95);
+	ctx.quadraticCurveTo(0, R + 0.2, -R * 0.3, R * 0.6);
+	ctx.quadraticCurveTo(R * 0.1, R * 0.1, R * 0.15, 0.6);
+	ctx.closePath();
+	ctx.fill();
+	// The eyes: two white slits
+	ctx.fillStyle = '#f4f4f0';
+	ctx.beginPath();
+	ctx.moveTo(R * 0.25, -1.6);
+	ctx.lineTo(R * 0.95, -1.9);
+	ctx.lineTo(R * 0.85, -0.7);
+	ctx.lineTo(R * 0.3, -0.5);
+	ctx.closePath();
+	ctx.fill();
 	ctx.restore();
 }
 

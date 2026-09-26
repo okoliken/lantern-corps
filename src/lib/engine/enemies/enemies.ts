@@ -368,6 +368,26 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		lieutenant: true
 	},
 
+	batmanSpar: {
+		kind: 'batmanSpar',
+		name: 'Batman',
+		faction: 'rogue',
+		description: 'No powers, all preparation. Batarangs from the dark, smoke and gone, a grapnel that takes you off your feet, fear toxin, and hands quick enough to have the ring off your finger before you know he touched you.',
+		mind: 'rage',
+		hp: 1300,
+		speed: 310,
+		accel: 8,
+		sight: 1400,
+		poise: 300,
+		scale: 1,
+		agility: 1,
+		movement: 'hover',
+		kit: ['batarang', 'smokeBomb', 'grapple', 'fearToxin', 'ringSteal'],
+		range: 260,
+		leans: { aggression: 0.4, caution: 0.5, patience: 0.4 },
+		lieutenant: true
+	},
+
 	// ---- Lieutenants: Atrocitus's inner circle, from the animated series ----
 	zox: {
 		kind: 'zox',

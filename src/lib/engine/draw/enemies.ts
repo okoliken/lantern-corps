@@ -6,7 +6,7 @@
 // hand with an aim line, the body crouches before a slam, and red rings pull
 // inward before a roar.
 
-import { drawLeagueEnemy, drawReverseFlash, isLeagueKind, leagueColor, leagueHand, leagueTop, reverseFlashHand, reverseFlashTop } from './heroes';
+import { BATMAN_COLOR, batmanHand, batmanTop, drawBatmanEnemy, drawLeagueEnemy, drawReverseFlash, isBatmanKind, isLeagueKind, leagueColor, leagueHand, leagueTop, reverseFlashHand, reverseFlashTop } from './heroes';
 import type { LanternPose } from '../animation';
 import { ENEMIES, type Enemy } from '../enemies/enemies';
 import { ABILITIES, RED_HAND_LIFT, SLAM_HEIGHT, type AbilityId } from '../enemies/redConstructs';
@@ -70,6 +70,11 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, reverseFlashTop(y), reverseFlashHand(e, x, y), time);
 		return;
 	}
+	if (isBatmanKind(e.kind)) {
+		drawBatmanEnemy(ctx, e, x, y, hasGround, time);
+		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, batmanTop(y), batmanHand(e, x, y), time);
+		return;
+	}
 	if (isLeagueKind(e.kind)) {
 		drawLeagueEnemy(ctx, e, x, y, hasGround, time);
 		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, leagueTop(e, y), leagueHand(e, x, y), time);
@@ -104,6 +109,7 @@ export function enemyMuzzle(e: Enemy, x: number, y: number): [number, number] {
 	if (isGorillaKind(e.kind)) return gorillaHand(e, x, y);
 	if (e.kind === 'manhunter' || e.kind === 'manhunterPrime') return manhunterHand(e, x, y);
 	if (e.kind === 'reverseFlash') return reverseFlashHand(e, x, y);
+	if (isBatmanKind(e.kind)) return batmanHand(e, x, y);
 	if (isLeagueKind(e.kind)) return leagueHand(e, x, y);
 	if (isCorpsKind(e.kind)) return corpsRing(e.kind, x, y, enemyPose(e, true, 0), 0);
 	return redLanternHand(e, x, y);
@@ -163,11 +169,11 @@ function drawEnemyOverlay(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 	const tell = bodyTell && Math.sin(time * 30) > 0;
 	const progress = windupProgress(e);
 	// Drawn straight in the enemy's own colour: a canvas filter here would cost a full-screen pass per enemy per frame
-	const color = isLeagueKind(e.kind) ? leagueColor(e.kind) : def.tint && def.tint !== 'corps' ? TINT_COLORS[def.tint] : def.faction === 'manhunter' ? '#ffb040' : RED;
+	const color = isBatmanKind(e.kind) ? BATMAN_COLOR : isLeagueKind(e.kind) ? leagueColor(e.kind) : def.tint && def.tint !== 'corps' ? TINT_COLORS[def.tint] : def.faction === 'manhunter' ? '#ffb040' : RED;
 
 	// A Rage Shield around it
 	// (The League's guard is drawn on the figure - Hawkgirl's wings - not as a rage bubble)
-	if (e.ward && !isLeagueKind(e.kind)) drawWard(ctx, x, (y + top) / 2 + 4, (y - top) * 0.5, e.ward.hp / e.ward.maxHp, time);
+	if (e.ward && !isLeagueKind(e.kind) && !isBatmanKind(e.kind)) drawWard(ctx, x, (y + top) / 2 + 4, (y - top) * 0.5, e.ward.hp / e.ward.maxHp, time);
 
 	// Weapon constructs forming in the hand during the windup (only while winding up: rare enough to tint)
 	if ((winding === 'axe' || winding === 'mace' || winding === 'cannon') && def.tint && def.tint !== 'corps') {

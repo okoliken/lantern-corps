@@ -96,7 +96,13 @@ export type AbilityId =
 	| 'maceSwing'
 	| 'flyPunch'
 	| 'wingGuard'
-	| 'talonThrow';
+	| 'talonThrow'
+	// Batman (league.ts)
+	| 'batarang'
+	| 'smokeBomb'
+	| 'grapple'
+	| 'fearToxin'
+	| 'ringSteal';
 
 /** How far away a construct is used from. Kits take some of each. */
 type Band = 'close' | 'mid' | 'long' | 'support';
@@ -455,6 +461,31 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	talonThrow: def({
 		id: 'talonThrow', name: 'Talon Throw', band: 'mid', tell: 'heavy', windup: 0.5, active: 1.35, recover: 0.7, cooldown: 8,
 		minRange: 60, maxRange: 420, damage: 24, knockback: 0, melee: false, heavy: true, chance: 0.8, speed: 1150
+	}),
+	// Batman: three batarangs on a curve, thrown from wherever he is
+	batarang: def({
+		id: 'batarang', name: 'Batarangs', band: 'long', tell: 'aim', windup: 0.35, active: 0.5, recover: 0.3, cooldown: 2.6,
+		minRange: 120, maxRange: 620, damage: 7, knockback: 160, melee: false, heavy: false, chance: 0.9
+	}),
+	// Gone in the smoke, and behind you before it clears
+	smokeBomb: def({
+		id: 'smokeBomb', name: 'Smoke', band: 'mid', tell: 'build', windup: 0.2, active: 0.35, recover: 0.15, cooldown: 6,
+		minRange: 0, maxRange: 400, damage: 0, knockback: 0, melee: false, heavy: false, chance: 0.7
+	}),
+	// The grapnel: takes you off your feet and into a kick
+	grapple: def({
+		id: 'grapple', name: 'Grapnel', band: 'mid', tell: 'aim', windup: 0.45, active: 0.8, recover: 0.4, cooldown: 6.5,
+		minRange: 150, maxRange: 480, damage: 14, knockback: 520, melee: false, heavy: false, chance: 0.8
+	}),
+	// A capsule at your feet: for a while, everything you do goes the wrong way
+	fearToxin: def({
+		id: 'fearToxin', name: 'Fear Toxin', band: 'long', tell: 'aim', windup: 0.5, active: 0.2, recover: 0.4, cooldown: 11,
+		minRange: 100, maxRange: 560, damage: 4, knockback: 0, melee: false, heavy: false, chance: 0.7, radius: 130
+	}),
+	// Up close, and the ring is off your hand before you know he touched you
+	ringSteal: def({
+		id: 'ringSteal', name: 'Sleight of Hand', band: 'close', tell: 'strike', windup: 0.3, active: 0.25, recover: 0.5, cooldown: 14,
+		minRange: 0, maxRange: 72, damage: 10, knockback: 300, melee: true, heavy: false, chance: 1
 	}),
 	// A mace swing up close
 	maceSwing: def({

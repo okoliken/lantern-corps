@@ -70,7 +70,12 @@ export const LEAGUE_ABILITIES: ReadonlySet<AbilityId> = new Set<AbilityId>([
 	'maceDive',
 	'maceSwing',
 	'wingGuard',
-	'talonThrow'
+	'talonThrow',
+	'batarang',
+	'smokeBomb',
+	'grapple',
+	'fearToxin',
+	'ringSteal'
 ]);
 
 /** How high moves at hand height are drawn, and where Superman's eyes are on a hovering figure. */
@@ -88,6 +93,11 @@ const LASSO = { flight: 0.15, pullTime: 0.7 };
 const DIVE = { riseTime: 0.3, rise: 160 };
 /** Talon Throw: carried up, held, and put down hard. */
 const TALON = { carry: 0.55, hold: 0.3, lift: 0.9 };
+/** Batman: three batarangs, how long each takes to arrive; the grapnel; the toxin; how long the ring is gone. */
+const BATARANG = { count: 3, gap: 0.12, flight: 0.32 };
+const GRAPNEL = { flight: 0.14, pull: 0.45, stop: 60 };
+const TOXIN = { time: 2.8 };
+const STEAL = { time: 5 };
 /** Wing Guard: what the wings take before they give, and for how long. */
 const WING = { hp: 70, life: 2.4 };
 /** The Flash reads a shot coming and is somewhere else: how far, how soon, how often. */
@@ -95,6 +105,8 @@ const DODGE = { lookahead: 0.32, miss: 64, hop: 150, every: 0.8 };
 
 /** When a combo made contact (seconds into the move), and how many ticks a beam has done. */
 const contact = new WeakMap<Enemy, number>();
+/** Batarangs in the air: where each lands, and when. */
+const thrown = new WeakMap<Enemy, { x: number; y: number; at: number }[]>();
 const ticks = new WeakMap<Enemy, number>();
 
 const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -131,6 +143,60 @@ export function startLeagueAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, p
 			}
 			heroFx(w).push({ kind: 'zip', x: e.x, y: e.y, x2: t.x, y2: t.y, age: 0, life: 0.25 });
 			w.effects.push({ kind: 'callout', x: t.x, y: t.y - 100, age: 0, life: 1.2, text: 'TALONS', hurt: true, owner: t });
+			break;
+		}
+		case 'batarang':
+			// Thrown one at a time from the update; nothing to do yet
+			break;
+		case 'smokeBomb': {
+			// Gone in the smoke, and behind them before it clears
+			for (let i = 0; i < 3; i++) w.effects.push({ kind: 'burst', x: e.x + (i - 1) * 22, y: e.y - 20 - (i % 2) * 18, age: 0, life: 0.9 });
+			heroFx(w).push({ kind: 'smoke', x: e.x, y: e.y, age: 0, life: 1.1, radius: 90, lift: 30 });
+			if (t && !t.downed) {
+				const away = Math.atan2(t.y - e.y, t.x - e.x);
+				e.x = t.x + Math.cos(away) * 110;
+				e.y = t.y + Math.sin(away) * 40;
+				e.prevX = e.x;
+				e.prevY = e.y;
+				e.dir = t.x > e.x ? 1 : -1;
+				heroFx(w).push({ kind: 'smoke', x: e.x, y: e.y, age: 0, life: 0.8, radius: 60, lift: 30 });
+			}
+			break;
+		}
+		case 'grapple': {
+			if (!t || t.downed) return;
+			heroFx(w).push({ kind: 'grapnel', x: e.x, y: e.y, x2: t.x, y2: t.y, age: 0, life: GRAPNEL.flight + GRAPNEL.pull + 0.1, lift: HAND_LIFT, track: [e, t] });
+			break;
+		}
+		case 'fearToxin': {
+			// A capsule where they are standing: whoever breathes it panics
+			const cx = t ? t.x : e.x;
+			const cy = t ? t.y : e.y;
+			heroFx(w).push({ kind: 'toxin', x: cx, y: cy, age: 0, life: 1.6, radius: a.radius ?? 130, lift: 20 });
+			for (const p of players) {
+				if (p.downed || dist(p, { x: cx, y: cy }) > (a.radius ?? 130)) continue;
+				p.confused = Math.max(p.confused, TOXIN.time);
+				damagePlayer(w, p, power(e, a), cx, cy, 0);
+				w.effects.push({ kind: 'callout', x: p.x, y: p.y - 100, age: 0, life: 1.4, text: 'FEAR TOXIN', hurt: true, owner: p });
+			}
+			break;
+		}
+		case 'ringSteal': {
+			if (!t || t.downed || dist(t, e) > a.maxRange + 20) return;
+			// A bubble is the one thing that stops it, and it costs you the bubble
+			const sh = w.shields.find((s) => s.target === t);
+			if (sh) {
+				w.shields.splice(w.shields.indexOf(sh), 1);
+				w.effects.push({ kind: 'pop', x: t.x, y: t.y, age: 0, life: 0.45, owner: t });
+				break;
+			}
+			t.invuln = 0;
+			damagePlayer(w, t, power(e, a), e.x, e.y, a.knockback, true);
+			t.branded = Math.max(t.branded, STEAL.time);
+			t.firing = false;
+			t.charge = 0;
+			w.effects.push({ kind: 'callout', x: t.x, y: t.y - 110, age: 0, life: 2, text: 'RING TAKEN', hurt: true, owner: t });
+			w.effects.push({ kind: 'fizzle', x: t.x, y: t.y - 40, age: 0, life: 0.6 });
 			break;
 		}
 		case 'flashRush':
@@ -416,6 +482,60 @@ export function updateLeagueAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, 
 			}
 			return;
 		}
+		case 'batarang': {
+			steer(e, 0, 0, 8, dt);
+			if (!t || t.downed) return;
+			e.dir = t.x > e.x ? 1 : -1;
+			// Throw them one at a time; each lands where they will be when it gets there
+			if (b.fired < BATARANG.count && b.elapsed >= b.fired * BATARANG.gap) {
+				b.fired++;
+				const ax = t.x + t.vx * BATARANG.flight;
+				const ay = t.y + t.vy * BATARANG.flight;
+				heroFx(w).push({ kind: 'batarang', x: e.x + e.dir * 10, y: e.y, x2: ax, y2: ay, age: 0, life: BATARANG.flight, lift: HAND_LIFT });
+				thrown.set(e, [...(thrown.get(e) ?? []), { x: ax, y: ay, at: b.elapsed + BATARANG.flight }]);
+			}
+			const list = thrown.get(e) ?? [];
+			for (const bt of [...list]) {
+				if (b.elapsed < bt.at) continue;
+				list.splice(list.indexOf(bt), 1);
+				for (const p of players) {
+					if (p.downed || Math.abs(p.x - bt.x) > 34 || Math.abs(p.y - bt.y) > 50) continue;
+					p.invuln = 0;
+					damagePlayer(w, p, power(e, a), bt.x, bt.y, a.knockback);
+					w.effects.push({ kind: 'impact', x: p.x, y: p.y, age: 0, life: 0.15, lift: 40 });
+				}
+			}
+			return;
+		}
+		case 'grapple': {
+			steer(e, 0, 0, 8, dt);
+			if (!t || t.downed) return;
+			e.dir = t.x > e.x ? 1 : -1;
+			if (b.elapsed > GRAPNEL.flight && b.elapsed <= GRAPNEL.flight + GRAPNEL.pull) {
+				const k = Math.min(1, dt * 8);
+				const d = dist(t, e);
+				if (d > GRAPNEL.stop) {
+					t.x += ((e.x - t.x) / d) * (d - GRAPNEL.stop) * k;
+					t.y += ((e.y - t.y) / d) * (d - GRAPNEL.stop) * k;
+					t.vx *= 0.3;
+					t.vy *= 0.3;
+				}
+				return;
+			}
+			// ...and the kick when they arrive
+			if (!b.hitDone && b.elapsed > GRAPNEL.flight + GRAPNEL.pull) {
+				b.hitDone = true;
+				if (dist(t, e) <= GRAPNEL.stop + 40) {
+					t.invuln = 0;
+					damagePlayer(w, t, power(e, a), e.x, e.y, a.knockback, true);
+					w.effects.push({ kind: 'impact', x: t.x, y: t.y, age: 0, life: 0.2, lift: 40 });
+				}
+			}
+			return;
+		}
+		case 'smokeBomb':
+		case 'fearToxin':
+		case 'ringSteal':
 		case 'flashBolt':
 		case 'maceSwing':
 			steer(e, 0, 0, 8, dt);

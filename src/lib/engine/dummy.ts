@@ -19,7 +19,7 @@ const DUMMY_RESPAWN = 3;
 const DEFEAT_LINGER = 0.9;
 
 /** What kind of target: a training dummy, or which enemy. */
-export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'flashSpar' | 'supermanSpar' | 'wonderwomanSpar' | 'hawkgirlSpar' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterPrime' | 'manhunterCore' | 'reverseFlash' | 'signalSpire' | 'dexStarr' | 'rageBubble' | 'bloodConduit' | 'atrocitus';
+export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'flashSpar' | 'supermanSpar' | 'wonderwomanSpar' | 'hawkgirlSpar' | 'batmanSpar' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterPrime' | 'manhunterCore' | 'reverseFlash' | 'signalSpire' | 'dexStarr' | 'rageBubble' | 'bloodConduit' | 'atrocitus';
 
 export interface Dummy {
 	kind: TargetKind;
@@ -210,6 +210,7 @@ export const BODY: Record<TargetKind, { halfWidth: number; height: number }> = {
 	supermanSpar: { halfWidth: 21, height: 98 },
 	wonderwomanSpar: { halfWidth: 18, height: 96 },
 	hawkgirlSpar: { halfWidth: 22, height: 96 },
+	batmanSpar: { halfWidth: 19, height: 96 },
 	razer: { halfWidth: 18, height: 100 },
 	// Real size comes from its drift radius
 	spaceRock: { halfWidth: 20, height: 40 },
