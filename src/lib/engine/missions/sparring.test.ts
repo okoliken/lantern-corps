@@ -38,9 +38,9 @@ describe('Sparring · One on One', () => {
 	it('nothing is locked: every opponent that has a figure can be fought straight away', () => {
 		// The mode is not a ladder. If they are built, they are available.
 		const ready = ROSTER.filter(isReady);
-		expect(ready.length).toBeGreaterThanOrEqual(10);
+		expect(ready.length).toBeGreaterThanOrEqual(14);
 		// The League fight here the moment they exist, not when somebody remembers to switch them on
-		for (const id of ['wonderwoman', 'flash', 'superman', 'hawkgirl', 'batman']) expect(isReady(opponentById(id)!)).toBe(true);
+		for (const id of ['wonderwoman', 'flash', 'superman', 'hawkgirl', 'batman', 'tomar', 'guy', 'kyle']) expect(isReady(opponentById(id)!)).toBe(true);
 		for (const foe of ready) expect(ENEMIES[foe.kind!]).toBeTruthy();
 	});
 

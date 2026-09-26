@@ -75,11 +75,11 @@ export const OPPONENTS: Opponent[] = [
 		tier: 'corps',
 		tests: 'Precise and analytical. He picks apart sloppy constructs and punishes every waste of charge.',
 		key: 'empty',
-		kind: null,
-		might: 1,
-		health: 1,
-		opening: '',
-		over: ''
+		kind: 'tomarSpar',
+		might: 2.5,
+		health: 2.8,
+		opening: 'EVERY CONSTRUCT COSTS. SHOW ME YOU KNOW THAT.',
+		over: 'YOU SPENT IT ALL. I DID NOT.'
 	},
 	{
 		id: 'guy',
@@ -87,11 +87,11 @@ export const OPPONENTS: Opponent[] = [
 		tier: 'corps',
 		tests: 'Loud, reckless, and nearly impossible to stagger. A brawl where tactics barely matter and grit decides it.',
 		key: 'take-the-hit',
-		kind: null,
-		might: 1,
-		health: 1,
-		opening: '',
-		over: ''
+		kind: 'guySpar',
+		might: 2.6,
+		health: 3.2,
+		opening: "YOU'RE GONNA LOVE THIS. I WON'T.",
+		over: 'STAY DOWN, ROOKIE.'
 	},
 	{
 		id: 'kyle',
@@ -99,11 +99,11 @@ export const OPPONENTS: Opponent[] = [
 		tier: 'corps',
 		tests: "The most creative ring-wielder alive. His constructs are artistic, unpredictable, and weird. You can't pattern-match him.",
 		key: 'fear',
-		kind: null,
-		might: 1,
-		health: 1,
-		opening: '',
-		over: ''
+		kind: 'kyleSpar',
+		might: 2.3,
+		health: 2.7,
+		opening: "DON'T BOTHER GUESSING.",
+		over: 'TOLD YOU. NOTHING TWICE.'
 	},
 
 	// ---- Tier 2: The League ----

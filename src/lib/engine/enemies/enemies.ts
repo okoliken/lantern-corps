@@ -289,6 +289,67 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		lieutenant: true
 	},
 
+	tomarSpar: {
+		kind: 'tomarSpar',
+		name: 'Tomar-Re',
+		faction: 'corps',
+		tint: 'corps',
+		description: 'Precise and analytical. He does not waste a construct and he does not miss: a beam that finds you, cages where you were going, fans of blades that land, and a fist when you have spent yourself.',
+		mind: 'rage',
+		hp: 1700,
+		speed: 180,
+		accel: 5,
+		sight: 1200,
+		poise: 320,
+		scale: 1.06,
+		agility: 0.9,
+		movement: 'hover',
+		kit: ['beam', 'cage', 'bladeFan', 'bigFist', 'blast'],
+		range: 280,
+		leans: { aggression: 0.15, caution: 0.3, patience: 0.6 },
+		lieutenant: true
+	},
+	guySpar: {
+		kind: 'guySpar',
+		name: 'Guy Gardner',
+		faction: 'corps',
+		tint: 'corps',
+		description: 'Loud, reckless, and nearly impossible to stagger. Hammers, a fist the size of a car, a charge, a roar, and no plan at all past hitting you until one of you stops.',
+		mind: 'rage',
+		hp: 2100,
+		speed: 175,
+		accel: 4.5,
+		sight: 1000,
+		poise: 2400,
+		scale: 1.05,
+		agility: 0.3,
+		movement: 'hover',
+		kit: ['bigHammer', 'hammerSpin', 'bigFist', 'charge', 'roar'],
+		range: 140,
+		leans: { aggression: 0.9, caution: -0.6, patience: -0.5 },
+		lieutenant: true
+	},
+	kyleSpar: {
+		kind: 'kyleSpar',
+		name: 'Kyle Rayner',
+		faction: 'corps',
+		tint: 'corps',
+		description: 'The most creative ring-wielder alive. Storms of blades, hammers out of the sky, cages, skulls that hunt you, meteors, a sword: nothing twice in a row, and none of it where you expected.',
+		mind: 'rage',
+		hp: 1600,
+		speed: 205,
+		accel: 6,
+		sight: 1100,
+		poise: 240,
+		scale: 1,
+		agility: 0.9,
+		movement: 'hover',
+		kit: ['bladeStorm', 'hammerRain', 'cage', 'skulls', 'meteors', 'sword'],
+		range: 240,
+		leans: { aggression: 0.4, caution: 0.1, patience: -0.2 },
+		lieutenant: true
+	},
+
 	// ---- The Justice League, sparring on the Watchtower ----
 	// They are not trying to put you down. They are trying to find out what you do.
 	flashSpar: {

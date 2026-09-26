@@ -7,7 +7,7 @@ import type { LanternPose } from '../animation';
 import { LANTERNS } from '../lanterns';
 import { drawLantern, ringPosition, FIGURE_HEIGHT, GREEN, type Figure } from './lantern';
 
-export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn';
+export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar';
 
 interface CorpsFigure {
 	figure: Figure;
@@ -44,7 +44,28 @@ const CORPS: Record<CorpsKind, CorpsFigure> = {
 	sparKatma: fromCrew('katma'),
 	sparBoodikka: fromCrew('boodikka'),
 	sparHal: fromCrew('hal'),
-	sparJohn: fromCrew('john')
+	sparJohn: fromCrew('john'),
+	/** Tomar-Re of Xudar: tall, lean, orange-skinned, the beak and the crest. */
+	tomarSpar: {
+		figure: { id: 'tomarSpar', look: { skin: '#e8933a', hair: '#d9633a', hairStyle: 'cropped', mask: false, avian: { beak: '#f2c14e', crest: '#d9633a' } }, bulk: 0.9 },
+		scale: 1.06,
+		build: { leg: 1.1, torso: 1.06, arm: 1.1, neck: 1.2 },
+		hunch: -0.02
+	},
+	/** Guy Gardner: built like a bouncer, the red bowl cut, no mask, and a jaw that leads. */
+	guySpar: {
+		figure: { id: 'guySpar', look: { skin: '#e6b892', hair: '#c8461e', hairStyle: 'cropped', mask: false }, bulk: 1.18 },
+		scale: 1.05,
+		build: { leg: 0.98, torso: 1.06, arm: 1.12, neck: 0.9 },
+		hunch: 0.05
+	},
+	/** Kyle Rayner: the artist. Lean and loose, black hair in his eyes, the crab mask. */
+	kyleSpar: {
+		figure: { id: 'kyleSpar', look: { skin: '#e2b892', hair: '#13111a', hairStyle: 'swept', mask: true }, bulk: 0.95 },
+		scale: 1,
+		build: { leg: 1.04, torso: 1, arm: 1.04, neck: 1.02 },
+		hunch: -0.03
+	}
 };
 
 /** A sparring partner built from the Lantern the Corps already knows. */
