@@ -305,11 +305,21 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.45rem;
-		font-size: 0.78rem;
+		font-size: 0.8rem;
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
-		font-weight: 600;
-		padding: 0.4rem 0.9rem;
+		font-weight: 800;
+		min-height: 2.8rem;
+		padding: 0.4rem 1.1rem;
+		border-radius: 999px;
+		background: var(--green);
+		color: #04140a;
+		border-color: var(--green);
+		box-shadow: 0 4px 0 #0b7a35;
+	}
+	.back:active {
+		transform: translateY(2px);
+		box-shadow: 0 2px 0 #0b7a35;
 	}
 	.wordmark {
 		font-family: var(--font-display);
@@ -489,9 +499,10 @@
 		font: inherit;
 		color: var(--text);
 		background: transparent;
-		border: 1px solid var(--suit-lit);
-		border-radius: 6px;
-		padding: 0.35rem 0.8rem;
+		border: 2px solid var(--suit-lit);
+		border-radius: 999px;
+		padding: 0.4rem 0.9rem;
+		min-height: 2.4rem;
 		cursor: pointer;
 	}
 	button:hover,
@@ -503,19 +514,23 @@
 		gap: 0.4rem;
 	}
 	.tabs button {
-		border-radius: 3px;
+		border-radius: 999px;
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
-		font-size: 0.76rem;
-		font-weight: 600;
-		border-color: transparent;
-		opacity: 0.7;
+		font-size: 0.78rem;
+		font-weight: 700;
+		min-height: 2.6rem;
+		padding: 0.4rem 1.1rem;
+		border: 2px solid color-mix(in srgb, var(--green) 25%, transparent);
+		background: rgba(4, 20, 12, 0.7);
+		opacity: 0.85;
 	}
 	.tabs button.on {
-		background: color-mix(in srgb, var(--suit) 70%, transparent);
+		background: var(--suit);
 		border-color: var(--green);
-		color: var(--green);
+		color: #fff;
 		opacity: 1;
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 18%, transparent);
 	}
 	.help {
 		margin: 0 0 0.75rem;
@@ -599,21 +614,52 @@
 	}
 	.options {
 		display: grid;
-		gap: 0.75rem;
+		gap: 0.55rem;
 		max-width: 34rem;
 	}
 	.option {
 		display: flex;
-		gap: 0.75rem;
-		align-items: flex-start;
+		gap: 0.9rem;
+		align-items: center;
 		cursor: pointer;
+		padding: 0.7rem 0.9rem;
+		border-radius: 1rem;
+		border: 2px solid color-mix(in srgb, var(--green) 18%, transparent);
+		background: rgba(4, 20, 12, 0.55);
+		min-height: 3rem;
 	}
-	.option input {
+	.option:has(input[type='checkbox']:checked) {
+		border-color: color-mix(in srgb, var(--green) 55%, transparent);
+	}
+	.option input[type='checkbox'] {
 		flex-shrink: 0;
-		width: 1.2rem;
-		height: 1.2rem;
-		accent-color: var(--suit-lit);
-		margin-top: 0.15rem;
+		appearance: none;
+		width: 3rem;
+		height: 1.7rem;
+		border-radius: 999px;
+		background: #2b3a31;
+		position: relative;
+		margin: 0;
+		order: 2;
+		margin-left: auto;
+		transition: background 0.15s;
+	}
+	.option input[type='checkbox']::after {
+		content: '';
+		position: absolute;
+		top: 0.2rem;
+		left: 0.2rem;
+		width: 1.3rem;
+		height: 1.3rem;
+		border-radius: 50%;
+		background: #fff;
+		transition: transform 0.15s;
+	}
+	.option input[type='checkbox']:checked {
+		background: var(--green);
+	}
+	.option input[type='checkbox']:checked::after {
+		transform: translateX(1.3rem);
 	}
 	.option span {
 		display: grid;
@@ -640,13 +686,22 @@
 	.modes button.on {
 		background: var(--suit);
 		border-color: var(--green);
+		color: #fff;
 	}
 	.touch-help {
 		margin: 0;
-		padding-left: 1.1rem;
+		padding: 0;
+		list-style: none;
 		display: grid;
-		gap: 0.45rem;
+		grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+		gap: 0.5rem;
 		font-size: 0.9rem;
+	}
+	.touch-help li {
+		padding: 0.6rem 0.9rem;
+		border-radius: 1rem;
+		border: 2px solid color-mix(in srgb, var(--green) 18%, transparent);
+		background: rgba(4, 20, 12, 0.55);
 	}
 	.touch-help b {
 		color: var(--green);
@@ -661,6 +716,22 @@
 	}
 	footer a {
 		text-decoration: none;
+		display: inline-flex;
+		align-items: center;
+		min-height: 2.6rem;
+		padding: 0 1.1rem;
+		border-radius: 999px;
+		border: 2px solid color-mix(in srgb, var(--green) 30%, transparent);
+		background: rgba(0, 0, 0, 0.45);
+		color: #cdeed6;
+		font-size: 0.8rem;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		font-weight: 700;
+	}
+	footer a:hover {
+		border-color: var(--green);
+		color: #fff;
 	}
 	kbd {
 		font-size: 0.7rem;
