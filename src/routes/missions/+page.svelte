@@ -1,11 +1,12 @@
 <script lang="ts">
-	// The mission list, act by act. The story plays in order: a mission opens
-	// once the one before it is finished (engine/campaign.ts). Ones still to
-	// come show with a teaser, so it's clear where the story is going.
+	// The mission menu: a deck of mission cards, one act at a time. Pick the act
+	// on the chunky tabs across the top; the cards below swipe sideways on a phone
+	// and spread out on a desktop. The story plays in order (engine/campaign.ts),
+	// so a mission opens once the one before it is finished. Missions still to
+	// come show as locked cards with a teaser.
 	import { onMount } from 'svelte';
 	import { ACTS, missionById } from '$lib/story/missions';
 	import { LANTERNS } from '$lib/engine/lanterns';
-	import { settings } from '$lib/settings.svelte';
 	import MenuPoster from '$lib/components/MenuPoster.svelte';
 	import Emblem from '$lib/components/Emblem.svelte';
 	import { campaign } from '$lib/campaign.svelte';
@@ -35,448 +36,505 @@
 		return ACTS[ACTS.length - 1]?.number ?? 1;
 	}
 
-	/** Which chapters are open. Only the one you are in, until you say otherwise. */
-	let opened = $state<Record<number, boolean>>({});
-	const isOpen = (n: number) => opened[n] ?? n === currentAct();
-	const toggle = (n: number) => (opened = { ...opened, [n]: !isOpen(n) });
+	let shown = $state<number | null>(null);
+	const actNumber = $derived(shown ?? currentAct());
+	const act = $derived(ACTS.find((a) => a.number === actNumber) ?? ACTS[0]);
+
+	/** The next mission to play in the shown act, so its card can stand out. */
+	const nextId = $derived(builtOf(act).find((id) => campaign.stars(id) === 0 && campaign.isOpen(id)) ?? null);
+
+	/** The deck scrolls sideways; when the act changes, start from the mission you're on. */
+	let deck = $state<HTMLElement | null>(null);
+	$effect(() => {
+		void actNumber;
+		const el = deck;
+		if (!el) return;
+		const target = el.querySelector<HTMLElement>('.card.next') ?? el.querySelector<HTMLElement>('.card');
+		target?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'instant' });
+	});
 </script>
 
 <MenuPoster />
-
 <div class="shade"></div>
 
-<header class="bar">
-	<a class="brand" href="/">
-		<Emblem size={26} />
-		<span class="name">Lantern Corps</span>
-	</a>
-	<nav class="tabs">
-		<a class="on" href="/missions">Missions</a>
+<div class="screen">
+	<header class="top">
+		<a class="home" href="/" aria-label="Main menu">
+			<span aria-hidden="true">‹</span>
+			<Emblem size={28} />
+		</a>
+		<h1>Missions</h1>
+		<span class="total" title="Stars earned">{ACTS.reduce((n, a) => n + starsIn(a), 0)}<i>★</i></span>
+	</header>
+
+	<nav class="acts" aria-label="Acts">
+		{#each ACTS as a (a.number)}
+			{@const done = doneIn(a)}
+			<button class="act" class:on={a.number === actNumber} class:complete={done === a.lineup.length && done > 0} onclick={() => (shown = a.number)}>
+				<small>{a.number >= 4 ? 'Season 2' : `Act ${a.number}`}</small>
+				<strong>{a.title}</strong>
+				<em>{done}/{a.lineup.length}</em>
+			</button>
+		{/each}
+	</nav>
+
+	<p class="tagline">{act.tagline}{#if unlocked} <b>· every mission is unlocked</b>{/if}</p>
+
+	<div class="deck" bind:this={deck}>
+		{#each act.lineup as entry, i (actNumber + '-' + i)}
+			{@const m = typeof entry === 'string' ? missionById(entry) : undefined}
+			{#if m && campaign.isOpen(m.id)}
+				{@const stars = campaign.stars(m.id)}
+				<a class="card" class:done={stars > 0} class:next={m.id === nextId} href="/mission/{m.id}">
+					<span class="num">{i + 1}</span>
+					<span class="who">{m.choose ? 'Hal or John' : LANTERNS[m.lantern].name}</span>
+					<strong class="title">{m.title}</strong>
+					<span class="place">{m.place}</span>
+					<span class="blurb">{m.tagline}</span>
+					<span class="stars" aria-label="{stars} of 3 stars">{#each [1, 2, 3] as n (n)}<i class:on={n <= stars}>★</i>{/each}</span>
+					<span class="go">{stars > 0 ? 'Play again' : m.id === nextId ? 'Play' : 'Play'}</span>
+				</a>
+			{:else if m}
+				<div class="card locked" aria-disabled="true">
+					<span class="num">🔒</span>
+					<strong class="title">{m.title}</strong>
+					<span class="blurb">Finish <b>{titleOf(campaign.before(m.id))}</b> to unlock.</span>
+				</div>
+			{:else if typeof entry !== 'string'}
+				<div class="card locked soon">
+					<span class="num">{i + 1}</span>
+					<strong class="title">{entry.title}</strong>
+					<span class="place">Coming soon</span>
+					<span class="blurb">{entry.tagline}</span>
+				</div>
+			{/if}
+		{/each}
+	</div>
+
+	<nav class="more">
 		<a href="/school">Training</a>
 		<a href="/spar">Sparring</a>
 		<a href="/skirmish">Skirmish</a>
 		<a href="/hq">Corps HQ</a>
 	</nav>
-</header>
-
-<main>
-	<div class="rail">
-		{#if unlocked}<p class="note">Every mission is unlocked.</p>{/if}
-
-		{#each ACTS as act (act.number)}
-			{@const built = builtOf(act)}
-			{@const done = doneIn(act)}
-			{@const current = act.number === currentAct()}
-			<section class:shut={!isOpen(act.number)} class:current>
-				<button class="act" onclick={() => toggle(act.number)} aria-expanded={isOpen(act.number)}>
-					<span class="chapter">
-						<small>Act {act.number}{#if act.number >= 4} · Season two{/if}</small>
-						<h2>{act.title}</h2>
-						{#if act.tagline}<p>{act.tagline}</p>{/if}
-					</span>
-					<span class="progress">
-						<span class="count">{done} / {act.lineup.length}</span>
-						{#if starsIn(act) > 0}<span class="won">{starsIn(act)}★</span>{/if}
-						<span class="chevron" class:down={isOpen(act.number)}>›</span>
-					</span>
-				</button>
-
-				{#if act.lineup.length > 0 && isOpen(act.number)}
-					<ol>
-						{#each act.lineup as entry, i (i)}
-							{@const m = typeof entry === 'string' ? missionById(entry) : undefined}
-							<li>
-								{#if m && campaign.isOpen(m.id)}
-									{@const stars = campaign.stars(m.id)}
-									<a class="mission" class:done={stars > 0} href="/mission/{m.id}">
-										<span class="number">{stars > 0 ? '✓' : i + 1}</span>
-										<span class="text">
-											<strong>{m.title}</strong>
-											<small>{m.place} · as {m.choose ? 'Hal or John' : LANTERNS[m.lantern].name}</small>
-											<span>{m.tagline}</span>
-										</span>
-										{#if stars > 0}
-											<span class="stars" aria-label="{stars} of 3 stars"
-												>{#each [1, 2, 3] as n (n)}<span class:on={n <= stars}>★</span>{/each}</span
-											>
-										{/if}
-									</a>
-								{:else if m}
-									<div class="mission locked" aria-disabled="true">
-										<span class="number">🔒</span>
-										<span class="text">
-											<strong>{m.title}</strong>
-											<small>Finish {titleOf(campaign.before(m.id))} to unlock</small>
-										</span>
-									</div>
-								{:else if typeof entry !== 'string'}
-									<div class="mission locked">
-										<span class="number">{i + 1}</span>
-										<span class="text">
-											<strong>{entry.title}</strong>
-											<small>Coming soon</small>
-											<span>{entry.tagline}</span>
-										</span>
-									</div>
-								{/if}
-							</li>
-						{/each}
-					</ol>
-				{/if}
-			</section>
-		{/each}
-
-		<div class="rule"></div>
-		<nav class="plain">
-			<a href="/">Main menu</a>
-		</nav>
-	</div>
-</main>
+</div>
 
 <style>
 	:global(body) {
-		overflow-y: auto;
+		overflow: hidden;
 	}
 	.shade {
 		position: fixed;
 		inset: 0;
-		background: linear-gradient(90deg, rgba(2, 8, 6, 0.94) 0%, rgba(2, 8, 6, 0.86) 42%, rgba(2, 8, 6, 0.35) 100%);
-		z-index: 0;
+		background: radial-gradient(ellipse at 50% 30%, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.72) 75%);
+		pointer-events: none;
 	}
-	/* ---- the bar across the top ---- */
-	.bar {
+	.screen {
 		position: relative;
-		z-index: 2;
-		display: flex;
-		align-items: stretch;
-		gap: clamp(1rem, 4vw, 2.5rem);
-		min-height: 3.4rem;
-		padding: 0 clamp(0.8rem, 4vw, 3rem);
-		background: linear-gradient(rgba(2, 8, 6, 0.94), rgba(2, 8, 6, 0.6));
-		border-bottom: 1px solid color-mix(in srgb, var(--suit-lit) 55%, transparent);
-	}
-	.brand {
-		display: flex;
-		align-items: center;
-		gap: 0.55rem;
-		text-decoration: none;
-		color: var(--text);
-		flex-shrink: 0;
-	}
-	.name {
-		font-family: var(--font-display);
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.14em;
-		font-size: 0.82rem;
-	}
-	.tabs {
-		display: flex;
-		align-items: stretch;
-		gap: clamp(0.9rem, 3vw, 1.6rem);
-		overflow-x: auto;
-		scrollbar-width: none;
-		margin-bottom: -1px;
-	}
-	.tabs::-webkit-scrollbar {
-		display: none;
-	}
-	.tabs a {
-		display: flex;
-		align-items: center;
-		white-space: nowrap;
-		text-decoration: none;
-		color: color-mix(in srgb, var(--text) 62%, transparent);
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-		font-size: 0.76rem;
-		font-weight: 600;
-		border-bottom: 3px solid transparent;
-	}
-	.tabs a:hover {
-		color: var(--text);
-	}
-	.tabs a.on {
-		color: var(--green);
-		border-bottom-color: var(--green);
-	}
-	/* ---- the rail of chapters ---- */
-	main {
-		position: relative;
-		z-index: 1;
-		padding: 1.6rem clamp(1rem, 4vw, 3rem) 4rem;
-	}
-	.rail {
+		height: 100dvh;
 		display: grid;
-		gap: 0.7rem;
-		width: min(38rem, 100%);
-	}
-	.note {
-		margin: 0;
-		font-size: 0.8rem;
-		color: var(--green);
-	}
-	section {
-		display: grid;
-		gap: 0.5rem;
-		background: rgba(4, 14, 10, 0.72);
-		border: 1px solid color-mix(in srgb, var(--suit-lit) 40%, transparent);
-		border-left: 3px solid transparent;
-		border-radius: 4px;
-		padding: 0.2rem 0.2rem 0.4rem;
-	}
-	section.shut {
-		gap: 0;
-		padding-bottom: 0.2rem;
-	}
-	section.current {
-		border-left-color: var(--green);
-		background: rgba(6, 22, 15, 0.82);
-	}
-	.act {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 1rem;
-		width: 100%;
-		border: 0;
-		background: none;
-		color: inherit;
-		font: inherit;
-		text-align: left;
-		padding: 0.7rem 0.9rem;
-		cursor: pointer;
-	}
-	.act:hover {
-		background: color-mix(in srgb, var(--suit) 25%, transparent);
-	}
-	.chapter {
-		display: grid;
-		gap: 0.15rem;
-	}
-	.chapter small {
-		color: var(--green);
-		text-transform: uppercase;
-		letter-spacing: 0.16em;
-		font-size: 0.66rem;
-		opacity: 0.9;
-	}
-	.chapter h2 {
-		margin: 0;
-		font-size: 1.15rem;
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-	}
-	.chapter p {
-		margin: 0;
-		font-size: 0.82rem;
-		opacity: 0.62;
-		max-width: 26rem;
-	}
-	.progress {
-		display: flex;
-		align-items: center;
+		grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+		align-content: start;
 		gap: 0.6rem;
-		color: var(--green);
-		font-size: 0.85rem;
-		white-space: nowrap;
+		padding: max(0.6rem, env(safe-area-inset-top)) max(0.9rem, env(safe-area-inset-right)) max(0.6rem, env(safe-area-inset-bottom)) max(0.9rem, env(safe-area-inset-left));
+		box-sizing: border-box;
 	}
-	.progress .won {
-		color: #ffd21e;
-	}
-	.chevron {
-		display: inline-block;
-		font-size: 1.4rem;
-		line-height: 1;
-		transition: transform 0.15s ease;
-	}
-	.chevron.down {
-		transform: rotate(90deg);
-	}
-	ol {
-		list-style: none;
-		margin: 0;
-		padding: 0 0.4rem;
-		display: grid;
-		gap: 0.35rem;
-	}
-	.mission {
+
+	/* --- the top bar: back, title, stars --- */
+	.top {
 		display: flex;
 		align-items: center;
-		gap: 0.9rem;
-		padding: 0.7rem 0.8rem;
-		border: 1px solid color-mix(in srgb, var(--suit-lit) 35%, transparent);
-		border-radius: 3px;
-		background: rgba(3, 10, 8, 0.75);
-		text-decoration: none;
-		color: var(--text);
+		gap: 0.8rem;
 	}
-	a.mission:hover {
-		border-color: var(--green);
-		background: color-mix(in srgb, var(--suit) 45%, rgba(3, 10, 8, 0.75));
-	}
-	.mission.locked {
-		opacity: 0.45;
-		border-style: dashed;
-	}
-	.number {
-		font-family: var(--font-display);
-		font-size: 1.1rem;
+	.home {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		min-width: 3rem;
+		min-height: 3rem;
+		padding: 0 0.6rem 0 0.4rem;
+		border-radius: 999px;
+		background: rgba(0, 0, 0, 0.45);
+		border: 2px solid rgba(61, 255, 110, 0.35);
 		color: var(--green);
-		width: 1.6rem;
-		text-align: center;
-		flex-shrink: 0;
+		text-decoration: none;
+		font-size: 1.6rem;
+		line-height: 1;
 	}
-	.text {
-		display: grid;
-		gap: 0.15rem;
+	.home:active {
+		transform: scale(0.95);
+	}
+	h1 {
+		margin: 0;
+		font-size: 1.5rem;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: #fff;
+		text-shadow: 0 0 18px rgba(61, 255, 110, 0.55);
 		flex: 1;
 	}
-	.text strong {
+	.total {
 		font-family: var(--font-display);
-		letter-spacing: 0.04em;
+		font-size: 1.1rem;
+		color: #ffd84a;
+		background: rgba(0, 0, 0, 0.45);
+		border: 2px solid rgba(255, 216, 74, 0.35);
+		border-radius: 999px;
+		padding: 0.35rem 0.8rem;
+	}
+	.total i {
+		font-style: normal;
+		margin-left: 0.2rem;
+	}
+
+	/* --- act tabs: one row, chunky, scroll sideways if they must --- */
+	.acts {
+		display: flex;
+		gap: 0.5rem;
+		overflow-x: auto;
+		scrollbar-width: none;
+		padding-bottom: 2px;
+	}
+	.acts::-webkit-scrollbar {
+		display: none;
+	}
+	.act {
+		flex: 1 0 auto;
+		min-width: 9rem;
+		min-height: 3.4rem;
+		display: grid;
+		grid-template-columns: 1fr auto;
+		grid-template-rows: auto auto;
+		align-items: center;
+		column-gap: 0.6rem;
+		text-align: left;
+		padding: 0.45rem 0.8rem;
+		border-radius: 1rem;
+		border: 2px solid rgba(61, 255, 110, 0.25);
+		background: rgba(4, 20, 12, 0.7);
+		color: #bfe9c9;
+		font-family: var(--font-ui);
+		cursor: pointer;
+		transition: transform 0.12s, border-color 0.12s, background 0.12s;
+	}
+	.act small {
+		grid-column: 1;
+		font-size: 0.62rem;
+		letter-spacing: 0.22em;
+		text-transform: uppercase;
 		color: var(--green);
 	}
-	.text small {
-		font-size: 0.68rem;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		opacity: 0.55;
+	.act strong {
+		grid-column: 1;
+		font-family: var(--font-display);
+		font-size: 0.82rem;
+		letter-spacing: 0.04em;
+		white-space: nowrap;
 	}
-	.text span {
+	.act em {
+		grid-column: 2;
+		grid-row: 1 / 3;
+		font-style: normal;
+		font-weight: 800;
 		font-size: 0.85rem;
-		opacity: 0.8;
+		padding: 0.25rem 0.5rem;
+		border-radius: 999px;
+		background: rgba(0, 0, 0, 0.4);
 	}
-	.stars {
-		color: #4b5b52;
-		letter-spacing: 0.1em;
+	.act.on {
+		background: var(--suit);
+		border-color: var(--green);
+		color: #fff;
+		box-shadow: 0 0 0 3px rgba(61, 255, 110, 0.18), 0 8px 24px rgba(0, 0, 0, 0.45);
+		transform: translateY(-2px);
 	}
-	.stars .on {
-		color: #ffd21e;
+	.act.on small {
+		color: #d8ffe3;
 	}
-	.rule {
-		height: 1px;
-		margin: 1rem 0 0.2rem;
-		background: linear-gradient(90deg, color-mix(in srgb, var(--suit-lit) 70%, transparent), transparent);
+	.act.complete em {
+		color: #ffd84a;
 	}
-	.plain {
-		display: flex;
-		gap: 1.4rem;
+	.tagline {
+		margin: 0;
+		font-size: 0.9rem;
+		color: #a9d9b6;
 	}
-	.plain a {
-		color: color-mix(in srgb, var(--text) 75%, transparent);
-		text-decoration: none;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
-		font-size: 0.78rem;
+	.tagline b {
+		color: var(--green);
 		font-weight: 600;
 	}
-	.plain a:hover {
+
+	/* --- the deck of mission cards --- */
+	.deck {
+		display: flex;
+		gap: 0.9rem;
+		overflow-x: auto;
+		overflow-y: hidden;
+		scroll-snap-type: x mandatory;
+		padding: 0.6rem 0.2rem 0.9rem;
+		scrollbar-width: none;
+		align-items: stretch;
+	}
+	.deck::-webkit-scrollbar {
+		display: none;
+	}
+	.card {
+		scroll-snap-align: center;
+		flex: 0 0 min(78vw, 15.5rem);
+		display: flex;
+		flex-direction: column;
+		gap: 0.3rem;
+		padding: 0.9rem 1rem 1rem;
+		border-radius: 1.4rem;
+		border: 3px solid rgba(61, 255, 110, 0.35);
+		background: linear-gradient(170deg, rgba(10, 48, 28, 0.92), rgba(3, 14, 9, 0.95));
+		color: #e4fbea;
+		text-decoration: none;
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+		position: relative;
+		transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+	}
+	a.card:hover,
+	a.card:focus-visible {
+		transform: translateY(-4px) rotate(-0.6deg);
+		border-color: var(--green);
+		box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 4px rgba(61, 255, 110, 0.18);
+		outline: none;
+	}
+	.card.next {
+		border-color: var(--green);
+		box-shadow: 0 0 0 4px rgba(61, 255, 110, 0.22), 0 0 40px rgba(61, 255, 110, 0.25), 0 12px 30px rgba(0, 0, 0, 0.5);
+		transform: rotate(-1deg);
+	}
+	.num {
+		position: absolute;
+		top: -0.9rem;
+		left: 0.9rem;
+		min-width: 2.2rem;
+		height: 2.2rem;
+		padding: 0 0.5rem;
+		display: grid;
+		place-items: center;
+		border-radius: 999px;
+		background: var(--green);
+		color: #04140a;
+		font-family: var(--font-display);
+		font-weight: 800;
+		font-size: 1rem;
+		box-shadow: 0 4px 0 rgba(0, 0, 0, 0.45);
+	}
+	.card.done .num {
+		background: #ffd84a;
+	}
+	.card.locked .num {
+		background: #2b3a31;
+		color: #9fb3a6;
+	}
+	.who {
+		margin-top: 0.7rem;
+		font-size: 0.66rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
 		color: var(--green);
 	}
-	/* A phone held sideways: wide but very short. Everything tightens up. */
-	@media (max-height: 560px) {
-		.bar {
-			min-height: 2.5rem;
-			gap: 1.1rem;
+	.title {
+		font-family: var(--font-display);
+		font-size: 1.12rem;
+		line-height: 1.15;
+		letter-spacing: 0.03em;
+		color: #fff;
+	}
+	.place {
+		font-size: 0.74rem;
+		color: #9fd3ad;
+	}
+	.blurb {
+		font-size: 0.86rem;
+		line-height: 1.35;
+		color: #c7eacf;
+		flex: 1;
+	}
+	.blurb b {
+		color: #fff;
+		font-weight: 600;
+	}
+	.stars {
+		font-size: 1.35rem;
+		letter-spacing: 0.1em;
+		color: #3b5546;
+		line-height: 1;
+	}
+	.stars .on {
+		color: #ffd84a;
+		text-shadow: 0 0 12px rgba(255, 216, 74, 0.55);
+	}
+	.stars i {
+		font-style: normal;
+	}
+	.go {
+		margin-top: 0.3rem;
+		display: block;
+		text-align: center;
+		min-height: 2.8rem;
+		line-height: 2.8rem;
+		border-radius: 999px;
+		background: var(--green);
+		color: #04140a;
+		font-family: var(--font-display);
+		font-weight: 800;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		font-size: 0.9rem;
+		box-shadow: 0 4px 0 #0b7a35;
+	}
+	a.card:active .go {
+		transform: translateY(2px);
+		box-shadow: 0 2px 0 #0b7a35;
+	}
+	.card.done .go {
+		background: transparent;
+		color: var(--green);
+		border: 2px solid var(--green);
+		box-shadow: none;
+		line-height: calc(2.8rem - 4px);
+	}
+	.card.locked {
+		border-style: dashed;
+		border-color: rgba(159, 179, 166, 0.35);
+		background: rgba(6, 12, 9, 0.75);
+		color: #9fb3a6;
+		opacity: 0.85;
+	}
+	.card.locked .title {
+		color: #cfd9d3;
+		margin-top: 0.7rem;
+	}
+	.card.locked .blurb {
+		color: #9fb3a6;
+	}
+
+	/* --- the other modes, as pills along the bottom --- */
+	.more {
+		align-self: end;
+		display: flex;
+		gap: 0.5rem;
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+	.more::-webkit-scrollbar {
+		display: none;
+	}
+	.more a {
+		flex: 1 0 auto;
+		min-height: 2.6rem;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0 1rem;
+		border-radius: 999px;
+		border: 2px solid rgba(61, 255, 110, 0.3);
+		background: rgba(0, 0, 0, 0.45);
+		color: #cdeed6;
+		text-decoration: none;
+		font-size: 0.8rem;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		font-weight: 700;
+	}
+	.more a:hover {
+		border-color: var(--green);
+		color: #fff;
+	}
+
+	/* --- a desktop or tablet: the deck spreads out, cards don't need to snap --- */
+	@media (min-width: 900px) and (min-height: 600px) {
+		.screen {
+			max-width: 1180px;
+			margin: 0 auto;
+			gap: 1rem;
+			padding-top: 1.4rem;
 		}
-		.name {
-			font-size: 0.7rem;
-			letter-spacing: 0.1em;
-		}
-		.tabs a {
-			font-size: 0.66rem;
-			letter-spacing: 0.08em;
-		}
-		main {
-			padding: 0.6rem clamp(0.6rem, 3vw, 1.4rem) 1.6rem;
-		}
-		.rail {
-			width: min(30rem, 100%);
-			gap: 0.4rem;
+		h1 {
+			font-size: 2rem;
 		}
 		.act {
-			padding: 0.45rem 0.6rem;
+			min-height: 4rem;
 		}
-		.chapter small {
-			font-size: 0.58rem;
+		.act strong {
+			font-size: 0.95rem;
 		}
-		.chapter h2 {
-			font-size: 0.9rem;
+		.deck {
+			flex-wrap: wrap;
+			justify-content: center;
+			overflow: visible;
+			scroll-snap-type: none;
+			align-content: flex-start;
+			overflow-y: auto;
 		}
-		.chapter p {
-			font-size: 0.7rem;
-			max-width: 22rem;
+		.card {
+			flex: 0 0 15.5rem;
+			min-height: 14rem;
 		}
-		.progress {
-			font-size: 0.72rem;
-		}
-		.chevron {
-			font-size: 1.1rem;
-		}
-		.mission {
-			padding: 0.45rem 0.55rem;
-			gap: 0.5rem;
-		}
-		.number {
-			font-size: 0.9rem;
-			width: 1.2rem;
-		}
-		.text strong {
-			font-size: 0.85rem;
-		}
-		.text small {
-			font-size: 0.58rem;
-		}
-		.text span {
-			font-size: 0.72rem;
-		}
-		.rule {
-			margin-top: 0.6rem;
-		}
-		.plain a {
-			font-size: 0.7rem;
+		.card.locked {
+			min-height: 0;
+			align-self: flex-start;
 		}
 	}
-	@media (max-width: 720px) {
-		.shade {
-			background: linear-gradient(rgba(2, 8, 6, 0.9), rgba(2, 8, 6, 0.95));
+	/* --- a phone held sideways: tight rows so the cards get the height --- */
+	@media (max-height: 520px) {
+		.screen {
+			gap: 0.35rem;
+			padding-top: max(0.35rem, env(safe-area-inset-top));
 		}
-		.name {
-			display: none;
+		.home {
+			min-height: 2.4rem;
+			min-width: 2.6rem;
 		}
-		main {
-			padding: 1rem 0.8rem 3rem;
-		}
-		.rail {
-			width: 100%;
-			gap: 0.55rem;
+		h1 {
+			font-size: 1.15rem;
 		}
 		.act {
-			padding: 0.65rem 0.7rem;
+			min-height: 2.6rem;
+			min-width: 8rem;
+			padding: 0.25rem 0.7rem;
 		}
-		.chapter h2 {
-			font-size: 1rem;
+		.act strong {
+			font-size: 0.74rem;
 		}
-		.chapter p {
-			font-size: 0.76rem;
+		.tagline {
+			display: none;
 		}
-		.progress {
+		.deck {
+			padding: 0.7rem 0.2rem 0.3rem;
+			gap: 0.7rem;
+		}
+		.card {
+			flex-basis: min(60vw, 14rem);
+			padding: 0.6rem 0.8rem 0.7rem;
+			gap: 0.15rem;
+		}
+		.blurb {
+			display: -webkit-box;
+			-webkit-line-clamp: 2;
+			line-clamp: 2;
+			-webkit-box-orient: vertical;
+			overflow: hidden;
 			font-size: 0.78rem;
-			gap: 0.4rem;
 		}
-		ol {
-			padding: 0 0.3rem;
+		.stars {
+			font-size: 1.1rem;
 		}
-		.mission {
-			gap: 0.6rem;
-			padding: 0.6rem;
-		}
-		.text span {
+		.go {
+			min-height: 2.3rem;
+			line-height: 2.3rem;
 			font-size: 0.8rem;
 		}
-		.text small {
-			font-size: 0.62rem;
+		.card.done .go {
+			line-height: calc(2.3rem - 4px);
+		}
+		.more a {
+			min-height: 2.1rem;
+			font-size: 0.7rem;
 		}
 	}
 </style>
