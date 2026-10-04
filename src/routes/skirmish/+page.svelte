@@ -10,6 +10,7 @@
 	import ControlsCard from '$lib/components/ControlsCard.svelte';
 	import GameCanvas from '$lib/components/GameCanvas.svelte';
 	import LanternPortrait from '$lib/components/LanternPortrait.svelte';
+	import MenuShell from '$lib/components/menu/MenuShell.svelte';
 	import PauseMenu from '$lib/components/PauseMenu.svelte';
 	import { isEnvironmentKind } from '$lib/engine/environment';
 	import { Game } from '$lib/engine/game';
@@ -159,24 +160,29 @@
 		{/if}
 	</div>
 {:else}
-	<main class="select">
-		<h1>Red Lantern Ambush</h1>
-		<p class="pitch">Five Red Lanterns. One Green Lantern. Three lives.</p>
-		<div class="cards">
+	<MenuShell active="skirmish">
+		<div class="head">
+			<div>
+				<h1>Red Lantern Ambush</h1>
+				<p>Five Red Lanterns. One Green Lantern. Three lives.</p>
+			</div>
+		</div>
+		<div class="picks">
 			{#each PLAYABLE.map((id) => LANTERNS[id]) as def (def.id)}
-				<div class="card">
-					<LanternPortrait {def} />
-					<h2>{def.name}</h2>
-					<p class="subtitle">{def.title}</p>
-					<div class="where">
-						<a href="/skirmish?as={def.id}&env=planet">Coast City</a>
-						<a href="/skirmish?as={def.id}&env=space">Space</a>
+				<div class="panel pick">
+					<div class="portrait"><LanternPortrait {def} size={130} /></div>
+					<div class="who">
+						<h2>{def.name}</h2>
+						<p class="subtitle">{def.title}</p>
+						<div class="where">
+							<a class="go solid" href="/skirmish?as={def.id}&env=planet">Coast City</a>
+							<a class="go" href="/skirmish?as={def.id}&env=space">Space</a>
+						</div>
 					</div>
 				</div>
 			{/each}
 		</div>
-		<a class="back" href="/">← Menu</a>
-	</main>
+	</MenuShell>
 {/if}
 
 <style>
@@ -338,91 +344,51 @@
 		cursor: pointer;
 	}
 
-	.select {
-		min-height: 100%;
-		box-sizing: border-box;
+	.picks {
 		display: grid;
-		place-content: center;
-		justify-items: center;
-		gap: 1.25rem;
-		padding: 2rem 1rem;
+		grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+		gap: 0.8rem;
 	}
-	h1 {
-		margin: 0;
-		color: #ff4a4a;
-		text-shadow: 0 0 18px rgba(255, 42, 42, 0.7);
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		font-size: clamp(1.6rem, 5vw, 2.6rem);
-		text-align: center;
-	}
-	.pitch {
-		margin: 0;
-		opacity: 0.75;
-	}
-	.cards {
+	.pick {
 		display: flex;
-		flex-wrap: wrap;
-		justify-content: center;
-		gap: 1.25rem;
-		width: min(33rem, 100%);
+		align-items: center;
+		gap: 1rem;
 	}
-	.card {
-		width: min(15rem, 100%);
-		box-sizing: border-box;
+	.portrait {
+		flex-shrink: 0;
+		border-radius: 0.8rem;
+		background: radial-gradient(circle, rgba(61, 255, 110, 0.12), transparent 70%);
+	}
+	.who {
 		display: flex;
 		flex-direction: column;
-		align-items: center;
-		padding: 1.25rem;
-		border: 2px solid var(--suit-lit);
-		border-radius: 10px;
-		background: color-mix(in srgb, var(--suit) 20%, transparent);
+		min-width: 0;
 	}
-	.card h2 {
-		margin: 0.5rem 0 0;
-		color: var(--green);
-		/* The display face is wide: keep names on one line */
-		font-size: 1.15rem;
+	.who h2 {
+		margin: 0;
+		color: #fff;
+		font-size: 1.1rem;
 		letter-spacing: 0.02em;
 		white-space: nowrap;
 	}
 	.subtitle {
-		margin: 0.1rem 0 0.9rem;
-		font-size: 0.8rem;
+		margin: 0.15rem 0 0.8rem;
+		font-size: 0.72rem;
 		text-transform: uppercase;
 		letter-spacing: 0.12em;
-		opacity: 0.7;
+		color: var(--muted);
 	}
 	.where {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 0.5rem;
-	}
-	.where a {
-		padding: 0.4rem 0.9rem;
-		border: 1px solid var(--suit-lit);
-		border-radius: 6px;
-		text-decoration: none;
-		font-size: 0.85rem;
-	}
-	.where a:hover,
-	.where a:focus-visible {
-		background: var(--suit-lit);
-		color: var(--text);
-	}
-	.back {
-		font-size: 0.9rem;
-		text-decoration: none;
-		opacity: 0.7;
 	}
 
 	/* A phone on its side: smaller portraits, so both Lanterns fit on one screen */
 	@media (max-height: 520px) and (orientation: landscape) {
-		.card :global(canvas) {
-			width: min(34vh, 9rem) !important;
-			height: min(34vh, 9rem) !important;
-		}
-		.card {
-			padding: 0.6rem;
+		.portrait :global(canvas) {
+			width: 6.5rem !important;
+			height: 6.5rem !important;
 		}
 		.pause kbd {
 			display: none;

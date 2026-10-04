@@ -1,6 +1,7 @@
 <script lang="ts">
 	// Corps HQ: see each Lantern's level and spend upgrade points.
 	import LanternPortrait from '$lib/components/LanternPortrait.svelte';
+	import MenuShell from '$lib/components/menu/MenuShell.svelte';
 	import { SIGNATURES } from '$lib/engine/constructs/signature';
 	import { LANTERNS, isLanternId, type LanternId } from '$lib/engine/lanterns';
 	import { MAX_LEVEL, MAX_RANK, UPGRADES, XP_PER_DEFEAT, canUpgrade, statsFor, xpToNext } from '$lib/engine/progression';
@@ -30,30 +31,33 @@
 	<title>Corps HQ · Lantern Corps</title>
 </svelte:head>
 
-<main>
-	<header>
-		<a href="/" class="back">← Menu</a>
-		<h1>Corps HQ</h1>
-		<a href="/play?as={selected}" class="play">Play as {def.name.split(' ')[0]} →</a>
-	</header>
+<MenuShell active="hq">
+	<div class="head">
+		<div>
+			<h1>Corps HQ</h1>
+			<p>Each Lantern levels up in every mode. Spend the points on what suits how you fight.</p>
+		</div>
+		<a href="/play?as={selected}" class="go">Free play as {def.name.split(' ')[0]}</a>
+	</div>
 
-	<nav class="tabs" aria-label="Choose Lantern">
+	<div class="seg" role="tablist" aria-label="Choose Lantern">
 		{#each ['hal', 'john'] as const as id (id)}
-			<button class:on={selected === id} onclick={() => (selected = id)}>
+			<button role="tab" aria-selected={selected === id} class:on={selected === id} onclick={() => (selected = id)}>
+				<small>Level {profiles.current[id].level}</small>
 				{LANTERNS[id].name}
-				<span class="lv">Lv {profiles.current[id].level}</span>
 			</button>
 		{/each}
-	</nav>
+	</div>
 
-	<section class="summary">
-		{#key selected}
-			<LanternPortrait {def} size={150} />
-		{/key}
+	<section class="panel summary">
+		<div class="portrait">
+			{#key selected}
+				<LanternPortrait {def} size={120} />
+			{/key}
+		</div>
 		<div class="info">
 			<h2>{def.name}</h2>
-			<p class="title">{def.title}</p>
-			<p class="level">Level {profile.level}{maxed ? ' (max)' : ''}</p>
+			<p class="title">{def.title} · Level {profile.level}{maxed ? ' (max)' : ''}</p>
 			{#if !maxed}
 				<div class="xp" role="progressbar" aria-valuenow={profile.xp} aria-valuemax={xpToNext(profile.level)}>
 					<span style:width="{(profile.xp / xpToNext(profile.level)) * 100}%"></span>
@@ -66,225 +70,207 @@
 		</div>
 		<div class="points" class:has={profile.points > 0}>
 			<span class="big">{profile.points}</span>
-			<span>upgrade point{profile.points === 1 ? '' : 's'}</span>
+			<span>point{profile.points === 1 ? '' : 's'} to spend</span>
 		</div>
 	</section>
 
-	<section class="upgrades">
-		{#each UPGRADES as u (u.id)}
-			{@const rank = profile.ranks[u.id]}
-			<article>
-				<h3>{u.name}</h3>
-				<p class="desc">{u.description}</p>
-				<div class="pips" aria-label="Rank {rank} of {MAX_RANK}">
-					{#each Array.from({ length: MAX_RANK }, (_, i) => i) as i (i)}
-						<span class:filled={i < rank}></span>
-					{/each}
-				</div>
-				<p class="now">Now: {current(u.id)}</p>
-				<button disabled={!canUpgrade(profile, u.id)} onclick={() => profiles.upgrade(selected, u.id)}>
-					{rank >= MAX_RANK ? 'Maxed' : `Upgrade · ${u.perRank}`}
-				</button>
-			</article>
-		{/each}
+	<section class="group">
+		<header class="group-head">
+			<h2>Upgrades</h2>
+			<p>Refunding is free, so try different builds.</p>
+		</header>
+		<div class="upgrades">
+			{#each UPGRADES as u (u.id)}
+				{@const rank = profile.ranks[u.id]}
+				<article class="panel">
+					<h3>{u.name}</h3>
+					<p class="desc">{u.description}</p>
+					<div class="ranks" aria-label="Rank {rank} of {MAX_RANK}">
+						{#each Array.from({ length: MAX_RANK }, (_, i) => i) as i (i)}
+							<span class:filled={i < rank}></span>
+						{/each}
+					</div>
+					<p class="now">Now: {current(u.id)}</p>
+					<button class="go" disabled={!canUpgrade(profile, u.id)} onclick={() => profiles.upgrade(selected, u.id)}>
+						{rank >= MAX_RANK ? 'Maxed' : `Upgrade · ${u.perRank}`}
+					</button>
+				</article>
+			{/each}
+		</div>
+		<button class="refund" disabled={spent === 0} onclick={() => profiles.refund(selected)}>Refund all points</button>
 	</section>
-
-	<footer>
-		<button class="refund" disabled={spent === 0} onclick={() => profiles.refund(selected)}>
-			Refund all points
-		</button>
-		<p>Refunding is free, so try different builds.</p>
-	</footer>
-</main>
+</MenuShell>
 
 <style>
-	main {
-		max-width: 56rem;
-		margin: 0 auto;
-		padding: 1.25rem 1rem 3rem;
-		box-sizing: border-box;
-	}
-	header {
-		display: grid;
-		grid-template-columns: 1fr auto 1fr;
-		align-items: center;
-		gap: 1rem;
-	}
-	header a {
-		text-decoration: none;
-		font-size: 0.9rem;
-	}
-	.play {
-		justify-self: end;
-	}
-	h1 {
-		margin: 0;
-		color: var(--green);
-		text-shadow: 0 0 18px var(--green);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		font-size: clamp(1.5rem, 5vw, 2.4rem);
-	}
-	.tabs {
-		display: flex;
-		justify-content: center;
-		gap: 0.5rem;
-		margin: 1.25rem 0;
-	}
-	button {
-		font: inherit;
-		color: var(--text);
-		background: transparent;
-		border: 1px solid var(--suit-lit);
-		border-radius: 8px;
-		padding: 0.45rem 0.9rem;
-		cursor: pointer;
-	}
-	button:hover:not(:disabled),
-	button:focus-visible {
-		border-color: var(--green);
-	}
-	button:disabled {
-		opacity: 0.4;
-		cursor: default;
-	}
-	.tabs button.on {
-		background: color-mix(in srgb, var(--suit) 75%, transparent);
-		border-color: var(--green);
-	}
-	.lv {
-		margin-left: 0.4rem;
-		font-size: 0.75rem;
-		opacity: 0.7;
-	}
 	.summary {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 1rem 1.5rem;
-		padding: 1rem 1.25rem;
-		border: 2px solid var(--suit-lit);
-		border-radius: 12px;
-		background: color-mix(in srgb, var(--suit) 20%, transparent);
+		gap: 0.8rem 1.4rem;
+	}
+	.portrait {
+		width: 120px;
+		height: 120px;
+		border-radius: 0.8rem;
+		background: radial-gradient(circle, rgba(61, 255, 110, 0.12), transparent 70%);
 	}
 	.info {
 		flex: 1;
-		min-width: 14rem;
+		min-width: 13rem;
 	}
 	h2 {
 		margin: 0;
-		color: var(--green);
-		/* The display face is wide: keep names on one line */
+		color: #fff;
 		font-size: 1.15rem;
-		letter-spacing: 0.02em;
+		letter-spacing: 0.03em;
 		white-space: nowrap;
 	}
 	.title {
-		margin: 0.1rem 0 0.5rem;
-		font-size: 0.75rem;
+		margin: 0.15rem 0 0.6rem;
+		font-size: 0.72rem;
 		text-transform: uppercase;
 		letter-spacing: 0.12em;
-		opacity: 0.7;
-	}
-	.level {
-		margin: 0 0 0.35rem;
-		font-weight: 700;
+		color: var(--muted);
 	}
 	.xp {
 		height: 8px;
 		border-radius: 4px;
-		background: color-mix(in srgb, var(--suit) 60%, transparent);
+		background: rgba(0, 0, 0, 0.45);
 		overflow: hidden;
 	}
 	.xp span {
 		display: block;
 		height: 100%;
-		background: var(--suit);
+		background: var(--green);
 		box-shadow: 0 0 8px var(--green);
 	}
 	.hint {
 		margin: 0.35rem 0 0;
 		font-size: 0.8rem;
-		opacity: 0.7;
+		color: var(--muted);
 	}
 	.signature {
-		margin: 0.75rem 0 0;
-		font-size: 0.85rem;
-		opacity: 0.85;
+		margin: 0.7rem 0 0;
+		font-size: 0.86rem;
+		line-height: 1.4;
+		color: #c3dfca;
+	}
+	.signature strong {
+		color: #fff;
 	}
 	.points {
 		display: grid;
 		justify-items: center;
-		padding: 0.5rem 1rem;
-		border-radius: 10px;
-		font-size: 0.8rem;
-		opacity: 0.6;
+		padding: 0.6rem 1rem;
+		border-radius: 0.8rem;
+		border: 1px solid var(--line);
+		font-size: 0.72rem;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: var(--muted);
 	}
 	.points.has {
-		opacity: 1;
 		color: var(--green);
-		box-shadow: 0 0 20px color-mix(in srgb, var(--green) 25%, transparent);
-		border: 1px solid var(--suit-lit);
+		border-color: var(--green);
+		box-shadow: 0 0 20px rgba(61, 255, 110, 0.2);
 	}
 	.big {
 		font-size: 2.2rem;
 		font-weight: 800;
-		line-height: 1;
+		line-height: 1.1;
+		color: #fff;
 	}
 	.upgrades {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-		gap: 1rem;
-		margin-top: 1.25rem;
+		grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+		gap: 0.6rem;
 	}
 	article {
 		display: flex;
 		flex-direction: column;
-		gap: 0.4rem;
-		padding: 1rem;
-		border: 1px solid var(--suit-lit);
-		border-radius: 10px;
+		gap: 0.45rem;
 	}
 	h3 {
 		margin: 0;
-		color: var(--green);
+		font-family: var(--font-display);
+		font-size: 0.95rem;
+		font-weight: 600;
+		color: #fff;
 	}
 	.desc,
 	.now {
 		margin: 0;
-		font-size: 0.85rem;
+		font-size: 0.84rem;
+		line-height: 1.35;
+		color: #c3dfca;
 	}
 	.now {
-		opacity: 0.7;
+		color: var(--muted);
 	}
-	.pips {
+	.ranks {
 		display: flex;
 		gap: 0.3rem;
 	}
-	.pips span {
-		width: 1.2rem;
-		height: 0.45rem;
+	.ranks span {
+		flex: 1;
+		height: 0.4rem;
 		border-radius: 3px;
-		background: color-mix(in srgb, var(--suit) 75%, transparent);
+		background: rgba(0, 0, 0, 0.45);
 	}
-	.pips span.filled {
-		background: var(--suit);
+	.ranks span.filled {
+		background: var(--green);
 		box-shadow: 0 0 6px var(--green);
 	}
-	article button {
+	.upgrades article .go {
 		margin-top: auto;
-		font-size: 0.8rem;
+		width: 100%;
+		white-space: normal;
+		font-family: var(--font-ui);
+		font-size: 0.82rem;
+		letter-spacing: 0.02em;
+		text-transform: none;
+		padding: 0.4rem 0.6rem;
 	}
-	footer {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 0.5rem 1rem;
-		margin-top: 1.5rem;
+	.go:disabled {
+		opacity: 0.4;
+		cursor: default;
+	}
+	.refund {
+		margin-top: 1rem;
+		font: inherit;
 		font-size: 0.85rem;
+		color: var(--muted);
+		background: transparent;
+		border: 1px solid var(--line);
+		border-radius: 0.7rem;
+		padding: 0.55rem 1rem;
+		cursor: pointer;
 	}
-	footer p {
-		margin: 0;
-		opacity: 0.6;
+	.refund:hover:not(:disabled) {
+		color: #fff;
+		border-color: var(--line-hi);
+	}
+	.refund:disabled {
+		opacity: 0.4;
+		cursor: default;
+	}
+	@media (max-height: 520px) and (orientation: landscape) {
+		.portrait {
+			display: none;
+		}
+	}
+	@media (orientation: portrait) and (max-width: 700px) {
+		.portrait {
+			width: 84px;
+			height: 84px;
+			overflow: hidden;
+		}
+		.portrait :global(canvas) {
+			width: 84px !important;
+			height: 84px !important;
+		}
+		.upgrades {
+			grid-template-columns: 1fr 1fr;
+		}
 	}
 </style>

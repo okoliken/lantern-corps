@@ -1,41 +1,72 @@
 <script lang="ts">
-	// Main menu. This page is server-rendered like a normal website;
-	// only the game routes turn SSR off.
+	// The title screen: the poster, one big button that carries on the story
+	// from where you left it, and a tile for every other mode. This page is
+	// server-rendered like a normal website; only the game routes turn SSR off.
 	import { dev } from '$app/environment';
 	import MenuPoster from '$lib/components/MenuPoster.svelte';
 	import FullscreenButton from '$lib/touch/FullscreenButton.svelte';
+	import MenuIcon, { SECTIONS } from '$lib/components/menu/MenuIcon.svelte';
+	import { campaign } from '$lib/campaign.svelte';
+	import { missionById } from '$lib/story/missions';
+
+	/** The next story mission to play, or none when the story is finished. */
+	const nextIndex = $derived(campaign.order.findIndex((id) => campaign.stars(id) === 0 && campaign.isOpen(id)));
+	const next = $derived(nextIndex >= 0 ? missionById(campaign.order[nextIndex]) : undefined);
+	const started = $derived(Object.keys(campaign.current.done).length > 0);
 </script>
 
 <main>
 	<MenuPoster />
 	<div class="corner"><FullscreenButton /></div>
+
 	<div class="title">
 		<h1>Lantern Corps</h1>
 		<p class="oath">A ring, a sector, and everyone in it.</p>
 
-		<nav>
-			<a class="btn primary" href="/missions">Missions</a>
-			<a class="btn" href="/training">Training</a>
-			{#if dev}
-				<a class="btn lab" href="/lab">Lab (dev only)</a>
-			{/if}
+		{#if next}
+			<a class="continue" href="/mission/{next.id}">
+				<span class="play"><MenuIcon name="play" size={18} /></span>
+				<span class="words">
+					<strong>{started ? 'Continue' : 'Start the story'}</strong>
+					<small>Mission {nextIndex + 1} · {next.title}</small>
+				</span>
+			</a>
+		{:else}
+			<a class="continue" href="/missions">
+				<span class="play"><MenuIcon name="play" size={18} /></span>
+				<span class="words">
+					<strong>Missions</strong>
+					<small>The story is done. Replay any mission.</small>
+				</span>
+			</a>
+		{/if}
+
+		<nav class="modes" aria-label="Modes">
+			{#each SECTIONS as s (s.id)}
+				<a class="mode" href={s.href}>
+					<MenuIcon name={s.id} size={22} />
+					<strong>{s.label}</strong>
+					<small>{s.blurb}</small>
+				</a>
+			{/each}
 		</nav>
+		{#if dev}
+			<a class="lab" href="/lab">Lab (dev only)</a>
+		{/if}
 	</div>
 </main>
 
 <style>
 	main {
-		position: relative;
-		min-height: 100vh;
+		position: fixed;
+		inset: 0;
 		overflow: hidden;
 		display: grid;
-		align-content: center;
+		align-content: end;
 		justify-content: center;
-		/* The column is as wide as the longest line of the title, so the block
-		   inside it has to be centred too, or it sits against the left edge */
 		justify-items: center;
 		text-align: center;
-		padding: 1rem;
+		padding: 1rem 1rem max(2.2rem, env(safe-area-inset-bottom));
 		box-sizing: border-box;
 	}
 	.corner {
@@ -44,17 +75,14 @@
 		right: max(12px, env(safe-area-inset-right));
 		z-index: 2;
 	}
-	/* Under the emblem, in the dark half of the poster */
 	.title {
 		position: relative;
 		display: grid;
-		gap: 0.45rem;
 		justify-items: center;
-		width: min(30rem, 100%);
-		margin-top: 21vh;
+		width: min(46rem, 100%);
 	}
 	h1 {
-		font-size: clamp(2.2rem, 7vw, 4.2rem);
+		font-size: clamp(2.2rem, 6.5vw, 4rem);
 		margin: 0;
 		line-height: 0.96;
 		color: #05130b;
@@ -71,61 +99,174 @@
 			0 5px 0 rgba(0, 0, 0, 0.55);
 	}
 	.oath {
-		margin: 0.1rem 0 1.7rem;
+		margin: 0.5rem 0 1.4rem;
 		font-size: 0.95rem;
 		opacity: 0.68;
 		font-style: italic;
 		letter-spacing: 0.04em;
 	}
-	nav {
+
+	/* The one big button */
+	.continue {
 		display: flex;
-		gap: 0.8rem;
-		justify-content: center;
-		flex-wrap: wrap;
-	}
-	.btn {
-		padding: 0.6rem 1.8rem;
-		border: 2px solid var(--suit-lit);
-		border-radius: 6px;
+		align-items: center;
+		gap: 0.9rem;
+		width: min(24rem, 100%);
+		box-sizing: border-box;
+		padding: 0.7rem 1.4rem 0.7rem 0.75rem;
+		border-radius: 1rem;
+		border: 1px solid var(--green);
+		background: linear-gradient(100deg, var(--suit), var(--suit-dark));
+		color: #fff;
 		text-decoration: none;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		font-size: 0.85rem;
-		background: rgba(2, 8, 6, 0.55);
+		text-align: left;
+		box-shadow: 0 0 0 1px rgba(61, 255, 110, 0.25), 0 0 34px rgba(61, 255, 110, 0.25), 0 10px 30px rgba(0, 0, 0, 0.5);
+		transition: transform 0.12s, box-shadow 0.12s;
 	}
-	@media (max-width: 640px) {
-		.title {
-			margin-top: 24vh;
-			width: min(22rem, 100%);
+	.continue:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 0 0 1px rgba(61, 255, 110, 0.45), 0 0 44px rgba(61, 255, 110, 0.35), 0 12px 30px rgba(0, 0, 0, 0.5);
+	}
+	.continue:active {
+		transform: scale(0.98);
+	}
+	.play {
+		display: grid;
+		place-items: center;
+		width: 2.9rem;
+		height: 2.9rem;
+		border-radius: 0.75rem;
+		background: var(--green);
+		color: #04140a;
+		flex-shrink: 0;
+	}
+	.words {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+	.words strong {
+		font-family: var(--font-display);
+		font-size: 1.05rem;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+	}
+	.words small {
+		font-size: 0.85rem;
+		color: #bfe9c9;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	/* Every mode, one tile each */
+	.modes {
+		display: grid;
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+		gap: 0.5rem;
+		width: 100%;
+		margin-top: 1rem;
+	}
+	.mode {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.3rem;
+		padding: 0.8rem 0.5rem 0.75rem;
+		border-radius: 0.9rem;
+		border: 1px solid rgba(61, 255, 110, 0.16);
+		background: rgba(3, 12, 8, 0.78);
+		color: var(--green);
+		text-decoration: none;
+		transition: border-color 0.12s, background 0.12s;
+	}
+	.mode:hover,
+	.mode:focus-visible {
+		border-color: var(--suit-lit);
+		background: rgba(15, 79, 52, 0.55);
+		outline: none;
+	}
+	.mode strong {
+		color: #fff;
+		font-size: 0.9rem;
+		letter-spacing: 0.04em;
+	}
+	.mode small {
+		color: #8fb79b;
+		font-size: 0.72rem;
+		line-height: 1.3;
+	}
+	.lab {
+		margin-top: 0.8rem;
+		font-size: 0.8rem;
+		opacity: 0.6;
+	}
+
+	/* A phone held sideways: no motto, compact tiles in one row */
+	@media (max-height: 520px) and (orientation: landscape) {
+		main {
+			padding-bottom: max(0.8rem, env(safe-area-inset-bottom));
 		}
 		h1 {
-			font-size: clamp(1.9rem, 11vw, 2.8rem);
+			font-size: 2rem;
 			-webkit-text-stroke-width: 2.5px;
 		}
 		.oath {
-			font-size: 0.85rem;
-			margin-bottom: 1.3rem;
+			display: none;
 		}
-		nav {
-			gap: 0.6rem;
+		.continue {
+			margin-top: 0.7rem;
+			padding: 0.45rem 1.1rem 0.45rem 0.5rem;
 		}
-		.btn {
-			padding: 0.55rem 1.2rem;
+		.play {
+			width: 2.3rem;
+			height: 2.3rem;
+		}
+		.modes {
+			margin-top: 0.6rem;
+			gap: 0.4rem;
+		}
+		.mode {
+			flex-direction: row;
+			justify-content: center;
+			padding: 0.55rem 0.4rem;
+		}
+		.mode small {
+			display: none;
+		}
+		.mode strong {
 			font-size: 0.78rem;
 		}
+		.lab {
+			display: none;
+		}
 	}
-	.btn:hover {
-		background: var(--suit-lit);
-		color: var(--text);
-	}
-	.btn.primary {
-		background: var(--suit);
-		color: var(--text);
-		box-shadow: 0 0 18px color-mix(in srgb, var(--green) 35%, transparent);
-	}
-	.btn.lab {
-		border-style: dashed;
-		border-color: var(--suit-lit);
+
+	/* A phone held upright: the tiles stack in two columns, the big button full width */
+	@media (orientation: portrait) and (max-width: 700px) {
+		h1 {
+			font-size: clamp(2rem, 11vw, 2.8rem);
+			-webkit-text-stroke-width: 2.5px;
+		}
+		.continue {
+			width: 100%;
+		}
+		.modes {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+		.mode {
+			flex-direction: row;
+			justify-content: flex-start;
+			gap: 0.6rem;
+			padding: 0.75rem 0.8rem;
+			text-align: left;
+		}
+		.mode small {
+			display: none;
+		}
+		/* Five tiles: the first spans the row */
+		.mode:first-child {
+			grid-column: 1 / -1;
+		}
 	}
 </style>
