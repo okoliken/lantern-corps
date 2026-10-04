@@ -1,6 +1,6 @@
 <script lang="ts">
-	// On a phone held upright: a screen asking you to turn it sideways, over
-	// every page, from the moment the game opens. The game is built for
+	// On a phone held upright, during a fight: a screen asking you to turn it
+	// sideways. Only the fights need landscape; the menus work either way. The game is built for
 	// landscape (the touch controls, the HUD, the briefings), so it's better to
 	// ask straight away than let someone get as far as a fight first.
 	//
@@ -9,6 +9,7 @@
 	import { onMount } from 'svelte';
 	import { settings } from '$lib/settings.svelte';
 	import { goFullscreen, wantsTouchControls } from './phone';
+	import { fighting } from './fighting.svelte';
 
 	let upright = $state(false);
 	/** This browser can go fullscreen and lock the screen sideways (not iPhones). */
@@ -28,7 +29,7 @@
 	});
 </script>
 
-{#if upright}
+{#if upright && fighting.count > 0}
 	<div class="rotate" role="alertdialog" aria-modal="true" aria-label="Turn your phone sideways">
 		<div class="phone" aria-hidden="true"><span></span></div>
 		<h2>Turn your phone sideways</h2>

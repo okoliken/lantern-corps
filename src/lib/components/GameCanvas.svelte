@@ -19,6 +19,7 @@
 	import { BOSS_KINDS, Music, type Mood } from '$lib/engine/audio/music';
 	import { isEnemy } from '$lib/engine/enemies/enemies';
 	import { isStanding } from '$lib/engine/dummy';
+	import { fighting } from '$lib/touch/fighting.svelte';
 
 	interface Props {
 		game: Game;
@@ -52,6 +53,8 @@
 	}
 
 	onMount(() => {
+		fighting.count++;
+		const unfight = () => { fighting.count = Math.max(0, fighting.count - 1); };
 		void preloadFonts();
 		const sounds = new SoundDirector((name, volume) => synth.play(name, volume));
 		const music = new Music(synth);
@@ -98,6 +101,7 @@
 
 		// Returning a function from onMount = cleanup on unmount.
 		return () => {
+			unfight();
 			music.setMood('quiet');
 			stop();
 			detachButtons();

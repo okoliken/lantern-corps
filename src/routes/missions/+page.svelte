@@ -480,6 +480,42 @@
 			align-self: flex-start;
 		}
 	}
+	/* --- a phone held upright: everything stacks, cards go full width, scroll down --- */
+	@media (orientation: portrait) and (max-width: 600px) {
+		:global(body) {
+			overflow-y: auto;
+		}
+		.screen {
+			height: auto;
+			min-height: 100dvh;
+			grid-template-rows: auto auto auto auto auto;
+		}
+		.acts {
+			flex-wrap: nowrap;
+		}
+		.act {
+			min-width: 11rem;
+		}
+		.deck {
+			flex-direction: column;
+			overflow: visible;
+			scroll-snap-type: none;
+			padding: 0.9rem 0.2rem 0.4rem;
+		}
+		.card {
+			flex-basis: auto;
+			width: auto;
+		}
+		.card.next {
+			transform: none;
+		}
+		.more {
+			flex-wrap: wrap;
+		}
+		.more a {
+			flex: 1 1 45%;
+		}
+	}
 	/* --- a phone held sideways: tight rows so the cards get the height --- */
 	@media (max-height: 520px) {
 		.screen {
