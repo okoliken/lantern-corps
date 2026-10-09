@@ -328,6 +328,7 @@
 		opacity: 0.7;
 	}
 	.panel {
+		margin-left: auto; /* stays top right even when the pause button is hidden (touch controls bring their own) */
 		width: min(20rem, 60vw);
 		display: grid;
 		gap: 0.35rem;
@@ -674,17 +675,22 @@
 			display: none;
 		}
 		.panel {
-			width: min(15rem, 32vw);
-			padding: 0.35rem 0.55rem;
-			gap: 0.2rem;
-			font-size: 0.7rem;
-			background: rgba(3, 10, 6, 0.6);
+			width: min(12.5rem, 28vw);
+			padding: 0.3rem 0.5rem;
+			gap: 0.15rem;
+			font-size: 0.62rem;
+			background: rgba(3, 10, 6, 0.45);
+			border-color: transparent;
+		}
+		.meter {
+			font-size: 0.56rem;
+			gap: 0.3rem;
 		}
 		.title {
-			font-size: 0.62rem;
+			font-size: 0.56rem;
 		}
 		.objective {
-			font-size: 0.72rem;
+			font-size: 0.66rem;
 			line-height: 1.25;
 		}
 		.row.small {

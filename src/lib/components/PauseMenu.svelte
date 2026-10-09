@@ -271,6 +271,8 @@
 
 <style>
 	.backdrop {
+		--green: #00711d; /* the menu green (the user's pick) */
+		--green-ink: #3fb562; /* green text: a lighter tint of it, readable on the dark panels */
 		position: absolute;
 		inset: 0;
 		background: rgba(2, 6, 4, 0.55);
@@ -321,20 +323,20 @@
 		padding: 0.4rem 1.1rem;
 		border-radius: 999px;
 		background: var(--green);
-		color: #04140a;
+		color: #ffffff;
 		border-color: var(--green);
-		box-shadow: 0 4px 0 #0b7a35;
+		box-shadow: 0 4px 0 #004a13;
 	}
 	.back:active {
 		transform: translateY(2px);
-		box-shadow: 0 2px 0 #0b7a35;
+		box-shadow: 0 2px 0 #004a13;
 	}
 	.wordmark {
 		font-family: var(--font-display);
 		font-size: 0.78rem;
 		letter-spacing: 0.18em;
 		text-transform: uppercase;
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		opacity: 0.85;
 	}
 	.body {
@@ -360,7 +362,7 @@
 		font-size: 0.72rem;
 		letter-spacing: 0.16em;
 		opacity: 0.9;
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 	}
 	.help-panel p {
 		margin: 0;
@@ -493,7 +495,7 @@
 	}
 	h2 {
 		margin: 0;
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		text-transform: uppercase;
 		letter-spacing: 0.1em;
 	}
@@ -559,7 +561,7 @@
 		background: none;
 	}
 	.groups h3 {
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		opacity: 1;
 	}
 	.where {
@@ -604,7 +606,7 @@
 	}
 	.bind.listening {
 		border-color: var(--suit-lit);
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		animation: pulse 0.8s ease-in-out infinite alternate;
 	}
 	@keyframes pulse {
@@ -713,7 +715,7 @@
 		background: rgba(4, 20, 12, 0.55);
 	}
 	.touch-help b {
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 	}
 	footer {
 		display: flex;

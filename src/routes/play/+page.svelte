@@ -127,7 +127,7 @@
 		left: max(10px, env(safe-area-inset-left));
 		font: inherit;
 		font-size: 0.85rem;
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		background: rgba(3, 6, 10, 0.6);
 		border: 1px solid var(--suit-lit);
 		border-radius: 6px;
@@ -159,7 +159,7 @@
 	}
 	h1 {
 		margin: 0;
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		text-shadow: 0 0 18px var(--green);
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
@@ -196,7 +196,7 @@
 	}
 	h2 {
 		margin: 0.5rem 0 0;
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		/* The display face is wide: keep names on one line */
 		font-size: 1.15rem;
 		letter-spacing: 0.02em;

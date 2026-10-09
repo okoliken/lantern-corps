@@ -238,7 +238,6 @@
 	{#each [left, right] as stick, i (i)}
 		<div class="stick" class:active={stick.active} class:aim={i === 1} style:left="{stick.cx * 100}%" style:top="{stick.cy * 100}%" style:--r="{stickR}px">
 			<div class="knob" style:transform="translate({stick.x * stickR * 0.6}px, {stick.y * stickR * 0.6}px)"></div>
-			{#if !stick.active}<span class="hint">{i === 0 ? 'Move' : 'Aim'}</span>{/if}
 		</div>
 	{/each}
 
@@ -254,22 +253,20 @@
 				aria-label={f.label}
 			>
 				<span class="sym">{f.symbol}</span>
-				<small>{f.label}</small>
 			</button>
 		{/each}
 	</div>
 
-	<!-- Above them: choose a construct, lock a target, the signature -->
+	<!-- Tucked beside the face buttons: lock a target, the signature (constructs: tap the slot at the top) -->
 	<div class="shoulders">
-		<button data-btn="l1" class="small" class:down={pressed.l1} aria-label="Previous construct">◀</button>
-		<button data-btn="r1" class="small" class:down={pressed.r1} aria-label="Next construct">▶</button>
 		<button data-btn="l2" class="small" class:down={pressed.l2} aria-label="Lock a target">◎</button>
 		<button data-btn="r2" class="sig" class:down={pressed.r2} class:ready={surgeReady} aria-label="Signature">★</button>
 	</div>
 
+	<!-- One pause, top left where you expect it; backup next to it -->
 	<div class="system">
+		<button data-btn="start" class="pausebtn" class:down={pressed.start} aria-label="Pause">❚❚</button>
 		<button data-btn="select" class="pill" class:down={pressed.select}>Backup</button>
-		<button data-btn="start" class="pill" class:down={pressed.start}>❚❚ Pause</button>
 	</div>
 
 </div>
@@ -311,8 +308,7 @@
 	}
 	/* Resting, the aim stick is only a hint: most of the time the ring aims itself */
 	.stick.aim:not(.active) {
-		transform: scale(0.6);
-		opacity: 0.55;
+		opacity: 0;
 	}
 	.stick.active {
 		border-color: rgba(61, 255, 110, 0.5);
@@ -384,17 +380,17 @@
 	}
 	.shoulders {
 		position: absolute;
-		right: calc(max(env(safe-area-inset-right), 0px) + 10px);
-		bottom: calc(var(--btn) * 0.55 + var(--gap) * 2 + var(--btn) + 10px);
+		right: calc(max(env(safe-area-inset-right), 0px) + var(--btn) * 0.55 + var(--gap) * 2 + var(--btn) + 6px);
+		bottom: calc(var(--btn) * 0.55 + var(--gap) * 0.6);
 		display: flex;
-		gap: 8px;
-		align-items: center;
+		flex-direction: column;
+		gap: 10px;
 	}
 	.small,
 	.sig {
-		width: calc(var(--btn) * 0.8);
-		height: calc(var(--btn) * 0.8);
-		border-radius: 10px;
+		width: calc(var(--btn) * 0.7);
+		height: calc(var(--btn) * 0.7);
+		border-radius: 50%;
 		border: 1px solid var(--suit-lit);
 		background: rgba(3, 6, 10, 0.5);
 		font-size: 1.05rem;
@@ -420,15 +416,33 @@
 	}
 	.system {
 		position: absolute;
+		left: calc(max(env(safe-area-inset-left), 0px) + 10px);
+		top: max(env(safe-area-inset-top), 10px);
+		display: flex;
+		gap: 8px;
+		align-items: center;
+	}
+	.pausebtn {
+		width: 40px;
+		height: 32px;
+		border-radius: 8px;
+		border: 1px solid var(--suit-lit);
+		background: rgba(3, 6, 10, 0.6);
+		color: var(--green);
+		font-size: 0.85rem;
+		padding: 0;
+	}
+	.pausebtn.down {
+		background: var(--suit);
+	}
+	.pill {
+		padding: 0.25rem 0.7rem;
+		border-radius: 999px;
+		position: fixed;
 		left: 50%;
 		bottom: max(env(safe-area-inset-bottom), 8px);
 		transform: translateX(-50%);
-		display: flex;
-		gap: 10px;
-	}
-	.pill {
-		padding: 0.3rem 0.8rem;
-		border-radius: 999px;
+		opacity: 0.8;
 		border: 1px solid var(--suit-lit);
 		background: rgba(3, 6, 10, 0.55);
 		font-size: 0.75rem;

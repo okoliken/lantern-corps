@@ -103,7 +103,7 @@
 
 <style>
 	.note {
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		font-weight: 600;
 	}
 </style>

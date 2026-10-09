@@ -62,6 +62,8 @@
 
 <style>
 	.shell {
+		--green: #00711d; /* the menu green (the user's pick) */
+		--green-ink: #3fb562; /* green text: a lighter tint of it, readable on the dark panels */
 		--panel: rgba(8, 22, 15, 0.86);
 		--panel-hi: rgba(14, 40, 26, 0.92);
 		--line: rgba(61, 255, 110, 0.14);
@@ -149,7 +151,7 @@
 		box-shadow: 0 0 18px rgba(61, 255, 110, 0.14);
 	}
 	.item.on :global(svg) {
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 	}
 	.foot {
 		margin-top: auto;
@@ -261,7 +263,7 @@
 		color: #fff;
 	}
 	.page :global(.seg button.on small) {
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		opacity: 1;
 	}
 
@@ -280,7 +282,7 @@
 	.page :global(.group-head h2) {
 		margin: 0;
 		font-size: 0.85rem;
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		text-transform: uppercase;
 		letter-spacing: 0.16em;
 	}
@@ -326,7 +328,7 @@
 		border-radius: 0.7rem;
 		background: rgba(61, 255, 110, 0.08);
 		border: 1px solid var(--line);
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		font-family: var(--font-display);
 		font-weight: 700;
 		font-size: 1rem;
@@ -431,7 +433,7 @@
 	}
 	.page :global(.row.next .badge) {
 		background: var(--green);
-		color: #04140a;
+		color: #ffffff;
 		border-color: var(--green);
 	}
 	.page :global(.row.next .go) {

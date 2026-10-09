@@ -395,7 +395,7 @@
 		pointer-events: auto;
 	}
 	.status.ok {
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		opacity: 1;
 	}
 
@@ -509,7 +509,7 @@
 			inset: 0;
 			background: #03060a;
 			font-size: 1.3rem;
-			color: var(--green);
+			color: var(--green-ink, var(--green));
 		}
 	}
 </style>

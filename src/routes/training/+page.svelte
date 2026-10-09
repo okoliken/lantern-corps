@@ -159,7 +159,7 @@
 		left: max(10px, env(safe-area-inset-left));
 		font: inherit;
 		font-size: 0.85rem;
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		background: rgba(3, 6, 10, 0.6);
 		border: 1px solid var(--suit-lit);
 		border-radius: 6px;
@@ -247,11 +247,11 @@
 	}
 	.count {
 		margin-left: 0.6rem;
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		font-variant-numeric: tabular-nums;
 	}
 	.nice {
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		text-shadow: 0 0 12px var(--green);
 	}
 	.tip {
@@ -285,7 +285,7 @@
 		margin: 0 0 0.5rem;
 		font-size: 1.6rem;
 		text-transform: uppercase;
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		text-shadow: 0 0 16px var(--green);
 	}
 	.end p {
@@ -306,7 +306,7 @@
 		text-decoration: none;
 	}
 	.actions button {
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		background: none;
 		border: 1px solid var(--suit-lit);
 		border-radius: 6px;

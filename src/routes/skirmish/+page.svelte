@@ -204,7 +204,7 @@
 		pointer-events: auto;
 		font: inherit;
 		font-size: 0.85rem;
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		background: rgba(3, 6, 10, 0.6);
 		border: 1px solid var(--suit-lit);
 		border-radius: 6px;
@@ -253,7 +253,7 @@
 		box-shadow: none;
 	}
 	.lives {
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		letter-spacing: 0.1em;
 		text-shadow: 0 0 8px var(--green);
 	}
@@ -318,7 +318,7 @@
 		text-shadow: 0 0 18px rgba(255, 42, 42, 0.7);
 	}
 	.end.won h2 {
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		text-shadow: 0 0 18px var(--green);
 	}
 	.actions {

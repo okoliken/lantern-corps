@@ -758,7 +758,7 @@ export class Game {
 			const tag = this.showSlots ? `${who} · ${p.def.name}` : p.def.name;
 			// Above the head, however big the Lantern is
 			const lift = p.bodyTop - FIGURE_HEIGHT;
-			tags.push(() => drawNameTag(ctx, tag, x, y, lift));
+			if (this.showSlots || this.aiSlots.has(p.slot) || p.slot !== 0) tags.push(() => drawNameTag(ctx, tag, x, y, lift)); // your own Lantern needs no label
 		}
 
 		for (const list of [ground, air]) {

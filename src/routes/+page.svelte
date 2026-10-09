@@ -176,7 +176,7 @@
 		border-radius: 0.9rem;
 		border: 1px solid rgba(61, 255, 110, 0.16);
 		background: rgba(3, 12, 8, 0.78);
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		text-decoration: none;
 		transition: border-color 0.12s, background 0.12s;
 	}

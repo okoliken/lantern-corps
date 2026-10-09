@@ -170,7 +170,7 @@
 		color: var(--muted);
 	}
 	.points.has {
-		color: var(--green);
+		color: var(--green-ink, var(--green));
 		border-color: var(--green);
 		box-shadow: 0 0 20px rgba(61, 255, 110, 0.2);
 	}
