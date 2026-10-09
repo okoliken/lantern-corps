@@ -131,7 +131,6 @@
 			<p>You know it all now: move, fly, shoot, make constructs, shield, recharge, and your signature.</p>
 			<div class="actions">
 				<a class="primary" href="/mission/safe-passage">Mission 1: Safe Passage</a>
-				<a href="/spar?as={data.lantern}">Spar with Kilowog & Sinestro</a>
 				<button onclick={trainAgain}>Train again</button>
 				<a href="/">Main menu</a>
 			</div>

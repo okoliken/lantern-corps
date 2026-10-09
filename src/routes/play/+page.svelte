@@ -83,7 +83,6 @@
 				onResume={() => setPaused(false)}
 				links={[
 					{ href: '/play', label: '← Change Lantern' },
-					{ href: `/hq?as=${lantern}`, label: 'Corps HQ (upgrades)' },
 					{ href: '/', label: 'Main menu' }
 				]}
 			/>
@@ -111,7 +110,6 @@
 		</div>
 		<nav class="below">
 			<a class="menu" href="/">← Menu</a>
-			<a class="menu" href="/hq">Corps HQ (upgrades) →</a>
 		</nav>
 	</main>
 {/if}
