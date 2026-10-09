@@ -278,6 +278,10 @@
 
 
 <style>
+	/* with touch controls up, their own Pause button does the job: the corner one sits under this layer and can't be tapped */
+	:global(button.pause[aria-label='Pause']) {
+		display: none;
+	}
 	.touch {
 		position: absolute;
 		inset: 0;

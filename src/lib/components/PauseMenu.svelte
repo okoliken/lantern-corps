@@ -273,17 +273,25 @@
 	.backdrop {
 		position: absolute;
 		inset: 0;
-		background: rgba(2, 6, 4, 0.94);
-		backdrop-filter: blur(4px);
+		background: rgba(2, 6, 4, 0.55);
+		backdrop-filter: blur(3px);
 		z-index: 10;
-		overflow: auto;
+		display: grid;
+		place-items: center;
+		padding: 1rem;
+		box-sizing: border-box;
 	}
 	.panel {
-		width: min(72rem, 100%);
-		min-height: 100%;
-		margin: 0 auto;
+		/* a card floating over the paused fight, not a full screen */
+		width: min(58rem, 100%);
+		max-height: min(46rem, 100%);
+		overflow: auto;
 		box-sizing: border-box;
-		padding: 1.4rem clamp(1rem, 3vw, 2.4rem) 2rem;
+		padding: 1.2rem clamp(1rem, 2.4vw, 1.8rem) 1.4rem;
+		background: rgba(6, 14, 9, 0.96);
+		border: 1px solid color-mix(in srgb, var(--green) 35%, transparent);
+		border-radius: 18px;
+		box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
 		display: grid;
 		align-content: start;
 		gap: 0.9rem;
@@ -331,7 +339,7 @@
 	}
 	.body {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(0, 17rem);
+		grid-template-columns: minmax(0, 1fr);
 		gap: 1.6rem;
 		align-items: start;
 	}
@@ -341,6 +349,7 @@
 		align-content: start;
 	}
 	.help-panel {
+		display: none;
 		position: sticky;
 		top: 1rem;
 		border-left: 2px solid color-mix(in srgb, var(--green) 55%, transparent);
