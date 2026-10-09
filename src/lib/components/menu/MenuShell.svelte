@@ -73,8 +73,8 @@
 		position: fixed;
 		inset: 0;
 		display: grid;
-		grid-template-columns: 13.5rem minmax(0, 1fr);
-		grid-template-rows: minmax(0, 1fr);
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-rows: auto minmax(0, 1fr);
 		color: var(--text);
 	}
 
@@ -96,16 +96,15 @@
 		background: radial-gradient(circle, rgba(61, 255, 110, 0.12), transparent 65%);
 	}
 
-	/* --- the rail --- */
+	/* --- the bar across the top: brand, the sections, stars --- */
 	.rail {
 		position: relative;
 		z-index: 2;
 		display: flex;
-		flex-direction: column;
+		align-items: center;
 		gap: 1.2rem;
-		padding: max(1.2rem, env(safe-area-inset-top)) 0.8rem max(1rem, env(safe-area-inset-bottom)) max(0.8rem, env(safe-area-inset-left));
-		background: rgba(3, 10, 7, 0.82);
-		border-right: 1px solid var(--line);
+		padding: max(0.6rem, env(safe-area-inset-top)) max(1.4rem, env(safe-area-inset-right)) 0.6rem max(1.4rem, env(safe-area-inset-left));
+		background: linear-gradient(rgba(2, 6, 4, 0.85), rgba(2, 6, 4, 0));
 	}
 	.brand {
 		display: flex;
@@ -122,16 +121,17 @@
 	}
 	.items {
 		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
+		gap: 0.3rem;
+		margin: 0 auto;
 	}
 	.item {
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
-		min-height: 2.9rem;
-		padding: 0 0.85rem;
-		border-radius: 0.7rem;
+		min-height: 2.6rem;
+		gap: 0.5rem;
+		padding: 0 1rem;
+		border-radius: 999px;
 		color: var(--muted);
 		text-decoration: none;
 		font-weight: 600;
@@ -146,15 +146,13 @@
 	}
 	.item.on {
 		color: #fff;
-		background: var(--suit);
-		border-color: var(--suit-lit);
-		box-shadow: 0 0 18px rgba(61, 255, 110, 0.14);
+		background: var(--green);
+		border-color: var(--green);
 	}
 	.item.on :global(svg) {
-		color: var(--green-ink, var(--green));
+		color: #fff;
 	}
 	.foot {
-		margin-top: auto;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -182,7 +180,7 @@
 		-webkit-overflow-scrolling: touch;
 	}
 	.page {
-		max-width: 52rem;
+		max-width: 64rem;
 		margin: 0 auto;
 		padding: 2rem 2rem 3rem;
 		padding-right: max(2rem, env(safe-area-inset-right));
@@ -481,47 +479,23 @@
 
 	/* ===== A phone held sideways: a slim icon rail, everything tighter ===== */
 	@media (max-height: 520px) and (orientation: landscape) {
-		.shell {
-			grid-template-columns: calc(4.6rem + env(safe-area-inset-left)) minmax(0, 1fr);
-		}
 		.rail {
-			gap: 0.4rem;
-			padding: 0.5rem 0.35rem max(0.4rem, env(safe-area-inset-bottom)) calc(0.35rem + env(safe-area-inset-left));
-			align-items: stretch;
-		}
-		.rail .brand {
-			justify-content: center;
-			padding: 0.1rem 0;
+			gap: 0.6rem;
+			padding: max(0.3rem, env(safe-area-inset-top)) max(0.8rem, env(safe-area-inset-right)) 0.3rem max(0.8rem, env(safe-area-inset-left));
 		}
 		.rail .brand span {
 			display: none;
 		}
-		.items {
-			gap: 0.15rem;
-			flex: 1;
-			justify-content: center;
-		}
 		.item {
-			flex-direction: column;
-			justify-content: center;
-			gap: 0.1rem;
-			min-height: 2.9rem;
-			padding: 0.2rem 0;
-			font-size: 0.62rem;
-			letter-spacing: 0.03em;
-			border-radius: 0.6rem;
-			text-align: center;
-		}
-		.foot {
-			flex-direction: column;
-			margin-top: 0;
-			gap: 0.3rem;
+			min-height: 2.1rem;
+			padding: 0 0.7rem;
+			font-size: 0.75rem;
 		}
 		.foot :global(button) {
 			display: none;
 		}
 		.stars {
-			font-size: 0.75rem;
+			font-size: 0.8rem;
 		}
 		.page {
 			padding: 0.8rem 1rem 1.5rem;
