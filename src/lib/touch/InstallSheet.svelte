@@ -10,6 +10,8 @@
 	let { onClose }: Props = $props();
 
 	let busy = $state(false);
+	/** Where the Share button is: the bottom of Safari held upright, otherwise the top right. */
+	const shareAtBottom = install.iosBrowser === 'safari' && typeof matchMedia !== 'undefined' && matchMedia('(orientation: portrait)').matches;
 	async function go() {
 		busy = true;
 		const yes = await install.prompt();
@@ -19,6 +21,13 @@
 </script>
 
 <div class="sheet" role="dialog" aria-modal="true" aria-label="Play it as an app">
+	{#if !install.canPrompt && install.platform === 'iphone'}
+		<!-- An arrow at the browser's own Share button: the one thing a website can't press for you -->
+		<div class="pointer" class:bottom={shareAtBottom} aria-hidden="true">
+			<span class="label">Share is here</span>
+			<span class="arrow">{shareAtBottom ? '⬇' : '⬆'}</span>
+		</div>
+	{/if}
 	<div class="card">
 		<h2>Play it like an app</h2>
 		<p class="lead">On your home screen, Lantern Corps opens fullscreen: no address bar, no browser buttons, the whole screen for the fight.</p>
@@ -59,6 +68,59 @@
 		place-items: center;
 		padding: 1rem;
 		background: rgba(2, 10, 6, 0.7);
+	}
+	.pointer {
+		position: fixed;
+		z-index: 2;
+		top: max(0.4rem, env(safe-area-inset-top));
+		right: 0.8rem;
+		display: grid;
+		justify-items: center;
+		gap: 0.2rem;
+		pointer-events: none;
+		animation: point 0.9s ease-in-out infinite;
+	}
+	.pointer.bottom {
+		top: auto;
+		right: auto;
+		left: 50%;
+		bottom: max(0.4rem, env(safe-area-inset-bottom));
+		translate: -50% 0;
+	}
+	.pointer.bottom .arrow {
+		order: 2;
+	}
+	.label {
+		padding: 0.1rem 0.6rem;
+		border: 3px solid var(--ink);
+		border-radius: 0.6rem;
+		background: var(--toon-gold);
+		color: var(--ink);
+		font-family: var(--font-comic);
+		font-size: 1.2rem;
+		letter-spacing: 0.04em;
+		box-shadow: 2px 3px 0 var(--ink);
+	}
+	.arrow {
+		order: -1;
+		font-size: 2.6rem;
+		line-height: 1;
+		color: var(--toon-gold);
+		-webkit-text-stroke: 2px var(--ink);
+		text-shadow: 2px 3px 0 var(--ink);
+	}
+	@keyframes point {
+		50% {
+			transform: translateY(-8px);
+		}
+	}
+	.pointer.bottom {
+		animation-name: point-down;
+	}
+	@keyframes point-down {
+		50% {
+			transform: translateY(8px);
+		}
 	}
 	.card {
 		width: min(28rem, 100%);

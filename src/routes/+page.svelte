@@ -16,8 +16,6 @@
 	import { LANTERNS } from '$lib/engine/lanterns';
 	import { buttonLabel } from '$lib/engine/input';
 	import { wantsTouchControls } from '$lib/touch/phone';
-	import { install } from '$lib/touch/install.svelte';
-	import InstallSheet from '$lib/touch/InstallSheet.svelte';
 
 	/** The next story mission to play, or none when the story is finished. */
 	const nextIndex = $derived(campaign.order.findIndex((id) => campaign.stars(id) === 0 && campaign.isOpen(id)));
@@ -34,12 +32,6 @@
 	// Keys are read after the page reaches the browser, so a phone shows its thumbs instead
 	let touch = $state(false);
 	let mounted = $state(false);
-	let showInstall = $state(false);
-	/** Android can install in one tap; elsewhere the sheet shows how. */
-	async function playAsApp() {
-		if (install.canPrompt) await install.prompt();
-		else showInstall = true;
-	}
 	onMount(() => {
 		touch = wantsTouchControls(settings.current.touchControls);
 		mounted = true;
@@ -63,17 +55,6 @@
 		<h1>Lantern Corps</h1>
 		<p class="oath">A ring, a sector, and everyone in it.</p>
 	</header>
-
-	{#if mounted && install.worthIt}
-		<button class="app" onclick={playAsApp}>
-			<span class="app-icon" aria-hidden="true"><Emblem size={30} glow={false} /></span>
-			<span class="app-words">
-				<strong>Play it like an app</strong>
-				<small>Fullscreen, no address bar in the way.</small>
-			</span>
-			<span class="app-go">{install.canPrompt ? 'Install' : 'How?'}</span>
-		</button>
-	{/if}
 
 	<section class="card main-card" aria-label="Play">
 		<div class="who">
@@ -130,7 +111,6 @@
 
 	{#if dev}<a class="lab" href="/lab">Lab (dev only)</a>{/if}
 </main>
-{#if showInstall}<InstallSheet onClose={() => (showInstall = false)} />{/if}
 
 <style>
 	main {
@@ -150,7 +130,7 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 1.3rem;
-		padding: max(2rem, env(safe-area-inset-top)) 1rem max(2rem, env(safe-area-inset-bottom));
+		padding: max(2rem, env(safe-area-inset-top)) 1rem calc(max(2rem, env(safe-area-inset-bottom)) + var(--install-space));
 		box-sizing: border-box;
 	}
 	.corner {
@@ -378,67 +358,6 @@
 		text-decoration-thickness: 2px;
 	}
 
-	/* ---- play it as an app: a yellow strip above the card ---- */
-	.app {
-		display: flex;
-		align-items: center;
-		gap: 0.8rem;
-		width: min(30rem, 100%);
-		box-sizing: border-box;
-		padding: 0.6rem 0.8rem;
-		border: 3px solid var(--ink);
-		border-radius: 1.1rem;
-		background: var(--gold);
-		color: var(--ink);
-		font: inherit;
-		text-align: left;
-		box-shadow: 4px 5px 0 var(--ink);
-		cursor: pointer;
-		transition: transform 0.1s, box-shadow 0.1s;
-	}
-	.app:active {
-		transform: translate(3px, 4px);
-		box-shadow: 1px 1px 0 var(--ink);
-	}
-	.app-icon {
-		display: grid;
-		place-items: center;
-		flex-shrink: 0;
-		width: 2.6rem;
-		height: 2.6rem;
-		border: 3px solid var(--ink);
-		border-radius: 0.8rem;
-		background: #0c3a24;
-	}
-	.app-words {
-		display: grid;
-		flex: 1;
-		min-width: 0;
-	}
-	.app-words strong {
-		font-family: var(--font-comic);
-		font-weight: 400;
-		font-size: 1.35rem;
-		letter-spacing: 0.04em;
-		line-height: 1.1;
-	}
-	.app-words small {
-		font-size: 0.8rem;
-		font-weight: 700;
-	}
-	.app-go {
-		padding: 0.1rem 0.8rem;
-		border: 3px solid var(--ink);
-		border-radius: 0.7rem;
-		background: var(--green-hi);
-		color: #fff;
-		font-family: var(--font-comic);
-		font-size: 1.2rem;
-		letter-spacing: 0.05em;
-		text-shadow: 1px 2px 0 var(--ink);
-		box-shadow: 0 3px 0 var(--ink);
-	}
-
 	/* ---- how to play ---- */
 	.how {
 		background: #fff8d6;
@@ -502,13 +421,13 @@
 			align-content: start;
 			column-gap: 1.5rem;
 			row-gap: 1.1rem;
-			padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) 1rem max(1rem, env(safe-area-inset-left));
+			padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) calc(1rem + var(--install-space)) max(1rem, env(safe-area-inset-left));
 		}
 		.brand {
 			position: sticky;
 			top: 1rem;
 			align-self: start;
-			grid-row: 1 / span 4;
+			grid-row: 1 / span 3;
 			padding-top: 1.5rem;
 		}
 		h1 {

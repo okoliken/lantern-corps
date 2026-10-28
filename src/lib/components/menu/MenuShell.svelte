@@ -122,7 +122,7 @@
 		width: min(38rem, 100%);
 		box-sizing: border-box;
 		margin: 0 auto;
-		padding: max(1.4rem, env(safe-area-inset-top)) 1rem max(2.5rem, env(safe-area-inset-bottom));
+		padding: max(1.4rem, env(safe-area-inset-top)) 1rem calc(max(2.5rem, env(safe-area-inset-bottom)) + var(--install-space));
 	}
 	.top {
 		display: grid;

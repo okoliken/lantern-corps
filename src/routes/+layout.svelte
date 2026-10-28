@@ -8,6 +8,7 @@
 	import '@fontsource/bangers/latin-400.css';
 
 	import RotatePrompt from '$lib/touch/RotatePrompt.svelte';
+	import InstallBanner from '$lib/touch/InstallBanner.svelte';
 	import { SUIT_GREEN, SUIT_GREEN_DARK, SUIT_GREEN_LIT, THEME_GREEN } from '$lib/theme';
 
 	let { children } = $props();
@@ -26,6 +27,8 @@
 
 <!-- A phone held upright is asked to turn sideways, on every page -->
 <RotatePrompt />
+<!-- On a phone, until the game is installed: add it to the home screen -->
+<InstallBanner />
 
 <style>
 	:global(:root) {
@@ -34,6 +37,8 @@
 		--font-display: 'Orbitron Variable', 'Exo 2 Variable', system-ui, sans-serif;
 		--font-ui: 'Exo 2 Variable', system-ui, sans-serif;
 		--font-comic: 'Bangers', 'Exo 2 Variable', system-ui, sans-serif;
+		/* Room at the bottom of the menus while the add-to-home-screen banner shows */
+		--install-space: 0px;
 		/* The menus' cartoon look: dark ink outlines and hard printed shadows */
 		--ink: #04120a;
 		--toon-card: #145236; /* a card */
@@ -59,6 +64,9 @@
 	:global(h1, h2) {
 		font-family: var(--font-display);
 		letter-spacing: 0.06em;
+	}
+	:global(html.install-banner) {
+		--install-space: 5.5rem;
 	}
 	:global(a) {
 		color: var(--green);
