@@ -97,20 +97,26 @@
 		overflow: auto;
 		box-sizing: border-box;
 		padding: 1.5rem;
-		border: 2px solid var(--suit-lit);
-		border-radius: 12px;
-		background: #06100b;
-		box-shadow: 0 0 40px color-mix(in srgb, var(--green) 20%, transparent);
+		border: 3px solid var(--ink);
+		border-radius: 1.3rem;
+		background: var(--toon-cream);
+		color: #22302a;
+		box-shadow: 6px 7px 0 var(--ink);
 	}
 	h2 {
 		margin: 0;
-		color: var(--green);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
+		font-family: var(--font-comic);
+		font-weight: 400;
+		font-size: 2.2rem;
+		letter-spacing: 0.05em;
+		color: var(--ink);
 	}
 	.lead {
-		margin: 0.4rem 0 1rem;
-		opacity: 0.85;
+		margin: 0.3rem 0 1rem;
+		font-weight: 700;
+	}
+	li {
+		font-weight: 600;
 	}
 	ul {
 		list-style: none;
@@ -128,32 +134,46 @@
 	kbd {
 		justify-self: start;
 		padding: 0.2rem 0.5rem;
-		border: 1px solid var(--suit-lit);
-		border-bottom-width: 3px;
-		border-radius: 6px;
+		border: 2px solid var(--ink);
+		border-radius: 0.45rem;
+		background: #fff;
+		box-shadow: 0 2px 0 var(--ink);
 		font-family: var(--font-ui);
-		font-weight: 700;
+		font-weight: 800;
 		font-size: 0.8rem;
-		color: var(--green);
+		color: var(--ink);
 		white-space: nowrap;
 	}
 	.tip {
 		margin: 1rem 0;
+		padding-top: 0.7rem;
+		border-top: 2px dashed #04120a33;
 		font-size: 0.85rem;
-		opacity: 0.7;
+		font-weight: 600;
+		color: #4c5f50;
 	}
 	button {
 		width: 100%;
-		padding: 0.7rem;
-		font: inherit;
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		color: var(--text);
-		background: var(--suit);
-		border: none;
-		border-radius: 8px;
+		padding: 0.3rem;
+		font-family: var(--font-comic);
+		font-size: 1.7rem;
+		letter-spacing: 0.08em;
+		color: #fff;
+		background: var(--toon-btn);
+		border: 3px solid var(--ink);
+		border-radius: 0.9rem;
+		-webkit-text-stroke: 1.5px var(--ink);
+		paint-order: stroke fill;
+		text-shadow: 2px 2px 0 var(--ink);
+		box-shadow: 0 5px 0 var(--ink);
 		cursor: pointer;
+	}
+	button:hover {
+		background: var(--toon-btn-hi);
+	}
+	button:active {
+		transform: translateY(4px);
+		box-shadow: 0 1px 0 var(--ink);
 	}
 	/* A phone on its side: two columns, so it all fits without scrolling */
 	@media (max-height: 520px) {

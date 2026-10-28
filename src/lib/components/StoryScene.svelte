@@ -95,30 +95,39 @@
 		transform: translateX(-50%);
 		width: min(760px, calc(100% - 32px));
 		min-height: 96px;
-		padding: 14px 20px 16px;
-		background: rgba(3, 12, 8, 0.86);
-		border: 1px solid var(--suit-lit);
-		border-radius: 10px;
-		box-shadow: 0 0 24px color-mix(in srgb, var(--green) 15%, transparent);
+		padding: 22px 22px 16px;
+		box-sizing: border-box;
+		background: var(--toon-cream);
+		border: 3px solid var(--ink);
+		border-radius: 18px;
+		box-shadow: 5px 6px 0 var(--ink);
 	}
+	/* The speaker's name on a tag over the bubble's edge, in their own colour */
 	.name {
-		font-family: var(--font-display);
-		font-weight: 700;
-		font-size: 13px;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
+		position: absolute;
+		top: -16px;
+		left: 16px;
+		padding: 1px 12px;
+		border: 3px solid var(--ink);
+		border-radius: 10px;
+		background: var(--ink);
+		font-family: var(--font-comic);
+		font-size: 20px;
+		letter-spacing: 0.06em;
+		rotate: -2deg;
 	}
 	p {
 		margin: 6px 0 0;
 		font-size: 18px;
+		font-weight: 600;
 		line-height: 1.45;
-		color: #e6fbec;
+		color: #22302a;
 	}
 	.next {
 		position: absolute;
 		right: 14px;
 		bottom: 8px;
-		color: var(--green);
+		color: var(--ink);
 		font-size: 12px;
 		animation: bob 0.9s ease-in-out infinite;
 	}
@@ -131,13 +140,15 @@
 		position: absolute;
 		top: calc(8vh + 12px);
 		right: 16px;
-		padding: 6px 12px;
+		padding: 4px 12px;
 		font: inherit;
 		font-size: 13px;
-		color: var(--text);
-		background: rgba(0, 0, 0, 0.5);
-		border: 1px solid var(--suit-lit);
-		border-radius: 6px;
+		font-weight: 800;
+		color: var(--ink);
+		background: var(--toon-cream);
+		border: 3px solid var(--ink);
+		border-radius: 10px;
+		box-shadow: 2px 3px 0 var(--ink);
 		cursor: pointer;
 	}
 	kbd {

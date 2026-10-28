@@ -132,12 +132,14 @@
 		left: max(10px, env(safe-area-inset-left));
 		z-index: 4;
 		font: inherit;
-		font-size: 0.78rem;
-		color: var(--text);
-		background: rgba(4, 14, 10, 0.75);
-		border: 1px solid var(--suit-lit);
-		border-radius: 6px;
-		padding: 0.3rem 0.6rem;
+		font-size: 0.8rem;
+		font-weight: 800;
+		color: #fff;
+		background: var(--toon-card);
+		border: 3px solid var(--ink);
+		border-radius: 0.7rem;
+		padding: 0.25rem 0.65rem;
+		box-shadow: 2px 3px 0 var(--ink);
 		cursor: pointer;
 	}
 	.hud {
@@ -147,9 +149,11 @@
 		z-index: 3;
 		width: min(22rem, 62vw);
 		padding: 0.7rem 0.9rem;
-		border: 1px solid color-mix(in srgb, var(--suit-lit) 60%, transparent);
-		border-radius: 6px;
-		background: rgba(4, 14, 10, 0.78);
+		border: 3px solid var(--ink);
+		border-radius: 0.9rem;
+		background: color-mix(in srgb, var(--toon-card) 92%, transparent);
+		box-shadow: 3px 4px 0 var(--ink);
+		font-weight: 600;
 	}
 	.row {
 		display: flex;
@@ -158,19 +162,21 @@
 		gap: 1rem;
 	}
 	.name {
-		font-family: var(--font-display);
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		color: var(--green);
-		font-size: 0.85rem;
+		font-family: var(--font-comic);
+		letter-spacing: 0.06em;
+		color: var(--toon-light);
+		font-size: 1.2rem;
+		text-shadow: 1px 2px 0 var(--ink);
 	}
 	.clock {
-		font-family: var(--font-display);
-		font-size: 1.1rem;
+		font-family: var(--font-comic);
+		font-size: 1.5rem;
+		letter-spacing: 0.04em;
+		text-shadow: 1px 2px 0 var(--ink);
 		font-variant-numeric: tabular-nums;
 	}
 	.clock.low {
-		color: #ffb45c;
+		color: var(--toon-gold);
 	}
 	.objective {
 		margin: 0.3rem 0 0;
@@ -179,11 +185,11 @@
 	.tip,
 	.best {
 		margin: 0.35rem 0 0;
-		font-size: 0.74rem;
-		opacity: 0.68;
+		font-size: 0.76rem;
+		color: #a6d4b3;
 	}
 	.tip b {
-		color: var(--green);
+		color: var(--toon-gold);
 	}
 	.end {
 		position: absolute;
@@ -194,34 +200,49 @@
 		justify-items: center;
 		gap: 0.3rem;
 		text-align: center;
-		background: rgba(2, 6, 4, 0.88);
+		background: rgba(2, 10, 6, 0.75);
 	}
 	.end h2 {
 		margin: 0;
-		font-size: 2rem;
-		color: #c96f5a;
-		text-transform: uppercase;
-		letter-spacing: 0.12em;
+		font-family: var(--font-comic);
+		font-weight: 400;
+		font-size: 3rem;
+		line-height: 1;
+		letter-spacing: 0.05em;
+		color: #ff8a6a;
+		-webkit-text-stroke: 2px var(--ink);
+		paint-order: stroke fill;
+		text-shadow: 3px 4px 0 var(--ink);
+		rotate: -2deg;
 	}
 	.end.passed h2 {
-		color: var(--green);
+		color: var(--toon-light);
 	}
 	.figure {
-		margin: 0;
-		font-family: var(--font-display);
-		font-size: 3.2rem;
+		margin: 0.4rem 0 0;
+		font-family: var(--font-comic);
+		font-size: 4.2rem;
 		line-height: 1;
+		color: var(--toon-gold);
+		-webkit-text-stroke: 2px var(--ink);
+		paint-order: stroke fill;
+		text-shadow: 3px 4px 0 var(--ink);
 	}
 	.figure small {
-		font-size: 0.9rem;
-		opacity: 0.6;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
+		font-size: 1.3rem;
+		color: #fff;
+		letter-spacing: 0.06em;
 	}
 	.line {
-		margin: 0.4rem 0 1.2rem;
-		opacity: 0.75;
+		margin: 0.6rem 0 1.2rem;
 		max-width: 28rem;
+		padding: 0.6rem 0.9rem;
+		border: 3px solid var(--ink);
+		border-radius: 1rem 1rem 1rem 0.3rem;
+		background: var(--toon-cream);
+		color: #22302a;
+		font-weight: 600;
+		box-shadow: 3px 4px 0 var(--ink);
 	}
 	.actions {
 		display: flex;
@@ -231,27 +252,33 @@
 		justify-content: center;
 	}
 	.actions button {
-		font: inherit;
-		font-weight: 700;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		color: var(--text);
-		background: var(--suit);
-		border: 1px solid var(--suit-lit);
-		border-radius: 6px;
-		padding: 0.55rem 1.6rem;
+		font-family: var(--font-comic);
+		font-size: 1.6rem;
+		letter-spacing: 0.08em;
+		color: #fff;
+		background: var(--toon-btn);
+		border: 3px solid var(--ink);
+		border-radius: 0.9rem;
+		padding: 0.15rem 1.8rem;
+		text-shadow: 2px 2px 0 var(--ink);
+		box-shadow: 0 5px 0 var(--ink);
 		cursor: pointer;
 	}
 	.actions button:hover {
-		border-color: var(--green);
+		background: var(--toon-btn-hi);
+	}
+	.actions button:active {
+		transform: translateY(4px);
+		box-shadow: 0 1px 0 var(--ink);
 	}
 	.actions a {
-		color: color-mix(in srgb, var(--text) 80%, transparent);
+		color: var(--toon-light);
 		text-decoration: none;
-		font-size: 0.85rem;
+		font-size: 0.9rem;
+		font-weight: 800;
 	}
 	.actions a:hover {
-		color: var(--green);
+		text-decoration: underline;
 	}
 	@media (max-height: 560px) {
 		.hud {

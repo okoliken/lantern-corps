@@ -36,6 +36,14 @@
 		--font-comic: 'Bangers', 'Exo 2 Variable', system-ui, sans-serif;
 		/* The menus' cartoon look: dark ink outlines and hard printed shadows */
 		--ink: #04120a;
+		--toon-card: #145236; /* a card */
+		--toon-well: #0d3b26; /* something set into a card */
+		--toon-btn: #19a83d; /* buttons */
+		--toon-btn-hi: #22c24a;
+		--toon-gold: #ffd84a; /* picked, stars */
+		--toon-cream: #fff8d6; /* paper: speech, notes */
+		--toon-red: #e8452c; /* failure, danger */
+		--toon-light: #7dff9e; /* green lettering */
 	}
 	:global(html, body) {
 		margin: 0;

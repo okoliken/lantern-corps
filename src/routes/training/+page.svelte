@@ -148,6 +148,7 @@
 </div>
 
 <style>
+	/* The cartoon look the menus use: flat cards, ink outlines, hard shadows, comic lettering */
 	.screen {
 		position: fixed;
 		inset: 0;
@@ -157,19 +158,21 @@
 		top: 8px;
 		left: max(10px, env(safe-area-inset-left));
 		font: inherit;
+		font-weight: 800;
 		font-size: 0.85rem;
-		color: var(--green-ink, var(--green));
-		background: rgba(3, 6, 10, 0.6);
-		border: 1px solid var(--suit-lit);
-		border-radius: 6px;
-		padding: 0.25rem 0.6rem;
+		color: #fff;
+		background: var(--toon-card);
+		border: 3px solid var(--ink);
+		border-radius: 0.7rem;
+		padding: 0.25rem 0.65rem;
+		box-shadow: 2px 3px 0 var(--ink);
 		cursor: pointer;
-		opacity: 0.85;
 	}
 	.pause kbd {
 		font-size: 0.7rem;
-		opacity: 0.7;
+		opacity: 0.75;
 	}
+	/* Kilowog talks in a speech bubble */
 	.coach {
 		position: absolute;
 		top: 12px;
@@ -178,15 +181,16 @@
 		width: min(40rem, calc(100% - 180px));
 		box-sizing: border-box;
 		padding: 0.8rem 1.1rem 0.9rem;
-		border-radius: 12px;
-		background: rgba(3, 10, 6, 0.88);
-		border: 1px solid var(--suit-lit);
-		box-shadow: 0 0 24px color-mix(in srgb, var(--green) 12%, transparent);
+		border-radius: 1.1rem 1.1rem 1.1rem 0.3rem;
+		background: var(--toon-cream);
+		color: #22302a;
+		border: 3px solid var(--ink);
+		box-shadow: 4px 5px 0 var(--ink);
 		pointer-events: none;
-		transition: border-color 0.2s;
+		transition: background 0.2s;
 	}
 	.coach.cheer {
-		border-color: var(--suit-lit);
+		background: #e3ffd9;
 	}
 	.who {
 		display: flex;
@@ -195,42 +199,40 @@
 		gap: 1rem;
 	}
 	.name {
-		font-family: var(--font-display);
-		font-weight: 700;
-		font-size: 0.75rem;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
-		color: #e0b4b8;
+		font-family: var(--font-comic);
+		font-size: 1.3rem;
+		letter-spacing: 0.06em;
+		color: #b5434e;
 	}
 	.progress {
 		display: flex;
 		gap: 5px;
 	}
 	.dot {
-		width: 9px;
-		height: 9px;
+		width: 11px;
+		height: 11px;
+		box-sizing: border-box;
 		border-radius: 50%;
-		border: 1px solid var(--suit-lit);
+		border: 2px solid var(--ink);
+		background: #fff;
 	}
 	.dot.now {
-		border-color: var(--suit-lit);
-		box-shadow: 0 0 6px var(--green);
+		background: var(--toon-gold);
 	}
 	.dot.done {
-		background: var(--suit);
-		border-color: var(--suit-lit);
+		background: var(--toon-btn);
 	}
 	.line {
-		margin: 0.35rem 0 0.5rem;
+		margin: 0.2rem 0 0.5rem;
 		font-style: italic;
-		opacity: 0.85;
+		font-weight: 600;
 		line-height: 1.4;
 	}
 	.how {
 		margin: 0;
 		font-size: 1.1rem;
-		font-weight: 700;
-		color: #e6fbec;
+		font-weight: 800;
+		color: var(--ink);
 		line-height: 1.6;
 	}
 	.how kbd {
@@ -239,32 +241,43 @@
 		padding: 0 0.45rem;
 		font: inherit;
 		font-size: 0.95rem;
-		color: var(--text);
-		background: var(--suit);
-		border-radius: 5px;
-		box-shadow: 0 0 10px color-mix(in srgb, var(--green) 40%, transparent);
+		color: var(--ink);
+		background: #fff;
+		border: 2px solid var(--ink);
+		border-radius: 0.45rem;
+		box-shadow: 0 2px 0 var(--ink);
 	}
 	.count {
 		margin-left: 0.6rem;
-		color: var(--green-ink, var(--green));
+		color: #0b6b25;
 		font-variant-numeric: tabular-nums;
 	}
 	.nice {
-		color: var(--green-ink, var(--green));
-		text-shadow: 0 0 12px var(--green);
+		font-family: var(--font-comic);
+		font-weight: 400;
+		font-size: 1.4rem;
+		letter-spacing: 0.05em;
+		color: #0b8a2e;
 	}
 	.tip {
 		margin: 0.35rem 0 0;
-		font-size: 0.8rem;
-		opacity: 0.65;
+		font-size: 0.82rem;
+		font-weight: 600;
+		color: #4c5f50;
 	}
 	.skip {
 		position: absolute;
 		top: 12px;
 		right: 12px;
+		padding: 0.2rem 0.7rem;
+		border: 3px solid var(--ink);
+		border-radius: 0.7rem;
+		background: var(--toon-card);
+		box-shadow: 2px 3px 0 var(--ink);
+		color: #fff;
 		font-size: 0.85rem;
+		font-weight: 800;
 		text-decoration: none;
-		opacity: 0.75;
 	}
 	.end {
 		position: absolute;
@@ -274,52 +287,69 @@
 		width: min(32rem, 92vw);
 		box-sizing: border-box;
 		padding: 1.5rem 1.75rem;
-		border-radius: 12px;
+		border-radius: 1.3rem;
 		text-align: center;
-		background: rgba(3, 10, 6, 0.92);
-		border: 2px solid var(--suit-lit);
-		box-shadow: 0 0 40px color-mix(in srgb, var(--green) 20%, transparent);
+		background: var(--toon-card);
+		border: 3px solid var(--ink);
+		box-shadow: 6px 7px 0 var(--ink);
 	}
 	.end h2 {
 		margin: 0 0 0.5rem;
-		font-size: 1.6rem;
-		text-transform: uppercase;
-		color: var(--green-ink, var(--green));
-		text-shadow: 0 0 16px var(--green);
+		font-family: var(--font-comic);
+		font-weight: 400;
+		font-size: 2.8rem;
+		line-height: 1;
+		letter-spacing: 0.05em;
+		color: var(--toon-light);
+		-webkit-text-stroke: 2px var(--ink);
+		paint-order: stroke fill;
+		text-shadow: 3px 4px 0 var(--ink);
+		rotate: -2deg;
 	}
 	.end p {
 		line-height: 1.5;
+		font-weight: 600;
 	}
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: center;
 		align-items: center;
-		gap: 0.75rem 1.25rem;
+		gap: 0.9rem 1.25rem;
 		margin-top: 1.25rem;
 	}
 	.actions a,
 	.actions button {
 		font: inherit;
 		font-size: 0.9rem;
+		font-weight: 800;
 		text-decoration: none;
+		color: var(--toon-light);
 	}
 	.actions button {
-		color: var(--green-ink, var(--green));
-		background: none;
-		border: 1px solid var(--suit-lit);
-		border-radius: 6px;
+		color: #fff;
+		background: var(--toon-well);
+		border: 3px solid var(--ink);
+		border-radius: 0.8rem;
 		padding: 0.45rem 1rem;
+		box-shadow: 0 4px 0 var(--ink);
 		cursor: pointer;
 	}
-	.primary {
-		font-weight: 800;
-		padding: 0.55rem 1.5rem;
-		border-radius: 6px;
-		background: var(--suit);
-		color: var(--text);
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
+	.actions .primary {
+		font-family: var(--font-comic);
+		font-weight: 400;
+		font-size: 1.4rem;
+		letter-spacing: 0.06em;
+		padding: 0.2rem 1.4rem;
+		border: 3px solid var(--ink);
+		border-radius: 0.9rem;
+		background: var(--toon-btn);
+		color: #fff;
+		text-shadow: 2px 2px 0 var(--ink);
+		box-shadow: 0 5px 0 var(--ink);
+	}
+	.actions .primary:hover {
+		background: var(--toon-btn-hi);
 	}
 
 	/* A phone on its side: your bars take the top left, so Kilowog goes top right */
