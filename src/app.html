@@ -12,6 +12,15 @@
 		<meta name="apple-mobile-web-app-title" content="Lantern Corps" />
 		<meta name="theme-color" content="#03060a" />
 		<meta name="text-scale" content="scale" />
+		<script>
+			// Chrome offers "install as an app" once, early, often before the game has started:
+			// keep the offer so the game's own Install button can use it later ($lib/touch/install.svelte.ts)
+			addEventListener('beforeinstallprompt', (e) => {
+				e.preventDefault();
+				window.__installPrompt = e;
+				dispatchEvent(new Event('installprompt'));
+			});
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
