@@ -33,6 +33,7 @@
 	},
 	"dependencies": {
 		"@fontsource-variable/exo-2": "^5.3.0",
-		"@fontsource-variable/orbitron": "^5.3.0"
+		"@fontsource-variable/orbitron": "^5.3.0",
+		"@fontsource/bangers": "^5.3.0"
 	}
 }

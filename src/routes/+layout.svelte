@@ -4,6 +4,8 @@
 	import '@fontsource-variable/orbitron/wght.css';
 	import '@fontsource-variable/exo-2/wght.css';
 	import '@fontsource-variable/exo-2/wght-italic.css';
+	// Comic lettering for the menus' titles and buttons
+	import '@fontsource/bangers/latin-400.css';
 
 	import RotatePrompt from '$lib/touch/RotatePrompt.svelte';
 	import { SUIT_GREEN, SUIT_GREEN_DARK, SUIT_GREEN_LIT, THEME_GREEN } from '$lib/theme';
@@ -31,6 +33,9 @@
 		--text: #d8f5e0;
 		--font-display: 'Orbitron Variable', 'Exo 2 Variable', system-ui, sans-serif;
 		--font-ui: 'Exo 2 Variable', system-ui, sans-serif;
+		--font-comic: 'Bangers', 'Exo 2 Variable', system-ui, sans-serif;
+		/* The menus' cartoon look: dark ink outlines and hard printed shadows */
+		--ink: #04120a;
 	}
 	:global(html, body) {
 		margin: 0;

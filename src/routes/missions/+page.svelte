@@ -1,5 +1,5 @@
 <script lang="ts">
-	// The mission menu: one act at a time, its missions as a list. The story
+	// The mission menu: one act at a time, its missions as a list in one card. The story
 	// plays in order (engine/campaign.ts), so a mission opens once the one before
 	// it is finished; the next one to play is lit up.
 	import { onMount } from 'svelte';
@@ -42,9 +42,7 @@
 	const entries = $derived(act.lineup.map((entry, i) => ({ i, id: typeof entry === 'string' ? entry : null, soon: typeof entry === 'string' ? null : entry })));
 	const shownId = $derived(picked && builtOf(act).includes(picked) ? picked : nextId ?? builtOf(act).filter((id) => campaign.isOpen(id)).pop() ?? builtOf(act)[0] ?? null);
 	const shown = $derived(shownId ? missionById(shownId) : undefined);
-	const shownIdx = $derived(act.lineup.findIndex((e) => e === shownId));
 	const open = $derived(shown ? campaign.isOpen(shown.id) : false);
-	const stars = $derived(shown ? campaign.stars(shown.id) : 0);
 	/** A colour per mission (a planet's hue, a nebula's tint), stable from its id. */
 	const hue = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
 	function step(d: number) {
@@ -52,8 +50,8 @@
 		const n = list[Math.max(0, Math.min(list.length - 1, k + d))]; if (n) picked = n;
 	}
 	function onKey(e: KeyboardEvent) {
-		if (e.key === 'ArrowRight') step(1);
-		if (e.key === 'ArrowLeft') step(-1);
+		if (e.key === 'ArrowRight' || e.key === 'ArrowDown') step(1);
+		if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') step(-1);
 		if (e.key === 'Enter' && shown && open) location.href = `/mission/${shown.id}`;
 	}
 </script>
@@ -64,385 +62,301 @@
 <svelte:window onkeydown={onKey} />
 
 <MenuShell active="missions">
-	<div class="select" style:--h={shown ? hue(shown.id) : 140}>
-		<!-- the backdrop: where the mission happens -->
-		<div class="sky" class:planet={shown?.environment === 'planet'} aria-hidden="true">
-			<div class="nebula"></div>
-			<div class="body"></div>
-		</div>
-
-		<nav class="acts" aria-label="Acts">
+	<section class="deck">
+		<div class="acts" role="tablist" aria-label="Acts">
 			{#each ACTS as a (a.number)}
-				<button class:on={a.number === actNumber} onclick={() => { picked = null; shownAct = a.number; }}>
+				<button role="tab" aria-selected={a.number === actNumber} class:on={a.number === actNumber} onclick={() => { picked = null; shownAct = a.number; }}>
 					<small>{a.number >= 4 ? 'Season 2' : `Act ${a.number}`} · {doneIn(a)}/{a.lineup.length}</small>
 					<span>{a.title}</span>
 				</button>
 			{/each}
-		</nav>
+		</div>
 
-		{#if shown}
-			<section class="hero">
-				<p class="where">Mission {shownIdx + 1} · {shown.choose ? 'Hal or John' : LANTERNS[shown.lantern].name} · {shown.place}</p>
-				<h1>{shown.title}</h1>
-				<p class="tag">{shown.tagline}</p>
-				<div class="cta">
-					{#if open}
-						<a class="play" href="/mission/{shown.id}"><MenuIcon name="play" size={16} /> {stars > 0 ? 'Replay' : 'Play'}</a>
-						<span class="stars" aria-label="{stars} of 3 stars">{#each [1, 2, 3] as n (n)}<span class:on={n <= stars}><MenuIcon name="star" size={20} /></span>{/each}</span>
-					{:else}
-						<span class="locked"><MenuIcon name="lock" size={16} /> Finish {titleOf(campaign.before(shown.id))} to unlock</span>
-					{/if}
-				</div>
-				{#if unlocked}<p class="note">Every mission is unlocked.</p>{/if}
-			</section>
-		{/if}
+		{#if unlocked}<p class="note">Every mission is unlocked.</p>{/if}
 
-		<!-- the missions of this act, along the bottom -->
-		<div class="strip" role="listbox" aria-label="Missions in {act.title}">
+		<ol class="missions" aria-label="Missions in {act.title}">
 			{#each entries as e (actNumber + '-' + e.i)}
 				{@const m = e.id ? missionById(e.id) : undefined}
 				{#if m}
 					{@const st = campaign.stars(m.id)}
-					<button
-						class="card"
-						class:sel={m.id === shownId}
-						class:done={st > 0}
-						class:locked={!campaign.isOpen(m.id)}
-						class:next={m.id === nextId}
-						class:planet={m.environment === 'planet'}
-						style:--h={hue(m.id)}
-						role="option"
-						aria-selected={m.id === shownId}
-						onclick={() => (picked = m.id)}
-					>
-						<span class="thumb"><span class="orb"></span></span>
-						<span class="num">{campaign.isOpen(m.id) ? e.i + 1 : ''}{#if !campaign.isOpen(m.id)}<MenuIcon name="lock" size={12} />{/if}</span>
-						<span class="name">{m.title}</span>
-						<span class="pips">{#each [1, 2, 3] as n (n)}<i class:on={n <= st}></i>{/each}</span>
-					</button>
+					{@const isOpen = campaign.isOpen(m.id)}
+					{@const sel = m.id === shownId}
+					<li class="mission" class:sel class:done={st > 0} class:locked={!isOpen} class:next={m.id === nextId} style:--h={hue(m.id)}>
+						<button class="pick" aria-expanded={sel} onclick={() => (picked = m.id)}>
+							<span class="orb" class:planet={m.environment === 'planet'}>{#if isOpen}{e.i + 1}{:else}<MenuIcon name="lock" size={13} />{/if}</span>
+							<span class="words">
+								<strong>{m.title}</strong>
+								<small>{m.choose ? 'Hal or John' : LANTERNS[m.lantern].name} · {m.place}</small>
+							</span>
+							<span class="pips" aria-label="{st} of 3 stars">{#each [1, 2, 3] as n (n)}<span class:on={n <= st}><MenuIcon name="star" size={14} /></span>{/each}</span>
+						</button>
+						{#if sel}
+							<div class="open">
+								<p>{m.tagline}</p>
+								{#if isOpen}
+									<a class="play" href="/mission/{m.id}"><MenuIcon name="play" size={16} /> {st > 0 ? 'Replay' : 'Play'}</a>
+								{:else}
+									<span class="locked-note"><MenuIcon name="lock" size={14} /> Finish {titleOf(campaign.before(m.id))} to unlock</span>
+								{/if}
+							</div>
+						{/if}
+					</li>
 				{:else if e.soon}
-					<div class="card soon"><span class="thumb"></span><span class="num">{e.i + 1}</span><span class="name">{e.soon.title}</span><span class="pips">Soon</span></div>
+					<li class="mission soon">
+						<div class="pick">
+							<span class="orb">{e.i + 1}</span>
+							<span class="words"><strong>{e.soon.title}</strong><small>Coming soon</small></span>
+						</div>
+					</li>
 				{/if}
 			{/each}
-		</div>
-	</div>
+		</ol>
+	</section>
 </MenuShell>
 
 <style>
-	.select {
-		--accent: var(--green);
-		position: relative;
-		height: calc(100dvh - 7.5rem);
-		min-height: 24rem;
-		display: grid;
-		grid-template-rows: auto 1fr auto;
-		gap: 1rem;
-		isolation: isolate;
-	}
-	/* ---- backdrop ---- */
-	.sky {
-		position: fixed;
-		inset: 0;
-		z-index: -1;
-		overflow: hidden;
-		background: radial-gradient(120% 90% at 70% 30%, hsl(var(--h) 45% 12%), #020504 70%);
-		transition: background 0.5s;
-	}
-	.sky::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background-image: radial-gradient(1px 1px at 12% 22%, #fff9, transparent), radial-gradient(1px 1px at 32% 68%, #fff7, transparent), radial-gradient(1.5px 1.5px at 58% 14%, #fffb, transparent), radial-gradient(1px 1px at 76% 46%, #fff6, transparent), radial-gradient(1px 1px at 88% 78%, #fff8, transparent), radial-gradient(1.5px 1.5px at 44% 88%, #fff9, transparent), radial-gradient(1px 1px at 6% 56%, #fff7, transparent), radial-gradient(1px 1px at 66% 62%, #fff5, transparent);
-		background-size: 340px 340px;
-		opacity: 0.8;
-	}
-	.nebula {
-		position: absolute;
-		width: 70vmax;
-		height: 70vmax;
-		right: -15vmax;
-		top: -20vmax;
-		border-radius: 50%;
-		background: radial-gradient(circle, hsl(var(--h) 70% 40% / 0.35), transparent 65%);
-		filter: blur(10px);
-		transition: background 0.5s;
-	}
-	.body {
-		position: absolute;
-		width: 34vmax;
-		height: 34vmax;
-		right: 6vw;
-		top: 12vh;
-		border-radius: 50%;
-		background: radial-gradient(circle at 35% 35%, hsl(var(--h) 55% 55%), hsl(var(--h) 60% 22%) 55%, #030605 100%);
-		box-shadow: 0 0 120px hsl(var(--h) 70% 40% / 0.35), inset -40px -30px 80px #000c;
-		opacity: 0.55;
-		transition: all 0.5s;
-	}
-	.sky.planet .body {
-		width: 140vmax;
-		height: 140vmax;
-		right: -20vmax;
-		top: 58vh;
-		opacity: 0.9;
+	.deck {
+		padding: 1rem;
+		border-radius: 1.3rem;
+		border: 3px solid var(--ink);
+		background: var(--panel);
+		box-shadow: 6px 7px 0 var(--ink);
 	}
 	/* ---- acts ---- */
 	.acts {
-		display: flex;
-		gap: 0.4rem;
-		flex-wrap: wrap;
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+		gap: 0.5rem;
 	}
 	.acts button {
 		display: grid;
+		gap: 0.15rem;
+		padding: 0.6rem 0.75rem;
+		border-radius: 0.9rem;
+		border: 3px solid var(--ink);
+		background: var(--well);
+		color: var(--muted);
+		font: inherit;
+		font-weight: 700;
 		text-align: left;
-		gap: 0.1rem;
-		padding: 0.5rem 0.9rem;
-		border-radius: 999px;
-		border: 1px solid #ffffff1f;
-		background: #00000055;
-		color: var(--text);
 		cursor: pointer;
+		box-shadow: 3px 4px 0 var(--ink);
+		transition: transform 0.1s, box-shadow 0.1s;
 	}
-	.acts button small {
+	.acts button:hover {
+		transform: translate(-1px, -2px);
+		box-shadow: 4px 6px 0 var(--ink);
+	}
+	.acts button:active {
+		transform: translate(2px, 3px);
+		box-shadow: 1px 1px 0 var(--ink);
+	}
+	.acts small {
 		font-size: 0.62rem;
 		letter-spacing: 0.14em;
 		text-transform: uppercase;
-		opacity: 0.6;
 	}
-	.acts button span {
-		font-weight: 700;
+	.acts span {
+		font-family: var(--font-comic);
+		font-size: 1.15rem;
+		letter-spacing: 0.04em;
+		color: #fff;
+		line-height: 1;
+	}
+	/* The act on show: comic yellow */
+	.acts button.on {
+		background: var(--gold);
+		color: #4a4413;
+	}
+	.acts button.on span {
+		color: var(--ink);
+	}
+	.note {
+		margin: 0.8rem 0 0;
+		color: var(--green-ink);
+		font-weight: 600;
 		font-size: 0.85rem;
 	}
-	.acts button.on {
-		background: var(--green);
-		border-color: var(--green);
-	}
-	.acts button.on small {
-		opacity: 0.85;
-	}
-	/* ---- the mission on show ---- */
-	.hero {
-		align-self: center;
-		max-width: 38rem;
+	/* ---- the missions ---- */
+	.missions {
+		list-style: none;
+		margin: 1rem 0 0;
+		padding: 0;
 		display: grid;
-		gap: 0.6rem;
+		gap: 0.5rem;
 	}
-	.where {
-		margin: 0;
-		font-size: 0.72rem;
-		letter-spacing: 0.18em;
-		text-transform: uppercase;
-		color: var(--green-ink, var(--green));
+	.mission {
+		border-radius: 1rem;
+		border: 3px solid var(--ink);
+		background: var(--well);
+		box-shadow: 3px 4px 0 var(--ink);
+		transition: transform 0.1s, box-shadow 0.1s, background 0.1s;
 	}
-	h1 {
-		margin: 0;
-		font-family: var(--font-display);
-		font-size: clamp(2.2rem, 6vw, 4.6rem);
-		line-height: 0.95;
-		text-transform: uppercase;
-		letter-spacing: 0.02em;
-		text-shadow: 0 4px 30px #000;
+	.mission:not(.soon):not(.sel):hover {
+		transform: translate(-1px, -2px);
+		box-shadow: 4px 6px 0 var(--ink);
 	}
-	.tag {
-		margin: 0;
-		font-size: 1.05rem;
-		line-height: 1.5;
-		opacity: 0.85;
-		max-width: 32rem;
-	}
-	.cta {
-		display: flex;
+	.pick {
+		display: grid;
+		grid-template-columns: 2.6rem minmax(0, 1fr) auto;
 		align-items: center;
-		gap: 1.1rem;
-		margin-top: 0.6rem;
+		gap: 0.8rem;
+		width: 100%;
+		padding: 0.6rem 0.75rem;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+	}
+	.orb {
+		display: grid;
+		place-items: center;
+		width: 2.6rem;
+		height: 2.6rem;
+		border-radius: 50%;
+		border: 3px solid var(--ink);
+		box-sizing: border-box;
+		background: radial-gradient(circle at 35% 30%, hsl(var(--h, 140) 70% 70%) 0 18%, hsl(var(--h, 140) 60% 48%) 19%);
+		color: #fff;
+		font-family: var(--font-comic);
+		font-size: 1.3rem;
+		-webkit-text-stroke: 1.5px var(--ink);
+		paint-order: stroke fill;
+	}
+	/* A planet mission: its orb sits low, like a horizon */
+	.orb.planet {
+		background: radial-gradient(140% 90% at 50% 125%, hsl(var(--h) 60% 50%) 58%, #fff8d6 59%);
+	}
+	.words {
+		display: grid;
+		gap: 0.1rem;
+		min-width: 0;
+	}
+	.words strong {
+		font-family: var(--font-comic);
+		font-size: 1.35rem;
+		font-weight: 400;
+		letter-spacing: 0.04em;
+		color: #fff;
+		text-shadow: 2px 2px 0 var(--ink);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.words small {
+		font-size: 0.78rem;
+		font-weight: 600;
+		color: var(--muted);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.pips {
+		display: flex;
+		color: #04120a66;
+	}
+	.pips .on {
+		color: var(--gold);
+	}
+	/* the next one to play */
+	.mission.next .orb {
+		box-shadow: 0 0 0 3px var(--gold);
+	}
+	/* the one on show: open, with its story line and Play */
+	.mission.sel {
+		background: var(--panel-hi);
+		box-shadow: 5px 6px 0 var(--ink);
+	}
+	.open {
+		padding: 0 0.9rem 0.9rem calc(0.75rem + 2.6rem + 0.8rem);
+		display: grid;
+		gap: 0.8rem;
+		justify-items: start;
+	}
+	.open p {
+		margin: 0;
+		padding: 0.55rem 0.8rem;
+		border: 2px solid var(--ink);
+		border-radius: 0.8rem 0.8rem 0.8rem 0.2rem;
+		background: #fff8d6;
+		color: #2a3a2e;
+		font-size: 0.92rem;
+		font-weight: 600;
+		line-height: 1.45;
 	}
 	.play {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.55rem;
-		padding: 0.85rem 2.2rem;
-		border-radius: 999px;
-		background: var(--green);
+		gap: 0.5rem;
+		padding: 0.35rem 2rem;
+		border-radius: 0.9rem;
+		border: 3px solid var(--ink);
+		background: var(--green-hi);
 		color: #fff;
-		font-weight: 800;
-		font-size: 1rem;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
+		font-family: var(--font-comic);
+		font-size: 1.6rem;
+		letter-spacing: 0.08em;
 		text-decoration: none;
-		box-shadow: 0 6px 0 #004a13, 0 10px 30px #00711d66;
+		-webkit-text-stroke: 1.5px var(--ink);
+		paint-order: stroke fill;
+		text-shadow: 2px 2px 0 var(--ink);
+		box-shadow: 0 5px 0 var(--ink);
+		transition: transform 0.08s, box-shadow 0.08s, background 0.12s;
+	}
+	.play:hover {
+		background: #22c24a;
+		transform: translateY(-2px);
+		box-shadow: 0 7px 0 var(--ink);
 	}
 	.play:active {
-		transform: translateY(3px);
-		box-shadow: 0 3px 0 #004a13;
+		transform: translateY(4px);
+		box-shadow: 0 1px 0 var(--ink);
 	}
-	.stars {
-		display: flex;
-		gap: 0.2rem;
-		color: #ffffff2a;
-	}
-	.stars .on {
-		color: #ffd54f;
-	}
-	.locked {
+	.locked-note {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0.7rem 1.2rem;
-		border-radius: 999px;
-		border: 1px dashed #ffffff33;
-		opacity: 0.8;
-	}
-	.note {
-		margin: 0;
-		color: var(--green-ink, var(--green));
-		font-weight: 600;
+		gap: 0.45rem;
+		padding: 0.55rem 1rem;
+		border-radius: 0.8rem;
+		border: 2px dashed var(--ink);
+		background: #04120a33;
 		font-size: 0.85rem;
-	}
-	/* ---- the strip ---- */
-	.strip {
-		display: flex;
-		gap: 0.7rem;
-		overflow-x: auto;
-		padding: 0.4rem 0.2rem 0.8rem;
-		scroll-snap-type: x mandatory;
-	}
-	.card {
-		position: relative;
-		flex: 0 0 auto;
-		width: 9.5rem;
-		scroll-snap-align: start;
-		display: grid;
-		gap: 0.25rem;
-		padding: 0 0 0.6rem;
-		border-radius: 14px;
-		border: 1px solid #ffffff1c;
-		background: #050b08cc;
-		color: var(--text);
-		text-align: left;
-		overflow: hidden;
-		cursor: pointer;
-		transition: transform 0.15s, border-color 0.15s;
-	}
-	.card:hover {
-		transform: translateY(-3px);
-	}
-	.card.sel {
-		border-color: var(--green);
-		box-shadow: 0 0 0 2px var(--green), 0 10px 30px #00711d55;
-		transform: translateY(-4px);
-	}
-	.thumb {
-		height: 4.6rem;
-		position: relative;
-		background: radial-gradient(120% 120% at 70% 20%, hsl(var(--h) 50% 18%), #020504);
-		overflow: hidden;
-	}
-	.orb {
-		position: absolute;
-		width: 3rem;
-		height: 3rem;
-		right: 0.8rem;
-		top: 0.7rem;
-		border-radius: 50%;
-		background: radial-gradient(circle at 35% 35%, hsl(var(--h) 55% 58%), hsl(var(--h) 60% 22%) 60%, #030605);
-	}
-	.card.planet .orb {
-		width: 14rem;
-		height: 14rem;
-		right: -3rem;
-		top: 2.6rem;
-	}
-	.num {
-		position: absolute;
-		top: 0.45rem;
-		left: 0.5rem;
-		display: inline-grid;
-		place-items: center;
-		min-width: 1.6rem;
-		height: 1.6rem;
-		border-radius: 8px;
-		font-weight: 800;
-		font-size: 0.85rem;
-		background: #000a;
-		border: 1px solid #ffffff22;
-	}
-	.card.next .num {
-		background: var(--green);
-		border-color: var(--green);
-		color: #fff;
-	}
-	.name {
-		padding: 0 0.65rem;
 		font-weight: 700;
-		font-size: 0.86rem;
-		line-height: 1.2;
+		color: var(--muted);
 	}
-	.pips {
-		padding: 0 0.65rem;
-		display: flex;
-		gap: 0.25rem;
-		font-size: 0.65rem;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
-		opacity: 0.7;
+	.mission.locked .orb {
+		background: #0a2f1e;
+		border-style: dashed;
+		color: #6f9a7e;
 	}
-	.pips i {
-		width: 0.5rem;
-		height: 0.5rem;
-		border-radius: 50%;
-		background: #ffffff22;
+	.mission.locked .words strong {
+		color: #a9bfb0;
 	}
-	.pips i.on {
-		background: #ffd54f;
+	.mission.soon {
+		opacity: 0.45;
 	}
-	.card.locked,
-	.card.soon {
-		opacity: 0.5;
-	}
-	.card.soon {
+	.mission.soon .pick {
 		cursor: default;
 	}
-	/* phone upright: room for the tab bar at the bottom */
-	@media (max-width: 600px) {
-		.select {
-			height: auto;
-			min-height: calc(100dvh - 9rem);
+	@media (max-width: 520px) {
+		.acts {
+			grid-template-columns: 1fr 1fr;
 		}
-		.card {
-			width: 7.4rem;
-		}
-		.thumb {
-			height: 3.4rem;
+		.open {
+			padding-left: 0.9rem;
 		}
 	}
-	/* phone sideways: the hero shrinks, the strip stays */
-	@media (max-height: 520px) {
-		.select {
-			height: calc(100dvh - 4.5rem);
-			min-height: 0;
-			gap: 0.5rem;
+	@media (max-height: 520px) and (orientation: landscape) {
+		.deck {
+			padding: 0.7rem;
 		}
-		h1 {
-			font-size: clamp(1.6rem, 6vh + 1rem, 2.6rem);
-		}
-		.tag {
-			font-size: 0.85rem;
-		}
-		.play {
-			padding: 0.6rem 1.5rem;
-			font-size: 0.85rem;
-		}
-		.acts button {
-			padding: 0.3rem 0.7rem;
-		}
-		.acts button small {
+		.acts small {
 			display: none;
 		}
-		.thumb {
-			height: 2.8rem;
-		}
-		.card {
-			width: 7.6rem;
+		.pick {
+			padding: 0.4rem 0.6rem;
 		}
 	}
 </style>

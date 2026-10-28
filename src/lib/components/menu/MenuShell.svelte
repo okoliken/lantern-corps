@@ -1,7 +1,7 @@
 <script lang="ts">
-	// The frame every menu page sits in: the sections down the side (a rail on a
-	// desktop or a phone held sideways, a tab bar along the bottom on a phone held
-	// upright), and the page itself in a column that scrolls on its own.
+	// The frame every menu page sits in, one column down the middle like the
+	// title screen: the emblem (back to the title), a switch between the
+	// sections, and the page itself in a card-width column that scrolls.
 	//
 	// The pages share one look through the classes styled here: .head, .seg,
 	// .group, .row (badge, main, aside, .go) and .panel.
@@ -9,6 +9,7 @@
 	import Emblem from '$lib/components/Emblem.svelte';
 	import FullscreenButton from '$lib/touch/FullscreenButton.svelte';
 	import { campaign } from '$lib/campaign.svelte';
+	import Backdrop from './Backdrop.svelte';
 	import MenuIcon, { SECTIONS, type SectionId } from './MenuIcon.svelte';
 
 	interface Props {
@@ -21,40 +22,32 @@
 </script>
 
 <div class="shell">
-	<div class="backdrop" aria-hidden="true">
-		<span class="glow"></span>
+	<Backdrop />
+
+	<div class="corner left">
+		<a class="back" href="/" aria-label="Title screen"><MenuIcon name="home" size={18} /></a>
 	</div>
-
-	<nav class="rail" aria-label="Menu">
-		<a class="brand" href="/" aria-label="Title screen">
-			<Emblem size={30} />
-			<span>Lantern<br />Corps</span>
-		</a>
-		<div class="items">
-			{#each SECTIONS as s (s.id)}
-				<a class="item" class:on={s.id === active} href={s.href} aria-current={s.id === active ? 'page' : undefined}>
-					<MenuIcon name={s.id} />
-					<span>{s.label}</span>
-				</a>
-			{/each}
-		</div>
-		<div class="foot">
-			<span class="stars" title="Stars earned"><MenuIcon name="star" size={16} />{stars}</span>
-			<FullscreenButton compact />
-		</div>
-	</nav>
-
-	<header class="topbar">
-		<a class="brand" href="/" aria-label="Title screen">
-			<MenuIcon name="home" size={18} />
-			<Emblem size={24} />
-			<span>Lantern Corps</span>
-		</a>
-		<span class="stars" title="Stars earned"><MenuIcon name="star" size={14} />{stars}</span>
-	</header>
+	<div class="corner right">
+		<span class="stars" title="Stars earned"><MenuIcon name="star" size={15} />{stars}</span>
+		<FullscreenButton compact />
+	</div>
 
 	<main class="body">
 		<div class="page">
+			<header class="top">
+				<a class="brand" href="/" aria-label="Title screen">
+					<Emblem size={46} glow={false} />
+					<span>Lantern Corps</span>
+				</a>
+				<nav class="switch" aria-label="Menu">
+					{#each SECTIONS as s (s.id)}
+						<a class:on={s.id === active} href={s.href} aria-current={s.id === active ? 'page' : undefined}>
+							<MenuIcon name={s.id} size={17} />
+							{s.label}
+						</a>
+					{/each}
+				</nav>
+			</header>
 			{@render children()}
 		</div>
 	</main>
@@ -64,126 +57,123 @@
 	.shell {
 		--green: #00711d; /* the menu green (the user's pick) */
 		--green-ink: #3fb562; /* green text: a lighter tint of it, readable on the dark panels */
-		--panel: rgba(8, 22, 15, 0.86);
-		--panel-hi: rgba(14, 40, 26, 0.92);
-		--line: rgba(61, 255, 110, 0.14);
-		--line-hi: rgba(61, 255, 110, 0.45);
-		--muted: #8fb79b;
+		--green-hi: #19a83d; /* the bright, flat green of buttons */
+		--panel: #145236;
+		--panel-hi: #19603f;
+		--well: #0d3b26;
+		--line: var(--ink);
+		--line-hi: var(--ink);
+		--muted: #a6d4b3;
 		--gold: #ffd84a;
 		position: fixed;
 		inset: 0;
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		grid-template-rows: auto minmax(0, 1fr);
 		color: var(--text);
 	}
 
-	/* Quiet behind the lists: a dark field with one soft green light, nothing to read through the cards */
-	.backdrop {
-		position: absolute;
-		inset: 0;
-		background: radial-gradient(ellipse 80% 60% at 70% 0%, #0b2216 0%, #050d09 55%, #020504 100%);
-		z-index: 0;
-		overflow: hidden;
-	}
-	.glow {
-		position: absolute;
-		right: -10rem;
-		top: -12rem;
-		width: 36rem;
-		height: 36rem;
-		border-radius: 50%;
-		background: radial-gradient(circle, rgba(61, 255, 110, 0.12), transparent 65%);
-	}
-
-	/* --- the bar across the top: brand, the sections, stars --- */
-	.rail {
-		position: relative;
-		z-index: 2;
-		display: flex;
-		align-items: center;
-		gap: 1.2rem;
-		padding: max(0.6rem, env(safe-area-inset-top)) max(1.4rem, env(safe-area-inset-right)) 0.6rem max(1.4rem, env(safe-area-inset-left));
-		background: linear-gradient(rgba(2, 6, 4, 0.85), rgba(2, 6, 4, 0));
-	}
-	.brand {
+	.corner {
+		position: fixed;
+		z-index: 3;
+		top: max(12px, env(safe-area-inset-top));
 		display: flex;
 		align-items: center;
 		gap: 0.6rem;
-		padding: 0.2rem 0.4rem;
-		text-decoration: none;
+	}
+	.corner.left {
+		left: max(12px, env(safe-area-inset-left));
+	}
+	.corner.right {
+		right: max(12px, env(safe-area-inset-right));
+	}
+	.back {
+		box-shadow: 2px 3px 0 var(--ink);
+		display: grid;
+		place-items: center;
+		width: 2.4rem;
+		height: 2.4rem;
+		border-radius: 50%;
+		border: 3px solid var(--ink);
+		background: var(--panel);
 		color: #fff;
-		font-family: var(--font-display);
-		font-size: 0.78rem;
-		line-height: 1.15;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
-	}
-	.items {
-		display: flex;
-		gap: 0.3rem;
-		margin: 0 auto;
-	}
-	.item {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		min-height: 2.6rem;
-		gap: 0.5rem;
-		padding: 0 1rem;
-		border-radius: 999px;
-		color: var(--muted);
-		text-decoration: none;
-		font-weight: 600;
-		font-size: 0.95rem;
-		letter-spacing: 0.02em;
-		border: 1px solid transparent;
-		transition: background 0.12s, color 0.12s;
-	}
-	.item:hover {
-		color: #fff;
-		background: rgba(255, 255, 255, 0.04);
-	}
-	.item.on {
-		color: #fff;
-		background: var(--green);
-		border-color: var(--green);
-	}
-	.item.on :global(svg) {
-		color: #fff;
-	}
-	.foot {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.5rem;
-		padding: 0 0.3rem;
 	}
 	.stars {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.3rem;
+		padding: 0.35rem 0.7rem;
+		border-radius: 99px;
+		border: 3px solid var(--ink);
+		background: var(--panel);
 		color: var(--gold);
-		font-weight: 700;
-		font-size: 0.95rem;
-	}
-	.topbar {
-		display: none;
+		font-weight: 800;
+		font-size: 0.9rem;
+		box-shadow: 2px 3px 0 var(--ink);
 	}
 
-	/* --- the page column --- */
+	/* --- the column --- */
 	.body {
-		position: relative;
+		position: absolute;
+		inset: 0;
 		z-index: 1;
 		overflow-y: auto;
 		overscroll-behavior: contain;
 		-webkit-overflow-scrolling: touch;
 	}
 	.page {
-		max-width: 64rem;
+		width: min(38rem, 100%);
+		box-sizing: border-box;
 		margin: 0 auto;
-		padding: 2rem 2rem 3rem;
-		padding-right: max(2rem, env(safe-area-inset-right));
+		padding: max(1.4rem, env(safe-area-inset-top)) 1rem max(2.5rem, env(safe-area-inset-bottom));
+	}
+	.top {
+		display: grid;
+		justify-items: center;
+		gap: 1rem;
+		margin-bottom: 1.4rem;
+	}
+	.brand {
+		display: grid;
+		justify-items: center;
+		gap: 0.3rem;
+		text-decoration: none;
+		color: #7dff9e;
+		font-family: var(--font-comic);
+		font-size: 1.7rem;
+		letter-spacing: 0.06em;
+		-webkit-text-stroke: 2px var(--ink);
+		paint-order: stroke fill;
+		text-shadow: 2px 3px 0 var(--ink);
+	}
+	.brand :global(.emblem) {
+		filter: drop-shadow(2px 3px 0 var(--ink));
+	}
+	.switch {
+		display: flex;
+		gap: 0.3rem;
+		padding: 0.3rem;
+		border-radius: 99px;
+		border: 3px solid var(--ink);
+		background: var(--well);
+		box-shadow: 3px 4px 0 var(--ink);
+	}
+	.switch a {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		padding: 0.5rem 1.1rem;
+		border-radius: 99px;
+		color: var(--muted);
+		text-decoration: none;
+		font-weight: 700;
+		font-size: 0.9rem;
+		transition: background 0.12s, color 0.12s;
+	}
+	.switch a:hover {
+		color: #fff;
+	}
+	.switch a.on {
+		background: var(--gold);
+		color: var(--ink);
+		box-shadow: inset 0 0 0 2px var(--ink);
 	}
 
 	/* ===== The shared page pieces ===== */
@@ -197,11 +187,14 @@
 	}
 	.page :global(.head h1) {
 		margin: 0;
-		font-size: 1.9rem;
+		font-family: var(--font-comic);
+		font-weight: 400;
+		font-size: 2.6rem;
 		color: #fff;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-		text-shadow: 0 0 22px rgba(61, 255, 110, 0.35);
+		letter-spacing: 0.05em;
+		-webkit-text-stroke: 2px var(--ink);
+		paint-order: stroke fill;
+		text-shadow: 3px 4px 0 var(--ink);
 	}
 	.page :global(.head p) {
 		margin: 0.35rem 0 0;
@@ -219,7 +212,7 @@
 		margin-bottom: 1rem;
 		border-radius: 0.9rem;
 		background: rgba(0, 0, 0, 0.35);
-		border: 1px solid var(--line);
+		border: 3px solid var(--ink);
 		overflow-x: auto;
 		scrollbar-width: none;
 	}
@@ -256,12 +249,12 @@
 		color: #fff;
 	}
 	.page :global(.seg button.on) {
-		background: var(--suit);
-		border-color: var(--suit-lit);
-		color: #fff;
+		background: var(--gold);
+		border-color: var(--ink);
+		color: var(--ink);
 	}
 	.page :global(.seg button.on small) {
-		color: var(--green-ink, var(--green));
+		color: var(--ink);
 		opacity: 1;
 	}
 
@@ -279,10 +272,12 @@
 	}
 	.page :global(.group-head h2) {
 		margin: 0;
-		font-size: 0.85rem;
-		color: var(--green-ink, var(--green));
-		text-transform: uppercase;
-		letter-spacing: 0.16em;
+		font-family: var(--font-comic);
+		font-weight: 400;
+		font-size: 1.4rem;
+		color: #7dff9e;
+		letter-spacing: 0.06em;
+		text-shadow: 2px 2px 0 var(--ink);
 	}
 	.page :global(.group-head p) {
 		margin: 0;
@@ -303,20 +298,23 @@
 		gap: 0.9rem;
 		padding: 0.75rem 0.9rem;
 		border-radius: 0.9rem;
-		border: 1px solid var(--line);
+		border: 3px solid var(--ink);
 		background: var(--panel);
 		color: var(--text);
 		text-decoration: none;
-		transition: border-color 0.12s, background 0.12s, transform 0.12s;
+		box-shadow: 3px 4px 0 var(--ink);
+		transition: background 0.1s, transform 0.1s, box-shadow 0.1s;
 	}
 	.page :global(a.row:hover),
 	.page :global(a.row:focus-visible) {
-		border-color: var(--line-hi);
 		background: var(--panel-hi);
+		transform: translate(-1px, -2px);
+		box-shadow: 4px 6px 0 var(--ink);
 		outline: none;
 	}
 	.page :global(a.row:active) {
-		transform: scale(0.99);
+		transform: translate(2px, 3px);
+		box-shadow: 1px 1px 0 var(--ink);
 	}
 	.page :global(.row .badge) {
 		width: 2.6rem;
@@ -324,12 +322,12 @@
 		display: grid;
 		place-items: center;
 		border-radius: 0.7rem;
-		background: rgba(61, 255, 110, 0.08);
-		border: 1px solid var(--line);
-		color: var(--green-ink, var(--green));
-		font-family: var(--font-display);
-		font-weight: 700;
-		font-size: 1rem;
+		background: var(--well);
+		border: 3px solid var(--ink);
+		color: #fff;
+		font-family: var(--font-comic);
+		font-weight: 400;
+		font-size: 1.3rem;
 	}
 	.page :global(.row .main) {
 		display: flex;
@@ -338,11 +336,12 @@
 		min-width: 0;
 	}
 	.page :global(.row .main strong) {
-		font-family: var(--font-display);
-		font-size: 1rem;
-		letter-spacing: 0.03em;
+		font-family: var(--font-comic);
+		font-size: 1.3rem;
+		letter-spacing: 0.05em;
 		color: #fff;
-		font-weight: 600;
+		font-weight: 400;
+		text-shadow: 2px 2px 0 var(--ink);
 	}
 	.page :global(.row .main small) {
 		font-size: 0.72rem;
@@ -399,13 +398,14 @@
 		min-width: 5.5rem;
 		padding: 0 1rem;
 		border-radius: 0.7rem;
-		border: 1px solid var(--suit-lit);
-		background: rgba(15, 79, 52, 0.35);
-		color: #e8fff0;
-		font-family: var(--font-display);
-		font-size: 0.75rem;
-		font-weight: 700;
-		letter-spacing: 0.12em;
+		border: 3px solid var(--ink);
+		background: var(--green-hi);
+		color: #fff;
+		box-shadow: 0 4px 0 var(--ink);
+		font-family: var(--font-comic);
+		font-size: 1.1rem;
+		font-weight: 400;
+		letter-spacing: 0.08em;
 		text-transform: uppercase;
 		white-space: nowrap;
 		text-decoration: none;
@@ -413,45 +413,34 @@
 	}
 	.page :global(a.row:hover .go),
 	.page :global(.go.solid) {
-		background: var(--suit);
-		color: #fff;
+		background: #22c24a;
 	}
 
 	/* Done: a gold badge */
 	.page :global(.row.done .badge) {
-		background: rgba(255, 216, 74, 0.12);
-		border-color: rgba(255, 216, 74, 0.4);
-		color: var(--gold);
+		background: #fff8d6;
+		color: var(--ink);
 	}
 	/* Up next: the one to play */
 	.page :global(.row.next) {
-		border-color: var(--green);
-		background: linear-gradient(100deg, rgba(15, 79, 52, 0.75), var(--panel));
-		box-shadow: 0 0 0 1px rgba(61, 255, 110, 0.3), 0 0 28px rgba(61, 255, 110, 0.14);
+		background: var(--panel-hi);
 	}
 	.page :global(.row.next .badge) {
-		background: var(--green);
-		color: #ffffff;
-		border-color: var(--green);
-	}
-	.page :global(.row.next .go) {
-		background: var(--suit);
-		border-color: var(--green);
-		color: #fff;
-		box-shadow: 0 0 14px rgba(61, 255, 110, 0.3);
+		background: var(--gold);
+		color: var(--ink);
 	}
 	/* Locked or not built yet: quiet, one line */
 	.page :global(.row.locked) {
-		background: rgba(4, 10, 7, 0.6);
+		background: var(--well);
 		border-style: dashed;
-		border-color: rgba(143, 183, 155, 0.18);
+		box-shadow: none;
 		padding-top: 0.55rem;
 		padding-bottom: 0.55rem;
 	}
 	.page :global(.row.locked .badge) {
 		background: transparent;
-		border-color: rgba(143, 183, 155, 0.18);
-		color: #5d7666;
+		border-style: dashed;
+		color: #6f9a7e;
 	}
 	.page :global(.row.locked .main strong) {
 		color: #a9bfb0;
@@ -471,55 +460,41 @@
 
 	/* A plain card for anything that isn't a list */
 	.page :global(.panel) {
+		box-shadow: 4px 5px 0 var(--ink);
 		border-radius: 1rem;
-		border: 1px solid var(--line);
+		border: 3px solid var(--ink);
 		background: var(--panel);
 		padding: 1rem 1.1rem;
 	}
 
-	/* ===== A phone held sideways: a slim icon rail, everything tighter ===== */
+	/* ===== A phone held sideways: everything tighter ===== */
 	@media (max-height: 520px) and (orientation: landscape) {
-		.rail {
-			gap: 0.6rem;
-			padding: max(0.3rem, env(safe-area-inset-top)) max(0.8rem, env(safe-area-inset-right)) 0.3rem max(0.8rem, env(safe-area-inset-left));
+		.page {
+			padding-top: 0.7rem;
 		}
-		.rail .brand span {
-			display: none;
+		.top {
+			grid-template-columns: auto auto;
+			justify-content: center;
+			align-items: center;
+			gap: 1.2rem;
+			margin-bottom: 0.8rem;
 		}
-		.item {
-			min-height: 2.1rem;
-			padding: 0 0.7rem;
+		.brand {
+			grid-auto-flow: column;
+			align-items: center;
+			gap: 0.5rem;
 			font-size: 0.75rem;
 		}
-		.foot :global(button) {
-			display: none;
+		.brand :global(svg) {
+			width: 30px;
+			height: 30px;
 		}
-		.stars {
+		.switch a {
+			padding: 0.35rem 0.9rem;
 			font-size: 0.8rem;
-		}
-		.page {
-			padding: 0.8rem 1rem 1.5rem;
-			padding-right: max(1rem, env(safe-area-inset-right));
-		}
-		.page :global(.head) {
-			margin-bottom: 0.6rem;
 		}
 		.page :global(.head h1) {
 			font-size: 1.3rem;
-		}
-		.page :global(.head p) {
-			font-size: 0.85rem;
-			margin-top: 0.15rem;
-		}
-		.page :global(.seg) {
-			margin-bottom: 0.6rem;
-		}
-		.page :global(.seg button) {
-			min-height: 2.3rem;
-			padding: 0.25rem 0.75rem;
-		}
-		.page :global(.group) {
-			margin-top: 1rem;
 		}
 		.page :global(.row) {
 			padding: 0.5rem 0.7rem;
@@ -536,92 +511,26 @@
 			line-clamp: 1;
 			font-size: 0.82rem;
 		}
-		.page :global(.go) {
-			min-height: 2.3rem;
-			min-width: 4.8rem;
-		}
 	}
 
-	/* ===== A phone held upright: a top bar, the sections as a tab bar along the bottom ===== */
-	@media (orientation: portrait) and (max-width: 700px) {
-		.shell {
-			grid-template-columns: minmax(0, 1fr);
-			grid-template-rows: auto minmax(0, 1fr) auto;
-		}
-		.topbar {
-			position: relative;
-			z-index: 2;
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			padding: max(0.6rem, env(safe-area-inset-top)) 1rem 0.6rem;
-			background: rgba(3, 10, 7, 0.82);
-			border-bottom: 1px solid var(--line);
-		}
-		.topbar .brand {
-			font-size: 0.75rem;
-			padding: 0;
-			gap: 0.45rem;
-			color: var(--muted);
-		}
-		.topbar .brand span {
-			color: #fff;
-		}
-		.rail {
-			grid-row: 3;
-			flex-direction: row;
-			padding: 0.3rem 0.3rem max(0.4rem, env(safe-area-inset-bottom));
-			border-right: none;
-			border-top: 1px solid var(--line);
-			background: rgba(3, 10, 7, 0.94);
-		}
-		.rail .brand,
-		.foot {
-			display: none;
-		}
-		.items {
-			flex-direction: row;
-			flex: 1;
-			gap: 0.2rem;
-		}
-		.item {
-			flex: 1;
-			flex-direction: column;
-			justify-content: center;
-			gap: 0.15rem;
-			min-height: 3.3rem;
-			padding: 0.2rem 0;
-			font-size: 0.66rem;
-			text-align: center;
-			min-width: 0;
-		}
-		.body {
-			grid-row: 2;
-		}
+	/* ===== A phone held upright: no room for a score beside the button ===== */
+	@media (max-width: 520px) {
 		.page {
-			padding: 1rem 1rem 1.6rem;
-		}
-		.page :global(.head h1) {
-			font-size: 1.5rem;
+			padding-top: max(3.6rem, env(safe-area-inset-top));
 		}
 		.page :global(.row) {
 			gap: 0.7rem;
 			padding: 0.65rem 0.75rem;
 			grid-template-columns: 2.3rem minmax(0, 1fr) auto;
 		}
-		.page :global(.row .badge) {
-			width: 2.3rem;
-			height: 2.3rem;
-		}
-		.page :global(.go) {
-			min-width: 0;
-			padding: 0 0.8rem;
-		}
-		/* No room for a score beside the button: it moves under the words */
 		.page :global(.row .aside) {
 			flex-direction: column;
 			align-items: flex-end;
 			gap: 0.35rem;
+		}
+		.page :global(.go) {
+			min-width: 0;
+			padding: 0 0.8rem;
 		}
 	}
 </style>
