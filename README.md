@@ -3,9 +3,15 @@
 Top-down Green Lantern canvas game with SvelteKit, Svelte 5 and TypeScript. Play as Hal Jordan or
 John Stewart, solo or in co-op.
 
-The story is complete: three acts, sixteen missions, from the Red Lanterns on the frontier and the
-Manhunters under Earth to the Siege of Oa and the last stand against Atrocitus on Ysmault
-(`docs/STORY.md`). Missions unlock in order; `/missions?unlockall` opens them all.
+Seventeen missions so far. Season one is complete: three acts, sixteen missions, from the Red Lanterns
+on the frontier and the Manhunters under Earth to the Siege of Oa and the last stand against Atrocitus
+on Ysmault (`docs/STORY.md`). Season two, "The Home Sector", has begun: John Stewart joins the Justice
+League, starting with The Watchtower, with four more missions planned (`docs/SEASON-TWO.md`). Missions
+unlock in order; `/missions?unlockall` opens them all.
+
+The menus and in-game screens are drawn like the game: a cartoon look with dark ink outlines, hard
+shadows and comic lettering (Bangers), with the colours shared as `--toon-*` variables in
+`src/routes/+layout.svelte`.
 
 See [docs/DESIGN.md](docs/DESIGN.md) for the design and milestone plan.
 
