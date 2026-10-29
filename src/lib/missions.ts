@@ -25,6 +25,7 @@ import { TheFirst } from '$lib/engine/scenes/theFirst';
 import { SiegeOfOa, buildOaPlazaMap } from '$lib/engine/missions/siegeOfOa';
 import { Watchtower, buildWatchtowerMap } from '$lib/engine/missions/watchtower';
 import { HardOrder, buildHardOrderMap } from '$lib/engine/missions/hardOrder';
+import { GroundLevel, buildGroundLevelMap } from '$lib/engine/missions/groundLevel';
 import { RedDawn } from '$lib/engine/scenes/redDawn';
 import { DexStarrHunt, buildCrashSiteMap } from '$lib/engine/missions/dexStarr';
 import { TheTrail } from '$lib/engine/scenes/theTrail';
@@ -142,6 +143,20 @@ export function buildMission(id: string, options: Options): MissionRun {
 				map: buildWatchtowerMap()
 			});
 			const director = new Watchtower();
+			game.director = director;
+			return { game, director, outro: null };
+		}
+		case 'ground-level': {
+			// John and Superman, no enemies: Superman holds the far end of the load the whole time
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: 'john', keys: 'solo' },
+					{ lantern: 'superman', keys: 'p2', ai: true }
+				],
+				map: buildGroundLevelMap()
+			});
+			const director = new GroundLevel();
 			game.director = director;
 			return { game, director, outro: null };
 		}

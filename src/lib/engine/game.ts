@@ -576,7 +576,7 @@ export class Game {
 		return { x: box.x + box.w / 2, y: box.y + box.h, height: box.h };
 	}
 
-	private poseFor(p: Player): LanternPose {
+	poseFor(p: Player): LanternPose {
 		const env = ENVIRONMENT_RULES[this.map.environment];
 		return {
 			...p,

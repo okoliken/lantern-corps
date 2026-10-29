@@ -432,7 +432,7 @@ export const ACTS: ActInfo[] = [
 		lineup: [
 			'watchtower',
 			'hard-order',
-			{ title: 'Ground Level', tagline: 'John and Superman, and a disaster to hold up. No villain, just weight and a crowd.' },
+			'ground-level',
 			{ title: 'Korugar', tagline: "Sinestro's home world, kept safe by terror. Hal has to bring his own mentor in." }
 		]
 	},
@@ -505,6 +505,21 @@ MISSIONS.push({
 		'Vesk is a farming colony on the edge of the sector. The raiders are already in the fields.'
 	],
 	objectives: ['Drive the raiders out of Vesk, wave by wave', 'Do what Sinestro says', 'Protect the colonists when the raiders come back']
+});
+
+MISSIONS.push({
+	id: 'ground-level',
+	title: 'Ground Level',
+	tagline: 'John and Superman, and a disaster to hold up. No villain, just weight and a crowd.',
+	lantern: 'john',
+	environment: 'planet',
+	place: 'Earth · Coast City harbour',
+	briefing: [
+		'A cargo lifter on the Coast City docks lost power with a full container in the air. The crane is holding it, barely. Three crews are still in the yard underneath.',
+		'Superman got there first. He has the far end. "The near end is yours, John. It is too much for one of us."',
+		'Stay close to the container and your ring holds it up, at a cost. Every second you are away, the strain climbs.'
+	],
+	objectives: ['Stay close to the container to brace it', 'Get the three crews to the exit', 'Shield the crews from falling cargo', 'Hold it while Superman lowers it']
 });
 
 MISSIONS.push({
