@@ -53,14 +53,22 @@ Fear on Earth, a yellow ring in space, and the first time fear beats will.
 
 Yellow rings go looking for the fearful.
 
-9. **Recruited** · John, with Wonder Woman. A yellow ring finds a frightened man
-   on Earth. He is not a villain and you cannot kill him.
-10. **The Rings Go Out** · Hal and Kilowog. Yellow rings spread across the
-    sectors, turning people. Get the Lanterns out before they are picked off.
-11. **Two Lanterns** · John and Hal, together at last. The Sinestro Corps hits
-    the Watchtower.
-12. **Sinestro** · the finale: Sinestro and his lieutenants. It ends with the
-    yellow lantern still burning, a seed for season three.
+9. **Recruited** · John, with Wonder Woman. A yellow ring finds Ray Doyle, a
+   frightened night watchman in Detroit. Its nightmares (yellow copies of old
+   enemies) come first; then Ray, who can't be beaten: wear him down, and while
+   Wonder Woman's lasso holds him, stay close and talk him down. Every hit you
+   take sets him back.
+10. **The Rings Go Out** · Hal and Kilowog on Graxos IV. Katma, Boodikka and
+    Arisia are down with drained rings and hunted. Drive the hunters off each,
+    then charge her ring; you can't do it with hunters on top of her. Then
+    Arkillo, the Sinestro Corps' drill sergeant.
+11. **Two Lanterns** · John and Hal (choose who you play) on the Watchtower.
+    Three waves cut in through the glass, then Arkillo and Scarecrow, who has a
+    yellow ring now. Side by side, fear can't get a grip on either of you.
+12. **Sinestro** · John, Hal and Kilowog on Korugar. Up the citadel steps, then
+    Sinestro and his MIRROR (hits during it come back at you). At half health he
+    draws on the great yellow lantern: break its three lenses, then beat him.
+    The lantern is still burning when it's over: a seed for season three.
 
 ## Yellow Lanterns: fear, not rage
 
@@ -80,18 +88,13 @@ Yellow Lanterns are frightening and clever.
 
 ## Who is built
 
-- Allies ready to go: Superman, Wonder Woman, the Flash, Hawkgirl. Hal, John,
-  Kilowog and Sinestro (green) are drawn.
-- To build: Batman as an ally (he exists only as a sparring opponent), Scarecrow,
-  the Yellow Lanterns (Lantern figures in yellow and black, plus yellow
-  constructs), Sinestro in yellow, and the Korugar, Qward and Gotham maps.
+All twelve episodes are built and tuned with the bot.
+
+- Allies: Superman, Wonder Woman, the Flash, Hawkgirl, Batman, Kilowog, and
+  Hal and John together.
+- Enemies: Korugar Enforcers, Scarecrow, Gotham thugs, Weaponers of Qward, the
+  Sinestro Corps, Ray Doyle, Arkillo, Sinestro in yellow, and nightmares (any
+  old enemy, drawn all in yellow).
+- Mechanics: dread, Mind Grip, the lasso talk-down, rescue charging, side by
+  side, and Sinestro's mirror.
 - Green Arrow is not in this game. He can come later as a bonus episode.
-
-## Build order
-
-1. Act One: Hard Order, Ground Level, Korugar. Nothing yellow needed.
-2. The dread system and Scarecrow, then Batman as an ally: Gotham at Night.
-3. Yellow Lanterns and Sinestro in yellow: Qward, First Light of Fear.
-4. The rest of Act Two, then Act Three.
-
-Each act is played and tuned before the next one starts, like season one.

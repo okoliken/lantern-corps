@@ -651,6 +651,8 @@ export interface RedStrike {
 	warning: number;
 	damage: number;
 	knockback: number;
+	/** Drawn in its owner's colour. */
+	tint?: Tint;
 }
 
 /** Burning plasma on the ground. */
@@ -662,6 +664,7 @@ export interface RedPuddle {
 	maxLife: number;
 	tick: number;
 	damage: number;
+	tint?: Tint;
 }
 
 export interface RedBeam {
@@ -855,7 +858,8 @@ function raiseWall(e: Enemy, w: ConstructWorld, players: readonly Player[]) {
 		hp,
 		maxHp: hp,
 		life: RED_WALL_LIFE,
-		maxLife: RED_WALL_LIFE
+		maxLife: RED_WALL_LIFE,
+		tint: tintOf(e)
 	};
 	if (players.some((p) => boxOverlap(p.x, p.y, 10, 6, wall))) return;
 	w.obstacles.push(wall);
@@ -1010,7 +1014,7 @@ export function updateAbility(e: Enemy, w: ConstructWorld, players: readonly Pla
 			break;
 		case 'bombs':
 			if (b.fired < 3 && b.elapsed >= b.fired * 0.18) {
-				w.red.strikes.push({ kind: 'bomb', x: e.x, y: e.y, radius: a.radius ?? 46, delay: 0.75, warning: 0.75, damage: power(e, a), knockback: a.knockback });
+				w.red.strikes.push({ kind: 'bomb', x: e.x, y: e.y, radius: a.radius ?? 46, delay: 0.75, warning: 0.75, damage: power(e, a), knockback: a.knockback, tint: tintOf(e) });
 				b.fired++;
 			}
 			break;
@@ -1176,7 +1180,7 @@ function spikeLine(e: Enemy, a: AbilityDef, w: ConstructWorld) {
 			w.effects.push({ kind: 'redImpact', x, y, age: 0, life: 0.3, lift: 10 });
 			break;
 		}
-		w.red.strikes.push({ kind: 'spike', x, y, radius: a.radius ?? 30, delay: 0.04 + i * 0.055, warning: 0, damage: power(e, a), knockback: a.knockback });
+		w.red.strikes.push({ kind: 'spike', x, y, radius: a.radius ?? 30, delay: 0.04 + i * 0.055, warning: 0, damage: power(e, a), knockback: a.knockback, tint: tintOf(e) });
 	}
 }
 
@@ -1197,7 +1201,8 @@ function meteorShower(e: Enemy, a: AbilityDef, w: ConstructWorld) {
 			delay: warning,
 			warning,
 			damage: power(e, a),
-			knockback: a.knockback
+			knockback: a.knockback,
+			tint: tintOf(e)
 		});
 	}
 }
@@ -1335,22 +1340,22 @@ function updateStrike(s: RedStrike, w: ConstructWorld, players: readonly Player[
 	if (s.kind === 'hammer') {
 		w.effects.push({ kind: 'hammerDrop', x: s.x, y: s.y, age: 0, life: 0.5, radius: s.radius });
 	} else if (s.kind === 'meteor') {
-		w.effects.push({ kind: 'redBlast', x: s.x, y: s.y, age: 0, life: 0.6, radius: s.radius * 1.2 });
-		if (Math.random() < 0.5) addPuddle(w, s.x, s.y, 34, s.damage * 0.25);
+		w.effects.push({ kind: 'redBlast', x: s.x, y: s.y, age: 0, life: 0.6, radius: s.radius * 1.2, tint: s.tint });
+		if (Math.random() < 0.5) addPuddle(w, s.x, s.y, 34, s.damage * 0.25, s.tint);
 	} else if (s.kind === 'bomb') {
-		w.effects.push({ kind: 'redBlast', x: s.x, y: s.y, age: 0, life: 0.5, radius: s.radius * 1.1 });
+		w.effects.push({ kind: 'redBlast', x: s.x, y: s.y, age: 0, life: 0.5, radius: s.radius * 1.1, tint: s.tint });
 	} else if (s.kind === 'nova') {
 		w.effects.push({ kind: 'redBlast', x: s.x, y: s.y, age: 0, life: 0.8, radius: s.radius * 1.15 });
 		w.effects.push({ kind: 'roar', x: s.x, y: s.y, age: 0, life: 0.6, radius: s.radius, lift: 30 });
 	} else {
-		w.effects.push({ kind: 'spikeBurst', x: s.x, y: s.y, age: 0, life: 0.55, radius: s.radius });
+		w.effects.push({ kind: 'spikeBurst', x: s.x, y: s.y, age: 0, life: 0.55, radius: s.radius, tint: s.tint });
 	}
 	return false;
 }
 
-function addPuddle(w: ConstructWorld, x: number, y: number, radius: number, damage: number) {
+function addPuddle(w: ConstructWorld, x: number, y: number, radius: number, damage: number, tint?: Tint) {
 	if (w.red.puddles.length > 40) w.red.puddles.shift();
-	w.red.puddles.push({ x, y, radius, life: 3.5, maxLife: 3.5, tick: 0.2, damage });
+	w.red.puddles.push({ x, y, radius, life: 3.5, maxLife: 3.5, tick: 0.2, damage, tint });
 }
 
 /** Returns false when the shot is used up. */
@@ -1400,7 +1405,7 @@ function updateShot(s: RedShot, w: ConstructWorld, players: readonly Player[], d
 	if (s.life <= 0) {
 		if (s.kind === 'shell') shellBurst(w, s, players);
 		// Plasma that falls short splatters into a burning puddle
-		if (s.kind === 'plasma' && Math.random() < 0.3) addPuddle(w, s.x, s.y, 24, s.damage * 1.6);
+		if (s.kind === 'plasma' && Math.random() < 0.3) addPuddle(w, s.x, s.y, 24, s.damage * 1.6, tintOf(s.owner));
 		return false;
 	}
 

@@ -28,7 +28,7 @@ import { flyShip } from './ships';
 import { updateSquads, type SquadRole } from './squad';
 import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
 
-export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire' | 'rageBubble' | 'bloodConduit' | 'toxinTank' | 'forgeConduit' | 'mindAmp'>;
+export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire' | 'rageBubble' | 'bloodConduit' | 'toxinTank' | 'forgeConduit' | 'mindAmp' | 'fearLens'>;
 type EnemyState = 'idle' | 'move' | 'windup' | 'act' | 'recover';
 export type Role = 'berserker' | 'hunter' | 'gunner';
 /** How a faction thinks: rage never backs down and gets faster when hurt; machines stay cold and regroup. */
@@ -78,7 +78,7 @@ export interface EnemyDef {
 }
 
 /** The colour an enemy's constructs are drawn in, if not red. */
-export const tintOf = (e: { kind: EnemyKind }): Tint | undefined => ENEMIES[e.kind].tint;
+export const tintOf = (e: { kind: EnemyKind; phantom?: boolean }): Tint | undefined => (e.phantom ? 'fear' : ENEMIES[e.kind].tint);
 
 export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 	rageGrunt: {
@@ -188,6 +188,50 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		scale: 1.05,
 		agility: 0.5,
 		movement: 'hover'
+	},
+	// Season two, Act 3: a frightened man a yellow ring found first. Not a villain: it is the ring doing this.
+	frightened: {
+		kind: 'frightened',
+		name: 'Ray Doyle',
+		faction: 'rogue',
+		tint: 'fear',
+		description:
+			'A night watchman from Detroit, and the most frightened man on Earth that night, so the yellow ring chose him. He does not want to hurt anyone. The ring lashes out for him, and it will not let him fall.',
+		mind: 'machine',
+		hp: 1400,
+		speed: 150,
+		accel: 4,
+		sight: 900,
+		poise: 160,
+		scale: 1,
+		agility: 0.4,
+		movement: 'hover',
+		kit: ['spears', 'cage', 'blast', 'meteors', 'chain'],
+		range: 360,
+		leans: { aggression: -0.2, caution: 0.4 },
+		lieutenant: true
+	},
+	// Season two, Act 3: Arkillo, the Sinestro Corps' drill sergeant. Kilowog's opposite number, and he knows it.
+	arkillo: {
+		kind: 'arkillo',
+		name: 'Arkillo',
+		faction: 'rogue',
+		tint: 'fear',
+		description:
+			"The Sinestro Corps' drill sergeant: bigger than Kilowog and twice as mean. A huge mace and an axe, a slam that shakes the ground, spears, and a chain to drag you in. Standing near him fills your dread.",
+		mind: 'rage',
+		hp: 2000,
+		speed: 145,
+		accel: 3,
+		sight: 950,
+		poise: 320,
+		scale: 1.24,
+		agility: 0.25,
+		movement: 'hover',
+		kit: ['mace', 'axe', 'slam', 'chain', 'spears', 'charge', 'roar'],
+		range: 160,
+		leans: { aggression: 0.35, caution: -0.2 },
+		lieutenant: true
 	},
 	// Season two: Sinestro, with the yellow ring. Everything he was, and fear on top.
 	sinestroYellow: {
@@ -1105,6 +1149,8 @@ interface EnemyBrain {
 export interface Enemy extends Dummy {
 	kind: EnemyKind;
 	brain: EnemyBrain;
+	/** A nightmare: a yellow ring's copy of something you have beaten before, drawn all in fear's yellow (season two). */
+	phantom?: boolean;
 }
 
 export function isEnemy(d: Dummy): d is Enemy {
@@ -1239,7 +1285,8 @@ export function roleSpeed(e: Enemy): number {
 
 /** What to call it: the grunt's species, or the enemy's own name. */
 export function enemyLabel(e: Enemy): string {
-	return ENEMIES[e.kind].kit || e.kind === 'enforcer' || e.kind === 'fearGrunt' || e.kind === 'thug' || e.kind === 'weaponer' ? ENEMIES[e.kind].name : ROLES[e.brain.role].species;
+	if (e.phantom) return 'Nightmare';
+	return ENEMIES[e.kind].kit || e.kind === 'enforcer' || e.kind === 'fearGrunt' || e.kind === 'thug' || e.kind === 'weaponer' || e.kind === 'frightened' ? ENEMIES[e.kind].name : ROLES[e.brain.role].species;
 }
 
 /** Effects that are already drawn in Corps green (the rest get recolored for a sparring Green Lantern). */
@@ -1530,7 +1577,7 @@ function trySupport(e: Enemy, t: Player, pack: readonly Enemy[], dist: number): 
 const RESERVE_EAGERNESS = 0.55;
 
 /** Lanterns, red or green: they can all raise a shield. Machines, ships and turrets can't. */
-const SHIELDERS: ReadonlySet<EnemyKind> = new Set(['rageGrunt', 'zox', 'skallox', 'bleez', 'kilowog', 'sinestro', 'enforcer', 'fearGrunt', 'sinestroYellow']);
+const SHIELDERS: ReadonlySet<EnemyKind> = new Set(['rageGrunt', 'zox', 'skallox', 'bleez', 'kilowog', 'sinestro', 'enforcer', 'fearGrunt', 'sinestroYellow', 'arkillo']);
 
 /** Aimed constructs need a clear line; area and self-centred ones don't. */
 function needsClearShot(a: AbilityDef): boolean {

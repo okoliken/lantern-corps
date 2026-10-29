@@ -161,16 +161,20 @@
 					</span>
 				</div>
 				<p class="objective">{status.objective}</p>
-				{#each status.meters as m, i (m.label + i)}
-					<div class="meter">
-						<span class="label">{m.label}</span>
-						<span class="track">
-							<span class="fill" class:hull={!m.marker} class:progress={!!m.marker} class:low={m.low} style:width="{m.value * 100}%"></span>
-							{#if m.marker}<span class="ship" style:left="{m.value * 100}%">{m.marker}</span>{/if}
-						</span>
-						<span class="value">{m.text}</span>
+				{#if status.meters.length}
+					<div class="meters">
+						{#each status.meters as m, i (m.label + i)}
+							<div class="meter">
+								<span class="label">{m.label}</span>
+								<span class="track">
+									<span class="fill" class:hull={!m.marker} class:progress={!!m.marker} class:low={m.low} style:width="{m.value * 100}%"></span>
+									{#if m.marker}<span class="ship" style:left="{m.value * 100}%">{m.marker}</span>{/if}
+								</span>
+								<span class="value">{m.text}</span>
+							</div>
+						{/each}
 					</div>
-				{/each}
+				{/if}
 				{#if status.tally}
 					<div class="row small"><span>{status.tally}</span></div>
 				{/if}
@@ -402,13 +406,19 @@
 		color: #0a2a1a;
 		text-shadow: none;
 	}
-	.meter {
+	/* One grid for every meter: the label column fits the longest name and the bars line up */
+	.meters {
 		display: grid;
-		grid-template-columns: 2.5rem 1fr 2.5rem;
+		grid-template-columns: max-content 1fr max-content;
 		align-items: center;
-		gap: 0.5rem;
+		gap: inherit;
+		column-gap: 0.5rem;
+	}
+	.meter {
+		display: contents;
 	}
 	.label {
+		white-space: nowrap;
 		opacity: 0.8;
 		text-transform: uppercase;
 		font-size: 0.65rem;
@@ -416,6 +426,7 @@
 		letter-spacing: 0.1em;
 	}
 	.value {
+		white-space: nowrap;
 		text-align: right;
 		font-weight: 800;
 		font-variant-numeric: tabular-nums;
@@ -775,9 +786,9 @@
 			box-shadow: 2px 2px 0 var(--ink);
 			background: color-mix(in srgb, var(--toon-card) 70%, transparent);
 		}
-		.meter {
+		.meters {
 			font-size: 0.56rem;
-			gap: 0.3rem;
+			column-gap: 0.3rem;
 		}
 		.track {
 			height: 8px;

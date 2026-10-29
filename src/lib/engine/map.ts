@@ -4,6 +4,7 @@
 import type { EnvironmentKind } from './environment';
 import type { GroundStyle } from './draw/world';
 import type { Solid } from './physics';
+import type { Tint } from './enemies/enemies';
 
 /** 'wall' is an Energy Wall construct, 'redWall' a Red Lantern's Rage Wall; the rest are part of the map. */
 type ObstacleKind = 'building' | 'rock' | 'crate' | 'asteroid' | 'wall' | 'redWall' | 'cell' | 'car';
@@ -26,6 +27,8 @@ export interface Obstacle extends Solid {
 	movable?: boolean;
 	/** Only a footprint: something the mission draws itself (a tower, a shelter dome) is solid here. */
 	hidden?: boolean;
+	/** A Rage Wall built by someone who isn't a Red Lantern: drawn in their colour. */
+	tint?: Tint;
 }
 
 /** How much beam a crate can take. */

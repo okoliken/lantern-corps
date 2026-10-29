@@ -9,7 +9,7 @@ import { drawLantern, ringPosition, FIGURE_HEIGHT, GREEN, type Figure } from './
 import { computeSkeleton, turnScale } from '../animation';
 import { drawChpBody, drawGnortBody, drawGuyBody, drawSalaakBody } from './league';
 
-export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'enforcer' | 'fearGrunt' | 'scarecrow' | 'thug' | 'weaponer' | 'sinestroYellow';
+export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'enforcer' | 'fearGrunt' | 'scarecrow' | 'thug' | 'weaponer' | 'sinestroYellow' | 'frightened' | 'arkillo';
 
 interface CorpsFigure {
 	figure: Figure;
@@ -103,6 +103,20 @@ const CORPS: Record<CorpsKind, CorpsFigure> = {
 		scale: 1.12,
 		build: { leg: 1.12, torso: 1.05, arm: 1.08, neck: 1.1 },
 		hunch: -0.04
+	},
+	/** Ray Doyle, the man the yellow ring found first: an ordinary build, a ring's uniform he never asked for. */
+	frightened: {
+		figure: { id: 'frightened', look: { skin: '#d9a77f', hair: '#6b5a48', hairStyle: 'cropped', mask: false }, corps: 'yellow', bulk: 1.02 },
+		scale: 1,
+		build: { leg: 1, torso: 1, arm: 1, neck: 1 },
+		hunch: 0.12
+	},
+	/** Arkillo of Vorn: bigger than Kilowog, grey-violet hide, a heavy brow, in Sinestro's gold and black. */
+	arkillo: {
+		figure: { id: 'arkillo', look: { skin: '#8a6f9c', hair: '#8a6f9c', hairStyle: 'cropped', mask: false, bolovaxian: true }, corps: 'yellow', bulk: 1.95 },
+		scale: 1.28,
+		build: LANTERNS.kilowog.build!,
+		hunch: LANTERNS.kilowog.hunch!
 	},
 	// Lanterns you spar with in the ring. Same figures the Corps fights beside,
 	// drawn from the other side of the fight.

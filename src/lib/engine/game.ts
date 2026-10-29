@@ -650,7 +650,10 @@ export class Game {
 		// Traps and Fortress rings are markings on the ground: under everything
 		for (const t of cw.traps) drawTrap(ctx, t, this.time);
 		drawTintedAll(ctx, cw.effects.filter((e) => e.kind === 'slamMark'), (e) => e.tint, (e) => drawRedEffect(ctx, e, 0, this.time));
-		drawRedGround(ctx, cw.red.puddles, cw.red.strikes, this.time);
+		// Each owner's colour: a Yellow Lantern's spikes are yellow
+		for (const tint of new Set([...cw.red.puddles, ...cw.red.strikes].map((r) => r.tint))) {
+			tinted(ctx, tint, () => drawRedGround(ctx, cw.red.puddles.filter((r) => r.tint === tint), cw.red.strikes.filter((r) => r.tint === tint), this.time));
+		}
 		const inSpace = map.environment === 'space';
 		for (const f of cw.fortresses) drawFortressBack(ctx, f, this.time, inSpace);
 		for (const a of cw.aids) drawAidStation(ctx, a, this.time, inSpace);
@@ -679,7 +682,16 @@ export class Game {
 			ground.push({
 				baseY: y,
 				draw: isEnemy(d)
-					? () => drawEnemy(ctx, d, x, y, env.hasGround, this.time)
+					? d.phantom
+						? () => {
+								// Whatever it was, a nightmare is all one sickly yellow
+								ctx.save();
+								ctx.filter = 'grayscale(1) sepia(1) saturate(5) hue-rotate(8deg) brightness(1.15)';
+								ctx.globalAlpha = 0.85;
+								drawEnemy(ctx, d, x, y, env.hasGround, this.time);
+								ctx.restore();
+							}
+						: () => drawEnemy(ctx, d, x, y, env.hasGround, this.time)
 					: d.kind === 'rageTorpedo'
 						? () => drawRageTorpedo(ctx, d, x, y, this.time)
 						: d.kind === 'manhunterCore'
@@ -691,7 +703,7 @@ export class Game {
 								drawManhunterCore(ctx, d, 0, 0, this.time);
 								ctx.restore();
 							}
-						: d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit' || d.kind === 'mindAmp'
+						: d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit' || d.kind === 'mindAmp' || d.kind === 'fearLens'
 						? () => {} // the mission draws it
 
 						: d.drift
@@ -986,6 +998,8 @@ export class Game {
 													? 'Forge conduit'
 													: t.dummy.kind === 'mindAmp'
 														? 'Mind amplifier'
+														: t.dummy.kind === 'fearLens'
+															? 'Fear lens'
 								: 'Dummy'
 				: t.kind === 'ally'
 					? t.player.def.name

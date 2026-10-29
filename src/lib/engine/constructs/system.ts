@@ -12,6 +12,7 @@
 
 import type { Tint } from '../enemies/enemies';
 import { dreadPower, relieveDread } from '../dread';
+import { damagePlayer } from '../combat';
 import { castBeam, castThrough } from '../beam';
 import { DUMMY_HALF_H, DUMMY_HALF_W, aimPoint, distanceToBody, footprintGap, footprintPoint, hitDummy, hurtbox, isStanding, type Dummy } from '../dummy';
 import type { Intent } from '../input';
@@ -1761,6 +1762,12 @@ export function hitDummyWithFx(
 	surge = true
 ) {
 	if (!isStanding(d)) return;
+	// Sinestro's mirror: nothing lands, and some of it comes straight back
+	if (d.mirror) {
+		if (by && !by.hero) by.reflected += damagePlayer(w, by, damage * d.mirror, d.x, d.y, Math.min(knockback, 200));
+		w.effects.push({ kind: 'fizzle', x: d.x, y: d.y - 50, age: 0, life: 0.4 });
+		return;
+	}
 	if (by && surge) gainSurge(by, damage * SURGE_PER_DAMAGE);
 	// Landing a hit pushes fear back
 	if (by) relieveDread(by, damage);

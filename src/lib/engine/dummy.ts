@@ -19,7 +19,7 @@ const DUMMY_RESPAWN = 3;
 const DEFEAT_LINGER = 0.9;
 
 /** What kind of target: a training dummy, or which enemy. */
-export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'flashSpar' | 'supermanSpar' | 'wonderwomanSpar' | 'hawkgirlSpar' | 'batmanSpar' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'aquamanSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterPrime' | 'manhunterCore' | 'reverseFlash' | 'signalSpire' | 'dexStarr' | 'rageBubble' | 'bloodConduit' | 'atrocitus' | 'enforcer' | 'fearGrunt' | 'scarecrow' | 'thug' | 'toxinTank' | 'weaponer' | 'forgeConduit' | 'mindAmp' | 'sinestroYellow';
+export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'flashSpar' | 'supermanSpar' | 'wonderwomanSpar' | 'hawkgirlSpar' | 'batmanSpar' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'aquamanSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterPrime' | 'manhunterCore' | 'reverseFlash' | 'signalSpire' | 'dexStarr' | 'rageBubble' | 'bloodConduit' | 'atrocitus' | 'enforcer' | 'fearGrunt' | 'scarecrow' | 'thug' | 'toxinTank' | 'weaponer' | 'forgeConduit' | 'mindAmp' | 'sinestroYellow' | 'frightened' | 'arkillo' | 'fearLens';
 
 export interface Dummy {
 	kind: TargetKind;
@@ -50,6 +50,8 @@ export interface Dummy {
 	dir: 1 | -1;
 	/** A Red Lantern's Rage Shield around it: soaks up damage until broken or expired. */
 	ward?: { hp: number; maxHp: number; life: number };
+	/** Sinestro's mirror (season two): while set, hits don't land, and this share of each comes back at whoever threw it. */
+	mirror?: number;
 	/**
 	 * A round thing floating free (an asteroid in a mission): it keeps its
 	 * speed (no friction), passes over the map, and is `radius` px across the
@@ -200,6 +202,9 @@ export const BODY: Record<TargetKind, { halfWidth: number; height: number }> = {
 	forgeConduit: { halfWidth: 30, height: 190 },
 	mindAmp: { halfWidth: 26, height: 150 },
 	sinestroYellow: { halfWidth: 18, height: 104 },
+	frightened: { halfWidth: 18, height: 92 },
+	arkillo: { halfWidth: 30, height: 116 },
+	fearLens: { halfWidth: 26, height: 170 },
 	manhunterDrone: { halfWidth: 24, height: 86 },
 	redFighter: { halfWidth: 38, height: 78 },
 	zox: { halfWidth: 36, height: 112 },

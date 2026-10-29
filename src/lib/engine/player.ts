@@ -97,6 +97,8 @@ export interface Player {
 	dread: number;
 	/** Health last tick, so dread.ts can tell a hit landed. */
 	dreadHealth: number;
+	/** Damage of your own a mirror threw back at you (Sinestro), for the mission's stars. */
+	reflected: number;
 
 	// ---- Constructs ----
 	/** The five constructs on this Lantern's slots. */
@@ -281,6 +283,7 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		charging: false,
 		dread: 0,
 		dreadHealth: PLAYER_MAX_HEALTH,
+		reflected: 0,
 		loadout,
 		selected: 0,
 		cooldowns: loadout.map(() => 0),

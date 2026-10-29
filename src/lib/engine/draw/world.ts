@@ -7,6 +7,7 @@
 
 import { drawParkedCar } from './gorillas';
 import { drawRageWall } from './redConstructs';
+import { inTint } from './corps';
 import type { Obstacle } from '../map';
 import { green, greenLight, greenCore, GREEN_CORE, THEME_GREEN } from '../../theme';
 
@@ -311,7 +312,7 @@ export function drawObstacle(ctx: CanvasRenderingContext2D, o: Obstacle, time = 
 		case 'wall':
 			return space ? drawForceField(ctx, o, time) : drawEnergyWall(ctx, o, time);
 		case 'redWall':
-			return drawRageWall(ctx, o, time);
+			return inTint(ctx, o.tint, () => drawRageWall(ctx, o, time));
 		case 'car':
 			return drawParkedCar(ctx, o);
 	}

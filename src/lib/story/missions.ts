@@ -454,10 +454,10 @@ export const ACTS: ActInfo[] = [
 		title: 'The Sinestro Corps',
 		tagline: 'Yellow rings go looking for the fearful, and both Lanterns end up on the same front line.',
 		lineup: [
-			{ title: 'Recruited', tagline: 'John and Wonder Woman. A yellow ring finds a frightened man on Earth, and you cannot kill him.' },
-			{ title: 'The Rings Go Out', tagline: 'Hal and Kilowog race the yellow rings across the sectors, pulling Lanterns out before they are picked off.' },
-			{ title: 'Two Lanterns', tagline: 'The Sinestro Corps hits the Watchtower. John and Hal, side by side at last.' },
-			{ title: 'Sinestro', tagline: 'The teacher, the yellow ring and everything he built. End it.' }
+			'recruited',
+			'rings-go-out',
+			'two-lanterns',
+			'sinestro'
 		]
 	}
 ];
@@ -551,6 +551,69 @@ MISSIONS.push({
 		'New: DREAD. Near the toxin, and near Crane, your dread rises and your constructs get weaker. Hit back and hold your shield to push it off.'
 	],
 	objectives: ['Break the three toxin tanks', 'Stay out of the canisters when they burst', 'Take down Scarecrow']
+});
+
+MISSIONS.push({
+	id: 'recruited',
+	title: 'Recruited',
+	tagline: 'John and Wonder Woman. A yellow ring finds a frightened man on Earth, and you cannot kill him.',
+	lantern: 'john',
+	environment: 'planet',
+	place: 'Earth · Detroit, the riverfront',
+	briefing: [
+		"Something is pulling nightmares out of people's heads on the Detroit riverfront: Red Lanterns, Manhunters, Grodd's gorillas, all in yellow. Wonder Woman got there first.",
+		'At the centre of it is a yellow ring, and the man it chose. Ray Doyle is a night watchman. He has never hurt anyone. He is the most frightened man in the city, and that is why it picked him.',
+		'You cannot beat him: the ring will not let him fall. Wear it down, and when Wonder Woman has him in the lasso, stay close and talk him down.'
+	],
+	objectives: ['Clear the nightmares off the riverfront', 'Wear Ray down so Wonder Woman can catch him', 'Stay close while she holds him, and talk him down']
+});
+
+MISSIONS.push({
+	id: 'rings-go-out',
+	title: 'The Rings Go Out',
+	tagline: 'Hal and Kilowog race the Sinestro Corps across a dead moon, pulling Lanterns out before they are picked off.',
+	lantern: 'hal',
+	environment: 'planet',
+	place: 'Sector 1014 · Graxos IV',
+	partner: 'kilowog',
+	briefing: [
+		'Yellow rings have gone out across a dozen sectors, and the Sinestro Corps is hunting Green Lanterns.',
+		'On Graxos IV, Katma Tui, Boodikka and Arisia are down with drained rings. Hunters are closing in on each of them.',
+		'Drive the hunters off each one, then stay close for a few seconds: your ring charges hers, and she flies out. You cannot charge a ring with hunters on top of her, and you cannot be in three places at once. Pick.'
+	],
+	objectives: ['Drive the hunters off each stranded Lantern', "Stay close to charge her ring, and she's out", 'Deal with whoever is leading the hunt']
+});
+
+MISSIONS.push({
+	id: 'two-lanterns',
+	title: 'Two Lanterns',
+	tagline: 'The Sinestro Corps hits the Watchtower. John and Hal, side by side at last: choose who you play.',
+	lantern: 'john',
+	choose: ['john', 'hal'],
+	environment: 'planet',
+	place: 'Earth orbit · the Watchtower, training deck',
+	briefing: [
+		"Hal came to Earth to warn John, and got there an hour before the Sinestro Corps did. They are cutting in through the Watchtower's glass.",
+		'The League is holding the lower decks. The training deck is yours: two Green Lanterns, together for the first time.',
+		'New: SIDE BY SIDE. While the two of you stand close, fear cannot get a grip on either of you and your dread drains away. Split up and you are on your own.'
+	],
+	objectives: ['Hold the deck against three waves', 'Take down both of Sinestro\'s lieutenants', 'Stay side by side']
+});
+
+MISSIONS.push({
+	id: 'sinestro',
+	title: 'Sinestro',
+	tagline: 'The teacher, the yellow ring and everything he built. John, Hal and Kilowog go to Korugar to end it: choose who you play.',
+	lantern: 'hal',
+	choose: ['hal', 'john'],
+	environment: 'planet',
+	place: "Korugar · Sinestro's citadel",
+	briefing: [
+		'Sinestro has gone home. Korugar is the seat of his Corps now, and in the plaza of his citadel burns a great yellow lantern that charges every yellow ring in the universe.',
+		'Hal, John and Kilowog are going up the steps together.',
+		'New: MIRROR. When Sinestro raises it, nothing you throw lands, and part of it comes straight back at you. Watch for the tell and hold your fire. Hurt him badly and he will draw on the lantern: break the lenses that feed him.'
+	],
+	objectives: ['Fight up the steps to the citadel', "Hold fire while his mirror is up", 'Break the lenses, then beat Sinestro']
 });
 
 MISSIONS.push({

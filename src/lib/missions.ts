@@ -31,6 +31,10 @@ import { GothamAtNight, buildGothamMap } from '$lib/engine/missions/gothamAtNigh
 import { QwardMission, buildQwardMap } from '$lib/engine/missions/qward';
 import { WhatGroddWants } from '$lib/engine/missions/whatGroddWants';
 import { FirstLight, buildFirstLightMap } from '$lib/engine/missions/firstLight';
+import { Recruited, buildRecruitedMap } from '$lib/engine/missions/recruited';
+import { RingsGoOut, buildRingsMap } from '$lib/engine/missions/ringsGoOut';
+import { TwoLanterns, buildTwoLanternsMap } from '$lib/engine/missions/twoLanterns';
+import { SinestroFinale, buildFinaleSinestroMap } from '$lib/engine/missions/sinestroFinale';
 import { RedDawn } from '$lib/engine/scenes/redDawn';
 import { DexStarrHunt, buildCrashSiteMap } from '$lib/engine/missions/dexStarr';
 import { TheTrail } from '$lib/engine/scenes/theTrail';
@@ -148,6 +152,65 @@ export function buildMission(id: string, options: Options): MissionRun {
 				map: buildWatchtowerMap()
 			});
 			const director = new Watchtower();
+			game.director = director;
+			return { game, director, outro: null };
+		}
+		case 'sinestro': {
+			// The finale: Hal and John (you pick) with Kilowog, on Korugar
+			const me: LanternId = options.as ?? 'hal';
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: me, keys: 'solo' },
+					{ lantern: me === 'hal' ? 'john' : 'hal', keys: 'p2', ai: true },
+					{ lantern: 'kilowog', keys: 'p2', ai: true }
+				],
+				map: buildFinaleSinestroMap()
+			});
+			const director = new SinestroFinale();
+			game.director = director;
+			return { game, director, outro: null };
+		}
+		case 'two-lanterns': {
+			// John and Hal together on the Watchtower: you pick, the other fights beside you
+			const me: LanternId = options.as ?? 'john';
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: me, keys: 'solo' },
+					{ lantern: me === 'hal' ? 'john' : 'hal', keys: 'p2', ai: true }
+				],
+				map: buildTwoLanternsMap()
+			});
+			const director = new TwoLanterns();
+			game.director = director;
+			return { game, director, outro: null };
+		}
+		case 'rings-go-out': {
+			// Hal and Kilowog, pulling Lanterns out ahead of the Sinestro Corps
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: 'hal', keys: 'solo' },
+					{ lantern: 'kilowog', keys: 'p2', ai: true }
+				],
+				map: buildRingsMap()
+			});
+			const director = new RingsGoOut();
+			game.director = director;
+			return { game, director, outro: null };
+		}
+		case 'recruited': {
+			// John and Wonder Woman, back on Earth
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: 'john', keys: 'solo' },
+					{ lantern: 'wonderwoman', keys: 'p2', ai: true }
+				],
+				map: buildRecruitedMap()
+			});
+			const director = new Recruited();
 			game.director = director;
 			return { game, director, outro: null };
 		}

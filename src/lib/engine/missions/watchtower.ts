@@ -65,7 +65,7 @@ const STATIONS: Record<Exclude<Bout, 'done'>, { x: number; y: number }> = {
 };
 /** The window along the top wall. */
 /** The glass runs the whole top wall, floor to ceiling: the ring is at its foot, so the Earth is over every bout. */
-const WINDOW = { x: 120, y: 30, w: W - 240, h: SILL - 50 };
+export const WINDOW = { x: 120, y: 30, w: W - 240, h: SILL - 50 };
 
 /** The Watchtower's training deck: a wide floor, and no battery in orbit. */
 export function buildWatchtowerMap(): GameMap {

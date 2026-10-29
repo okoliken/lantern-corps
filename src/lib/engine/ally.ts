@@ -85,7 +85,8 @@ export class AllyInput implements InputSource {
 		}
 
 		const partner = this.world.players.find((p) => p !== me && !p.downed) ?? null;
-		const enemies = this.world.dummies.filter((d): d is Enemy => isEnemy(d) && isStanding(d));
+		// Nobody sensible throws anything into Sinestro's mirror
+		const enemies = this.world.dummies.filter((d): d is Enemy => isEnemy(d) && isStanding(d) && !d.mirror);
 		const target = this.pickTarget(me, partner, enemies);
 		this.updateRetreat(me);
 		const intent: Intent = { ...IDLE };
