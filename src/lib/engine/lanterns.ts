@@ -3,7 +3,7 @@
 
 export type LanternId = 'hal' | 'john';
 /** Every Lantern who can fight on your side: the two you can play, plus partners the story brings along. */
-export type CrewId = LanternId | 'kilowog' | PrisonerId | HeroId;
+export type CrewId = LanternId | 'kilowog' | 'sinestro' | PrisonerId | HeroId;
 /** Everyone who fights with a Green Lantern ring (heroes have their own powers). */
 export type RingBearerId = Exclude<CrewId, HeroId>;
 /** Earth's heroes who fight beside John in Act 2 (heroes.ts): their own powers, no ring. */
@@ -105,6 +105,23 @@ export const LANTERNS: Record<CrewId, LanternDef> = {
 		figureScale: 1.2,
 		build: { leg: 0.88, torso: 1.22, arm: 1.12, neck: 0.3 },
 		hunch: 0.05
+	},
+
+	// ---- Season two: still the Corps' best, for now ----
+	sinestro: {
+		id: 'sinestro',
+		name: 'Sinestro',
+		title: 'Lantern of Korugar',
+		blurb: 'The greatest Lantern in the Corps, and he knows it: swords, blades, cages and a cold, perfect aim.',
+		maxSpeed: 320,
+		accel: 2600,
+		decel: 2600,
+		traits: { power: 1.25, durability: 1.15, cooldown: 0.9, structureCost: 1 },
+		look: { skin: '#c4427a', hair: '#141018', hairStyle: 'peak', mask: false, mustache: true },
+		bulk: 0.95,
+		figureScale: 1.12,
+		build: { leg: 1.12, torso: 1.05, arm: 1.08, neck: 1.1 },
+		hunch: -0.04
 	},
 
 	// ---- Held on the Prison Moon ----

@@ -50,6 +50,11 @@ export const SIGNATURES: Record<RingBearerId, SignatureDef> = {
 		name: 'Hammer Quake',
 		description: 'Bring a giant hammer down where you stand: everything around is smashed, thrown back and stunned.'
 	},
+	sinestro: {
+		id: 'jetStrike',
+		name: 'Swift Judgement',
+		description: 'Cut straight through the enemy line, then finish whatever is left with homing bolts.'
+	},
 	// The prisoners use the same three moves, each in their own style
 	arisia: {
 		id: 'jetStrike',

@@ -425,6 +425,8 @@ export const LOADOUTS: Record<CrewId, ConstructId[]> = {
 	john: ['precisionRifle', 'rifle', 'fireteam', 'heavyCannon', 'powerArmor', 'ironFist', 'wreckingBall', 'missilePods', 'ibeams', 'cutter'],
 	// Hammers and fists first, always
 	kilowog: ['hammer', 'fist', 'shockwave', 'cannon', 'minigun', 'wall', 'cage', 'rockets', 'beam', 'pillars'],
+	// Sinestro (season two): precise, cold and cutting
+	sinestro: ['energySword', 'beam', 'cage', 'precisionRifle', 'halSaw', 'chain', 'shockwave', 'fist', 'ibeams', 'wall'],
 	// The prisoners (Prison Moon): each with their own way of fighting
 	arisia: ['energySword', 'beam', 'halSaw', 'glove', 'gatling', 'grenades', 'chain', 'shockwave', 'fist', 'anvil'],
 	katma: ['precisionRifle', 'rifle', 'ibeams', 'heavyCannon', 'wall', 'cage', 'shockwave', 'beam', 'ironFist', 'missilePods'],

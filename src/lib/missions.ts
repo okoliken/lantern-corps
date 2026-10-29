@@ -24,6 +24,7 @@ import { ManhunterPrimeBoss, buildHeartMap } from '$lib/engine/missions/manhunte
 import { TheFirst } from '$lib/engine/scenes/theFirst';
 import { SiegeOfOa, buildOaPlazaMap } from '$lib/engine/missions/siegeOfOa';
 import { Watchtower, buildWatchtowerMap } from '$lib/engine/missions/watchtower';
+import { HardOrder, buildHardOrderMap } from '$lib/engine/missions/hardOrder';
 import { RedDawn } from '$lib/engine/scenes/redDawn';
 import { DexStarrHunt, buildCrashSiteMap } from '$lib/engine/missions/dexStarr';
 import { TheTrail } from '$lib/engine/scenes/theTrail';
@@ -141,6 +142,22 @@ export function buildMission(id: string, options: Options): MissionRun {
 				map: buildWatchtowerMap()
 			});
 			const director = new Watchtower();
+			game.director = director;
+			return { game, director, outro: null };
+		}
+		case 'hard-order': {
+			// Hal flies with Kilowog and Sinestro: three Lanterns, and the best of them in charge
+			const map = buildHardOrderMap();
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: 'hal', keys: 'solo' },
+					{ lantern: 'kilowog', keys: 'p2', ai: true },
+					{ lantern: 'sinestro', keys: 'p2', ai: true }
+				],
+				map
+			});
+			const director = new HardOrder();
 			game.director = director;
 			return { game, director, outro: null };
 		}

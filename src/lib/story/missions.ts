@@ -422,19 +422,44 @@ export const ACTS: ActInfo[] = [
 			'atrocitus'
 		]
 	},
+	// ---- Season two: back and forth between John on Earth (one Leaguer at a time)
+	// and Hal in space, watching Sinestro fall. It ends with the Sinestro Corps.
 	{
 		number: 4,
 		season: 2,
-		title: 'The Home Sector',
-		tagline: 'Season two. John comes home, and the Justice League asks him to stay.',
+		title: 'Two Lanterns',
+		tagline: 'John learns the job on Earth. In space, Hal starts to see what Sinestro really is.',
 		lineup: [
 			'watchtower',
-			{ title: 'Ground Level', tagline: 'A cargo lifter loses power over a full dock, and Superman takes the far end.' },
-			{ title: 'What Grodd Wants', tagline: 'Gorilla City tech is loose in Central City, and Grodd is here for the ring.' },
-			{ title: 'Checkmate', tagline: 'A human task force with weapons built to break constructs, and Wonder Woman will not let you leave.' },
-			{ title: 'Amazo', tagline: 'It copies whoever last hit it. The whole League turns up.' }
+			'hard-order',
+			{ title: 'Ground Level', tagline: 'John and Superman, and a disaster to hold up. No villain, just weight and a crowd.' },
+			{ title: 'Korugar', tagline: "Sinestro's home world, kept safe by terror. Hal has to bring his own mentor in." }
 		]
 	},
+	{
+		number: 5,
+		season: 2,
+		title: 'Fear Spreads',
+		tagline: "Scarecrow's gas on Earth, a yellow ring forged in Qward, and the first time fear beats will.",
+		lineup: [
+			{ title: 'Gotham at Night', tagline: "John and Batman. Scarecrow's fear gas makes the ring falter." },
+			{ title: 'Qward', tagline: 'Hal and Kilowog follow the exile into the anti-matter universe, and find what is being made for him.' },
+			{ title: 'What Grodd Wants', tagline: 'John, the Flash and Hawkgirl. Grodd wants the ring, and he gets inside John\'s head.' },
+			{ title: 'First Light of Fear', tagline: 'Sinestro comes back in yellow. One on one, and Hal loses.' }
+		]
+	},
+	{
+		number: 6,
+		season: 2,
+		title: 'The Sinestro Corps',
+		tagline: 'Yellow rings go looking for the fearful, and both Lanterns end up on the same front line.',
+		lineup: [
+			{ title: 'Recruited', tagline: 'John and Wonder Woman. A yellow ring finds a frightened man on Earth, and you cannot kill him.' },
+			{ title: 'The Rings Go Out', tagline: 'Hal and Kilowog race the yellow rings across the sectors, pulling Lanterns out before they are picked off.' },
+			{ title: 'Two Lanterns', tagline: 'The Sinestro Corps hits the Watchtower. John and Hal, side by side at last.' },
+			{ title: 'Sinestro', tagline: 'The teacher, the yellow ring and everything he built. End it.' }
+		]
+	}
 ];
 
 /** The seasons, in order. */
@@ -465,6 +490,22 @@ export function storyOrder(): string[] {
 }
 
 // ---------------------------------------------------------------- Season Two
+
+MISSIONS.push({
+	id: 'hard-order',
+	title: 'Hard Order',
+	tagline: 'Hal and Kilowog patrol with Sinestro. He saves a colony, and rules it by fear.',
+	lantern: 'hal',
+	environment: 'planet',
+	place: 'Sector 2814 · Vesk Colony, the frontier',
+	partner: 'kilowog',
+	briefing: [
+		'Atrocitus is finished. Nobody told his raiders. They are hitting the frontier colonies in packs, and the Guardians have sent their best to deal with it.',
+		'Their best is Sinestro of Korugar, and Hal and Kilowog are flying with him. He has never lost a world he was sent to protect. He has never let one forget it, either.',
+		'Vesk is a farming colony on the edge of the sector. The raiders are already in the fields.'
+	],
+	objectives: ['Drive the raiders out of Vesk, wave by wave', 'Do what Sinestro says', 'Protect the colonists when the raiders come back']
+});
 
 MISSIONS.push({
 	id: 'watchtower',
