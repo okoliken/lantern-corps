@@ -204,7 +204,7 @@ export function heroMoving(p: Player): boolean {
 
 const enemiesOf = (w: ConstructWorld) => w.dummies.filter((d): d is Enemy => isEnemy(d) && isStanding(d));
 /** Everything a hero can hit: enemies, and a broken Manhunter's core. */
-const foesOf = (w: ConstructWorld) => w.dummies.filter((d) => isStanding(d) && (isEnemy(d) || d.kind === 'manhunterCore' || d.kind === 'signalSpire' || d.kind === 'bloodConduit' || d.kind === 'toxinTank'));
+const foesOf = (w: ConstructWorld) => w.dummies.filter((d) => isStanding(d) && (isEnemy(d) || d.kind === 'manhunterCore' || d.kind === 'signalSpire' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit'));
 /** Nth metal: Hawkgirl's mace does this many times the damage to a Manhunter's core. */
 export const NTH_VS_CORE = 3;
 

@@ -443,7 +443,7 @@ export const ACTS: ActInfo[] = [
 		tagline: "Scarecrow's gas on Earth, a yellow ring forged in Qward, and the first time fear beats will.",
 		lineup: [
 			'gotham-at-night',
-			{ title: 'Qward', tagline: 'Hal and Kilowog follow the exile into the anti-matter universe, and find what is being made for him.' },
+			'qward',
 			{ title: 'What Grodd Wants', tagline: 'John, the Flash and Hawkgirl. Grodd wants the ring, and he gets inside John\'s head.' },
 			{ title: 'First Light of Fear', tagline: 'Sinestro comes back in yellow. One on one, and Hal loses.' }
 		]
@@ -551,6 +551,22 @@ MISSIONS.push({
 		'New: DREAD. Near the toxin, and near Crane, your dread rises and your constructs get weaker. Hit back and hold your shield to push it off.'
 	],
 	objectives: ['Break the three toxin tanks', 'Stay out of the canisters when they burst', 'Take down Scarecrow']
+});
+
+MISSIONS.push({
+	id: 'qward',
+	title: 'Qward',
+	tagline: 'Hal and Kilowog follow the exile into the anti-matter universe, and find what is being made for him.',
+	lantern: 'hal',
+	environment: 'planet',
+	place: 'The anti-matter universe · Qward',
+	partner: 'kilowog',
+	briefing: [
+		'Exiles are supposed to disappear. Sinestro went somewhere the Guardians cannot see: Qward, the universe on the other side of ours, where everything is a shade wrong.',
+		'Its smiths, the Weaponers, make weapons for anyone who hates the Guardians. Hal and Kilowog have followed his trail to their forge.',
+		'In Qward, will runs thin: your willpower comes back slowly the whole time. Make every construct count.'
+	],
+	objectives: ['Cross the ash flats to the forge', "Break the forge's four conduits", 'Get back through the portal before it closes']
 });
 
 MISSIONS.push({

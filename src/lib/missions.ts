@@ -28,6 +28,7 @@ import { HardOrder, buildHardOrderMap } from '$lib/engine/missions/hardOrder';
 import { GroundLevel, buildGroundLevelMap } from '$lib/engine/missions/groundLevel';
 import { KorugarMission, buildKorugarMap } from '$lib/engine/missions/korugar';
 import { GothamAtNight, buildGothamMap } from '$lib/engine/missions/gothamAtNight';
+import { QwardMission, buildQwardMap } from '$lib/engine/missions/qward';
 import { RedDawn } from '$lib/engine/scenes/redDawn';
 import { DexStarrHunt, buildCrashSiteMap } from '$lib/engine/missions/dexStarr';
 import { TheTrail } from '$lib/engine/scenes/theTrail';
@@ -145,6 +146,20 @@ export function buildMission(id: string, options: Options): MissionRun {
 				map: buildWatchtowerMap()
 			});
 			const director = new Watchtower();
+			game.director = director;
+			return { game, director, outro: null };
+		}
+		case 'qward': {
+			// Hal and Kilowog in the anti-matter universe
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: 'hal', keys: 'solo' },
+					{ lantern: 'kilowog', keys: 'p2', ai: true }
+				],
+				map: buildQwardMap()
+			});
+			const director = new QwardMission();
 			game.director = director;
 			return { game, director, outro: null };
 		}

@@ -28,7 +28,7 @@ import { flyShip } from './ships';
 import { updateSquads, type SquadRole } from './squad';
 import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
 
-export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire' | 'rageBubble' | 'bloodConduit' | 'toxinTank'>;
+export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire' | 'rageBubble' | 'bloodConduit' | 'toxinTank' | 'forgeConduit'>;
 type EnemyState = 'idle' | 'move' | 'windup' | 'act' | 'recover';
 export type Role = 'berserker' | 'hunter' | 'gunner';
 /** How a faction thinks: rage never backs down and gets faster when hurt; machines stay cold and regroup. */
@@ -168,6 +168,24 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		sight: 640,
 		poise: 30,
 		scale: 1,
+		agility: 0.5,
+		movement: 'hover'
+	},
+	// Season two, Qward: the anti-matter universe's smiths, who make weapons for anyone who hates the Guardians.
+	weaponer: {
+		kind: 'weaponer',
+		name: 'Weaponer of Qward',
+		faction: 'rogue',
+		tint: 'tech',
+		description:
+			'Hooded smiths of the anti-matter universe, who make weapons for anyone who hates the Guardians. Their own are heavy and well made: they hold back, fire, and close in once you are worn down.',
+		mind: 'machine',
+		hp: 150,
+		speed: 150,
+		accel: 4.5,
+		sight: 720,
+		poise: 44,
+		scale: 1.05,
 		agility: 0.5,
 		movement: 'hover'
 	},
@@ -1199,7 +1217,7 @@ export function roleSpeed(e: Enemy): number {
 
 /** What to call it: the grunt's species, or the enemy's own name. */
 export function enemyLabel(e: Enemy): string {
-	return ENEMIES[e.kind].kit || e.kind === 'enforcer' || e.kind === 'fearGrunt' || e.kind === 'thug' ? ENEMIES[e.kind].name : ROLES[e.brain.role].species;
+	return ENEMIES[e.kind].kit || e.kind === 'enforcer' || e.kind === 'fearGrunt' || e.kind === 'thug' || e.kind === 'weaponer' ? ENEMIES[e.kind].name : ROLES[e.brain.role].species;
 }
 
 /** Effects that are already drawn in Corps green (the rest get recolored for a sparring Green Lantern). */

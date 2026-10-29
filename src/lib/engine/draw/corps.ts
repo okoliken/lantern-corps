@@ -9,7 +9,7 @@ import { drawLantern, ringPosition, FIGURE_HEIGHT, GREEN, type Figure } from './
 import { computeSkeleton, turnScale } from '../animation';
 import { drawChpBody, drawGnortBody, drawGuyBody, drawSalaakBody } from './league';
 
-export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'enforcer' | 'fearGrunt' | 'scarecrow' | 'thug';
+export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'enforcer' | 'fearGrunt' | 'scarecrow' | 'thug' | 'weaponer';
 
 interface CorpsFigure {
 	figure: Figure;
@@ -85,6 +85,17 @@ const CORPS: Record<CorpsKind, CorpsFigure> = {
 		scale: 1,
 		build: { leg: 1, torso: 1.05, arm: 1.02, neck: 0.95 },
 		hunch: 0.06
+	},
+	/** A Weaponer of Qward: grey-blue skin, a deep hood, a smith's heavy robe. */
+	weaponer: {
+		figure: {
+			id: 'weaponer',
+			look: { skin: '#6c8198', hair: '#20262e', hairStyle: 'cropped', mask: false },
+			outfit: { top: '#33302b', topLit: '#524c43', trousers: '#24221e', boots: '#151412', hardHat: '#2b2925' }
+		},
+		scale: 1.06,
+		build: { leg: 0.95, torso: 1.1, arm: 1.1, neck: 0.85 },
+		hunch: 0.12
 	},
 	// Lanterns you spar with in the ring. Same figures the Corps fights beside,
 	// drawn from the other side of the fight.
