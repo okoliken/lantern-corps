@@ -11,6 +11,7 @@
 	import { campaign } from '$lib/campaign.svelte';
 	import Backdrop from './Backdrop.svelte';
 	import MenuIcon, { SECTIONS, type SectionId } from './MenuIcon.svelte';
+	import { slidingPill } from './slidingPill';
 
 	interface Props {
 		active: SectionId;
@@ -39,16 +40,19 @@
 					<Emblem size={46} glow={false} />
 					<span>Lantern Corps</span>
 				</a>
-				<nav class="switch" aria-label="Menu">
+				<nav class="switch" aria-label="Menu" use:slidingPill>
 					{#each SECTIONS as s (s.id)}
-						<a class:on={s.id === active} href={s.href} aria-current={s.id === active ? 'page' : undefined}>
+						<!-- Named so the labels stay above the highlight while it slides across pages -->
+						<a class:on={s.id === active} href={s.href} aria-current={s.id === active ? 'page' : undefined} style:view-transition-name="menu-{s.id}">
 							<MenuIcon name={s.id} size={17} />
 							{s.label}
 						</a>
 					{/each}
 				</nav>
 			</header>
-			{@render children()}
+			<div class="content">
+				{@render children()}
+			</div>
 		</div>
 	</main>
 </div>
@@ -165,15 +169,24 @@
 		text-decoration: none;
 		font-weight: 700;
 		font-size: 0.9rem;
-		transition: background 0.12s, color 0.12s;
+		transition: color 0.25s;
 	}
 	.switch a:hover {
 		color: #fff;
 	}
 	.switch a.on {
-		background: var(--gold);
 		color: var(--ink);
+	}
+	/* The gold highlight: slides to the picked section, and across pages too */
+	.switch :global(.pill) {
+		border-radius: 99px;
+		background: var(--gold);
 		box-shadow: inset 0 0 0 2px var(--ink);
+		view-transition-name: menu-pill;
+	}
+	/* What changes from page to page: it slides in under the shell, which stays put */
+	.content {
+		view-transition-name: page;
 	}
 
 	/* ===== The shared page pieces ===== */

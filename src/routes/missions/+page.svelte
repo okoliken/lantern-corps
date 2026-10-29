@@ -9,6 +9,8 @@
 	import { campaign } from '$lib/campaign.svelte';
 	import MenuShell from '$lib/components/menu/MenuShell.svelte';
 	import MenuIcon from '$lib/components/menu/MenuIcon.svelte';
+	import { slidingPill } from '$lib/components/menu/slidingPill';
+	import { rise, unfold } from '$lib/components/menu/motion';
 
 	/** ?unlockall opens every mission (for trying a new one without playing through). */
 	let unlocked = $state(false);
@@ -75,7 +77,7 @@
 <MenuShell active="missions">
 	<section class="deck">
 		<!-- Seasons first: each is its own story, with its own acts -->
-		<div class="seasons" role="tablist" aria-label="Seasons">
+		<div class="seasons" role="tablist" aria-label="Seasons" use:slidingPill>
 			{#each SEASONS as n (n)}
 				<button role="tab" aria-selected={n === season} class:on={n === season} onclick={() => pickSeason(n)}>
 					<strong>Season {n}</strong>
@@ -86,8 +88,8 @@
 
 		{#if seasonActs.length > 1}
 			<div class="acts" role="tablist" aria-label="Acts in season {season}">
-				{#each seasonActs as a (a.number)}
-					<button role="tab" aria-selected={a.number === actNumber} class:on={a.number === actNumber} onclick={() => { picked = null; shownAct = a.number; }}>
+				{#each seasonActs as a, i (a.number)}
+					<button in:rise={{ delay: i * 50 }} role="tab" aria-selected={a.number === actNumber} class:on={a.number === actNumber} onclick={() => { picked = null; shownAct = a.number; }}>
 						<small>Act {actInSeason(a)} · {doneIn(a)}/{a.lineup.length}</small>
 						<span>{a.title}</span>
 					</button>
@@ -95,7 +97,7 @@
 			</div>
 		{:else}
 			<!-- One act so far: its name and what it's about, no tabs to pick from -->
-			<header class="act-head">
+			<header class="act-head" in:rise>
 				<small>Act {actInSeason(act)} · {doneIn(act)}/{act.lineup.length}</small>
 				<strong>{act.title}</strong>
 				<p>{act.tagline}</p>
@@ -111,7 +113,7 @@
 					{@const st = campaign.stars(m.id)}
 					{@const isOpen = campaign.isOpen(m.id)}
 					{@const sel = m.id === shownId}
-					<li class="mission" class:sel class:done={st > 0} class:locked={!isOpen} class:next={m.id === nextId} style:--h={hue(m.id)}>
+					<li in:rise={{ delay: 80 + e.i * 45 }} class="mission" class:sel class:done={st > 0} class:locked={!isOpen} class:next={m.id === nextId} style:--h={hue(m.id)}>
 						<button class="pick" aria-expanded={sel} onclick={() => (picked = m.id)}>
 							<span class="orb" class:planet={m.environment === 'planet'}>{#if isOpen}{e.i + 1}{:else}<MenuIcon name="lock" size={13} />{/if}</span>
 							<span class="words">
@@ -121,7 +123,7 @@
 							<span class="pips" aria-label="{st} of 3 stars">{#each [1, 2, 3] as n (n)}<span class:on={n <= st}><MenuIcon name="star" size={14} /></span>{/each}</span>
 						</button>
 						{#if sel}
-							<div class="open">
+							<div class="open" transition:unfold>
 								<p>{m.tagline}</p>
 								{#if isOpen}
 									<a class="play" href="/mission/{m.id}"><MenuIcon name="play" size={16} /> {st > 0 ? 'Replay' : 'Play'}</a>
@@ -132,7 +134,7 @@
 						{/if}
 					</li>
 				{:else if e.soon}
-					<li class="mission soon">
+					<li in:rise={{ delay: 80 + e.i * 45 }} class="mission soon">
 						<div class="pick">
 							<span class="orb">{e.i + 1}</span>
 							<span class="words"><strong>{e.soon.title}</strong><small>Coming soon</small></span>
@@ -174,6 +176,7 @@
 		color: var(--muted);
 		font: inherit;
 		cursor: pointer;
+		transition: color 0.25s;
 	}
 	.seasons strong {
 		font-family: var(--font-comic);
@@ -183,14 +186,19 @@
 		line-height: 1;
 		color: #fff;
 		text-shadow: 2px 2px 0 var(--ink);
+		transition: color 0.25s, text-shadow 0.25s;
 	}
 	.seasons small {
 		font-size: 0.72rem;
 		font-weight: 700;
 	}
 	.seasons button.on {
-		background: var(--gold);
 		color: #4a4413;
+	}
+	/* The gold highlight slides to the picked season */
+	.seasons :global(.pill) {
+		border-radius: 0.8rem;
+		background: var(--gold);
 		box-shadow: inset 0 0 0 2px var(--ink), 0 3px 0 var(--ink);
 	}
 	.seasons button.on strong {
@@ -244,7 +252,7 @@
 		text-align: left;
 		cursor: pointer;
 		box-shadow: 3px 4px 0 var(--ink);
-		transition: transform 0.1s, box-shadow 0.1s;
+		transition: transform 0.1s, box-shadow 0.1s, background 0.2s, color 0.2s;
 	}
 	.acts button:hover {
 		transform: translate(-1px, -2px);
@@ -270,6 +278,7 @@
 	.acts button.on {
 		background: var(--gold);
 		color: #4a4413;
+		animation: pick 0.36s var(--ease-out);
 	}
 	.acts button.on span {
 		color: var(--ink);
@@ -293,7 +302,7 @@
 		border: 3px solid var(--ink);
 		background: var(--well);
 		box-shadow: 3px 4px 0 var(--ink);
-		transition: transform 0.1s, box-shadow 0.1s, background 0.1s;
+		transition: transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out), background 0.2s;
 	}
 	.mission:not(.soon):not(.sel):hover {
 		transform: translate(-1px, -2px);
@@ -366,6 +375,17 @@
 	/* the next one to play */
 	.mission.next .orb {
 		box-shadow: 0 0 0 3px var(--gold);
+		animation: beacon 2.4s ease-in-out infinite;
+	}
+	/* A slow gold ripple off the next one to play */
+	@keyframes beacon {
+		0%,
+		100% {
+			box-shadow: 0 0 0 3px var(--gold), 0 0 0 3px rgba(255, 216, 74, 0.55);
+		}
+		60% {
+			box-shadow: 0 0 0 3px var(--gold), 0 0 0 11px rgba(255, 216, 74, 0);
+		}
 	}
 	/* the one on show: open, with its story line and Play */
 	.mission.sel {

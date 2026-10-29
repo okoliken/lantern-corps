@@ -11,7 +11,21 @@
 	import InstallBanner from '$lib/touch/InstallBanner.svelte';
 	import { SUIT_GREEN, SUIT_GREEN_DARK, SUIT_GREEN_LIT, THEME_GREEN } from '$lib/theme';
 
+	import { onNavigate } from '$app/navigation';
+	import { still } from '$lib/components/menu/motion';
+
 	let { children } = $props();
+
+	// Moving between pages crossfades (and the menu switch's highlight slides across) where the browser can
+	onNavigate((navigation) => {
+		if (!document.startViewTransition || still()) return;
+		return new Promise((resolve) => {
+			document.startViewTransition(async () => {
+				resolve();
+				await navigation.complete;
+			});
+		});
+	});
 	// The UI's greens, from the same file the game draws with: the suit greens for buttons, panels
 	// and borders; the bright green for glows and highlights
 	const themeVars = `:root { --green: ${THEME_GREEN}; --suit: ${SUIT_GREEN}; --suit-lit: ${SUIT_GREEN_LIT}; --suit-dark: ${SUIT_GREEN_DARK}; }`;
@@ -71,6 +85,108 @@
 	:global(a) {
 		color: var(--green);
 	}
+
+	/* ===== Motion: short and springy ===== */
+	:global(:root) {
+		--ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+		--ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+	}
+	/* A row of tabs with one highlight that slides between them (slidingPill.ts) */
+	:global(.pill-host) {
+		position: relative;
+		isolation: isolate;
+	}
+	:global(.pill-host > .pill) {
+		position: absolute;
+		left: 0;
+		top: 0;
+		z-index: -1;
+		pointer-events: none;
+		transition:
+			transform 0.4s var(--ease-spring),
+			width 0.4s var(--ease-spring),
+			height 0.3s var(--ease-out),
+			opacity 0.2s;
+	}
+	/* Picking a card: a quick squash and spring back */
+	@keyframes -global-pick {
+		0% {
+			transform: scale(1);
+		}
+		35% {
+			transform: scale(0.95);
+		}
+		70% {
+			transform: scale(1.025);
+		}
+		100% {
+			transform: scale(1);
+		}
+	}
+	/* Panels popping onto the screen (scale, so it doesn't fight a centring translate) */
+	@keyframes -global-pop-in {
+		from {
+			opacity: 0;
+			scale: 0.9;
+		}
+		65% {
+			opacity: 1;
+			scale: 1.02;
+		}
+		to {
+			scale: 1;
+		}
+	}
+	@keyframes -global-rise-in {
+		from {
+			opacity: 0;
+			translate: 0 14px;
+		}
+	}
+	@keyframes -global-fade-in {
+		from {
+			opacity: 0;
+		}
+	}
+	/* Pages: the new one rises in from a little below */
+	@keyframes -global-page-in {
+		from {
+			opacity: 0;
+			transform: translateY(14px);
+		}
+	}
+	/* What stays (the field, the header) just carries on; only the page and the switch's highlight move */
+	:global(::view-transition-old(root)) {
+		display: none;
+	}
+	:global(::view-transition-new(root)) {
+		animation: none;
+	}
+	:global(::view-transition-old(page)) {
+		display: none;
+	}
+	:global(::view-transition-new(page)) {
+		animation: 0.34s var(--ease-out) both page-in;
+	}
+	/* The page's box doesn't stretch between sizes: the new one just rises in where it belongs */
+	:global(::view-transition-group(page)) {
+		animation: none;
+	}
+
+	:global(::view-transition-group(menu-pill)) {
+		animation-duration: 0.4s;
+		animation-timing-function: var(--ease-spring);
+	}
+	@media (prefers-reduced-motion: reduce) {
+		:global(*),
+		:global(*::before),
+		:global(*::after) {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+		}
+	}
+
 	/* A phone: everything in rem shrinks with it (menus, briefings, panels) */
 	@media (max-height: 520px) and (orientation: landscape) {
 		:global(html) {

@@ -297,6 +297,7 @@
 		display: grid;
 		align-content: start;
 		gap: 0.9rem;
+		animation: pop-in 0.3s var(--ease-out) both;
 	}
 	header {
 		display: flex;

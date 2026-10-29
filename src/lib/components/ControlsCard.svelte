@@ -102,6 +102,7 @@
 		background: var(--toon-cream);
 		color: #22302a;
 		box-shadow: 6px 7px 0 var(--ink);
+		animation: pop-in 0.3s var(--ease-out) both;
 	}
 	h2 {
 		margin: 0;

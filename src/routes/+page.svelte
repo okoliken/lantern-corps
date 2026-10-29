@@ -146,6 +146,7 @@
 		justify-items: center;
 		text-align: center;
 		gap: 0.2rem;
+		animation: rise-in 0.5s var(--ease-out) both;
 	}
 	.brand :global(.emblem) {
 		filter: drop-shadow(0 0 0 var(--ink)) drop-shadow(3px 4px 0 var(--ink));
@@ -191,6 +192,10 @@
 		border: 3px solid var(--ink);
 		background: var(--card);
 		box-shadow: 6px 7px 0 var(--ink);
+		animation: rise-in 0.5s var(--ease-out) 0.08s both;
+	}
+	.card.how {
+		animation-delay: 0.16s;
 	}
 
 	.who {
@@ -287,7 +292,7 @@
 		text-align: left;
 		cursor: pointer;
 		box-shadow: 3px 4px 0 var(--ink);
-		transition: transform 0.1s, box-shadow 0.1s, background 0.1s;
+		transition: transform 0.1s, box-shadow 0.1s, background 0.2s, color 0.2s;
 	}
 	.mode:hover {
 		transform: translate(-1px, -2px);
@@ -311,6 +316,7 @@
 	.mode.on {
 		background: var(--gold);
 		color: #2b2a10;
+		animation: pick 0.36s var(--ease-out);
 	}
 	.mode.on .mode-head {
 		color: var(--ink);

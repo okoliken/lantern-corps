@@ -182,10 +182,13 @@
 		</header>
 
 		{#if status.line && !paused && status.state !== 'lost'}
-			<div class="comms" aria-live="polite">
-				<span class="who">{status.line.who}</span>
-				<span>{status.line.text}</span>
-			</div>
+			<!-- Each new line pops in -->
+			{#key status.line}
+				<div class="comms" aria-live="polite">
+					<span class="who">{status.line.who}</span>
+					<span>{status.line.text}</span>
+				</div>
+			{/key}
 		{/if}
 
 		{#if status.state === 'intro' && !showControls && !paused}
@@ -380,6 +383,7 @@
 		font-weight: 600;
 		line-height: 1.35;
 		pointer-events: none;
+		animation: pop-in 0.26s var(--ease-out) both;
 	}
 	.comms .who {
 		font-family: var(--font-comic);
@@ -534,6 +538,7 @@
 		background: var(--toon-card);
 		border: 3px solid var(--ink);
 		box-shadow: 6px 7px 0 var(--ink);
+		animation: pop-in 0.34s var(--ease-out) both;
 	}
 	.briefing h1 {
 		margin: 0.3rem 0 0.4rem;
@@ -600,6 +605,7 @@
 		border-radius: 0.9rem;
 		box-shadow: 3px 4px 0 var(--ink);
 		cursor: pointer;
+		transition: background 0.2s, color 0.2s;
 	}
 	.choose button strong {
 		font-family: var(--font-comic);
@@ -611,6 +617,7 @@
 	.choose button.chosen {
 		background: var(--toon-gold);
 		color: #4a4413;
+		animation: pick 0.36s var(--ease-out);
 	}
 	.choose button.chosen strong {
 		color: var(--ink);
