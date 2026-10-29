@@ -9,7 +9,7 @@ import { drawLantern, ringPosition, FIGURE_HEIGHT, GREEN, type Figure } from './
 import { computeSkeleton, turnScale } from '../animation';
 import { drawChpBody, drawGnortBody, drawGuyBody, drawSalaakBody } from './league';
 
-export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'enforcer' | 'fearGrunt' | 'scarecrow' | 'thug' | 'weaponer';
+export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'enforcer' | 'fearGrunt' | 'scarecrow' | 'thug' | 'weaponer' | 'sinestroYellow';
 
 interface CorpsFigure {
 	figure: Figure;
@@ -96,6 +96,13 @@ const CORPS: Record<CorpsKind, CorpsFigure> = {
 		scale: 1.06,
 		build: { leg: 0.95, torso: 1.1, arm: 1.1, neck: 0.85 },
 		hunch: 0.12
+	},
+	/** Sinestro with the yellow ring (season two): the same man, in his own Corps' gold and black. */
+	sinestroYellow: {
+		figure: { id: 'sinestroYellow', look: { skin: '#c4427a', hair: '#141018', hairStyle: 'peak', mask: false, mustache: true }, bulk: 0.95, corps: 'yellow' },
+		scale: 1.12,
+		build: { leg: 1.12, torso: 1.05, arm: 1.08, neck: 1.1 },
+		hunch: -0.04
 	},
 	// Lanterns you spar with in the ring. Same figures the Corps fights beside,
 	// drawn from the other side of the fight.
@@ -214,7 +221,7 @@ const TINTS: Record<Tint, { filter: string; glow: string }> = {
 	tech: { filter: 'hue-rotate(38deg) saturate(1.25) brightness(1.15)', glow: '#ffb020' },
 	psychic: { filter: 'hue-rotate(-85deg) saturate(1.1) brightness(1.1)', glow: '#b36bff' },
 	// Fear: the yellow of Sinestro's ring and Scarecrow's toxin
-	fear: { filter: 'hue-rotate(48deg) saturate(1.35) brightness(1.3)', glow: '#ffd23a' }
+	fear: { filter: 'hue-rotate(58deg) saturate(1.6) brightness(1.4)', glow: '#ffd23a' }
 };
 
 

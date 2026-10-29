@@ -30,6 +30,7 @@ import { KorugarMission, buildKorugarMap } from '$lib/engine/missions/korugar';
 import { GothamAtNight, buildGothamMap } from '$lib/engine/missions/gothamAtNight';
 import { QwardMission, buildQwardMap } from '$lib/engine/missions/qward';
 import { WhatGroddWants } from '$lib/engine/missions/whatGroddWants';
+import { FirstLight, buildFirstLightMap } from '$lib/engine/missions/firstLight';
 import { RedDawn } from '$lib/engine/scenes/redDawn';
 import { DexStarrHunt, buildCrashSiteMap } from '$lib/engine/missions/dexStarr';
 import { TheTrail } from '$lib/engine/scenes/theTrail';
@@ -147,6 +148,13 @@ export function buildMission(id: string, options: Options): MissionRun {
 				map: buildWatchtowerMap()
 			});
 			const director = new Watchtower();
+			game.director = director;
+			return { game, director, outro: null };
+		}
+		case 'first-light': {
+			// Hal alone against Sinestro with the yellow ring
+			const game = new Game({ ...options, players: [{ lantern: 'hal', keys: 'solo' }], map: buildFirstLightMap() });
+			const director = new FirstLight();
 			game.director = director;
 			return { game, director, outro: null };
 		}

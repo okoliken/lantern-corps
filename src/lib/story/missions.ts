@@ -445,7 +445,7 @@ export const ACTS: ActInfo[] = [
 			'gotham-at-night',
 			'qward',
 			'what-grodd-wants',
-			{ title: 'First Light of Fear', tagline: 'Sinestro comes back in yellow. One on one, and Hal loses.' }
+			'first-light'
 		]
 	},
 	{
@@ -582,6 +582,21 @@ MISSIONS.push({
 		"New: MIND GRIP. Grodd can reach into John's head and lock two of his constructs for a few seconds. His amplifiers make him stronger. Break them."
 	],
 	objectives: ["Clear Grodd's soldiers from the streets", 'Break the three mind amplifiers', 'Take down Grodd']
+});
+
+MISSIONS.push({
+	id: 'first-light',
+	title: 'First Light of Fear',
+	tagline: 'Sinestro comes back in yellow. One on one, and Hal loses.',
+	lantern: 'hal',
+	environment: 'planet',
+	place: 'Sector 2814 · Vesk, a year later',
+	briefing: [
+		'A distress call from Vesk, the colony where Hal first watched Sinestro rule by fear. The colonists say a Lantern has come back. A Lantern in yellow.',
+		'Hal goes alone. Kilowog is three sectors away and the Guardians say it is probably nothing.',
+		'It is not nothing. You cannot win this fight. Make it cost him: hurt him as much as you can and stay on your feet for two minutes.'
+	],
+	objectives: ['Hold out against Sinestro for two minutes', 'Hurt him as much as you can', 'Keep your shield up: his ring runs on your fear']
 });
 
 MISSIONS.push({

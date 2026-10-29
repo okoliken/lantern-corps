@@ -189,6 +189,28 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		agility: 0.5,
 		movement: 'hover'
 	},
+	// Season two: Sinestro, with the yellow ring. Everything he was, and fear on top.
+	sinestroYellow: {
+		kind: 'sinestroYellow',
+		name: 'Sinestro',
+		faction: 'rogue',
+		tint: 'fear',
+		description:
+			'The greatest Lantern the Corps ever had, with a ring that runs on fear. Blades, spears, cages, a beam and falling stars, all in yellow, and every moment near him fills your dread.',
+		mind: 'rage',
+		hp: 2200,
+		speed: 190,
+		accel: 5,
+		sight: 1100,
+		poise: 360,
+		scale: 1.12,
+		agility: 0.8,
+		movement: 'hover',
+		kit: ['scythe', 'spears', 'cage', 'beam', 'meteors', 'chain', 'charge'],
+		range: 220,
+		leans: { aggression: 0.55, caution: -0.3, patience: -0.3 },
+		lieutenant: true
+	},
 	// A flying robot: the Guardians' first peacekeepers. Cold logic, not rage.
 	manhunterDrone: {
 		kind: 'manhunterDrone',
@@ -1508,7 +1530,7 @@ function trySupport(e: Enemy, t: Player, pack: readonly Enemy[], dist: number): 
 const RESERVE_EAGERNESS = 0.55;
 
 /** Lanterns, red or green: they can all raise a shield. Machines, ships and turrets can't. */
-const SHIELDERS: ReadonlySet<EnemyKind> = new Set(['rageGrunt', 'zox', 'skallox', 'bleez', 'kilowog', 'sinestro', 'enforcer', 'fearGrunt']);
+const SHIELDERS: ReadonlySet<EnemyKind> = new Set(['rageGrunt', 'zox', 'skallox', 'bleez', 'kilowog', 'sinestro', 'enforcer', 'fearGrunt', 'sinestroYellow']);
 
 /** Aimed constructs need a clear line; area and self-centred ones don't. */
 function needsClearShot(a: AbilityDef): boolean {

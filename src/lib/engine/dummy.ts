@@ -19,7 +19,7 @@ const DUMMY_RESPAWN = 3;
 const DEFEAT_LINGER = 0.9;
 
 /** What kind of target: a training dummy, or which enemy. */
-export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'flashSpar' | 'supermanSpar' | 'wonderwomanSpar' | 'hawkgirlSpar' | 'batmanSpar' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'aquamanSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterPrime' | 'manhunterCore' | 'reverseFlash' | 'signalSpire' | 'dexStarr' | 'rageBubble' | 'bloodConduit' | 'atrocitus' | 'enforcer' | 'fearGrunt' | 'scarecrow' | 'thug' | 'toxinTank' | 'weaponer' | 'forgeConduit' | 'mindAmp';
+export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'flashSpar' | 'supermanSpar' | 'wonderwomanSpar' | 'hawkgirlSpar' | 'batmanSpar' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'aquamanSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterPrime' | 'manhunterCore' | 'reverseFlash' | 'signalSpire' | 'dexStarr' | 'rageBubble' | 'bloodConduit' | 'atrocitus' | 'enforcer' | 'fearGrunt' | 'scarecrow' | 'thug' | 'toxinTank' | 'weaponer' | 'forgeConduit' | 'mindAmp' | 'sinestroYellow';
 
 export interface Dummy {
 	kind: TargetKind;
@@ -199,6 +199,7 @@ export const BODY: Record<TargetKind, { halfWidth: number; height: number }> = {
 	weaponer: { halfWidth: 18, height: 90 },
 	forgeConduit: { halfWidth: 30, height: 190 },
 	mindAmp: { halfWidth: 26, height: 150 },
+	sinestroYellow: { halfWidth: 18, height: 104 },
 	manhunterDrone: { halfWidth: 24, height: 86 },
 	redFighter: { halfWidth: 38, height: 78 },
 	zox: { halfWidth: 36, height: 112 },
