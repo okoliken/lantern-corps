@@ -21,6 +21,7 @@ import { drawCorpsWindup } from './corpsConstructs';
 import { dexStarrHand, dexStarrTop, drawDexStarrEnemy } from './siege';
 import { drawGorilla, drawManhunter, gorillaHand, gorillaTop, isGorillaKind, manhunterHand, manhunterTop } from './gorillas';
 import { inTint } from './corps';
+import { THEME_GREEN } from '../../theme';
 
 const RED = '#ff2a2a';
 const BLACK = '#140808';
@@ -175,11 +176,15 @@ function drawEnemyOverlay(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 	const tell = bodyTell && Math.sin(time * 30) > 0;
 	const progress = windupProgress(e);
 	// Drawn straight in the enemy's own colour: a canvas filter here would cost a full-screen pass per enemy per frame
-	const color = isAquamanKind(e.kind) ? AQUAMAN_COLOR : isBatmanKind(e.kind) ? BATMAN_COLOR : isLeagueKind(e.kind) ? leagueColor(e.kind) : def.tint && def.tint !== 'corps' ? TINT_COLORS[def.tint] : def.faction === 'manhunter' ? '#ffb040' : RED;
+	const color = isAquamanKind(e.kind) ? AQUAMAN_COLOR : isBatmanKind(e.kind) ? BATMAN_COLOR : isLeagueKind(e.kind) ? leagueColor(e.kind) : def.tint === 'corps' ? CORPS_GREEN : def.tint ? TINT_COLORS[def.tint] : def.faction === 'manhunter' ? '#ffb040' : RED;
 
 	// A Rage Shield around it
 	// (The League's guard is drawn on the figure - Hawkgirl's wings - not as a rage bubble)
-	if (e.ward && !isLeagueKind(e.kind) && !isBatmanKind(e.kind) && !isAquamanKind(e.kind)) drawWard(ctx, x, (y + top) / 2 + 4, (y - top) * 0.5, e.ward.hp / e.ward.maxHp, time);
+	// (A Green Lantern's own shield, sparring with you, is green: the ward is only up for a moment, so the filter is affordable)
+	if (e.ward && !isLeagueKind(e.kind) && !isBatmanKind(e.kind) && !isAquamanKind(e.kind)) {
+		const ward = e.ward;
+		inTint(ctx, def.tint, () => drawWard(ctx, x, (y + top) / 2 + 4, (y - top) * 0.5, ward.hp / ward.maxHp, time));
+	}
 
 	// Weapon constructs forming in the hand during the windup (only while winding up: rare enough to tint)
 	if ((winding === 'axe' || winding === 'mace' || winding === 'cannon') && def.tint && def.tint !== 'corps') {
@@ -191,6 +196,8 @@ function drawEnemyOverlay(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 
 /** Tint colours for the overlays that are drawn directly (see inTint for the art that's filtered). */
 const TINT_COLORS: Record<'tech' | 'psychic', string> = { tech: '#ffb020', psychic: '#b36bff' };
+/** A Green Lantern sparring with you: tells and aim lines in the ring's green. */
+const CORPS_GREEN = THEME_GREEN;
 
 function drawWindupWeapon(ctx: CanvasRenderingContext2D, e: Enemy, muzzle: [number, number], progress: number, time: number) {
 	const b = e.brain;
