@@ -11,7 +11,7 @@
 	import type { CommsLine, MissionMeter, MissionState, MissionStat } from '$lib/engine/missions/mission';
 	import type { DialogueScene } from '$lib/engine/scenes/scene';
 	import { buildMission } from '$lib/missions';
-	import { missionById, placeOf } from '$lib/story/missions';
+	import { actInSeason, actLabel, missionById, placeOf } from '$lib/story/missions';
 	import { campaign } from '$lib/campaign.svelte';
 	import { profiles } from '$lib/profiles.svelte';
 	import { settings } from '$lib/settings.svelte';
@@ -153,7 +153,7 @@
 			<button class="pause" onclick={() => setPaused(true)} aria-label="Pause">❚❚ <kbd>Esc</kbd></button>
 			<div class="panel">
 				<div class="row">
-					<span class="title">{place.act.number}-{place.number}. {mission.title}</span>
+					<span class="title">{place.act.season > 1 ? `S${place.act.season} ` : ''}{actInSeason(place.act)}-{place.number}. {mission.title}</span>
 					<span class="lives" title="Lives">
 						{#each { length: startLives } as _, i (i)}
 							<span class:lost={i >= status.lives}>♥</span>
@@ -198,7 +198,7 @@
 
 	{#if !open}
 		<div class="briefing" role="dialog" aria-label="Mission locked">
-			<small class="place">Act {place.act.number} · {place.act.title}</small>
+			<small class="place">{actLabel(place.act)} · {place.act.title}</small>
 			<h1>🔒 {mission.title}</h1>
 			<p>This mission opens when you finish <strong>{needed?.title ?? 'the one before it'}</strong>.</p>
 			<div class="actions">
@@ -208,7 +208,7 @@
 		</div>
 	{:else if briefing}
 		<div class="briefing" role="dialog" aria-label="Mission briefing">
-			<small class="place">Act {place.act.number} · {place.act.title} · {mission.place}</small>
+			<small class="place">{actLabel(place.act)} · {place.act.title} · {mission.place}</small>
 			<h1>Mission {place.number}: {mission.title}</h1>
 			{#if mission.choose}
 				<div class="choose" role="radiogroup" aria-label="Choose your Lantern">

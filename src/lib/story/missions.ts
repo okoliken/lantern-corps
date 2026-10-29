@@ -372,6 +372,8 @@ interface PlannedMission {
 
 export interface ActInfo {
 	number: number;
+	/** The season it belongs to: season one is acts 1-3, season two starts again at its own act 1. */
+	season: number;
 	title: string;
 	/** What the act is about, in a line. */
 	tagline: string;
@@ -382,6 +384,7 @@ export interface ActInfo {
 export const ACTS: ActInfo[] = [
 	{
 		number: 1,
+		season: 1,
 		title: 'Rage at the Border',
 		tagline: "The frontier is burning. Find out who's hunting Green Lanterns, and why.",
 		lineup: [
@@ -394,6 +397,7 @@ export const ACTS: ActInfo[] = [
 	},
 	{
 		number: 2,
+		season: 1,
 		title: 'The Old Machines',
 		tagline: 'A new Lantern on Earth, and something ancient waking up.',
 		lineup: [
@@ -407,6 +411,7 @@ export const ACTS: ActInfo[] = [
 	},
 	{
 		number: 3,
+		season: 1,
 		title: 'Blood Oath',
 		tagline: 'Atrocitus comes for Oa, and the Corps goes after him: into Sector 666, to end it at the source.',
 		lineup: [
@@ -419,6 +424,7 @@ export const ACTS: ActInfo[] = [
 	},
 	{
 		number: 4,
+		season: 2,
 		title: 'The Home Sector',
 		tagline: 'Season two. John comes home, and the Justice League asks him to stay.',
 		lineup: [
@@ -430,6 +436,19 @@ export const ACTS: ActInfo[] = [
 		]
 	},
 ];
+
+/** The seasons, in order. */
+export const SEASONS = [...new Set(ACTS.map((a) => a.season))];
+
+/** An act's number within its season (season two's first act is act 1). */
+export function actInSeason(act: ActInfo): number {
+	return ACTS.filter((a) => a.season === act.season && a.number <= act.number).length;
+}
+
+/** How an act is named on screen: "Act 2", or "Season 2 · Act 1" past the first season. */
+export function actLabel(act: ActInfo): string {
+	return act.season > 1 ? `Season ${act.season} · Act ${actInSeason(act)}` : `Act ${actInSeason(act)}`;
+}
 
 /** Which act a mission is in and its number within that act. */
 export function placeOf(id: string): { act: ActInfo; number: number } {

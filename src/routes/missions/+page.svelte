@@ -1,9 +1,10 @@
 <script lang="ts">
-	// The mission menu: one act at a time, its missions as a list in one card. The story
+	// The mission menu: a season, then one of its acts, then the act's missions as a
+	// list in one card. The story
 	// plays in order (engine/campaign.ts), so a mission opens once the one before
 	// it is finished; the next one to play is lit up.
 	import { onMount } from 'svelte';
-	import { ACTS, missionById } from '$lib/story/missions';
+	import { ACTS, SEASONS, actInSeason, missionById } from '$lib/story/missions';
 	import { LANTERNS } from '$lib/engine/lanterns';
 	import { campaign } from '$lib/campaign.svelte';
 	import MenuShell from '$lib/components/menu/MenuShell.svelte';
@@ -35,6 +36,16 @@
 	let shownAct = $state<number | null>(null);
 	const actNumber = $derived(shownAct ?? currentAct());
 	const act = $derived(ACTS.find((a) => a.number === actNumber) ?? ACTS[0]);
+	const season = $derived(act.season);
+	const seasonActs = $derived(ACTS.filter((a) => a.season === season));
+	const seasonDone = (n: number) => ACTS.filter((a) => a.season === n).reduce((d, a) => d + doneIn(a), 0);
+	const seasonTotal = (n: number) => ACTS.filter((a) => a.season === n).reduce((d, a) => d + a.lineup.length, 0);
+	/** Switching season shows its first act with a mission still to play, or its first act. */
+	function pickSeason(n: number) {
+		const acts = ACTS.filter((a) => a.season === n);
+		picked = null;
+		shownAct = (acts.find((a) => builtOf(a).some((id) => campaign.stars(id) === 0)) ?? acts[0]).number;
+	}
 	const nextId = $derived(builtOf(act).find((id) => campaign.stars(id) === 0 && campaign.isOpen(id)) ?? null);
 
 	// the mission on show: the next one to play, or the last finished one; clicking a card picks another
@@ -63,14 +74,33 @@
 
 <MenuShell active="missions">
 	<section class="deck">
-		<div class="acts" role="tablist" aria-label="Acts">
-			{#each ACTS as a (a.number)}
-				<button role="tab" aria-selected={a.number === actNumber} class:on={a.number === actNumber} onclick={() => { picked = null; shownAct = a.number; }}>
-					<small>{a.number >= 4 ? 'Season 2' : `Act ${a.number}`} · {doneIn(a)}/{a.lineup.length}</small>
-					<span>{a.title}</span>
+		<!-- Seasons first: each is its own story, with its own acts -->
+		<div class="seasons" role="tablist" aria-label="Seasons">
+			{#each SEASONS as n (n)}
+				<button role="tab" aria-selected={n === season} class:on={n === season} onclick={() => pickSeason(n)}>
+					<strong>Season {n}</strong>
+					<small>{seasonDone(n)}/{seasonTotal(n)} missions</small>
 				</button>
 			{/each}
 		</div>
+
+		{#if seasonActs.length > 1}
+			<div class="acts" role="tablist" aria-label="Acts in season {season}">
+				{#each seasonActs as a (a.number)}
+					<button role="tab" aria-selected={a.number === actNumber} class:on={a.number === actNumber} onclick={() => { picked = null; shownAct = a.number; }}>
+						<small>Act {actInSeason(a)} · {doneIn(a)}/{a.lineup.length}</small>
+						<span>{a.title}</span>
+					</button>
+				{/each}
+			</div>
+		{:else}
+			<!-- One act so far: its name and what it's about, no tabs to pick from -->
+			<header class="act-head">
+				<small>Act {actInSeason(act)} · {doneIn(act)}/{act.lineup.length}</small>
+				<strong>{act.title}</strong>
+				<p>{act.tagline}</p>
+			</header>
+		{/if}
 
 		{#if unlocked}<p class="note">Every mission is unlocked.</p>{/if}
 
@@ -121,6 +151,79 @@
 		border: 3px solid var(--ink);
 		background: var(--panel);
 		box-shadow: 6px 7px 0 var(--ink);
+	}
+	/* ---- seasons: the big switch on top ---- */
+	.seasons {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+		gap: 0.3rem;
+		padding: 0.3rem;
+		margin-bottom: 0.9rem;
+		border: 3px solid var(--ink);
+		border-radius: 1.1rem;
+		background: var(--well);
+	}
+	.seasons button {
+		display: grid;
+		justify-items: center;
+		gap: 0.05rem;
+		padding: 0.45rem 0.8rem;
+		border: 0;
+		border-radius: 0.8rem;
+		background: none;
+		color: var(--muted);
+		font: inherit;
+		cursor: pointer;
+	}
+	.seasons strong {
+		font-family: var(--font-comic);
+		font-weight: 400;
+		font-size: 1.6rem;
+		letter-spacing: 0.05em;
+		line-height: 1;
+		color: #fff;
+		text-shadow: 2px 2px 0 var(--ink);
+	}
+	.seasons small {
+		font-size: 0.72rem;
+		font-weight: 700;
+	}
+	.seasons button.on {
+		background: var(--gold);
+		color: #4a4413;
+		box-shadow: inset 0 0 0 2px var(--ink), 0 3px 0 var(--ink);
+	}
+	.seasons button.on strong {
+		color: var(--ink);
+		text-shadow: none;
+	}
+	/* A season with one act: its name and line instead of tabs */
+	.act-head {
+		display: grid;
+		gap: 0.15rem;
+		padding: 0.2rem 0.3rem;
+	}
+	.act-head small {
+		font-size: 0.65rem;
+		font-weight: 800;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--gold);
+	}
+	.act-head strong {
+		font-family: var(--font-comic);
+		font-weight: 400;
+		font-size: 1.9rem;
+		letter-spacing: 0.04em;
+		line-height: 1;
+		color: #fff;
+		text-shadow: 2px 3px 0 var(--ink);
+	}
+	.act-head p {
+		margin: 0.2rem 0 0;
+		font-size: 0.9rem;
+		font-weight: 600;
+		color: var(--muted);
 	}
 	/* ---- acts ---- */
 	.acts {
