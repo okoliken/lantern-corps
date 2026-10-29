@@ -3,6 +3,8 @@
 // /lab page, and in tests.
 
 import { castBeam } from './beam';
+import { updateDread } from './dread';
+import { drawDread } from './draw/dread';
 import { Camera } from './camera';
 import type { View } from './canvas';
 import {
@@ -294,8 +296,8 @@ export class Game {
 		const ally = LANTERNS[lantern].hero ? new HeroInput(this) : new AllyInput(this);
 		const p = createPlayer(slot, LANTERNS[lantern], ally, x, y);
 		ally.me = p;
-		// Lanterns (and Hawkgirl) arrive flying; the Flash comes running
-		p.flying = lantern !== 'flash';
+		// Lanterns (and Hawkgirl) arrive flying; the Flash and Batman come on foot
+		p.flying = lantern !== 'flash' && lantern !== 'batman';
 		p.altitude = p.flying ? 1 : 0;
 		if (this.profiles && isLanternId(lantern)) {
 			applyProgression(p, LANTERNS[lantern], this.profiles[lantern]);
@@ -439,6 +441,7 @@ export class Game {
 				continue;
 			}
 			updateWillpower(p, dt, this.batteries);
+			updateDread(p, dt, this.constructs);
 			updatePlayerConstructs(p, intent, dt, this.constructs);
 			updateSignature(p, intent, dt, this.constructs);
 			if (this.infiniteWillpower) {
@@ -688,7 +691,7 @@ export class Game {
 								drawManhunterCore(ctx, d, 0, 0, this.time);
 								ctx.restore();
 							}
-						: d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit'
+						: d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank'
 						? () => {} // the mission draws it
 
 						: d.drift
@@ -928,6 +931,10 @@ export class Game {
 			this.safeLeft
 		);
 
+		// Fear closing in: the edges of the screen go dark, and a meter says how much
+		const afraid = this.players[0];
+		if (afraid && afraid.dread > 0.02) drawDread(ctx, afraid.dread, width, height, this.time, this.touch);
+
 		// Solo: a big notice while down. (Co-op shows it per player in M7.)
 		if (this.downedNotice && this.players.length === 1 && this.players[0].downed) {
 			drawDownedNotice(ctx, this.players[0].def.name, this.players[0].downTimer, width, height);
@@ -973,6 +980,8 @@ export class Game {
 										? 'Rage bubble'
 										: t.dummy.kind === 'bloodConduit'
 											? 'Blood conduit'
+											: t.dummy.kind === 'toxinTank'
+												? 'Toxin tank'
 								: 'Dummy'
 				: t.kind === 'ally'
 					? t.player.def.name

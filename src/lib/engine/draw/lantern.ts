@@ -25,6 +25,8 @@ export interface Figure {
 	bulk?: number;
 	/** Everyday clothes instead of the uniform (before the ring chooses them): no emblem, no ring. */
 	outfit?: Outfit;
+	/** Which Corps' uniform and ring light: green (default), or Sinestro's yellow (season two). */
+	corps?: 'yellow';
 }
 
 export interface Outfit {
@@ -36,6 +38,33 @@ export interface Outfit {
 	/** A hard hat (John on the building site). */
 	hardHat?: string;
 }
+
+
+/** The colours a uniform and its ring light are drawn in. */
+interface SuitPalette {
+	suit: string;
+	suitLit: string;
+	suitDark: string;
+	glow: string;
+	light: string;
+	core: string;
+	aura: (a: number) => string;
+	coreA: (a: number) => string;
+}
+const GREEN_SUIT: SuitPalette = { suit: SUIT_GREEN, suitLit: SUIT_GREEN_LIT, suitDark: SUIT_GREEN_DARK, glow: THEME_GREEN, light: GREEN_LIGHT, core: GREEN_CORE, aura: green, coreA: greenCore };
+/** Sinestro's Corps: gold where the Green Lanterns are green, and a yellow ring. */
+const YELLOW_SUIT: SuitPalette = {
+	suit: '#b08a0c',
+	suitLit: '#dcb21f',
+	suitDark: '#735a05',
+	glow: '#ffd23a',
+	light: '#ffe57a',
+	core: '#fffbe2',
+	aura: (a) => `rgba(255, 210, 58, ${a})`,
+	coreA: (a) => `rgba(255, 251, 226, ${a})`
+};
+/** The palette for the figure being drawn right now (drawLantern sets it). */
+let P: SuitPalette = GREEN_SUIT;
 
 export const GREEN = THEME_GREEN;
 
@@ -54,7 +83,7 @@ const BLACK = '#0d1210';
 const BLACK_LIT = '#24302b';
 /** Classic bottle green (the traditional comic suit shade). */
 const OUTLINE = '#030504';
-const WHITE = GREEN_CORE;
+const WHITE = GREEN_CORE; // (stays white: the eyes and highlights)
 
 /** Where the ring is in WORLD coordinates. Beams and bolts start here. */
 export function ringPosition(x: number, y: number, pose: LanternPose, time: number, scale = 1): Point {
@@ -72,6 +101,16 @@ export function drawLantern(
 	time: number,
 	scale = 1
 ) {
+	const before = P;
+	P = def.corps === 'yellow' ? YELLOW_SUIT : GREEN_SUIT;
+	try {
+		drawFigure(ctx, def, x, y, pose, time, scale);
+	} finally {
+		P = before;
+	}
+}
+
+function drawFigure(ctx: CanvasRenderingContext2D, def: Figure, x: number, y: number, pose: LanternPose, time: number, scale: number) {
 	const s = FIGURE_SCALE * scale;
 	const sk = computeSkeleton(pose, time);
 	const air = pose.altitude;
@@ -100,8 +139,8 @@ export function drawLantern(
 	if (pose.glow && air > 0 && !pose.downed) {
 		const [cx, cy] = mid(sk.hip, sk.neck);
 		const aura = ctx.createRadialGradient(cx, cy, 4, cx, cy, 40);
-		aura.addColorStop(0, green(0.26 * pulse * air));
-		aura.addColorStop(1, green(0));
+		aura.addColorStop(0, P.aura(0.26 * pulse * air));
+		aura.addColorStop(1, P.aura(0));
 		ctx.fillStyle = aura;
 		ctx.beginPath();
 		ctx.arc(cx, cy, 40, 0, Math.PI * 2);
@@ -159,7 +198,7 @@ export function segment(ctx: CanvasRenderingContext2D, a: Point, b: Point, ra: n
 function drawLeg(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boolean, k: number, outfit?: Outfit) {
 	// Suit: black legs, green boots. Everyday clothes: trousers and work boots.
 	const black = outfit ? (far ? shadeColor(outfit.trousers, -0.25) : outfit.trousers) : far ? BLACK : BLACK_LIT;
-	const green = outfit ? outfit.boots : far ? SUIT_GREEN_DARK : SUIT_GREEN;
+	const green = outfit ? outfit.boots : far ? P.suitDark : P.suit;
 	// Thigh, then the shin split into black suit and green boot
 	segment(ctx, l.hipJoint, l.knee, 3.9 * k, 3.0 * k, black);
 	const bootTop = lerpP(l.knee, l.foot, 0.4);
@@ -193,8 +232,8 @@ function drawArm(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boole
 		// Bare shoulders and upper arms; long green gloves from just above the elbow
 		const skin = far ? shadeColor(def.look.skin, -0.2) : def.look.skin;
 		segment(ctx, l.shoulder, lerpP(l.shoulder, l.elbow, 0.85), 2.9 * k, 2.4 * k, skin);
-		segment(ctx, lerpP(l.shoulder, l.elbow, 0.85), l.hand, 2.5 * k, 2.1 * k, far ? SUIT_GREEN_DARK : SUIT_GREEN);
-		ctx.fillStyle = far ? SUIT_GREEN_DARK : SUIT_GREEN_LIT;
+		segment(ctx, lerpP(l.shoulder, l.elbow, 0.85), l.hand, 2.5 * k, 2.1 * k, far ? P.suitDark : P.suit);
+		ctx.fillStyle = far ? P.suitDark : P.suitLit;
 		ctx.beginPath();
 		ctx.arc(l.hand[0], l.hand[1], 2.4 * k, 0, Math.PI * 2);
 		ctx.fill();
@@ -208,8 +247,8 @@ function drawArm(ctx: CanvasRenderingContext2D, l: Skeleton['front'], far: boole
 	segment(ctx, l.elbow, l.hand, 2.4 * k, 2.1 * k, black);
 	// Glove: green cuff and fist
 	const cuff = lerpP(l.elbow, l.hand, 0.62);
-	segment(ctx, cuff, l.hand, 2.5 * k, 2.2 * k, far ? SUIT_GREEN_DARK : SUIT_GREEN);
-	ctx.fillStyle = far ? SUIT_GREEN_DARK : SUIT_GREEN_LIT;
+	segment(ctx, cuff, l.hand, 2.5 * k, 2.2 * k, far ? P.suitDark : P.suit);
+	ctx.fillStyle = far ? P.suitDark : P.suitLit;
 	ctx.beginPath();
 	ctx.arc(l.hand[0], l.hand[1], 2.5 * k, 0, Math.PI * 2);
 	ctx.fill();
@@ -293,12 +332,12 @@ function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, k: 
 		white.addColorStop(1, '#f6f2e8');
 		ctx.fillStyle = white;
 		ctx.fill(poly([at(4, -8), at(16.2, -8), at(16.2, 9), at(4, 9)]));
-		ctx.fillStyle = SUIT_GREEN;
+		ctx.fillStyle = P.suit;
 		ctx.fill(poly([at(0.5, -8), at(4.4, -8), at(4.4, 9), at(0.5, 9)]));
 		const yoke = poly([at(19.4, -3.6), at(19.4, 4.6), at(17.4, 6.6), at(12.4, 6.6), at(15.4, 1.6), at(15.4, -1.6), at(12.4, -6), at(17.4, -6)]);
 		const yg = ctx.createLinearGradient(bx, by, fx, fy);
-		yg.addColorStop(0, SUIT_GREEN_DARK);
-		yg.addColorStop(1, SUIT_GREEN_LIT);
+		yg.addColorStop(0, P.suitDark);
+		yg.addColorStop(1, P.suitLit);
 		ctx.fillStyle = yg;
 		ctx.fill(yoke);
 		ctx.restore();
@@ -313,7 +352,7 @@ function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, k: 
 		ctx.beginPath();
 		ctx.arc(0, 0, 2.5, 0, Math.PI * 2);
 		ctx.fill();
-		ctx.fillStyle = SUIT_GREEN;
+		ctx.fillStyle = P.suit;
 		ctx.beginPath();
 		ctx.arc(0, 0, 1.8, 0, Math.PI * 2);
 		ctx.fill();
@@ -336,8 +375,8 @@ function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, k: 
 			? shape([at(9, -5.6), at(14, -6.2 - gut * 1.5), at(18.2 + gut * 1.5, -4.4), at(18.8 + gut * 1.5, 3.2), at(14.5, 7.8), at(9.5, 6.4 + gut * 4)])
 			: shape([at(3.2, 2.6), at(15.5, 2.4), at(18.6, 3.2), at(14.5, 7.8), at(8.5, 6.2 + gut * 4), at(4, 5.2 + gut * 6)]);
 	const greenShade = ctx.createLinearGradient(bx, by, fx, fy);
-	greenShade.addColorStop(0, SUIT_GREEN_DARK);
-	greenShade.addColorStop(1, SUIT_GREEN_LIT);
+	greenShade.addColorStop(0, P.suitDark);
+	greenShade.addColorStop(1, P.suitLit);
 	ctx.fillStyle = greenShade;
 	ctx.save();
 	ctx.clip(body);
@@ -366,7 +405,7 @@ function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, k: 
 	ctx.beginPath();
 	ctx.arc(0, 0, 2.7, 0, Math.PI * 2);
 	ctx.fill();
-	ctx.fillStyle = SUIT_GREEN;
+	ctx.fillStyle = P.suit;
 	ctx.beginPath();
 	ctx.arc(0, 0, 1.9, 0, Math.PI * 2);
 	ctx.fill();
@@ -460,7 +499,7 @@ function drawHead(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, ring
 		mask.lineTo(R + 1, 1.4);
 		mask.quadraticCurveTo(4.5, 2, 1.5, 1.2);
 		mask.closePath();
-		ctx.fillStyle = SUIT_GREEN;
+		ctx.fillStyle = P.suit;
 		ctx.fill(mask);
 		ctx.strokeStyle = OUTLINE;
 		ctx.lineWidth = 0.6;
@@ -475,9 +514,9 @@ function drawHead(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, ring
 		ctx.fillRect(R - 3.1, -2.3, 3.4, 0.9); // brow
 		if (ringActive) {
 			ctx.save();
-			ctx.shadowColor = GREEN;
+			ctx.shadowColor = P.glow;
 			ctx.shadowBlur = 6 * pulse;
-			ctx.fillStyle = GREEN_LIGHT;
+			ctx.fillStyle = P.light;
 			ctx.beginPath();
 			ctx.ellipse(R - 0.9, -0.2, 1.2, 0.7, 0, 0, Math.PI * 2);
 			ctx.fill();
@@ -590,7 +629,7 @@ function drawAvianHead(ctx: CanvasRenderingContext2D, skin: string, avian: { bea
 	ctx.beginPath();
 	ctx.ellipse(R - 2.8, -1.4, 1.35, 1.5, 0, 0, Math.PI * 2);
 	ctx.fill();
-	ctx.fillStyle = GREEN_CORE;
+	ctx.fillStyle = P.core;
 	ctx.beginPath();
 	ctx.arc(R - 2.4, -1.9, 0.45, 0, Math.PI * 2);
 	ctx.fill();
@@ -775,10 +814,10 @@ function drawHair(ctx: CanvasRenderingContext2D, def: Figure) {
 function drawRing(ctx: CanvasRenderingContext2D, hand: Point, active: boolean, pulse: number, cast: number) {
 	ctx.save();
 	if (active) {
-		ctx.shadowColor = GREEN;
+		ctx.shadowColor = P.glow;
 		ctx.shadowBlur = 10 * pulse;
 	}
-	ctx.fillStyle = active ? GREEN_CORE : GREEN_LIGHT;
+	ctx.fillStyle = active ? P.core : P.light;
 	ctx.beginPath();
 	ctx.arc(hand[0] + 0.6, hand[1] - 0.4, active ? 1.9 : 1.3, 0, Math.PI * 2);
 	ctx.fill();
@@ -786,7 +825,7 @@ function drawRing(ctx: CanvasRenderingContext2D, hand: Point, active: boolean, p
 	// Casting a construct: rays of light burst from the ring
 	if (cast > 0) {
 		ctx.shadowBlur = 16;
-		ctx.strokeStyle = greenCore(0.8 * cast);
+		ctx.strokeStyle = P.coreA(0.8 * cast);
 		ctx.lineWidth = 1;
 		for (let i = 0; i < 8; i++) {
 			const a = (i / 8) * Math.PI * 2;

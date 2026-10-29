@@ -28,13 +28,13 @@ import { flyShip } from './ships';
 import { updateSquads, type SquadRole } from './squad';
 import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
 
-export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire' | 'rageBubble' | 'bloodConduit'>;
+export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire' | 'rageBubble' | 'bloodConduit' | 'toxinTank'>;
 type EnemyState = 'idle' | 'move' | 'windup' | 'act' | 'recover';
 export type Role = 'berserker' | 'hunter' | 'gunner';
 /** How a faction thinks: rage never backs down and gets faster when hurt; machines stay cold and regroup. */
 type Mind = 'rage' | 'machine';
-/** Enemy art is drawn red; a tint recolors it: a sparring Lantern's green, Gorilla City tech amber, Grodd's psychic purple. */
-export type Tint = 'corps' | 'tech' | 'psychic';
+/** Enemy art is drawn red; a tint recolors it: a sparring Lantern's green, Gorilla City tech amber, Grodd's psychic purple, fear's yellow (season two). */
+export type Tint = 'corps' | 'tech' | 'psychic' | 'fear';
 
 export interface EnemyDef {
 	kind: EnemyKind;
@@ -113,6 +113,62 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		poise: 40,
 		scale: 1,
 		agility: 0.55,
+		movement: 'hover'
+	},
+	// Season two: the Sinestro Corps. Fear, not rage: they keep their distance, gang up, and get into your head (dread.ts).
+	fearGrunt: {
+		kind: 'fearGrunt',
+		name: 'Sinestro Corps',
+		faction: 'rogue',
+		tint: 'fear',
+		description:
+			'Chosen by a yellow ring for the fear they can cause. They do not charge in like the Red Lanterns: they circle, gang up, and wear you down. Standing near them, and getting hurt by them, fills your dread, and dread weakens your constructs. Hit back and hold your shield to push it off.',
+		mind: 'machine',
+		hp: 150,
+		speed: 175,
+		accel: 5,
+		sight: 760,
+		poise: 42,
+		scale: 1,
+		agility: 0.7,
+		movement: 'hover'
+	},
+	// Season two, Gotham: Scarecrow and the men he pays. His toxin is fear itself (dread.ts).
+	scarecrow: {
+		kind: 'scarecrow',
+		name: 'Scarecrow',
+		faction: 'rogue',
+		tint: 'fear',
+		description:
+			'Jonathan Crane, who made a science of fear. A scythe, a chain to drag you in, and fear toxin: standing near him fills your dread, and the gas he throws fills it fast. Keep your shield up and keep hitting him.',
+		mind: 'machine',
+		hp: 900,
+		speed: 165,
+		accel: 5,
+		sight: 900,
+		poise: 120,
+		scale: 1.05,
+		agility: 0.7,
+		movement: 'hover',
+		kit: ['scythe', 'chain', 'spears', 'cage', 'blast'],
+		range: 240,
+		leans: { caution: 0.3, patience: 0.2 },
+		lieutenant: true
+	},
+	thug: {
+		kind: 'thug',
+		name: 'Gotham thug',
+		faction: 'rogue',
+		tint: 'tech',
+		description: "Scarecrow pays well and nobody asks what's in the canisters. Guns and bats, nothing more.",
+		mind: 'machine',
+		hp: 110,
+		speed: 150,
+		accel: 5,
+		sight: 640,
+		poise: 30,
+		scale: 1,
+		agility: 0.5,
 		movement: 'hover'
 	},
 	// A flying robot: the Guardians' first peacekeepers. Cold logic, not rage.
@@ -1143,7 +1199,7 @@ export function roleSpeed(e: Enemy): number {
 
 /** What to call it: the grunt's species, or the enemy's own name. */
 export function enemyLabel(e: Enemy): string {
-	return ENEMIES[e.kind].kit || e.kind === 'enforcer' ? ENEMIES[e.kind].name : ROLES[e.brain.role].species;
+	return ENEMIES[e.kind].kit || e.kind === 'enforcer' || e.kind === 'fearGrunt' || e.kind === 'thug' ? ENEMIES[e.kind].name : ROLES[e.brain.role].species;
 }
 
 /** Effects that are already drawn in Corps green (the rest get recolored for a sparring Green Lantern). */
@@ -1434,7 +1490,7 @@ function trySupport(e: Enemy, t: Player, pack: readonly Enemy[], dist: number): 
 const RESERVE_EAGERNESS = 0.55;
 
 /** Lanterns, red or green: they can all raise a shield. Machines, ships and turrets can't. */
-const SHIELDERS: ReadonlySet<EnemyKind> = new Set(['rageGrunt', 'zox', 'skallox', 'bleez', 'kilowog', 'sinestro', 'enforcer']);
+const SHIELDERS: ReadonlySet<EnemyKind> = new Set(['rageGrunt', 'zox', 'skallox', 'bleez', 'kilowog', 'sinestro', 'enforcer', 'fearGrunt']);
 
 /** Aimed constructs need a clear line; area and self-centred ones don't. */
 function needsClearShot(a: AbilityDef): boolean {

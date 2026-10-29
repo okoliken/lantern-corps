@@ -27,6 +27,7 @@ import { Watchtower, buildWatchtowerMap } from '$lib/engine/missions/watchtower'
 import { HardOrder, buildHardOrderMap } from '$lib/engine/missions/hardOrder';
 import { GroundLevel, buildGroundLevelMap } from '$lib/engine/missions/groundLevel';
 import { KorugarMission, buildKorugarMap } from '$lib/engine/missions/korugar';
+import { GothamAtNight, buildGothamMap } from '$lib/engine/missions/gothamAtNight';
 import { RedDawn } from '$lib/engine/scenes/redDawn';
 import { DexStarrHunt, buildCrashSiteMap } from '$lib/engine/missions/dexStarr';
 import { TheTrail } from '$lib/engine/scenes/theTrail';
@@ -144,6 +145,20 @@ export function buildMission(id: string, options: Options): MissionRun {
 				map: buildWatchtowerMap()
 			});
 			const director = new Watchtower();
+			game.director = director;
+			return { game, director, outro: null };
+		}
+		case 'gotham-at-night': {
+			// John and Batman, on foot in the Narrows
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: 'john', keys: 'solo' },
+					{ lantern: 'batman', keys: 'p2', ai: true }
+				],
+				map: buildGothamMap()
+			});
+			const director = new GothamAtNight();
 			game.director = director;
 			return { game, director, outro: null };
 		}

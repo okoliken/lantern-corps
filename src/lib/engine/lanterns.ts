@@ -7,7 +7,7 @@ export type CrewId = LanternId | 'kilowog' | 'sinestro' | PrisonerId | HeroId;
 /** Everyone who fights with a Green Lantern ring (heroes have their own powers). */
 export type RingBearerId = Exclude<CrewId, HeroId>;
 /** Earth's heroes who fight beside John in Act 2 (heroes.ts): their own powers, no ring. */
-export type HeroId = 'flash' | 'hawkgirl' | 'razer' | 'superman' | 'wonderwoman';
+export type HeroId = 'flash' | 'hawkgirl' | 'razer' | 'superman' | 'wonderwoman' | 'batman';
 /** Green Lanterns the Red Lanterns took prisoner (Act 1, Prison Moon): freed, they fight beside you. */
 export type PrisonerId = 'arisia' | 'katma' | 'boodikka';
 /** The Lanterns you can pick. */
@@ -208,6 +208,18 @@ export const LANTERNS: Record<CrewId, LanternDef> = {
 		traits: { power: 1, durability: 1, cooldown: 1, structureCost: 1 },
 		look: { skin: '#dcaa84', hair: '#100c10', hairStyle: 'swept', mask: false },
 		hero: 'wonderwoman'
+	},
+	batman: {
+		id: 'batman',
+		name: 'Batman',
+		title: 'The Dark Knight',
+		blurb: 'No powers, just training and a belt full of answers: a fighting combo, batarangs thrown at anyone out of reach, and a smoke bomb when they crowd him.',
+		maxSpeed: 310,
+		accel: 2600,
+		decel: 2800,
+		traits: { power: 1, durability: 1, cooldown: 1, structureCost: 1 },
+		look: { skin: '#e2b48e', hair: '#0e0f16', hairStyle: 'cropped', mask: true },
+		hero: 'batman'
 	},
 	hawkgirl: {
 		id: 'hawkgirl',

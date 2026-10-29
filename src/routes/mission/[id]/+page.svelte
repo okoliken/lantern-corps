@@ -161,7 +161,7 @@
 					</span>
 				</div>
 				<p class="objective">{status.objective}</p>
-				{#each status.meters as m (m.label)}
+				{#each status.meters as m, i (m.label + i)}
 					<div class="meter">
 						<span class="label">{m.label}</span>
 						<span class="track">

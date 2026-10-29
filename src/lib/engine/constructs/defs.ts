@@ -436,7 +436,8 @@ export const LOADOUTS: Record<CrewId, ConstructId[]> = {
 	hawkgirl: ['beam'],
 	razer: ['beam'],
 	superman: ['beam'],
-	wonderwoman: ['beam']
+	wonderwoman: ['beam'],
+	batman: ['beam']
 };
 
 /** How many traps a single Lantern can have out at once. */

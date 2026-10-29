@@ -9,7 +9,7 @@ import { drawLantern, ringPosition, FIGURE_HEIGHT, GREEN, type Figure } from './
 import { computeSkeleton, turnScale } from '../animation';
 import { drawChpBody, drawGnortBody, drawGuyBody, drawSalaakBody } from './league';
 
-export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'enforcer';
+export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'enforcer' | 'fearGrunt' | 'scarecrow' | 'thug';
 
 interface CorpsFigure {
 	figure: Figure;
@@ -53,6 +53,38 @@ const CORPS: Record<CorpsKind, CorpsFigure> = {
 		scale: 1,
 		build: { leg: 1.05, torso: 1, arm: 1, neck: 1.05 },
 		hunch: 0
+	},
+	/**
+	 * A soldier of the Sinestro Corps (season two): an alien the yellow ring
+	 * chose for the fear it could cause, in Sinestro's gold and black.
+	 */
+	fearGrunt: {
+		figure: { id: 'fearGrunt', look: { skin: '#7d93a3', hair: '#1a1f26', hairStyle: 'cropped', mask: true }, corps: 'yellow', bulk: 1.05 },
+		scale: 1.04,
+		build: { leg: 1, torso: 1.05, arm: 1.05, neck: 0.95 },
+		hunch: 0.04
+	},
+	/** Scarecrow: the burlap mask, straw sticking out of it, a battered hat and a long coat. */
+	scarecrow: {
+		figure: {
+			id: 'scarecrow',
+			look: { skin: '#b69660', hair: '#d9c27a', hairStyle: 'swept', mask: true },
+			outfit: { top: '#4a3b26', topLit: '#6e5a3a', trousers: '#2e2a22', boots: '#1d1812', hardHat: '#3a2e1e' }
+		},
+		scale: 1.08,
+		build: { leg: 1.15, torso: 0.95, arm: 1.1, neck: 1.15 },
+		hunch: 0.08
+	},
+	/** A Gotham thug: a hoodie, jeans, a cap pulled down. */
+	thug: {
+		figure: {
+			id: 'thug',
+			look: { skin: '#c99a76', hair: '#2a2420', hairStyle: 'cropped', mask: false },
+			outfit: { top: '#3d4450', topLit: '#58606e', trousers: '#2b3346', boots: '#16161a', hardHat: '#20232a' }
+		},
+		scale: 1,
+		build: { leg: 1, torso: 1.05, arm: 1.02, neck: 0.95 },
+		hunch: 0.06
 	},
 	// Lanterns you spar with in the ring. Same figures the Corps fights beside,
 	// drawn from the other side of the fight.
@@ -169,7 +201,9 @@ export const drawKilowog = (ctx: CanvasRenderingContext2D, x: number, y: number,
 const TINTS: Record<Tint, { filter: string; glow: string }> = {
 	corps: { filter: 'hue-rotate(128deg) saturate(1.1)', glow: GREEN },
 	tech: { filter: 'hue-rotate(38deg) saturate(1.25) brightness(1.15)', glow: '#ffb020' },
-	psychic: { filter: 'hue-rotate(-85deg) saturate(1.1) brightness(1.1)', glow: '#b36bff' }
+	psychic: { filter: 'hue-rotate(-85deg) saturate(1.1) brightness(1.1)', glow: '#b36bff' },
+	// Fear: the yellow of Sinestro's ring and Scarecrow's toxin
+	fear: { filter: 'hue-rotate(48deg) saturate(1.35) brightness(1.3)', glow: '#ffd23a' }
 };
 
 

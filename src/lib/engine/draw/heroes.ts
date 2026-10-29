@@ -82,6 +82,8 @@ export function drawHero(
 		drawSupermanBody(ctx, sk, look, time, pose);
 	} else if (id === 'wonderwoman') {
 		drawWonderWomanBody(ctx, sk, look, time, pose, extra.guard ?? 0);
+	} else if (id === 'batman') {
+		drawBatmanBody(ctx, sk, time, pose);
 	} else {
 		const flying = air > 0.5 && !pose.downed;
 		const guard = extra.guard ?? 0;
@@ -1005,7 +1007,7 @@ export const leagueHero = (kind: string): HeroId => LEAGUE_KINDS[kind];
 // Built when asked, not when the module loads: this file sits in an import cycle with
 // league.ts, and LASSO_GOLD is not initialised yet if this module is evaluated first
 export function leagueColor(kind: string): string {
-	const colors: Record<HeroId, string> = { flash: '#ffd23f', superman: '#4f8bff', wonderwoman: LASSO_GOLD, hawkgirl: '#e0a458', razer: '#ff2a2a' };
+	const colors: Record<HeroId, string> = { flash: '#ffd23f', superman: '#4f8bff', wonderwoman: LASSO_GOLD, hawkgirl: '#e0a458', razer: '#ff2a2a', batman: '#9aa4b4' };
 	return colors[leagueHero(kind)];
 }
 

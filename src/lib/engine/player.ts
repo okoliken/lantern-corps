@@ -93,6 +93,10 @@ export interface Player {
 	recoverDelay: number;
 	/** Drawing power from a Lantern battery this tick (for drawing the link). */
 	charging: boolean;
+	/** 0..1: how afraid (season two's fear enemies). Weakens constructs; see dread.ts. */
+	dread: number;
+	/** Health last tick, so dread.ts can tell a hit landed. */
+	dreadHealth: number;
 
 	// ---- Constructs ----
 	/** The five constructs on this Lantern's slots. */
@@ -275,6 +279,8 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		exhausted: false,
 		recoverDelay: 0,
 		charging: false,
+		dread: 0,
+		dreadHealth: PLAYER_MAX_HEALTH,
 		loadout,
 		selected: 0,
 		cooldowns: loadout.map(() => 0),

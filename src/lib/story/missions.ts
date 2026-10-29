@@ -442,7 +442,7 @@ export const ACTS: ActInfo[] = [
 		title: 'Fear Spreads',
 		tagline: "Scarecrow's gas on Earth, a yellow ring forged in Qward, and the first time fear beats will.",
 		lineup: [
-			{ title: 'Gotham at Night', tagline: "John and Batman. Scarecrow's fear gas makes the ring falter." },
+			'gotham-at-night',
 			{ title: 'Qward', tagline: 'Hal and Kilowog follow the exile into the anti-matter universe, and find what is being made for him.' },
 			{ title: 'What Grodd Wants', tagline: 'John, the Flash and Hawkgirl. Grodd wants the ring, and he gets inside John\'s head.' },
 			{ title: 'First Light of Fear', tagline: 'Sinestro comes back in yellow. One on one, and Hal loses.' }
@@ -536,6 +536,21 @@ MISSIONS.push({
 		'Kilowog is going with you. Neither of you thinks Sinestro will come quietly.'
 	],
 	objectives: ["Fight through Sinestro's Enforcers to the palace", 'Face Sinestro under his own statue', 'Bring him down far enough for the Guardians to act']
+});
+
+MISSIONS.push({
+	id: 'gotham-at-night',
+	title: 'Gotham at Night',
+	tagline: "John and Batman. Scarecrow's fear gas makes the ring falter.",
+	lantern: 'john',
+	environment: 'planet',
+	place: 'Earth · Gotham City, the Narrows',
+	briefing: [
+		'Batman does not ask for help. He asked for a Green Lantern, and he asked for John.',
+		'Jonathan Crane, the Scarecrow, has three tanks of his fear toxin venting into the Narrows. It does not hurt the body. It gets into your head and makes you afraid, and a ring that runs on will does not like that at all.',
+		'New: DREAD. Near the toxin, and near Crane, your dread rises and your constructs get weaker. Hit back and hold your shield to push it off.'
+	],
+	objectives: ['Break the three toxin tanks', 'Stay out of the canisters when they burst', 'Take down Scarecrow']
 });
 
 MISSIONS.push({

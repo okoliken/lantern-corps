@@ -11,6 +11,7 @@
 // doesn't depend on Game and is easy to test on its own.
 
 import type { Tint } from '../enemies/enemies';
+import { dreadPower, relieveDread } from '../dread';
 import { castBeam, castThrough } from '../beam';
 import { DUMMY_HALF_H, DUMMY_HALF_W, aimPoint, distanceToBody, footprintGap, footprintPoint, hitDummy, hurtbox, isStanding, type Dummy } from '../dummy';
 import type { Intent } from '../input';
@@ -478,7 +479,8 @@ export function costOf(p: Player, def: ConstructDef): number {
 	return def.cost * (STRUCTURE_BEHAVIORS.has(def.behavior) ? p.def.traits.structureCost : 1);
 }
 
-const power = (p: Player, n: number) => n * p.def.traits.power;
+/** A Lantern's construct damage: their own strength, less whatever fear has taken (dread.ts). */
+const power = (p: Player, n: number) => n * p.def.traits.power * dreadPower(p);
 const durable = (p: Player, n: number) => n * p.def.traits.durability;
 
 // ------------------------------------------------------------- held uses
@@ -1760,6 +1762,8 @@ export function hitDummyWithFx(
 ) {
 	if (!isStanding(d)) return;
 	if (by && surge) gainSurge(by, damage * SURGE_PER_DAMAGE);
+	// Landing a hit pushes fear back
+	if (by) relieveDread(by, damage);
 	// An enemy remembers who hurt it
 	const brain = (d as { brain?: { grudge: Player | null; grudgeAgo: number } }).brain;
 	if (by && brain) {

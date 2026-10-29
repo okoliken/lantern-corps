@@ -195,7 +195,7 @@ function drawEnemyOverlay(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 }
 
 /** Tint colours for the overlays that are drawn directly (see inTint for the art that's filtered). */
-const TINT_COLORS: Record<'tech' | 'psychic', string> = { tech: '#ffb020', psychic: '#b36bff' };
+const TINT_COLORS: Record<'tech' | 'psychic' | 'fear', string> = { tech: '#ffb020', psychic: '#b36bff', fear: '#ffd23a' };
 /** A Green Lantern sparring with you: tells and aim lines in the ring's green. */
 const CORPS_GREEN = THEME_GREEN;
 

@@ -27,6 +27,10 @@
 //    Heat Vision    twin beams from his eyes, burning into someone out of reach
 //    Freeze Breath  a cone of cold: everything in it stops where it stands
 //    Meteor         up, then down on a crowd like a falling star (Hawkgirl's dive, heavier)
+//  BATMAN (on foot; no powers, all training)
+//    Combo          in close, three blows (Razer's blades, bare-handed)
+//    Batarang       thrown at someone out of reach
+//    Smoke Bomb     crowded: a cloud of smoke, everyone in it stunned
 //  WONDER WOMAN (in the air)
 //    Sword          a lunge and three cuts (Razer's blades, in gold)
 //    Lasso          the golden lasso round someone out of reach: dragged to her, helpless
@@ -200,7 +204,7 @@ export function heroMoving(p: Player): boolean {
 
 const enemiesOf = (w: ConstructWorld) => w.dummies.filter((d): d is Enemy => isEnemy(d) && isStanding(d));
 /** Everything a hero can hit: enemies, and a broken Manhunter's core. */
-const foesOf = (w: ConstructWorld) => w.dummies.filter((d) => isStanding(d) && (isEnemy(d) || d.kind === 'manhunterCore' || d.kind === 'signalSpire' || d.kind === 'bloodConduit'));
+const foesOf = (w: ConstructWorld) => w.dummies.filter((d) => isStanding(d) && (isEnemy(d) || d.kind === 'manhunterCore' || d.kind === 'signalSpire' || d.kind === 'bloodConduit' || d.kind === 'toxinTank'));
 /** Nth metal: Hawkgirl's mace does this many times the damage to a Manhunter's core. */
 export const NTH_VS_CORE = 3;
 
@@ -319,6 +323,23 @@ function choose(p: Player, h: HeroState, w: ConstructWorld) {
 		if (ready('nova') && around(p.x, p.y, NOVA.radius).length >= 2) {
 			begin(h, 'nova', t);
 			w.effects.push({ kind: 'callout', x: p.x, y: p.y, age: 0, life: 1.2, text: 'RAGE NOVA', owner: p, hurt: true });
+			return;
+		}
+		if (ready('blades') && d <= BLADES.range) {
+			const m = begin(h, 'blades', t);
+			m.step = 'in';
+			return;
+		}
+		if (ready('chakram') && d >= CHAKRAM.minRange && d <= CHAKRAM.range) begin(h, 'chakram', t);
+		return;
+	}
+
+	if (h.id === 'batman') {
+		if (!t) return;
+		const d = dist(t, p);
+		if (ready('thunder') && around(p.x, p.y, THUNDER.radius).length >= 2) {
+			begin(h, 'thunder', t);
+			w.effects.push({ kind: 'callout', x: p.x, y: p.y, age: 0, life: 1.1, text: 'SMOKE BOMB', owner: p });
 			return;
 		}
 		if (ready('blades') && d <= BLADES.range) {
@@ -676,7 +697,8 @@ function run(p: Player, h: HeroState, m: Move, dt: number, w: ConstructWorld, so
 				hit(w, p, e, THUNDER.damage, THUNDER.knockback, p.x, p.y);
 				e.stun = Math.max(e.stun, THUNDER.stun);
 			}
-			fx.push({ kind: h.id === 'wonderwoman' ? 'quake' : 'thunder', x: p.x, y: p.y, age: 0, life: 0.6, radius: THUNDER.radius, gold: h.id === 'wonderwoman' });
+			if (h.id === 'batman') fx.push({ kind: 'smoke', x: p.x, y: p.y, age: 0, life: 1.6, radius: THUNDER.radius, lift: 30 });
+			else fx.push({ kind: h.id === 'wonderwoman' ? 'quake' : 'thunder', x: p.x, y: p.y, age: 0, life: 0.6, radius: THUNDER.radius, gold: h.id === 'wonderwoman' });
 			done();
 			return;
 		}
@@ -725,7 +747,8 @@ function run(p: Player, h: HeroState, m: Move, dt: number, w: ConstructWorld, so
 			if (m.elapsed < 0.18) return;
 			if (t && isStanding(t)) {
 				hit(w, p, t, CHAKRAM.damage, CHAKRAM.knockback, p.x, p.y);
-				fx.push({ kind: 'chakram', x: p.x + p.dir * 12, y: p.y, x2: t.x, y2: t.y, age: 0, life: 0.32, lift: p.bodyBottom + 36, red: true });
+				if (h.id === 'batman') fx.push({ kind: 'batarang', x: p.x + p.dir * 12, y: p.y, x2: t.x, y2: t.y, age: 0, life: 0.32, lift: p.bodyBottom + 36 });
+				else fx.push({ kind: 'chakram', x: p.x + p.dir * 12, y: p.y, x2: t.x, y2: t.y, age: 0, life: 0.32, lift: p.bodyBottom + 36, red: true });
 			}
 			done();
 			return;
@@ -892,7 +915,7 @@ export class HeroInput implements InputSource {
 		const t = h.target;
 		const intent: Intent = { ...IDLE };
 		// Only the Flash stays on the ground
-		if (h.id !== 'flash' && !me.flying) intent.toggleFly = true;
+		if (h.id !== 'flash' && h.id !== 'batman' && !me.flying) intent.toggleFly = true;
 
 		if (!this.retreating && me.health < me.maxHealth * RETREAT_BELOW) this.retreating = true;
 		else if (this.retreating && me.health > me.maxHealth * RETURN_ABOVE) this.retreating = false;
