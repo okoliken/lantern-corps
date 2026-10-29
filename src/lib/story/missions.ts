@@ -444,7 +444,7 @@ export const ACTS: ActInfo[] = [
 		lineup: [
 			'gotham-at-night',
 			'qward',
-			{ title: 'What Grodd Wants', tagline: 'John, the Flash and Hawkgirl. Grodd wants the ring, and he gets inside John\'s head.' },
+			'what-grodd-wants',
 			{ title: 'First Light of Fear', tagline: 'Sinestro comes back in yellow. One on one, and Hal loses.' }
 		]
 	},
@@ -567,6 +567,21 @@ MISSIONS.push({
 		'In Qward, will runs thin: your willpower comes back slowly the whole time. Make every construct count.'
 	],
 	objectives: ['Cross the ash flats to the forge', "Break the forge's four conduits", 'Get back through the portal before it closes']
+});
+
+MISSIONS.push({
+	id: 'what-grodd-wants',
+	title: 'What Grodd Wants',
+	tagline: "John, the Flash and Hawkgirl. Grodd wants the ring, and he gets inside John's head.",
+	lantern: 'john',
+	environment: 'planet',
+	place: 'Earth · Central City, downtown',
+	briefing: [
+		'Gorilla City tech has turned up all over downtown Central City, guarded by Grodd\'s soldiers. The Flash says it feels like a setup. Hawkgirl says it is one.',
+		'Grodd lost to John once. He has been thinking about the ring ever since: a weapon that does whatever its bearer\'s mind tells it.',
+		"New: MIND GRIP. Grodd can reach into John's head and lock two of his constructs for a few seconds. His amplifiers make him stronger. Break them."
+	],
+	objectives: ["Clear Grodd's soldiers from the streets", 'Break the three mind amplifiers', 'Take down Grodd']
 });
 
 MISSIONS.push({

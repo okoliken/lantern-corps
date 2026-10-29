@@ -29,6 +29,7 @@ import { GroundLevel, buildGroundLevelMap } from '$lib/engine/missions/groundLev
 import { KorugarMission, buildKorugarMap } from '$lib/engine/missions/korugar';
 import { GothamAtNight, buildGothamMap } from '$lib/engine/missions/gothamAtNight';
 import { QwardMission, buildQwardMap } from '$lib/engine/missions/qward';
+import { WhatGroddWants } from '$lib/engine/missions/whatGroddWants';
 import { RedDawn } from '$lib/engine/scenes/redDawn';
 import { DexStarrHunt, buildCrashSiteMap } from '$lib/engine/missions/dexStarr';
 import { TheTrail } from '$lib/engine/scenes/theTrail';
@@ -146,6 +147,21 @@ export function buildMission(id: string, options: Options): MissionRun {
 				map: buildWatchtowerMap()
 			});
 			const director = new Watchtower();
+			game.director = director;
+			return { game, director, outro: null };
+		}
+		case 'what-grodd-wants': {
+			// John with the Flash and Hawkgirl, back in Central City
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: 'john', keys: 'solo' },
+					{ lantern: 'flash', keys: 'p2', ai: true },
+					{ lantern: 'hawkgirl', keys: 'p2', ai: true }
+				],
+				map: buildCentralCityMap()
+			});
+			const director = new WhatGroddWants();
 			game.director = director;
 			return { game, director, outro: null };
 		}

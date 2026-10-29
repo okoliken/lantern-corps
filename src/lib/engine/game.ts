@@ -691,7 +691,7 @@ export class Game {
 								drawManhunterCore(ctx, d, 0, 0, this.time);
 								ctx.restore();
 							}
-						: d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit'
+						: d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit' || d.kind === 'mindAmp'
 						? () => {} // the mission draws it
 
 						: d.drift
@@ -984,6 +984,8 @@ export class Game {
 												? 'Toxin tank'
 												: t.dummy.kind === 'forgeConduit'
 													? 'Forge conduit'
+													: t.dummy.kind === 'mindAmp'
+														? 'Mind amplifier'
 								: 'Dummy'
 				: t.kind === 'ally'
 					? t.player.def.name
