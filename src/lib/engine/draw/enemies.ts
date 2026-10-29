@@ -56,7 +56,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 			const kind = e.kind;
 			const top = corpsTop(kind, y, pose);
 			const hand = corpsRing(kind, x, y, pose, time);
-			inCorpsGreen(ctx, () => drawEnemyOverlay(ctx, e, x, y, top, hand, time));
+			inTint(ctx, ENEMIES[kind].tint ?? 'corps', () => drawEnemyOverlay(ctx, e, x, y, top, hand, time));
 			drawCorpsWindup(ctx, e, hand, top, time);
 		}
 		return;

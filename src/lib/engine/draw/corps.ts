@@ -9,7 +9,7 @@ import { drawLantern, ringPosition, FIGURE_HEIGHT, GREEN, type Figure } from './
 import { computeSkeleton, turnScale } from '../animation';
 import { drawChpBody, drawGnortBody, drawGuyBody, drawSalaakBody } from './league';
 
-export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar';
+export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'enforcer';
 
 interface CorpsFigure {
 	figure: Figure;
@@ -39,6 +39,20 @@ const CORPS: Record<CorpsKind, CorpsFigure> = {
 		scale: 1.12,
 		build: { leg: 1.12, torso: 1.05, arm: 1.08, neck: 1.1 },
 		hunch: -0.04
+	},
+	/**
+	 * Sinestro's police on Korugar (season two): Korugarians, magenta like him,
+	 * in his black-and-purple uniform and a dark helmet. No ring: his weapons.
+	 */
+	enforcer: {
+		figure: {
+			id: 'enforcer',
+			look: { skin: '#b84a82', hair: '#141018', hairStyle: 'cropped', mask: false },
+			outfit: { top: '#2a1838', topLit: '#4b2a63', trousers: '#140c1c', boots: '#0b070f', hardHat: '#1c1026' }
+		},
+		scale: 1,
+		build: { leg: 1.05, torso: 1, arm: 1, neck: 1.05 },
+		hunch: 0
 	},
 	// Lanterns you spar with in the ring. Same figures the Corps fights beside,
 	// drawn from the other side of the fight.

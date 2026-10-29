@@ -97,6 +97,24 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		agility: 0.7,
 		movement: 'hover'
 	},
+	// Season two: Sinestro's police on Korugar. Disciplined, armed with his own tech (purple), and afraid of him.
+	enforcer: {
+		kind: 'enforcer',
+		name: 'Korugar Enforcer',
+		faction: 'rogue',
+		tint: 'psychic',
+		description:
+			"Sinestro's police on Korugar. They keep his order with his weapons, and they are more afraid of him than of you: they hold a line, cover each other, and pull back to regroup when hurt.",
+		mind: 'machine',
+		hp: 150,
+		speed: 160,
+		accel: 5,
+		sight: 700,
+		poise: 40,
+		scale: 1,
+		agility: 0.55,
+		movement: 'hover'
+	},
 	// A flying robot: the Guardians' first peacekeepers. Cold logic, not rage.
 	manhunterDrone: {
 		kind: 'manhunterDrone',
@@ -1125,7 +1143,7 @@ export function roleSpeed(e: Enemy): number {
 
 /** What to call it: the grunt's species, or the enemy's own name. */
 export function enemyLabel(e: Enemy): string {
-	return ENEMIES[e.kind].kit ? ENEMIES[e.kind].name : ROLES[e.brain.role].species;
+	return ENEMIES[e.kind].kit || e.kind === 'enforcer' ? ENEMIES[e.kind].name : ROLES[e.brain.role].species;
 }
 
 /** Effects that are already drawn in Corps green (the rest get recolored for a sparring Green Lantern). */
@@ -1416,7 +1434,7 @@ function trySupport(e: Enemy, t: Player, pack: readonly Enemy[], dist: number): 
 const RESERVE_EAGERNESS = 0.55;
 
 /** Lanterns, red or green: they can all raise a shield. Machines, ships and turrets can't. */
-const SHIELDERS: ReadonlySet<EnemyKind> = new Set(['rageGrunt', 'zox', 'skallox', 'bleez', 'kilowog', 'sinestro']);
+const SHIELDERS: ReadonlySet<EnemyKind> = new Set(['rageGrunt', 'zox', 'skallox', 'bleez', 'kilowog', 'sinestro', 'enforcer']);
 
 /** Aimed constructs need a clear line; area and self-centred ones don't. */
 function needsClearShot(a: AbilityDef): boolean {

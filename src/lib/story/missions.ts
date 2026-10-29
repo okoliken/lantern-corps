@@ -433,7 +433,7 @@ export const ACTS: ActInfo[] = [
 			'watchtower',
 			'hard-order',
 			'ground-level',
-			{ title: 'Korugar', tagline: "Sinestro's home world, kept safe by terror. Hal has to bring his own mentor in." }
+			'korugar'
 		]
 	},
 	{
@@ -520,6 +520,22 @@ MISSIONS.push({
 		'Stay close to the container and your ring holds it up, at a cost. Every second you are away, the strain climbs.'
 	],
 	objectives: ['Stay close to the container to brace it', 'Get the three crews to the exit', 'Shield the crews from falling cargo', 'Hold it while Superman lowers it']
+});
+
+MISSIONS.push({
+	id: 'korugar',
+	title: 'Korugar',
+	tagline: "Sinestro's home world, kept safe by terror. Hal has to bring his own mentor in.",
+	lantern: 'hal',
+	environment: 'planet',
+	place: 'Sector 1417 · Korugar, the capital',
+	partner: 'kilowog',
+	briefing: [
+		'Hal told the Guardians what he saw on Vesk. They already knew. Korugar has been Sinestro\'s for years: his laws, his police, his face on every wall, and no crime at all.',
+		'The Guardians call it a betrayal of everything the ring stands for. They want him on Oa, and they have chosen the Lantern he trained to bring him in.',
+		'Kilowog is going with you. Neither of you thinks Sinestro will come quietly.'
+	],
+	objectives: ["Fight through Sinestro's Enforcers to the palace", 'Face Sinestro under his own statue', 'Bring him down far enough for the Guardians to act']
 });
 
 MISSIONS.push({

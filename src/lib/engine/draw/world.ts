@@ -78,7 +78,7 @@ export function drawStarfield(
 const GROUND_TILE = 64;
 
 /** How a planet's surface looks: 'dust' (Coast City's outskirts), 'oa' (the Corps' home), 'ash' (a burnt outpost). */
-export type GroundStyle = 'dust' | 'oa' | 'ash' | 'meadow' | 'bloodMoon' | 'street' | 'nightStreet' | 'vault' | 'deck' | 'sea';
+export type GroundStyle = 'dust' | 'oa' | 'ash' | 'meadow' | 'bloodMoon' | 'street' | 'nightStreet' | 'vault' | 'deck' | 'sea' | 'korugar';
 
 const GROUNDS: Record<GroundStyle, { void: string; base: string; dark: string; light: string; inlay?: string }> = {
 	dust: { void: '#15150f', base: '#3b3a2e', dark: 'rgba(20, 18, 12, 0.35)', light: 'rgba(120, 112, 88, 0.3)' },
@@ -98,7 +98,9 @@ const GROUNDS: Record<GroundStyle, { void: string; base: string; dark: string; l
 	// The Watchtower's training deck: steel plating, seams lit from below, space past the edge
 	deck: { void: '#02040a', base: '#2a3040', dark: 'rgba(8, 10, 18, 0.5)', light: 'rgba(160, 180, 220, 0.14)', inlay: 'rgba(120, 170, 255, 0.13)' },
 	// The sea floor off Atlantis: sand and rock under a lot of blue water
-	sea: { void: '#02101c', base: '#1e4a5c', dark: 'rgba(6, 30, 40, 0.5)', light: 'rgba(160, 220, 220, 0.16)' }
+	sea: { void: '#02101c', base: '#1e4a5c', dark: 'rgba(6, 30, 40, 0.5)', light: 'rgba(160, 220, 220, 0.16)' },
+	// Korugar's capital: dark violet stone, paved in great slabs, under Sinestro's order
+	korugar: { void: '#0b0610', base: '#2b2233', dark: 'rgba(10, 4, 14, 0.42)', light: 'rgba(190, 130, 210, 0.14)', inlay: 'rgba(210, 110, 200, 0.1)' }
 };
 
 /**
