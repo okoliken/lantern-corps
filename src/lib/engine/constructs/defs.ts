@@ -79,6 +79,7 @@ type ConstructShape =
 	| 'gunship'
 	| 'claymore'
 	| 'sentry'
+	| 'bombRun'
 	// Hal's pilot kit
 	| 'sidewinder'
 	| 'strafe'
@@ -362,6 +363,22 @@ export const CONSTRUCTS = {
 		id: 'cutter', name: 'Industrial Cutter', short: 'Cutter', behavior: 'grind', shape: 'cutter',
 		cost: 9, cooldown: 0, damage: 95, knockback: 40, range: 58, radius: 38, breaker: true
 	},
+	// ---- Hal's Armory: more firepower, the way a fighter jet carries it ----
+	// The jet's rotary cannon: hold to fire
+	vulcanCannon: {
+		id: 'vulcanCannon', name: 'Vulcan Cannon', short: 'Vulcan', behavior: 'rapid', shape: 'minigun',
+		cost: 0.7, cooldown: 0.06, damage: 6, knockback: 35, range: 560, speed: 1500
+	},
+	// Six heat-seekers at once
+	missileBarrage: {
+		id: 'missileBarrage', name: 'Missile Barrage', short: 'Barrage', behavior: 'volley', shape: 'sidewinder',
+		cost: 20, cooldown: 2.6, damage: 24, knockback: 260, range: 720, speed: 760, radius: 45, count: 6
+	},
+	// A jet streaks along his aim and lays a line of bombs; count = bombs, range = length of the line
+	bombingRun: {
+		id: 'bombingRun', name: 'Bombing Run', short: 'Bomb Run', space: { name: 'Bombing Run', short: 'Bomb Run' }, behavior: 'pillars', shape: 'bombRun',
+		cost: 18, cooldown: 2.8, damage: 34, knockback: 300, range: 520, radius: 62, charge: 0.45, stun: 0.25, count: 5
+	},
 	// ---- John's Armory: military kit he can swap in (see ARMORY) ----
 	// A tank rolls out along his aim, crushing what's in the way, and fires its main gun when it stops
 	tank: {
@@ -452,7 +469,7 @@ export const STRUCTURE_BEHAVIORS: ReadonlySet<Behavior> = new Set(['barrier', 't
 /** Ten slots each, on keys 1-9 and 0. */
 export const LOADOUTS: Record<CrewId, ConstructId[]> = {
 	// Test pilot: flashy, fast and a little showy. He wills a giant glove into existence and punches with it
-	hal: ['glove', 'sidewinder', 'strafingRun', 'wingman', 'flakBurst', 'ejectorSeat', 'clusterBombs', 'energySword', 'chaff', 'targetingLock'],
+	hal: ['glove', 'sidewinder', 'strafingRun', 'wingman', 'flakBurst', 'vulcanCannon', 'clusterBombs', 'energySword', 'chaff', 'targetingLock'],
 	// Marine and architect: he builds a rifle that works, down to the bolt
 	john: ['precisionRifle', 'rifle', 'fireteam', 'heavyCannon', 'powerArmor', 'ironFist', 'wreckingBall', 'missilePods', 'ibeams', 'cutter'],
 	// Hammers and fists first, always
@@ -472,8 +489,9 @@ export const LOADOUTS: Record<CrewId, ConstructId[]> = {
 	batman: ['beam']
 };
 
-/** Everything John can take into a fight: his kit plus the military extras. He carries ten (KIT_SIZE). */
+/** Everything Hal and John can take into a fight: their kit plus the extras. Each carries ten (KIT_SIZE). */
 export const ARMORY: Partial<Record<CrewId, ConstructId[]>> = {
+	hal: [...LOADOUTS.hal, 'missileBarrage', 'bombingRun'],
 	john: [...LOADOUTS.john, 'tank', 'mortar', 'gunship', 'claymores', 'sentry']
 };
 /** Constructs on the hotbar: keys 1 to 0. */

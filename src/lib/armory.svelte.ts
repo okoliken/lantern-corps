@@ -1,63 +1,69 @@
-// John's kit from the Armory: which ten constructs he takes into a fight.
-// Saved in the browser and handed to the engine (constructs/defs.ts, setKit),
-// so every mission builds him with it. Until ten are picked he takes his usual kit.
+// Hal's and John's kits from the Constructs page: which ten constructs each
+// takes into a fight. Always ten: picking a new one swaps it for one on the
+// hotbar. Saved in the browser and handed to the engine (constructs/defs.ts,
+// setKit), so every mission builds them with it.
 
 import { browser } from '$app/environment';
 import { ARMORY, KIT_SIZE, LOADOUTS, setKit, type ConstructId } from '$lib/engine/constructs/defs';
 
-const KEY = 'lantern-corps:armory:john';
-const ALL = ARMORY.john!;
+export type ArmoryLantern = 'hal' | 'john';
+const key = (who: ArmoryLantern) => `lantern-corps:armory:${who}`;
 
-function loadSaved(): ConstructId[] {
-	if (!browser) return [...LOADOUTS.john];
+function loadSaved(who: ArmoryLantern): ConstructId[] {
+	if (!browser) return [...LOADOUTS[who]];
 	try {
-		const saved: unknown = JSON.parse(localStorage.getItem(KEY) ?? 'null');
-		if (Array.isArray(saved) && saved.length <= KIT_SIZE && new Set(saved).size === saved.length && saved.every((id) => ALL.includes(id))) return saved;
+		const saved: unknown = JSON.parse(localStorage.getItem(key(who)) ?? 'null');
+		const all = ARMORY[who]!;
+		if (Array.isArray(saved) && saved.length === KIT_SIZE && new Set(saved).size === KIT_SIZE && saved.every((id) => all.includes(id))) return saved;
 	} catch {
-		// Unreadable: his usual kit
+		// Unreadable: the usual kit
 	}
-	return [...LOADOUTS.john];
+	return [...LOADOUTS[who]];
 }
 
 class ArmoryStore {
-	john = $state<ConstructId[]>(loadSaved());
-	/** Everything he can carry. */
-	readonly all = ALL;
+	kits = $state<Record<ArmoryLantern, ConstructId[]>>({ hal: loadSaved('hal'), john: loadSaved('john') });
 
 	constructor() {
-		this.apply();
+		setKit('hal', this.kits.hal);
+		setKit('john', this.kits.john);
 	}
 
-	carrying(id: ConstructId): boolean {
-		return this.john.includes(id);
+	/** Everything they can carry. */
+	all(who: ArmoryLantern): ConstructId[] {
+		return ARMORY[who]!;
 	}
 
-	get ready(): boolean {
-		return this.john.length === KIT_SIZE;
+	/** The ones not on the hotbar. */
+	spares(who: ArmoryLantern): ConstructId[] {
+		return this.all(who).filter((id) => !this.kits[who].includes(id));
 	}
 
-	/** Take one along (if there's room), or leave it behind. */
-	toggle(id: ConstructId) {
-		if (this.carrying(id)) this.john = this.john.filter((c) => c !== id);
-		else if (!this.ready) this.john = [...this.john, id];
-		this.save();
+	/** Put a construct on key `slot` (0-9). A spare replaces what was there; one already on the hotbar trades places. */
+	place(who: ArmoryLantern, slot: number, id: ConstructId) {
+		const kit = [...this.kits[who]];
+		const from = kit.indexOf(id);
+		if (from === slot) return;
+		if (from !== -1) kit[from] = kit[slot];
+		kit[slot] = id;
+		this.kits[who] = kit;
+		this.save(who);
 	}
 
-	/** His usual ten. */
-	reset() {
-		this.john = [...LOADOUTS.john];
-		this.save();
+	isUsual(who: ArmoryLantern): boolean {
+		return this.kits[who].every((id, i) => id === LOADOUTS[who][i]);
 	}
 
-	private apply() {
-		setKit('john', this.ready ? this.john : null);
+	reset(who: ArmoryLantern) {
+		this.kits[who] = [...LOADOUTS[who]];
+		this.save(who);
 	}
 
-	private save() {
-		this.apply();
+	private save(who: ArmoryLantern) {
+		setKit(who, this.kits[who]);
 		if (!browser) return;
 		try {
-			localStorage.setItem(KEY, JSON.stringify(this.john));
+			localStorage.setItem(key(who), JSON.stringify(this.kits[who]));
 		} catch {
 			// Storage blocked: the kit lasts until the page closes
 		}

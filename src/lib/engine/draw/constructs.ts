@@ -16,7 +16,7 @@ import { GREEN } from './lantern';
 import { uiFont } from './fonts';
 import { drawAnvilDrop, drawClusterBomb, drawCutter, drawFlakShell, drawGirder, drawGrenade, drawMarine, drawSidewinder, drawSpring, drawTrain, drawWingman, drawWreckingBall, glovePath, ironFistDetail, ironFistPath, riflePath } from './kits';
 import { green, greenCore, GREEN_LIGHT, GREEN_CORE } from '../../theme';
-import { drawClaymore, drawGunship, drawMortarDrop, drawSentryGun, drawTank } from './armory';
+import { drawBombRun, drawClaymore, drawGunship, drawMortarDrop, drawSentryGun, drawTank } from './armory';
 
 const CORE = GREEN_CORE;
 const TAU = Math.PI * 2;
@@ -1429,6 +1429,7 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 		case 'pillars': {
 			if (e.form === 'anvil') drawAnvilDrop(ctx, e, time);
 			else if (e.form === 'mortar') drawMortarDrop(ctx, e, time);
+			else if (e.form === 'bombRun') drawBombRun(ctx, e, time);
 			else if (space) drawViceCrush(ctx, e, time);
 			else drawPillarDrop(ctx, e, time);
 			break;

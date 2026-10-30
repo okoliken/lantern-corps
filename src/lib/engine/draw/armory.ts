@@ -274,6 +274,92 @@ export function drawGunship(ctx: CanvasRenderingContext2D, t: Turret, time: numb
 	ctx.restore();
 }
 
+// ---------------------------------------------------------- bombing run
+
+/** A fighter jet in ring energy, nose along +x (Hal's bombing run). */
+function jet(ctx: CanvasRenderingContext2D, time: number) {
+	const body = new Path2D();
+	body.moveTo(44, 0);
+	body.lineTo(18, -6);
+	body.lineTo(-6, -6);
+	body.lineTo(-22, -30);
+	body.lineTo(-32, -30);
+	body.lineTo(-22, -6);
+	body.lineTo(-38, -6);
+	body.lineTo(-48, -18);
+	body.lineTo(-54, -18);
+	body.lineTo(-48, 0);
+	body.lineTo(-54, 18);
+	body.lineTo(-48, 18);
+	body.lineTo(-38, 6);
+	body.lineTo(-22, 6);
+	body.lineTo(-32, 30);
+	body.lineTo(-22, 30);
+	body.lineTo(-6, 6);
+	body.lineTo(18, 6);
+	body.closePath();
+	energy(ctx, body, { time, edge: 2, body: 0.9 });
+}
+
+/** One bomb of a Bombing Run: the first also draws the jet streaking over the line. */
+export function drawBombRun(ctx: CanvasRenderingContext2D, e: Effect, time: number) {
+	if (e.age < 0) return;
+	const r = e.radius ?? 62;
+	const fall = e.life - 0.9;
+	const ux = e.aimX ?? 1;
+	const uy = e.aimY ?? 0;
+	ctx.save();
+	if ((e.index ?? 0) === 0 && e.age < 1.1) {
+		// The jet: in from behind, low and fast, along the line
+		const t = e.age / 1.1;
+		const along = -260 + t * 900;
+		ctx.save();
+		ctx.globalAlpha = Math.min(1, (1 - t) * 4);
+		ctx.translate(e.x + ux * along, e.y + uy * along * 0.7 - 150);
+		ctx.rotate(Math.atan2(uy * 0.7, ux));
+		jet(ctx, time);
+		ctx.restore();
+	}
+	if (e.age < fall) {
+		const k = e.age / fall;
+		ctx.fillStyle = `rgba(0, 0, 0, ${0.12 + 0.2 * k})`;
+		ctx.beginPath();
+		ctx.ellipse(e.x, e.y, r * 0.5 * (0.4 + 0.6 * k), r * 0.2 * (0.4 + 0.6 * k), 0, 0, TAU);
+		ctx.fill();
+		// The bomb, tumbling down from the jet's height
+		ctx.translate(e.x, e.y - 150 * (1 - k * k));
+		ctx.rotate(0.5 * (1 - k));
+		const bomb = new Path2D();
+		bomb.ellipse(0, 0, 6, 12, 0, 0, TAU);
+		bomb.moveTo(-6, -10);
+		bomb.lineTo(-8, -18);
+		bomb.lineTo(8, -18);
+		bomb.lineTo(6, -10);
+		energy(ctx, bomb, { time, edge: 1.4, body: 0.8 });
+	} else {
+		const t = (e.age - fall) / 0.9;
+		if (t < 0.25) {
+			ctx.shadowColor = GREEN;
+			ctx.shadowBlur = 22;
+			ctx.fillStyle = CORE;
+			ctx.globalAlpha = 1 - t / 0.25;
+			ctx.beginPath();
+			ctx.ellipse(e.x, e.y - 16, r * 0.55, r * 0.45, 0, 0, TAU);
+			ctx.fill();
+			ctx.globalAlpha = 1;
+			ctx.shadowBlur = 0;
+		}
+		ctx.strokeStyle = CORE;
+		ctx.lineWidth = 3;
+		ctx.globalAlpha = Math.max(0, 1 - t * 2);
+		ctx.beginPath();
+		ctx.ellipse(e.x, e.y, r * (0.5 + t), r * (0.5 + t) * 0.42, 0, 0, TAU);
+		ctx.stroke();
+		sparks(ctx, e.x, e.y - 12, r, 10, time, e.x * 0.017);
+	}
+	ctx.restore();
+}
+
 // ------------------------------------------------------------ claymore
 
 /** A claymore: a curved plate on splayed legs, facing out, its trigger arc in front. */

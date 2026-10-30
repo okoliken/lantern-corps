@@ -209,6 +209,10 @@ export interface Effect {
 	tint?: Tint;
 	/** Which construct made it, when one kind of effect has several looks (a glove or a fist; pillars or an anvil). */
 	form?: string;
+	/** Bombing Run: the way the jet was flying, and which bomb down the line this is (the first one draws the jet). */
+	aimX?: number;
+	aimY?: number;
+	index?: number;
 	/** Who made it: effects at hand height are drawn at that Lantern's ring height. */
 	owner?: Player;
 }
@@ -854,6 +858,7 @@ function dropPillars(p: Player, def: ConstructDef, w: ConstructWorld) {
 		x = ox + ((x - ox) / dist) * def.range;
 		y = p.y + ((y - p.y) / dist) * def.range;
 	}
+	if (def.shape === 'bombRun') return bombingRun(p, def, w);
 	// A barrage: the rest of the shells land after the first, scattered round the mark
 	const shells = def.count ?? 1;
 	for (let i = 0; i < shells; i++) {
@@ -864,6 +869,23 @@ function dropPillars(p: Player, def: ConstructDef, w: ConstructWorld) {
 		const delay = i * MORTAR_STAGGER;
 		w.pillarStrikes.push({ owner: p, def, x: sx, y: sy, time: (def.charge ?? 0.5) + delay });
 		w.effects.push({ kind: 'pillars', x: sx, y: sy, age: -delay, life: (def.charge ?? 0.5) + 0.9, radius: def.radius, owner: p, form: def.shape });
+	}
+}
+
+/** Bombing Run: bombs in a line along his aim, from just ahead of him out to the construct's range, one after another. */
+function bombingRun(p: Player, def: ConstructDef, w: ConstructWorld) {
+	const len = Math.hypot(p.aimX, p.aimY) || 1;
+	const ux = p.aimX / len;
+	const uy = p.aimY / len;
+	const bombs = def.count ?? 5;
+	const start = 90;
+	const step = (def.range - start) / Math.max(1, bombs - 1);
+	for (let i = 0; i < bombs; i++) {
+		const x = p.x + p.ringDX + ux * (start + i * step);
+		const y = p.y + uy * (start + i * step) * 0.7;
+		const delay = i * BOMB_RUN_STAGGER;
+		w.pillarStrikes.push({ owner: p, def, x, y, time: (def.charge ?? 0.45) + delay });
+		w.effects.push({ kind: 'pillars', x, y, age: -delay, life: (def.charge ?? 0.45) + 0.9, radius: def.radius, owner: p, form: def.shape, aimX: ux, aimY: uy, index: i });
 	}
 }
 
@@ -990,6 +1012,8 @@ const TANK_GUN = { damage: 48, knockback: 520, range: 520, speed: 820, radius: 8
 /** Mortar shells after the first land this far apart in time, scattered this far round the mark. */
 const MORTAR_STAGGER = 0.22;
 const MORTAR_SCATTER = 70;
+/** Bombing Run: seconds between bombs down the line. */
+const BOMB_RUN_STAGGER = 0.11;
 /** Where each Marine stands around its Lantern. */
 const FIRETEAM_SPOTS: [number, number][] = [
 	[-70, -46],
