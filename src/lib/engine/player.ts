@@ -109,6 +109,8 @@ export interface Player {
 	cooldowns: number[];
 	/** A hold-to-use construct (beam, minigun) is running right now. */
 	firing: boolean;
+	/** Drawn with the ring arm held out along this (a mission's brace): the pose only, it doesn't slow them like firing. */
+	holdAim: { x: number; y: number } | null;
 	/** How far the beam reached this tick (for drawing). */
 	beamLength: number;
 	/** Sniper Rifle charge, 0..1, while the construct button is held. */
@@ -288,6 +290,7 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		selected: 0,
 		cooldowns: loadout.map(() => 0),
 		firing: false,
+		holdAim: null,
 		beamLength: 0,
 		charge: 0,
 		actionTimer: 0,

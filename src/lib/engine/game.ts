@@ -595,7 +595,8 @@ export class Game {
 			glow: !p.hero,
 			shadow: env.hasGround,
 			// The ring arm aims while a construct is running or just used
-			firing: p.firing || p.actionTimer > 0 || p.shotTimer > 0,
+			firing: p.firing || p.actionTimer > 0 || p.shotTimer > 0 || p.holdAim !== null,
+			...(p.holdAim && { aimX: p.holdAim.x, aimY: p.holdAim.y }),
 			shotKick: p.shotTimer / SHOT_POSE_TIME,
 			// Cast is strongest right as the construct forms, then eases off
 			cast: p.actionTimer > 0 ? Math.min(1, p.actionTimer / ACTION_POSE_TIME) : 0,

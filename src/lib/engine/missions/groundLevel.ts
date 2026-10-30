@@ -59,6 +59,9 @@ const PIER = 260;
 const LIFTER = { x: 1500, y: 820 };
 const EXIT = { x: 330, y: 1560 };
 const SPAWN = { x: 1300, y: 1050 };
+/** Where Superman holds the far end from (his spot, from the crane's), and where John's brace meets the near end (x from the middle). */
+const SUPERMAN_HOLD = { x: 110, y: 30 };
+const BRACE_AT = -60;
 const CREWS = [
 	{ x: 2450, y: 640 },
 	{ x: 2500, y: 1500 },
@@ -227,8 +230,10 @@ export class GroundLevel implements MissionDirector {
 				return;
 			case 'won':
 				this.timer += dt;
+				game.players[0].holdAim = null;
 				return;
 			case 'lost':
+				game.players[0].holdAim = null;
 				return;
 		}
 
@@ -246,19 +251,42 @@ export class GroundLevel implements MissionDirector {
 		}
 	}
 
-	/** Superman stays under the far end, whatever his instincts say. */
+	/** Superman stays under the far end, whatever his instincts say: in the air, arm up, holding it, and coming down with it. */
 	private pinSuperman(game: Game) {
 		const sup = game.players[1];
 		if (!sup) return;
-		sup.x = LIFTER.x + 110;
-		sup.y = LIFTER.y + 30;
+		sup.x = LIFTER.x + SUPERMAN_HOLD.x;
+		sup.y = LIFTER.y + SUPERMAN_HOLD.y;
 		sup.vx = sup.vy = 0;
 		sup.facing = -1;
+		sup.dir = -1;
+		sup.flying = true;
+		sup.altitude = 1;
+		sup.holdAim = { x: 0, y: -1 };
+		if (!sup.hero) return;
+		// High enough that his raised hand is under the container's bottom edge
+		sup.hero.rise = 0;
+		const scale = sup.def.figureScale ?? 1;
+		const [, hand] = ringPosition(0, 0, game.poseFor(sup), game.time, scale);
+		sup.hero.rise = Math.max(0, (SUPERMAN_HOLD.y + hand + this.loadBottom()) / scale);
+	}
+
+	/** How high the container's bottom edge is above its spot on the dock, in px (drawLifter). */
+	private loadBottom(): number {
+		return 190 * (1 - this.lowered) - 40;
 	}
 
 	/** Close to the load, John holds it up, and it costs him. */
 	private brace(john: Player, dt: number) {
 		this.bracing = !john.downed && !john.exhausted && Math.hypot(john.x - LIFTER.x, john.y - LIFTER.y) < BRACE_RANGE;
+		// His ring arm up at the near end, so the brace is seen coming from the ring
+		if (this.bracing) {
+			const dx = LIFTER.x + BRACE_AT - john.x;
+			const dy = LIFTER.y - this.loadBottom() - (john.y - john.ringLift);
+			const d = Math.hypot(dx, dy) || 1;
+			john.holdAim = { x: dx / d, y: dy / d };
+			john.dir = dx < 0 ? -1 : 1;
+		} else john.holdAim = null;
 		if (this.bracing) {
 			spend(john, BRACE_COST * dt);
 			this.strain = Math.max(0, this.strain - STRAIN_DOWN * dt);
@@ -386,7 +414,11 @@ export class GroundLevel implements MissionDirector {
 	// -------------------------------------------------------------- drawing
 
 	cameraPoints(): [number, number][] {
-		return this.crews.filter((c) => c.state === 'following').map((c): [number, number] => [c.x, c.y - 30]);
+		const points = this.crews.filter((c) => c.state === 'following').map((c): [number, number] => [c.x, c.y - 30]);
+		// Near the load, frame it and Superman too: the job is holding it up
+		const john = this.gameRef?.players[0];
+		if (john && Math.hypot(john.x - LIFTER.x, john.y - LIFTER.y) < BRACE_RANGE * 1.6) points.push([LIFTER.x + SUPERMAN_HOLD.x, LIFTER.y - this.loadBottom() - 80]);
+		return points;
 	}
 
 	goal(): { x: number; y: number } | null {
@@ -408,8 +440,10 @@ export class GroundLevel implements MissionDirector {
 		list.push({ baseY: LIFTER.y + 20, draw: () => drawLifter(ctx, LIFTER.x, LIFTER.y, this.strain, this.lowered, time) });
 		const john = game?.players[0];
 		if (john && this.bracing) {
-			const [rx, ry] = ringPosition(john.x, john.y, { ...game!.poseFor(john), firing: true }, time);
-			list.push({ baseY: LIFTER.y + 25, draw: () => drawBrace(ctx, rx, ry, LIFTER.x, LIFTER.y + 190 * this.lowered, Math.min(1, john.willpower / 40), time) });
+			// From his ring, held up at the near end
+			const rx = john.x + john.ringDX;
+			const ry = john.y - john.ringLift;
+			list.push({ baseY: Math.max(LIFTER.y + 25, john.y + 1), draw: () => drawBrace(ctx, rx, ry, LIFTER.x + BRACE_AT, LIFTER.y + 190 * this.lowered, Math.min(1, john.willpower / 40), time) });
 		}
 		for (const k of this.crates) list.push({ baseY: k.y, draw: () => drawFallingCrate(ctx, k.x, k.y, k.t / CRATE_WARNING, CRATE_RADIUS) });
 		const offsets = [
