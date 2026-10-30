@@ -16,6 +16,7 @@
 //
 // Lose: you go down 3 times.
 
+import { drawWashed } from '../draw/wash';
 import { isStanding, createDummy, type Dummy } from '../dummy';
 import { drawBattery } from '../draw/effects';
 import type { Enemy, Role } from '../enemies/enemies';
@@ -410,12 +411,11 @@ export class SinestroFinale implements MissionDirector {
 
 /** The great yellow lantern: a Power Battery three times a Lantern's height, burning yellow. */
 function drawGreatLantern(ctx: CanvasRenderingContext2D, x: number, y: number, time: number) {
-	ctx.save();
-	ctx.translate(x, y);
-	ctx.scale(3.2, 3.2);
-	ctx.filter = 'hue-rotate(-82deg) saturate(1.6) brightness(1.25)';
-	drawBattery(ctx, { x: 0, y: 0, charge: BATTERY_MAX_CHARGE }, true, time);
-	ctx.restore();
+	drawWashed(ctx, x, y, { side: 260, up: 520, down: 120 }, { color: '#ffcf2e', amount: 0.62 }, (c) => {
+		c.translate(x, y);
+		c.scale(3.2, 3.2);
+		drawBattery(c, { x: 0, y: 0, charge: BATTERY_MAX_CHARGE }, true, time);
+	});
 }
 
 /** A lens on a stone plinth, focusing the lantern's light into Sinestro. */

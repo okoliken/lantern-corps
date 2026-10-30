@@ -2,6 +2,7 @@
 // It's plain TypeScript, with no Svelte, so it can run in /play, in any
 // /lab page, and in tests.
 
+import { drawWashed, type Wash } from './draw/wash';
 import { castBeam } from './beam';
 import { updateDread } from './dread';
 import { drawDread } from './draw/dread';
@@ -86,6 +87,8 @@ import { AUTO_RANGE, autoReach, sameTarget, targetPosition, updateTargeting, typ
 import { BATTERY_MAX_CHARGE, canSpend, updateBattery, updateWillpower, type Battery } from './willpower';
 
 const LANTERN_GREEN = GREEN;
+/** A fear nightmare: whatever it was, washed one sickly yellow. */
+const NIGHTMARE: Wash = { color: '#e8c23a', amount: 0.78 };
 
 interface PlayerConfig {
 	/** Hal or John, or a partner the story brings along (Kilowog, AI only). */
@@ -685,10 +688,10 @@ export class Game {
 					? d.phantom
 						? () => {
 								// Whatever it was, a nightmare is all one sickly yellow
+								const k = d.scale ?? 1;
 								ctx.save();
-								ctx.filter = 'grayscale(1) sepia(1) saturate(5) hue-rotate(8deg) brightness(1.15)';
 								ctx.globalAlpha = 0.85;
-								drawEnemy(ctx, d, x, y, env.hasGround, this.time);
+								drawWashed(ctx, x, y, { side: 190 * k, up: 320 * k, down: 70 * k }, NIGHTMARE, (c) => drawEnemy(c, d, x, y, env.hasGround, this.time));
 								ctx.restore();
 							}
 						: () => drawEnemy(ctx, d, x, y, env.hasGround, this.time)

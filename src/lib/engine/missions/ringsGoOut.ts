@@ -13,6 +13,7 @@
 //
 // Lose: Hal goes down 3 times, or every Lantern is lost.
 
+import { drawWashed } from '../draw/wash';
 import { isStanding } from '../dummy';
 import type { Enemy, Role } from '../enemies/enemies';
 import type { Drawable, Game } from '../game';
@@ -392,8 +393,9 @@ function drawStranded(ctx: CanvasRenderingContext2D, s: Stranded, time: number) 
 	const k = def.figureScale ?? 1;
 	ctx.save();
 	if (s.state === 'lost') {
-		ctx.filter = 'grayscale(1) brightness(0.7)';
-		drawLantern(ctx, def, s.x, s.y, { dir: 1, walkPhase: 0, altitude: 0, hoverHeight: 8, lean: 0, glow: false, shadow: true, firing: false, aimX: 1, aimY: 0, downed: true }, time, k);
+		drawWashed(ctx, s.x, s.y, { side: 120 * k, up: 120 * k, down: 50 * k }, { color: '#55595c', amount: 0.85 }, (c) =>
+			drawLantern(c, def, s.x, s.y, { dir: 1, walkPhase: 0, altitude: 0, hoverHeight: 8, lean: 0, glow: false, shadow: true, firing: false, aimX: 1, aimY: 0, downed: true }, time, k)
+		);
 	} else if (s.state === 'down') {
 		drawLantern(ctx, def, s.x, s.y, { dir: 1, walkPhase: 0, altitude: 0, hoverHeight: 8, lean: 0, glow: s.charge > 0, shadow: true, firing: false, aimX: 1, aimY: 0, downed: true }, time, k);
 	} else {

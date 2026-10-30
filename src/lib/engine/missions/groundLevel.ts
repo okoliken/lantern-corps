@@ -16,7 +16,7 @@
 // are lost.
 
 import { absorbWithShield, type Protectable } from '../constructs/system';
-import { colonist, drawColonist, drawGroupBubble } from '../draw/colony';
+import { colonist, drawColonist, drawGroupBubble, drawHitFlash } from '../draw/colony';
 import { drawBrace, drawExit, drawFallingCrate, drawHarbour, drawLifter } from '../draw/dock';
 import type { Figure } from '../draw/lantern';
 import { ringPosition } from '../draw/lantern';
@@ -429,12 +429,12 @@ export class GroundLevel implements MissionDirector {
 					baseY: c.y + oy,
 					draw: () => {
 						ctx.save();
-						if (c.flash > 0) ctx.filter = 'brightness(1.8) sepia(1) hue-rotate(-30deg)';
 						drawColonist(ctx, fig, c.x + ox, c.y + oy, dir, walking, time + i * 0.37);
 						ctx.restore();
 					}
 				});
 			});
+			if (c.flash > 0) list.push({ baseY: c.y + 20, draw: () => drawHitFlash(ctx, c.x, c.y, c.flash / 0.3) });
 			const shield = w?.shields.find((s) => s.target === c.prot);
 			if (shield) list.push({ baseY: c.y + 30, draw: () => drawGroupBubble(ctx, c.x, c.y, 62, shield.hp / shield.maxHp, time) });
 		}

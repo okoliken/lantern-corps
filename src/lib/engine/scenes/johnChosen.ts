@@ -6,6 +6,7 @@
 // (the ring slides onto his finger, a flash, the uniform); Mission 2's scene
 // stops before that, on the cliffhanger.
 
+import { drawWashed } from '../draw/wash';
 import type { LanternPose } from '../animation';
 import { EARTH_H, EARTH_W, ROOF, drawDetroit } from '../draw/earth';
 import { GREEN, HOVER_PLANET, drawLantern, ringPosition, type Figure } from '../draw/lantern';
@@ -85,11 +86,10 @@ export class JohnChosen extends DialogueScene {
 
 	private drawJohn(ctx: CanvasRenderingContext2D, t: number) {
 		const pose = this.pose(t);
-		ctx.save();
 		// In his work clothes until the flash, a little dim in the night air
-		if (!this.suited) ctx.filter = 'brightness(0.8)';
-		drawLantern(ctx, this.suited ? LANTERNS.john : JOHN_AT_WORK, JOHN.x, JOHN.y, pose, t, FIGURE_SCALE);
-		ctx.restore();
+		const draw = (c: CanvasRenderingContext2D) => drawLantern(c, this.suited ? LANTERNS.john : JOHN_AT_WORK, JOHN.x, JOHN.y, pose, t, FIGURE_SCALE);
+		if (this.suited) draw(ctx);
+		else drawWashed(ctx, JOHN.x, JOHN.y, { side: 240, up: 440, down: 60 }, { color: '#000', amount: 0.2 }, draw);
 	}
 
 	private drawRing(ctx: CanvasRenderingContext2D, t: number, arriving: number) {

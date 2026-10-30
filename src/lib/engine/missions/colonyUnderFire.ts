@@ -19,7 +19,7 @@ import { absorbWithShield, type Protectable } from '../constructs/system';
 import { isStanding } from '../dummy';
 import type { Enemy, Role } from '../enemies/enemies';
 import type { RedStrike } from '../enemies/redConstructs';
-import { colonist, drawColonist, drawField, drawGroupBubble, drawShelter, drawShuttle } from '../draw/colony';
+import { colonist, drawColonist, drawField, drawGroupBubble, drawHitFlash, drawShelter, drawShuttle } from '../draw/colony';
 import { drawShipShield } from '../draw/escort';
 import type { Figure } from '../draw/lantern';
 import type { Drawable, Game } from '../game';
@@ -619,12 +619,12 @@ export class ColonyUnderFire implements MissionDirector {
 					draw: () => {
 						ctx.save();
 						ctx.globalAlpha = 1 - g.board;
-						if (g.flash > 0) ctx.filter = 'brightness(1.8) sepia(1) hue-rotate(-30deg)';
 						drawColonist(ctx, fig, x, y, dir, walking, time + i * 0.37);
 						ctx.restore();
 					}
 				});
 			});
+			if (g.flash > 0) list.push({ baseY: g.y + 20, draw: () => drawHitFlash(ctx, g.x, g.y, g.flash / 0.3) });
 			const shield = w?.shields.find((x) => x.target === g.prot);
 			if (shield && g.state === 'following') list.push({ baseY: g.y + 30, draw: () => drawGroupBubble(ctx, g.x, g.y, 62, shield.hp / shield.maxHp, time) });
 		}

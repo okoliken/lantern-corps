@@ -163,6 +163,26 @@ export function drawColonist(ctx: CanvasRenderingContext2D, fig: Figure, x: numb
 	drawLantern(ctx, fig, x, y, pose, time, 0.8);
 }
 
+/**
+ * A group of colonists just got hit: a hot orange flare over them, fading with
+ * `k` (1..0). Drawn shapes, not a canvas filter: switching a filter on stalls
+ * the GPU for up to a second.
+ */
+export function drawHitFlash(ctx: CanvasRenderingContext2D, x: number, y: number, k: number) {
+	ctx.save();
+	ctx.globalAlpha = Math.min(1, k) * 0.55;
+	ctx.fillStyle = '#ff8a3a';
+	ctx.beginPath();
+	ctx.ellipse(x, y - 34, 58, 48, 0, 0, TAU);
+	ctx.fill();
+	ctx.globalAlpha = Math.min(1, k) * 0.5;
+	ctx.fillStyle = '#fff1c2';
+	ctx.beginPath();
+	ctx.ellipse(x, y - 34, 30, 26, 0, 0, TAU);
+	ctx.fill();
+	ctx.restore();
+}
+
 /** A bubble over a group of colonists. `health` 0..1 dims it as it's worn down. */
 export function drawGroupBubble(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, health: number, time: number) {
 	ctx.save();

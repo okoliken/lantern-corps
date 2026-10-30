@@ -226,47 +226,154 @@ export const drawKilowog = (ctx: CanvasRenderingContext2D, x: number, y: number,
 	drawCorpsLantern(ctx, 'kilowog', x, y, pose, time);
 
 /**
- * Canvas filters that turn rage red into another colour, and the glow to go
- * with it: Corps green (a sparring Lantern), Gorilla City amber (Grodd's
- * soldiers' tech), and psychic purple (Grodd himself).
+ * How rage red turns into another colour, and the glow to go with it: Corps
+ * green (a sparring Lantern), Gorilla City amber (Grodd's soldiers' tech),
+ * psychic purple (Grodd himself) and fear yellow. The same maths as the CSS
+ * filters hue-rotate, saturate and brightness, done on each colour as it's
+ * set rather than by a canvas filter: a filter is a GPU pass per stroke, and
+ * with a few tinted things on screen that stalled the browser for seconds.
  */
-const TINTS: Record<Tint, { filter: string; glow: string }> = {
-	corps: { filter: 'hue-rotate(128deg) saturate(1.1)', glow: GREEN },
-	tech: { filter: 'hue-rotate(38deg) saturate(1.25) brightness(1.15)', glow: '#ffb020' },
-	psychic: { filter: 'hue-rotate(-85deg) saturate(1.1) brightness(1.1)', glow: '#b36bff' },
+const TINTS: Record<Tint, { hue: number; saturate: number; brightness: number; glow: string }> = {
+	corps: { hue: 128, saturate: 1.1, brightness: 1, glow: GREEN },
+	tech: { hue: 38, saturate: 1.25, brightness: 1.15, glow: '#ffb020' },
+	psychic: { hue: -85, saturate: 1.1, brightness: 1.1, glow: '#b36bff' },
 	// Fear: the yellow of Sinestro's ring and Scarecrow's toxin
-	fear: { filter: 'hue-rotate(58deg) saturate(1.6) brightness(1.4)', glow: '#ffd23a' }
+	fear: { hue: 58, saturate: 1.6, brightness: 1.4, glow: '#ffd23a' }
 };
 
+type Matrix = [number, number, number, number, number, number, number, number, number];
+
+function times(a: Matrix, b: Matrix): Matrix {
+	const m = [0, 0, 0, 0, 0, 0, 0, 0, 0] as Matrix;
+	for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) m[r * 3 + c] = a[r * 3] * b[c] + a[r * 3 + 1] * b[3 + c] + a[r * 3 + 2] * b[6 + c];
+	return m;
+}
+
+/** The colour matrix for a tint: hue-rotate, then saturate, then brightness (the order the filters were listed). */
+function tintMatrix({ hue, saturate: s, brightness: b }: (typeof TINTS)[Tint]): Matrix {
+	const r = (hue * Math.PI) / 180;
+	const cos = Math.cos(r);
+	const sin = Math.sin(r);
+	const rotate: Matrix = [
+		0.213 + cos * 0.787 - sin * 0.213,
+		0.715 - cos * 0.715 - sin * 0.715,
+		0.072 - cos * 0.072 + sin * 0.928,
+		0.213 - cos * 0.213 + sin * 0.143,
+		0.715 + cos * 0.285 + sin * 0.14,
+		0.072 - cos * 0.072 - sin * 0.283,
+		0.213 - cos * 0.213 - sin * 0.787,
+		0.715 - cos * 0.715 + sin * 0.715,
+		0.072 + cos * 0.928 + sin * 0.072
+	];
+	const sat: Matrix = [
+		0.213 + 0.787 * s,
+		0.715 - 0.715 * s,
+		0.072 - 0.072 * s,
+		0.213 - 0.213 * s,
+		0.715 + 0.285 * s,
+		0.072 - 0.072 * s,
+		0.213 - 0.213 * s,
+		0.715 - 0.715 * s,
+		0.072 + 0.928 * s
+	];
+	return times([b, 0, 0, 0, b, 0, 0, 0, b], times(sat, rotate));
+}
+
+const MATRICES = Object.fromEntries(Object.entries(TINTS).map(([k, t]) => [k, tintMatrix(t)])) as Record<Tint, Matrix>;
+const recoloured = new Map<string, string>();
+
+function parseColor(color: string): [number, number, number, number] | null {
+	const c = color.trim();
+	if (c[0] === '#') {
+		const h = c.slice(1);
+		const full = h.length <= 4 ? [...h].map((ch) => ch + ch).join('') : h;
+		if (full.length !== 6 && full.length !== 8) return null;
+		const n = (i: number) => parseInt(full.slice(i, i + 2), 16);
+		return [n(0), n(2), n(4), full.length === 8 ? n(6) / 255 : 1];
+	}
+	const m = /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+%?))?\s*\)$/.exec(c);
+	if (!m) return null;
+	const alpha = m[4] === undefined ? 1 : m[4].endsWith('%') ? parseFloat(m[4]) / 100 : parseFloat(m[4]);
+	return [+m[1], +m[2], +m[3], alpha];
+}
+
+/** A colour as the tint shows it. Anything it can't read (a named colour) is left alone. */
+export function tintColor(color: string, tint: Tint): string {
+	const key = `${tint}|${color}`;
+	const known = recoloured.get(key);
+	if (known) return known;
+	const rgba = parseColor(color);
+	let out = color;
+	if (rgba) {
+		const [r, g, b, a] = rgba;
+		const m = MATRICES[tint];
+		const ch = (i: number) => Math.round(Math.max(0, Math.min(255, m[i] * r + m[i + 1] * g + m[i + 2] * b)));
+		out = `rgba(${ch(0)}, ${ch(3)}, ${ch(6)}, ${a})`;
+	}
+	// Colours built from changing numbers (fades) would pile up: start over now and then
+	if (recoloured.size > 4000) recoloured.clear();
+	recoloured.set(key, out);
+	return out;
+}
 
 /**
  * Draw red Red Lantern art in Corps green: a Green Lantern's constructs from
- * the enemy side (Kilowog sparring). The filter recolors the shapes; the
- * glow (shadow) isn't filtered, so any glow set while drawing is made green.
+ * the enemy side (Kilowog sparring).
  */
 export function inCorpsGreen(ctx: CanvasRenderingContext2D, draw: () => void) {
 	inTint(ctx, 'corps', draw);
 }
 
-/** Draw red art in another colour (see TINTS); no tint just draws it. */
+const STYLES = ['fillStyle', 'strokeStyle'] as const;
+const GRADIENTS = ['createLinearGradient', 'createRadialGradient', 'createConicGradient'] as const;
+
+/**
+ * Draw red art in another colour (see TINTS); no tint just draws it. While
+ * `draw` runs, every colour it sets (fills, strokes, gradient stops) is
+ * recoloured, and any glow is the tint's own.
+ */
 export function inTint(ctx: CanvasRenderingContext2D, tint: Tint | undefined, draw: () => void) {
 	if (!tint) {
 		draw();
 		return;
 	}
-	const { filter, glow } = TINTS[tint];
-	const shadowColor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ctx), 'shadowColor')!;
+	const { glow } = TINTS[tint];
+	const proto = Object.getPrototypeOf(ctx);
+	const shadowColor = Object.getOwnPropertyDescriptor(proto, 'shadowColor')!;
 	ctx.save();
-	ctx.filter = filter;
 	Object.defineProperty(ctx, 'shadowColor', {
 		configurable: true,
 		get: () => shadowColor.get!.call(ctx),
 		set: () => shadowColor.set!.call(ctx, glow)
 	});
+	for (const prop of STYLES) {
+		const d = Object.getOwnPropertyDescriptor(proto, prop)!;
+		Object.defineProperty(ctx, prop, {
+			configurable: true,
+			get: () => d.get!.call(ctx),
+			set: (v: unknown) => d.set!.call(ctx, typeof v === 'string' ? tintColor(v, tint) : v)
+		});
+	}
+	for (const make of GRADIENTS) {
+		const original = proto[make] as ((...a: number[]) => CanvasGradient) | undefined;
+		if (!original) continue;
+		Object.defineProperty(ctx, make, {
+			configurable: true,
+			value: (...args: number[]) => {
+				const g = original.apply(ctx, args);
+				const add = g.addColorStop.bind(g);
+				g.addColorStop = (offset: number, color: string) => add(offset, tintColor(color, tint));
+				return g;
+			}
+		});
+	}
 	try {
 		draw();
 	} finally {
-		delete (ctx as { shadowColor?: string }).shadowColor;
+		const own = ctx as unknown as Record<string, unknown>;
+		delete own.shadowColor;
+		for (const prop of STYLES) delete own[prop];
+		for (const make of GRADIENTS) delete own[make];
 		ctx.restore();
 	}
 }
