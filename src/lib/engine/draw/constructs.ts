@@ -16,6 +16,7 @@ import { GREEN } from './lantern';
 import { uiFont } from './fonts';
 import { drawAnvilDrop, drawClusterBomb, drawCutter, drawFlakShell, drawGirder, drawGrenade, drawMarine, drawSidewinder, drawSpring, drawTrain, drawWingman, drawWreckingBall, glovePath, ironFistDetail, ironFistPath, riflePath } from './kits';
 import { green, greenCore, GREEN_LIGHT, GREEN_CORE } from '../../theme';
+import { drawClaymore, drawGunship, drawMortarDrop, drawSentryGun, drawTank } from './armory';
 
 const CORE = GREEN_CORE;
 const TAU = Math.PI * 2;
@@ -351,7 +352,9 @@ export function drawLaserSight(
 
 /** An Auto-Turret construct: tripod legs, a body, and twin barrels that track targets. In space, a Sentry Drone. */
 export function drawAutoTurret(ctx: CanvasRenderingContext2D, t: Turret, time: number, space = false) {
-	if (t.def.shape === 'wingman') return drawWingman(ctx, t, time, space);
+	if (t.def.shape === 'gunship') return drawGunship(ctx, t, time, space);
+	if (t.def.behavior === 'wingman') return drawWingman(ctx, t, time, space);
+	if (t.def.shape === 'sentry' && !space) return drawSentryGun(ctx, t, time);
 	if (t.follow) return drawMarine(ctx, t, time, space);
 	if (space) return drawSentryDrone(ctx, t, time);
 	const fading = t.life < 1.5;
@@ -434,6 +437,7 @@ export function drawProjectile(ctx: CanvasRenderingContext2D, pr: Projectile, x:
 	const speed = Math.hypot(pr.vx, pr.vy) || 1;
 	const ux = pr.vx / speed;
 	const uy = pr.vy / speed;
+	if (pr.kind === 'train' && pr.def.shape === 'tank') return drawTank(ctx, pr, x, y, time);
 	if (pr.kind === 'train') return drawTrain(ctx, pr, x, y, lift, time);
 	if (pr.kind === 'girder') return drawGirder(ctx, pr, x, y, lift, time);
 	if (pr.kind === 'shell' && pr.def.shape === 'grenade') return drawGrenade(ctx, pr, x, y, lift, time);
@@ -665,6 +669,7 @@ export function drawTrap(ctx: CanvasRenderingContext2D, t: Trap, time: number) {
 /** A mine: a flat green disc with a blinking light, and a faint trigger ring. */
 function drawMine(ctx: CanvasRenderingContext2D, t: Trap, time: number) {
 	if (t.look === 'cluster') return drawClusterBomb(ctx, t, time);
+	if (t.look === 'claymore') return drawClaymore(ctx, t, time);
 	const blink = Math.sin(time * 6 + t.x) > 0.6;
 	ctx.save();
 	ctx.translate(t.x, t.y);
@@ -1423,6 +1428,7 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 		}
 		case 'pillars': {
 			if (e.form === 'anvil') drawAnvilDrop(ctx, e, time);
+			else if (e.form === 'mortar') drawMortarDrop(ctx, e, time);
 			else if (space) drawViceCrush(ctx, e, time);
 			else drawPillarDrop(ctx, e, time);
 			break;

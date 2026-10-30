@@ -73,6 +73,12 @@ type ConstructShape =
 	| 'wreckingBall'
 	| 'girder'
 	| 'cutter'
+	// John's Armory: the rest of the motor pool
+	| 'tank'
+	| 'mortar'
+	| 'gunship'
+	| 'claymore'
+	| 'sentry'
 	// Hal's pilot kit
 	| 'sidewinder'
 	| 'strafe'
@@ -355,6 +361,32 @@ export const CONSTRUCTS = {
 	cutter: {
 		id: 'cutter', name: 'Industrial Cutter', short: 'Cutter', behavior: 'grind', shape: 'cutter',
 		cost: 9, cooldown: 0, damage: 95, knockback: 40, range: 58, radius: 38, breaker: true
+	},
+	// ---- John's Armory: military kit he can swap in (see ARMORY) ----
+	// A tank rolls out along his aim, crushing what's in the way, and fires its main gun when it stops
+	tank: {
+		id: 'tank', name: 'Battle Tank', short: 'Tank', behavior: 'ram', shape: 'tank',
+		cost: 22, cooldown: 3.5, damage: 50, knockback: 620, range: 560, speed: 520, radius: 44
+	},
+	// Shells on a marked spot, one after another; count = shells, charge = flight time of the first
+	mortar: {
+		id: 'mortar', name: 'Mortar Barrage', short: 'Mortar', space: { name: 'Orbital Barrage', short: 'Barrage' }, behavior: 'pillars', shape: 'mortar',
+		cost: 16, cooldown: 2.6, damage: 30, knockback: 260, range: 560, radius: 72, charge: 0.9, stun: 0.3, count: 4
+	},
+	// A gunship circling on his wing, its chin gun on whatever he's fighting
+	gunship: {
+		id: 'gunship', name: 'Attack Helicopter', short: 'Heli', behavior: 'wingman', shape: 'gunship',
+		cost: 24, cooldown: 6, damage: 6, knockback: 30, range: 60, speed: 700, duration: 12, hp: 90, radius: 460
+	},
+	// Three directional mines in a line ahead of him
+	claymores: {
+		id: 'claymores', name: 'Claymores', short: 'Claymore', behavior: 'mine', shape: 'claymore',
+		cost: 10, cooldown: 1.6, damage: 46, knockback: 380, range: 90, radius: 84, duration: 40, count: 3
+	},
+	// A mounted machine gun behind sandbags: tougher and quicker-firing than an Auto-Turret
+	sentry: {
+		id: 'sentry', name: 'Sentry Gun', short: 'Sentry', space: { name: 'Gun Drone', short: 'Drone' }, behavior: 'turret', shape: 'sentry',
+		cost: 20, cooldown: 2, damage: 5, knockback: 30, range: 60, speed: 1150, duration: 18, hp: 150, radius: 420
 	}
 } satisfies Record<string, ConstructDef>;
 
@@ -439,6 +471,28 @@ export const LOADOUTS: Record<CrewId, ConstructId[]> = {
 	wonderwoman: ['beam'],
 	batman: ['beam']
 };
+
+/** Everything John can take into a fight: his kit plus the military extras. He carries ten (KIT_SIZE). */
+export const ARMORY: Partial<Record<CrewId, ConstructId[]>> = {
+	john: [...LOADOUTS.john, 'tank', 'mortar', 'gunship', 'claymores', 'sentry']
+};
+/** Constructs on the hotbar: keys 1 to 0. */
+export const KIT_SIZE = 10;
+
+/** Kits picked in the Armory, by Lantern (set by the app; the engine only reads them). */
+const picked: Partial<Record<CrewId, ConstructId[]>> = {};
+
+/** Use this kit for a Lantern from now on, or their standard LOADOUT again with null. Bad picks are ignored. */
+export function setKit(id: CrewId, kit: ConstructId[] | null) {
+	const armory = ARMORY[id];
+	if (!kit || !armory || kit.length !== KIT_SIZE || new Set(kit).size !== KIT_SIZE || kit.some((c) => !armory.includes(c))) delete picked[id];
+	else picked[id] = [...kit];
+}
+
+/** What a Lantern takes into a fight: their kit from the Armory if one was picked, else their LOADOUT. */
+export function kitOf(id: CrewId): ConstructId[] {
+	return picked[id] ?? LOADOUTS[id];
+}
 
 /** How many traps a single Lantern can have out at once. */
 export const MAX_TRAPS_PER_PLAYER = 3;

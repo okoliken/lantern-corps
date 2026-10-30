@@ -13,6 +13,8 @@
 
 	import { onNavigate } from '$app/navigation';
 	import { still } from '$lib/components/menu/motion';
+	// John's picked kit goes to the engine before any mission is built
+	import '$lib/armory.svelte';
 
 	let { children } = $props();
 

@@ -94,8 +94,8 @@ export interface Trap {
 	life: number;
 	/** Cage: how long it holds what it catches. */
 	hold: number;
-	/** Drawn as one of Hal's cluster bombs instead of a mine. */
-	look?: 'cluster';
+	/** Drawn as one of Hal's cluster bombs, or John's claymores, instead of a mine. */
+	look?: 'cluster' | 'claymore';
 	/** Mine: its blast. */
 	blast?: { radius: number; damage: number; knockback: number };
 }
@@ -854,8 +854,17 @@ function dropPillars(p: Player, def: ConstructDef, w: ConstructWorld) {
 		x = ox + ((x - ox) / dist) * def.range;
 		y = p.y + ((y - p.y) / dist) * def.range;
 	}
-	w.pillarStrikes.push({ owner: p, def, x, y, time: def.charge ?? 0.5 });
-	w.effects.push({ kind: 'pillars', x, y, age: 0, life: (def.charge ?? 0.5) + 0.9, radius: def.radius, owner: p, form: def.shape });
+	// A barrage: the rest of the shells land after the first, scattered round the mark
+	const shells = def.count ?? 1;
+	for (let i = 0; i < shells; i++) {
+		const a = Math.random() * Math.PI * 2;
+		const r = i === 0 ? 0 : MORTAR_SCATTER * (0.5 + Math.random() * 0.5);
+		const sx = x + Math.cos(a) * r;
+		const sy = y + Math.sin(a) * r * 0.6;
+		const delay = i * MORTAR_STAGGER;
+		w.pillarStrikes.push({ owner: p, def, x: sx, y: sy, time: (def.charge ?? 0.5) + delay });
+		w.effects.push({ kind: 'pillars', x: sx, y: sy, age: -delay, life: (def.charge ?? 0.5) + 0.9, radius: def.radius, owner: p, form: def.shape });
+	}
 }
 
 function shockwave(p: Player, def: ConstructDef, w: ConstructWorld) {
@@ -972,6 +981,15 @@ function lob(p: Player, def: ConstructDef, w: ConstructWorld) {
 const MARINE_FIRE_EVERY = 0.6;
 /** A Wingman's cannon is faster. */
 const WINGMAN_FIRE_EVERY = 0.22;
+/** The gunship's chin gun, faster again (and lighter). */
+const GUNSHIP_FIRE_EVERY = 0.12;
+/** A Sentry Gun is a machine gun: quicker than an Auto-Turret's twin barrels. */
+const SENTRY_FIRE_EVERY = 0.16;
+/** The Battle Tank's main gun, fired where it stops. */
+const TANK_GUN = { damage: 48, knockback: 520, range: 520, speed: 820, radius: 85 };
+/** Mortar shells after the first land this far apart in time, scattered this far round the mark. */
+const MORTAR_STAGGER = 0.22;
+const MORTAR_SCATTER = 70;
 /** Where each Marine stands around its Lantern. */
 const FIRETEAM_SPOTS: [number, number][] = [
 	[-70, -46],
@@ -1045,7 +1063,7 @@ function moveMarine(t: Turret, w: ConstructWorld, dt: number): Dummy | null {
 	const dist = Math.hypot(dx, dy);
 	m.moving = dist > 10;
 	if (m.moving) {
-		const step = Math.min(dist, (t.def.shape === 'wingman' ? t.def.speed ?? MARINE_SPEED : MARINE_SPEED) * dt);
+		const step = Math.min(dist, (t.def.behavior === 'wingman' ? t.def.speed ?? MARINE_SPEED : MARINE_SPEED) * dt);
 		t.x += (dx / dist) * step;
 		t.y += (dy / dist) * step;
 		m.stride += step * 0.09;
@@ -1122,7 +1140,8 @@ function updatePiercer(w: ConstructWorld, pr: Projectile, dt: number): boolean {
 	pr.y += pr.vy * dt;
 	pr.life -= dt;
 	if (pr.life <= 0) {
-		if (pr.kind === 'train') w.effects.push({ kind: 'fizzle', x: pr.x, y: pr.y, age: 0, life: 0.5 });
+		if (pr.def.shape === 'tank') fireTankGun(w, pr);
+		else if (pr.kind === 'train') w.effects.push({ kind: 'fizzle', x: pr.x, y: pr.y, age: 0, life: 0.5 });
 		return false;
 	}
 	const r = pr.kind === 'train' ? (pr.def.radius ?? 36) : 8;
@@ -1149,6 +1168,16 @@ function updatePiercer(w: ConstructWorld, pr: Projectile, dt: number): boolean {
 		return false;
 	}
 	return true;
+}
+
+/** The Battle Tank stops and fires its main gun straight ahead, then is gone. */
+function fireTankGun(w: ConstructWorld, pr: Projectile) {
+	const len = Math.hypot(pr.vx, pr.vy) || 1;
+	const gun: ConstructDef = { ...pr.def, behavior: 'heavy', shape: 'cannon', ...TANK_GUN };
+	const shell = launch(pr.owner, gun, 'shell', pr.vx / len, pr.vy / len, w, { x: pr.x + (pr.vx / len) * 40, y: pr.y });
+	shell.lift = 34;
+	w.effects.push({ kind: 'blast', x: pr.x + (pr.vx / len) * 40, y: pr.y, age: 0, life: 0.25, radius: 22, owner: pr.owner, lift: 34 });
+	w.effects.push({ kind: 'fizzle', x: pr.x, y: pr.y, age: 0, life: 0.5 });
 }
 
 /** Industrial Cutter: a spinning blade held out front. It chews through whatever it touches, shields most of all. */
@@ -1185,28 +1214,29 @@ function breakWard(w: ConstructWorld, d: Dummy) {
 }
 
 function placeMine(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
-	// Cluster bombs go BEHIND him, a few at once, for whatever is following
+	// Cluster bombs go BEHIND him, a few at once, for whatever is following; claymores go in a line ahead
 	const cluster = def.shape === 'cluster';
-	const n = cluster ? (def.count ?? 3) : 1;
+	const claymore = def.shape === 'claymore';
+	const n = cluster || claymore ? (def.count ?? 3) : 1;
 	let placed = 0;
 	for (let i = 0; i < n; i++) {
-		const spread = cluster ? (i - (n - 1) / 2) * 0.75 : 0;
+		const spread = cluster ? (i - (n - 1) / 2) * 0.75 : claymore ? (i - (n - 1) / 2) * 0.55 : 0;
 		const ang = Math.atan2(cluster ? -p.aimY : p.aimY, cluster ? -p.aimX : p.aimX) + spread;
 		const x = p.x + Math.cos(ang) * def.range;
 		const y = p.y + Math.sin(ang) * def.range * 0.7;
 		if (w.obstacles.some((o) => boxOverlap(x, y, 6, 4, o))) continue;
 		const mine = w.traps.filter((t) => t.owner === p && t.kind === 'mine');
-		const cap = cluster ? MAX_MINES_PER_PLAYER + 2 : MAX_MINES_PER_PLAYER;
+		const cap = cluster || claymore ? MAX_MINES_PER_PLAYER + 2 : MAX_MINES_PER_PLAYER;
 		if (mine.length >= cap) w.traps.splice(w.traps.indexOf(mine[0]), 1);
 		w.traps.push({
 			kind: 'mine',
 			owner: p,
 			x,
 			y,
-			radius: cluster ? 40 : 34,
+			radius: cluster ? 40 : claymore ? 44 : 34,
 			life: durable(p, def.duration ?? 40),
 			hold: 0,
-			look: cluster ? 'cluster' : undefined,
+			look: cluster ? 'cluster' : claymore ? 'claymore' : undefined,
 			blast: { radius: def.radius ?? 60, damage: power(p, def.damage), knockback: power(p, def.knockback) }
 		});
 		w.effects.push({ kind: 'snap', x, y, age: 0, life: 0.3, radius: 20 });
@@ -1235,7 +1265,7 @@ function eject(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 
 /** Wingman: a small jet on his wing that fires at what he fires at, for a while. */
 function callWingman(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
-	w.turrets = w.turrets.filter((t) => t.owner !== p || t.def.shape !== 'wingman');
+	w.turrets = w.turrets.filter((t) => t.owner !== p || t.def.behavior !== 'wingman');
 	const life = durable(p, def.duration ?? 12);
 	const hp = durable(p, def.hp ?? 70);
 	const x = p.x - p.dir * 70;
@@ -1647,7 +1677,8 @@ function updateTurrets(w: ConstructWorld, dt: number) {
 		t.aim = Math.atan2(target.y - t.y, target.x - t.x);
 		if (t.cooldown > 0) continue;
 
-		t.cooldown = t.def.shape === 'wingman' ? WINGMAN_FIRE_EVERY : t.follow ? MARINE_FIRE_EVERY : 0.35;
+		t.cooldown =
+			t.def.shape === 'gunship' ? GUNSHIP_FIRE_EVERY : t.def.behavior === 'wingman' ? WINGMAN_FIRE_EVERY : t.follow ? MARINE_FIRE_EVERY : t.def.shape === 'sentry' ? SENTRY_FIRE_EVERY : 0.35;
 		const boltDef = { ...t.def, range: range + 40, damage: power(t.owner, t.def.damage), knockback: t.def.knockback };
 		const bolt = launch(t.owner, boltDef, 'bolt', Math.cos(t.aim), Math.sin(t.aim), w, {
 			x: t.x + Math.cos(t.aim) * 16,

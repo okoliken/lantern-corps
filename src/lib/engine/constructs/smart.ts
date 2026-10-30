@@ -144,7 +144,7 @@ function score(def: ConstructDef, s: Situation, p: Player, w: ConstructWorld): n
 		case 'armor':
 			return !p.armor && (near >= 2 || p.health < p.maxHealth * 0.45) ? 0.8 : 0;
 		case 'wingman':
-			return !w.turrets.some((t) => t.owner === p && t.def.shape === 'wingman') && hasTarget ? 0.6 : 0;
+			return !w.turrets.some((t) => t.owner === p && t.def.behavior === 'wingman') && hasTarget ? 0.6 : 0;
 		case 'eject':
 			return s.rushed && p.health < p.maxHealth * 0.5 ? 0.85 : near >= 2 ? 0.5 : 0;
 		case 'chaff':

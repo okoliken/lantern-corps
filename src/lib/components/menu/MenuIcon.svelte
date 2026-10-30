@@ -3,6 +3,7 @@
 	export const SECTIONS = [
 		{ id: 'missions', href: '/missions', label: 'Missions', blurb: 'The story, act by act' },
 		{ id: 'school', href: '/school', label: 'Training', blurb: 'Learn the ring, pass the drills' },
+		{ id: 'armory', href: '/armory', label: 'Constructs', blurb: "What Hal and John build, and John's kit" },
 	] as const;
 	export type SectionId = (typeof SECTIONS)[number]['id'];
 </script>
@@ -20,6 +21,8 @@
 		<path d="M5 21V4" /><path d="M5 4h11l-2 4 2 4H5" />
 	{:else if name === 'school'}
 		<circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4" /><circle cx="12" cy="12" r="0.6" fill="currentColor" />
+	{:else if name === 'armory'}
+		<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5" />
 	{:else if name === 'home'}
 		<path d="M15 18l-6-6 6-6" />
 	{:else if name === 'lock'}

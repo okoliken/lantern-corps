@@ -1,6 +1,6 @@
 // A Player is one Lantern in the world, driven by one InputSource.
 
-import { CONSTRUCTS, LOADOUTS, type ConstructDef } from './constructs/defs';
+import { CONSTRUCTS, kitOf, type ConstructDef } from './constructs/defs';
 import type { InputSource, Intent } from './input';
 import type { LanternDef } from './lanterns';
 import type { Target } from './targeting';
@@ -223,7 +223,7 @@ export const FEET_HALF_W = 8;
 export const FEET_HALF_H = 5;
 
 export function createPlayer(slot: number, def: LanternDef, input: InputSource, x: number, y: number): Player {
-	const loadout = LOADOUTS[def.id].map((id) => CONSTRUCTS[id]);
+	const loadout = kitOf(def.id).map((id) => CONSTRUCTS[id]);
 	return {
 		hero: def.hero ? createHeroState(def.hero) : undefined,
 		slot,
