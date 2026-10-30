@@ -2,7 +2,7 @@
 // ARMORY). Engineered like the rest of his constructs (draw/kits.ts): plating,
 // tracks, rotors, sandbags, all in ring energy.
 
-import type { Effect, Projectile, Trap, Turret } from '../constructs/system';
+import { FLIER_HOVER, type Effect, type Projectile, type Trap, type Turret } from '../constructs/system';
 import { energy, sparks } from './constructs';
 import { GREEN } from './lantern';
 import { green, greenCore, GREEN_CORE } from '../../theme';
@@ -180,7 +180,7 @@ export function drawMortarDrop(ctx: CanvasRenderingContext2D, e: Effect, time: n
 /** The Attack Helicopter: a gunship hovering on his wing, rotor a blur, chin gun on its target. */
 export function drawGunship(ctx: CanvasRenderingContext2D, t: Turret, time: number, space: boolean) {
 	const grow = Math.min(1, (t.maxLife - t.life) / 0.3);
-	const hover = space ? 50 : 120;
+	const hover = FLIER_HOVER.gunship[space ? 1 : 0];
 	const bob = Math.sin(time * 2.4 + (t.follow?.dx ?? 0)) * 5;
 	const face = Math.cos(t.aim) >= 0 ? 1 : -1;
 	ctx.save();

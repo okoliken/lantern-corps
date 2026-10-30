@@ -5,7 +5,7 @@
 // (a reinforced fist, a wrecking ball, I-beams, Marines, a suit of armor).
 // Everything is drawn in ring energy (see `energy` in constructs.ts).
 
-import type { Effect, Projectile, Turret } from '../constructs/system';
+import { FLIER_HOVER, type Effect, type Projectile, type Turret } from '../constructs/system';
 import { computeSkeleton, turnScale, HEAD_R, type LanternPose } from '../animation';
 import { energy, sparks } from './constructs';
 import { GREEN } from './lantern';
@@ -649,7 +649,7 @@ export function drawWingman(ctx: CanvasRenderingContext2D, t: Turret, time: numb
 	const alpha = fading ? 0.5 + 0.5 * Math.sin(time * 20) : 1;
 	const grow = Math.min(1, (t.maxLife - t.life) / 0.25);
 	const hurt = t.hp < t.maxHp * 0.4;
-	const hover = space ? 40 : 96;
+	const hover = FLIER_HOVER.wingman[space ? 1 : 0];
 	const bob = Math.sin(time * 3 + t.follow!.dx) * 4;
 	ctx.save();
 	ctx.globalAlpha = alpha * (hurt ? 0.75 : 1);

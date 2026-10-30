@@ -1003,6 +1003,10 @@ function lob(p: Player, def: ConstructDef, w: ConstructWorld) {
 const MARINE_FIRE_EVERY = 0.6;
 /** A Wingman's cannon is faster. */
 const WINGMAN_FIRE_EVERY = 0.22;
+/** How high the flying companions are drawn (planet, space), so their shots leave from the aircraft, not the ground under it. */
+export const FLIER_HOVER = { wingman: [96, 40], gunship: [120, 50] } as const;
+/** Their shots fly at this height: about the middle of a body. */
+const FLIER_SHOT_LIFT = 50;
 /** The gunship's chin gun, faster again (and lighter). */
 const GUNSHIP_FIRE_EVERY = 0.12;
 /** A Sentry Gun is a machine gun: quicker than an Auto-Turret's twin barrels. */
@@ -1704,6 +1708,18 @@ function updateTurrets(w: ConstructWorld, dt: number) {
 		t.cooldown =
 			t.def.shape === 'gunship' ? GUNSHIP_FIRE_EVERY : t.def.behavior === 'wingman' ? WINGMAN_FIRE_EVERY : t.follow ? MARINE_FIRE_EVERY : t.def.shape === 'sentry' ? SENTRY_FIRE_EVERY : 0.35;
 		const boltDef = { ...t.def, range: range + 40, damage: power(t.owner, t.def.damage), knockback: t.def.knockback };
+		// A Wingman or gunship fires from its nose, up where it's drawn: the shot flies at body height
+		// (so it hits) from the ground point under the nose as you see it, angled down at its target
+		const flier = t.def.behavior === 'wingman' ? FLIER_HOVER[t.def.shape === 'gunship' ? 'gunship' : 'wingman'][w.space ? 1 : 0] : 0;
+		if (flier) {
+			const from = { x: t.x + Math.cos(t.aim) * 40, y: t.y - (flier - FLIER_SHOT_LIFT) };
+			const dx = target.x - from.x;
+			const dy = target.y - from.y;
+			const len = Math.hypot(dx, dy) || 1;
+			const bolt = launch(t.owner, { ...boltDef, range: len + 60 }, 'bolt', dx / len, dy / len, w, from);
+			bolt.lift = FLIER_SHOT_LIFT;
+			continue;
+		}
 		const bolt = launch(t.owner, boltDef, 'bolt', Math.cos(t.aim), Math.sin(t.aim), w, {
 			x: t.x + Math.cos(t.aim) * 16,
 			y: t.y + Math.sin(t.aim) * 8
