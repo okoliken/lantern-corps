@@ -24,6 +24,7 @@ import { RAZER_ABILITIES, startRazerAbility, updateRazerAbility } from './razer'
 import { GRODD_ABILITIES, startGroddAbility, updateGroddAbility, updatePsychicFx } from './grodd';
 import { REVERSE_FLASH_ABILITIES, startReverseFlashAbility, updateReverseFlashAbility } from './reverseFlash';
 import { LEAGUE_ABILITIES, startLeagueAbility, updateLeagueAbility, type LeagueCtx } from './league';
+import { GEAR_ABILITIES, startGearAbility, updateGearAbility, type GearCtx } from './gear';
 
 export type AbilityId =
 	| 'claws'
@@ -108,7 +109,15 @@ export type AbilityId =
 	| 'tridentThrow'
 	| 'tidalWave'
 	| 'sharks'
-	| 'whirlpool';
+	| 'whirlpool'
+	// People without rings: their own weapons (gear.ts)
+	| 'pistol'
+	| 'batSwing'
+	| 'pulseRifle'
+	| 'shockBaton'
+	| 'stunGrenade'
+	| 'handCannon'
+	| 'forgeBlade';
 
 /** How far away a construct is used from. Kits take some of each. */
 type Band = 'close' | 'mid' | 'long' | 'support';
@@ -533,13 +542,49 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	debrisStorm: def({
 		id: 'debrisStorm', name: 'Debris Storm', band: 'long', tell: 'sky', windup: 0.6, active: 1.4, recover: 0.5, cooldown: 10,
 		minRange: 0, maxRange: 620, damage: 14, knockback: 260, melee: false, heavy: true, chance: 0.9, speed: 620
+	}),
+	// ---- People without rings, with real weapons (gear.ts) ----
+	// A Gotham thug's pistol: three shots, fast and wild
+	pistol: def({
+		id: 'pistol', name: 'Pistol', band: 'long', tell: 'aim', windup: 0.45, active: 0.45, recover: 0.35, cooldown: 1.7,
+		minRange: 80, maxRange: 560, damage: 5, knockback: 110, melee: false, heavy: false, chance: 1, speed: 950
+	}),
+	// A baseball bat, swung like he means it
+	batSwing: def({
+		id: 'batSwing', name: 'Bat', band: 'close', tell: 'strike', windup: 0.42, active: 0.2, recover: 0.5, cooldown: 1.3,
+		minRange: 0, maxRange: 66, damage: 11, knockback: 380, melee: true, heavy: false, chance: 1
+	}),
+	// A Korugar Enforcer's pulse rifle: a tight burst, led onto you
+	pulseRifle: def({
+		id: 'pulseRifle', name: 'Pulse Rifle', band: 'long', tell: 'aim', windup: 0.55, active: 0.4, recover: 0.3, cooldown: 2.2,
+		minRange: 120, maxRange: 680, damage: 6, knockback: 150, melee: false, heavy: false, chance: 1, speed: 1050
+	}),
+	// The shock baton: it hurts less than a bat, and your legs stop answering
+	shockBaton: def({
+		id: 'shockBaton', name: 'Shock Baton', band: 'close', tell: 'strike', windup: 0.36, active: 0.2, recover: 0.45, cooldown: 1.5,
+		minRange: 0, maxRange: 62, damage: 8, knockback: 220, melee: true, heavy: false, chance: 1
+	}),
+	// A stun grenade lobbed onto where you'll be
+	stunGrenade: def({
+		id: 'stunGrenade', name: 'Stun Grenade', band: 'mid', tell: 'aim', windup: 0.5, active: 0.35, recover: 0.4, cooldown: 7,
+		minRange: 150, maxRange: 520, damage: 7, knockback: 200, melee: false, heavy: true, chance: 0.8, radius: 110
+	}),
+	// A Weaponer's hand-cannon: one slow, heavy round that bursts where it lands
+	handCannon: def({
+		id: 'handCannon', name: 'Hand-Cannon', band: 'long', tell: 'aim', windup: 0.75, active: 0.3, recover: 0.6, cooldown: 3.2,
+		minRange: 140, maxRange: 640, damage: 16, knockback: 420, melee: false, heavy: false, chance: 1, speed: 430, radius: 80
+	}),
+	// A forged blade, swung with both hands
+	forgeBlade: def({
+		id: 'forgeBlade', name: 'Forged Blade', band: 'close', tell: 'heavy', windup: 0.6, active: 0.3, recover: 0.6, cooldown: 2.6,
+		minRange: 0, maxRange: 86, damage: 18, knockback: 520, melee: true, heavy: false, chance: 1
 	})
 };
 
 /** What the machines use. They're never part of a Red Lantern's random kit. */
 const MACHINE_ABILITIES: readonly AbilityId[] = ['eyeLaser', 'sweep', 'pulse', 'strafe', 'bombs'];
 /** Signature moves of named Red Lanterns, never handed out in random kits. */
-const SIGNATURE_ABILITIES: readonly AbilityId[] = ['swoop', ...CORPS_ABILITIES, ...RAZER_ABILITIES, ...GRODD_ABILITIES, ...REVERSE_FLASH_ABILITIES, ...LEAGUE_ABILITIES];
+const SIGNATURE_ABILITIES: readonly AbilityId[] = ['swoop', ...CORPS_ABILITIES, ...RAZER_ABILITIES, ...GRODD_ABILITIES, ...REVERSE_FLASH_ABILITIES, ...LEAGUE_ABILITIES, ...GEAR_ABILITIES];
 
 /**
  * Every red construct a Red Lantern's kit can be built from. Built the first
@@ -606,8 +651,8 @@ export interface RedShot {
 	kind: 'bolt' | 'saw' | 'hook' | 'spear' | 'skull' | 'plasma' | 'orb' | 'laser' | 'shell' | 'hammer' | 'fist' | 'blade';
 	/** Big constructs (a thrown hammer, a giant fist) hit this much wider than a bolt. */
 	size?: number;
-	/** Not energy at all: something Grodd threw (a car, a chunk of street). */
-	look?: 'car' | 'rock';
+	/** Not a construct at all: something Grodd threw (a car, a chunk of street), or a real weapon's round (gear.ts). */
+	look?: 'car' | 'rock' | 'bullet' | 'energy' | 'slug';
 	owner: Enemy;
 	x: number;
 	y: number;
@@ -718,6 +763,7 @@ export function power(e: Enemy, a: AbilityDef): number {
 /** The windup is over: the construct happens. */
 /** What the League's moves borrow from this module's imports (see LeagueCtx). */
 export const leagueCtx = (): LeagueCtx => ({ damagePlayer, heroFx, steer, power });
+const gearCtx = (): GearCtx => ({ damagePlayer, steer, power, fire });
 
 export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Player[]) {
 	const b = e.brain;
@@ -734,6 +780,7 @@ export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Play
 	if (GRODD_ABILITIES.has(a.id)) return startGroddAbility(e, a, w);
 	if (REVERSE_FLASH_ABILITIES.has(a.id)) return startReverseFlashAbility(e, a, w);
 	if (LEAGUE_ABILITIES.has(a.id)) return startLeagueAbility(e, a, w, players, leagueCtx());
+	if (GEAR_ABILITIES.has(a.id)) return startGearAbility(e, a, w);
 	switch (a.id) {
 		case 'claws':
 			e.vx += b.aimX * 340;
@@ -914,6 +961,10 @@ export function updateAbility(e: Enemy, w: ConstructWorld, players: readonly Pla
 	}
 	if (LEAGUE_ABILITIES.has(a.id)) {
 		updateLeagueAbility(e, a, w, players, dt, leagueCtx());
+		return b.timer <= 0;
+	}
+	if (GEAR_ABILITIES.has(a.id)) {
+		updateGearAbility(e, a, w, players, dt, gearCtx());
 		return b.timer <= 0;
 	}
 	if (CORPS_ABILITIES.has(a.id)) {

@@ -63,6 +63,10 @@ export interface EnemyDef {
 	movement: 'hover' | 'ship' | 'static';
 	/** A fixed kit. Without one it's a Rage Grunt: its ROLE picks the kit, range and leanings. */
 	kit?: AbilityId[];
+	/** People who fight in different ways within one group (thugs who brawl, thugs with guns): a kit and a fighting distance per role. */
+	crew?: Record<Role, { kit: AbilityId[]; range: number }>;
+	/** On their feet: walks, stays on the ground, and goes round what's in the way. No ring, no flying. */
+	onFoot?: boolean;
 	/** Favourite fighting distance (enemies with a fixed kit). */
 	range?: number;
 	/** Personality leanings (enemies with a fixed kit). */
@@ -104,16 +108,24 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		faction: 'rogue',
 		tint: 'psychic',
 		description:
-			"Sinestro's police on Korugar. They keep his order with his weapons, and they are more afraid of him than of you: they hold a line, cover each other, and pull back to regroup when hurt.",
+			"Sinestro's police on Korugar: trained, armoured, and more afraid of him than of you. Riflemen fire tight bursts led onto where you're going, grenadiers lob stun grenades, and shock troopers close in with batons that lock your legs up. They hold a line and they don't break it.",
 		mind: 'machine',
 		hp: 150,
-		speed: 160,
-		accel: 5,
-		sight: 700,
-		poise: 40,
+		speed: 150,
+		accel: 6,
+		sight: 720,
+		poise: 44,
 		scale: 1,
-		agility: 0.55,
-		movement: 'hover'
+		agility: 0.4,
+		movement: 'hover',
+		onFoot: true,
+		crew: {
+			gunner: { kit: ['pulseRifle'], range: 360 },
+			hunter: { kit: ['stunGrenade', 'pulseRifle'], range: 320 },
+			berserker: { kit: ['shockBaton', 'stunGrenade'], range: 120 }
+		},
+		// Disciplined: they keep to the plan and keep their heads down
+		leans: { patience: 0.35, caution: 0.25, aggression: -0.05 }
 	},
 	// Season two: the Sinestro Corps. Fear, not rage: they keep their distance, gang up, and get into your head (dread.ts).
 	fearGrunt: {
@@ -160,16 +172,25 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		name: 'Gotham thug',
 		faction: 'rogue',
 		tint: 'tech',
-		description: "Scarecrow pays well and nobody asks what's in the canisters. Guns and bats, nothing more.",
+		description:
+			"Scarecrow pays well and nobody asks what's in the canisters. Pistols fired wild and baseball bats. No training and no plan: they rush you, and they scatter when it goes wrong.",
 		mind: 'machine',
 		hp: 110,
-		speed: 150,
+		speed: 175,
 		accel: 5,
-		sight: 640,
-		poise: 30,
+		sight: 600,
+		poise: 26,
 		scale: 1,
-		agility: 0.5,
-		movement: 'hover'
+		agility: 0.3,
+		movement: 'hover',
+		onFoot: true,
+		crew: {
+			gunner: { kit: ['pistol'], range: 300 },
+			hunter: { kit: ['pistol', 'batSwing'], range: 200 },
+			berserker: { kit: ['batSwing'], range: 90 }
+		},
+		// Reckless: in fast, no patience for a plan, and nobody watching their back
+		leans: { aggression: 0.35, caution: -0.25, patience: -0.3 }
 	},
 	// Season two, Qward: the anti-matter universe's smiths, who make weapons for anyone who hates the Guardians.
 	weaponer: {
@@ -178,16 +199,24 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		faction: 'rogue',
 		tint: 'tech',
 		description:
-			'Hooded smiths of the anti-matter universe, who make weapons for anyone who hates the Guardians. Their own are heavy and well made: they hold back, fire, and close in once you are worn down.',
+			'Hooded smiths of the anti-matter universe, who make weapons for anyone who hates the Guardians. Their own are heavy and well made: hand-cannons that burst where they land, and forged blades swung with both hands. They hold back and fire, and close in once you are worn down.',
 		mind: 'machine',
 		hp: 150,
-		speed: 150,
+		speed: 130,
 		accel: 4.5,
-		sight: 720,
-		poise: 44,
+		sight: 760,
+		poise: 52,
 		scale: 1.05,
-		agility: 0.5,
-		movement: 'hover'
+		agility: 0.25,
+		movement: 'hover',
+		onFoot: true,
+		crew: {
+			gunner: { kit: ['handCannon'], range: 420 },
+			hunter: { kit: ['handCannon', 'forgeBlade'], range: 300 },
+			berserker: { kit: ['forgeBlade', 'handCannon'], range: 110 }
+		},
+		// Patient: they wait for the shot, and they don't rush in
+		leans: { patience: 0.4, caution: 0.3, aggression: -0.2 }
 	},
 	// Season two, Act 3: a frightened man a yellow ring found first. Not a villain: it is the ring doing this.
 	frightened: {
@@ -1174,11 +1203,13 @@ export function createEnemy(
 	role: Role = 'berserker',
 	rand = Math.random,
 	// Rage Grunts each get a full kit of constructs for their role
-	kit: AbilityId[] = ENEMIES[kind].kit ?? (kind === 'rageGrunt' ? randomKit(role, rand) : ROLES[role].abilities)
+	kit: AbilityId[] = ENEMIES[kind].kit ?? ENEMIES[kind].crew?.[role].kit ?? (kind === 'rageGrunt' ? randomKit(role, rand) : ROLES[role].abilities)
 ): Enemy {
 	const def = ENEMIES[kind];
-	const hp = Math.round(def.hp * (def.kit ? 1 : ROLES[role].hp));
-	const leans = def.kit ? (def.leans ?? {}) : ROLES[role].leans;
+	// Their own kind of fighter: their own health and temper, whatever the role
+	const own = def.kit || def.crew;
+	const hp = Math.round(def.hp * (own ? 1 : ROLES[role].hp));
+	const leans = own ? (def.leans ?? {}) : ROLES[role].leans;
 	// A short, slightly different grace period on every construct, so a pack
 	// that arrives together doesn't attack together
 	const cooldowns = {} as Record<AbilityId, number>;
@@ -1275,18 +1306,19 @@ function attackOf(e: Enemy): AbilityDef | null {
 
 /** The distance this enemy likes to fight from. */
 export function rangeOf(e: Enemy): number {
-	return ENEMIES[e.kind].range ?? ROLES[e.brain.role].range;
+	const def = ENEMIES[e.kind];
+	return def.range ?? def.crew?.[e.brain.role].range ?? ROLES[e.brain.role].range;
 }
 
 /** Role speed multiplier (only Rage Grunts have roles). */
 export function roleSpeed(e: Enemy): number {
-	return ENEMIES[e.kind].kit ? 1 : ROLES[e.brain.role].speed;
+	return ENEMIES[e.kind].kit || ENEMIES[e.kind].crew ? 1 : ROLES[e.brain.role].speed;
 }
 
 /** What to call it: the grunt's species, or the enemy's own name. */
 export function enemyLabel(e: Enemy): string {
 	if (e.phantom) return 'Nightmare';
-	return ENEMIES[e.kind].kit || e.kind === 'enforcer' || e.kind === 'fearGrunt' || e.kind === 'thug' || e.kind === 'weaponer' || e.kind === 'frightened' ? ENEMIES[e.kind].name : ROLES[e.brain.role].species;
+	return ENEMIES[e.kind].kit || ENEMIES[e.kind].crew || e.kind === 'fearGrunt' || e.kind === 'frightened' ? ENEMIES[e.kind].name : ROLES[e.brain.role].species;
 }
 
 /** Effects that are already drawn in Corps green (the rest get recolored for a sparring Green Lantern). */
@@ -1577,7 +1609,7 @@ function trySupport(e: Enemy, t: Player, pack: readonly Enemy[], dist: number): 
 const RESERVE_EAGERNESS = 0.55;
 
 /** Lanterns, red or green: they can all raise a shield. Machines, ships and turrets can't. */
-const SHIELDERS: ReadonlySet<EnemyKind> = new Set(['rageGrunt', 'zox', 'skallox', 'bleez', 'kilowog', 'sinestro', 'enforcer', 'fearGrunt', 'sinestroYellow', 'arkillo']);
+const SHIELDERS: ReadonlySet<EnemyKind> = new Set(['rageGrunt', 'zox', 'skallox', 'bleez', 'kilowog', 'sinestro', 'fearGrunt', 'sinestroYellow', 'arkillo']);
 
 /** Aimed constructs need a clear line; area and self-centred ones don't. */
 function needsClearShot(a: AbilityDef): boolean {

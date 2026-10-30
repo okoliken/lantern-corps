@@ -6,6 +6,7 @@
 // hand with an aim line, the body crouches before a slam, and red rings pull
 // inward before a roar.
 
+import { drawRinglessEnemy, isRinglessKind, ringlessMuzzle, ringlessTop } from './ringless';
 import { AQUAMAN_COLOR, aquamanHand, aquamanTop, drawAquamanEnemy, isAquamanKind, BATMAN_COLOR, batmanHand, batmanTop, drawBatmanEnemy, drawLeagueEnemy, drawReverseFlash, isBatmanKind, isLeagueKind, leagueColor, leagueHand, leagueTop, reverseFlashHand, reverseFlashTop } from './heroes';
 import type { LanternPose } from '../animation';
 import { ENEMIES, type Enemy } from '../enemies/enemies';
@@ -45,6 +46,11 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 	if (e.kind === 'rageTurret') {
 		drawRageTurret(ctx, e, x, y, hasGround, time);
 		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, y - 78, [x + e.brain.aimX * 26, y - RED_HAND_LIFT], time);
+		return;
+	}
+	if (isRinglessKind(e.kind)) {
+		drawRinglessEnemy(ctx, e, x, y, hasGround, time);
+		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, ringlessTop(e, y), ringlessMuzzle(e, x, y), time);
 		return;
 	}
 	if (isCorpsKind(e.kind)) {
@@ -111,6 +117,7 @@ export function enemyMuzzle(e: Enemy, x: number, y: number): [number, number] {
 	if (e.kind === 'manhunterDrone' || e.kind === 'redFighter') return machineMuzzle(e, x, y);
 	if (e.kind === 'rageTurret') return [x + e.brain.aimX * 26, y - RED_HAND_LIFT];
 	if (e.kind === 'dexStarr') return dexStarrHand(e, x, y);
+	if (isRinglessKind(e.kind)) return ringlessMuzzle(e, x, y);
 	if (isLieutenantKind(e.kind)) return lieutenantHand(e, x, y);
 	if (isGorillaKind(e.kind)) return gorillaHand(e, x, y);
 	if (e.kind === 'manhunter' || e.kind === 'manhunterPrime') return manhunterHand(e, x, y);

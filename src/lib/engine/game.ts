@@ -2,6 +2,8 @@
 // It's plain TypeScript, with no Svelte, so it can run in /play, in any
 // /lab page, and in tests.
 
+import { updateGear } from './enemies/gear';
+import { drawGearShot, drawGearWorld } from './draw/ringless';
 import { drawWashed, type Wash } from './draw/wash';
 import { castBeam } from './beam';
 import { updateDread } from './dread';
@@ -46,7 +48,7 @@ import { drawHero, drawHeroFx, drawRazerAlly, drawSpeedTrail } from './draw/hero
 import { drawManhunterCore, drawMindLock, drawPsychicFx, drawThrownDebris } from './draw/gorillas';
 import { psychicFx } from './enemies/grodd';
 import { RED_HAND_LIFT, type RedShot } from './enemies/redConstructs';
-import { updatePlayerCombat, revivePlayer } from './combat';
+import { damagePlayer, updatePlayerCombat, revivePlayer } from './combat';
 import { ENEMIES, createEnemy, enemyLabel, isEnemy, tintOf, updateEnemies, type Tint, type Enemy, type EnemyKind, type Role } from './enemies/enemies';
 import {
 	FIGURE_HALF_WIDTH,
@@ -457,6 +459,7 @@ export class Game {
 		updateHeroFx(this.constructs, dt);
 		if (!this.freezeEnemies) updateEnemies(this.constructs, this.players, dt);
 		updateConstructWorld(this.constructs, dt);
+		updateGear(this.constructs, this.players, dt, damagePlayer);
 		updateAidStations(this.constructs, this.players, dt);
 		updateSignatureWorld(this.constructs, dt);
 		this.handleEvents();
@@ -473,7 +476,8 @@ export class Game {
 				updateDummy(d, dt, [], false);
 				continue;
 			}
-			updateDummy(d, dt, enemy ? flyerSolids : map.obstacles, !enemy);
+			// Red Lanterns fly over low things; people on foot go round them like anyone else
+			updateDummy(d, dt, enemy && !ENEMIES[d.kind].onFoot ? flyerSolids : map.obstacles, !enemy);
 			d.x = Math.min(Math.max(d.x, DUMMY_HALF_W), map.width - DUMMY_HALF_W);
 			d.y = Math.min(Math.max(d.y, DUMMY_HALF_H), map.height - DUMMY_HALF_H);
 		}
@@ -838,7 +842,8 @@ export class Game {
 		for (const s of cw.red.shots) {
 			const x = lerp(s.prevX, s.x, alpha);
 			const y = lerp(s.prevY, s.y, alpha);
-			if (s.look) drawThrownDebris(ctx, s, x, y, RED_HAND_LIFT, this.time);
+			if (s.look === 'car' || s.look === 'rock') drawThrownDebris(ctx, s, x, y, RED_HAND_LIFT, this.time);
+			else if (s.look) drawGearShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
 			else if (s.kind === 'hammer' || s.kind === 'fist' || s.kind === 'blade') drawCorpsShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
 			else redShots.push(s);
 		}
@@ -857,6 +862,7 @@ export class Game {
 			tinted(ctx, c.tint, () => drawRedCage(ctx, c, x, y - this.poseFor(t).hoverHeight * t.altitude * 1.35, top, this.time));
 		}
 		drawFallingMeteors(ctx, cw.red.strikes, this.time);
+		drawGearWorld(ctx, cw, RED_HAND_LIFT, this.time);
 		for (const c of cw.red.chains) {
 			const t = c.target;
 			const bodyY = lerp(t.prevY, t.y, alpha) - this.poseFor(t).hoverHeight * t.altitude * 1.35 - FIGURE_HEIGHT * 0.55;

@@ -364,11 +364,34 @@ export function navigate(e: Enemy, t: Player, dt: number, w: ConstructWorld) {
 	// Slow down on arrival instead of overshooting and jittering
 	const want = gd < 6 ? 0 : Math.min(speed, gd * 4);
 	steer(e, gd > 0 ? (gdx / gd) * want : 0, gd > 0 ? (gdy / gd) * want : 0, def.accel, dt);
+	unpin(e, want, dt);
 
 	// Face the Lantern while fighting; otherwise face the way it's going
 	const fighting = b.engaged || d < range * 1.5 || b.goal === 'hold' || b.goal === 'wait' || b.goal === 'cover' || b.goal === 'reserve';
 	if (fighting && b.sees) face(e, dx);
 	else if (Math.abs(e.vx) > 20) face(e, e.vx);
+}
+
+/** How long each enemy has been trying to move and getting nowhere. */
+const pinnedFor = new WeakMap<Enemy, number>();
+const PINNED = { after: 0.7, swing: 0.9 };
+
+/**
+ * Pressed against the edge of the map or wedged on a wall, going nowhere:
+ * pick another line round the fight and think again, rather than stand there.
+ */
+function unpin(e: Enemy, want: number, dt: number) {
+	const moved = Math.hypot(e.x - e.prevX, e.y - e.prevY);
+	const stuck = want > 60 && moved < want * dt * 0.15;
+	const t = stuck ? (pinnedFor.get(e) ?? 0) + dt : 0;
+	pinnedFor.set(e, t);
+	if (t < PINNED.after) return;
+	pinnedFor.set(e, 0);
+	const b = e.brain;
+	b.orbit += b.strafe * PINNED.swing;
+	b.strafe = b.strafe === 1 ? -1 : 1;
+	if (b.goal === 'retreat' || b.goal === 'reserve' || b.goal === 'cover') b.goal = 'hold';
+	b.goalTimer = 0;
 }
 
 /** No one to fight: drift about near where it started. */

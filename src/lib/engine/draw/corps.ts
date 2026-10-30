@@ -9,7 +9,7 @@ import { drawLantern, ringPosition, FIGURE_HEIGHT, GREEN, type Figure } from './
 import { computeSkeleton, turnScale } from '../animation';
 import { drawChpBody, drawGnortBody, drawGuyBody, drawSalaakBody } from './league';
 
-export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'enforcer' | 'fearGrunt' | 'scarecrow' | 'thug' | 'weaponer' | 'sinestroYellow' | 'frightened' | 'arkillo';
+export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'fearGrunt' | 'scarecrow' | 'sinestroYellow' | 'frightened' | 'arkillo';
 
 interface CorpsFigure {
 	figure: Figure;
@@ -41,20 +41,6 @@ const CORPS: Record<CorpsKind, CorpsFigure> = {
 		hunch: -0.04
 	},
 	/**
-	 * Sinestro's police on Korugar (season two): Korugarians, magenta like him,
-	 * in his black-and-purple uniform and a dark helmet. No ring: his weapons.
-	 */
-	enforcer: {
-		figure: {
-			id: 'enforcer',
-			look: { skin: '#b84a82', hair: '#141018', hairStyle: 'cropped', mask: false },
-			outfit: { top: '#2a1838', topLit: '#4b2a63', trousers: '#140c1c', boots: '#0b070f', hardHat: '#1c1026' }
-		},
-		scale: 1,
-		build: { leg: 1.05, torso: 1, arm: 1, neck: 1.05 },
-		hunch: 0
-	},
-	/**
 	 * A soldier of the Sinestro Corps (season two): an alien the yellow ring
 	 * chose for the fear it could cause, in Sinestro's gold and black.
 	 */
@@ -74,28 +60,6 @@ const CORPS: Record<CorpsKind, CorpsFigure> = {
 		scale: 1.08,
 		build: { leg: 1.15, torso: 0.95, arm: 1.1, neck: 1.15 },
 		hunch: 0.08
-	},
-	/** A Gotham thug: a hoodie, jeans, a cap pulled down. */
-	thug: {
-		figure: {
-			id: 'thug',
-			look: { skin: '#c99a76', hair: '#2a2420', hairStyle: 'cropped', mask: false },
-			outfit: { top: '#3d4450', topLit: '#58606e', trousers: '#2b3346', boots: '#16161a', hardHat: '#20232a' }
-		},
-		scale: 1,
-		build: { leg: 1, torso: 1.05, arm: 1.02, neck: 0.95 },
-		hunch: 0.06
-	},
-	/** A Weaponer of Qward: grey-blue skin, a deep hood, a smith's heavy robe. */
-	weaponer: {
-		figure: {
-			id: 'weaponer',
-			look: { skin: '#6c8198', hair: '#20262e', hairStyle: 'cropped', mask: false },
-			outfit: { top: '#33302b', topLit: '#524c43', trousers: '#24221e', boots: '#151412', hardHat: '#2b2925' }
-		},
-		scale: 1.06,
-		build: { leg: 0.95, torso: 1.1, arm: 1.1, neck: 0.85 },
-		hunch: 0.12
 	},
 	/** Sinestro with the yellow ring (season two): the same man, in his own Corps' gold and black. */
 	sinestroYellow: {
