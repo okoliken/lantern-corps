@@ -183,7 +183,7 @@
 
 		{#if status.line && !paused && status.state !== 'lost'}
 			<!-- Each new line pops in -->
-			{#key status.line}
+			{#key `${status.line.who}:${status.line.text}`}
 				<div class="comms" aria-live="polite">
 					<span class="who">{status.line.who}</span>
 					<span>{status.line.text}</span>
