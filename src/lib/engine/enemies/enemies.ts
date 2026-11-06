@@ -28,7 +28,7 @@ import { flyShip } from './ships';
 import { updateSquads, type SquadRole } from './squad';
 import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
 
-export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire' | 'rageBubble' | 'bloodConduit' | 'toxinTank' | 'forgeConduit' | 'mindAmp' | 'fearLens' | 'seaBreach'>;
+export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire' | 'rageBubble' | 'bloodConduit' | 'toxinTank' | 'forgeConduit' | 'mindAmp' | 'fearLens' | 'seaBreach' | 'qwardCharge'>;
 type EnemyState = 'idle' | 'move' | 'windup' | 'act' | 'recover';
 export type Role = 'berserker' | 'hunter' | 'gunner';
 /** How a faction thinks: rage never backs down and gets faster when hurt; machines stay cold and regroup. */
@@ -243,6 +243,32 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		},
 		// Professionals: they keep their distance and wait for the reload
 		leans: { patience: 0.2, caution: 0.15 }
+	},
+	// Season two, Lights Out: Qward's soldiers, come back through the gate behind Hal
+	thunderer: {
+		kind: 'thunderer',
+		name: 'Thunderer of Qward',
+		faction: 'rogue',
+		tint: 'tech',
+		description:
+			"The anti-matter universe's soldiers: tall, armoured, hollow-eyed. They throw qwa-bolts, javelins of black lightning, and hold the same bolts as blades up close. Where they walk, light dies: near one, your ring's light shrinks.",
+		mind: 'machine',
+		hp: 150,
+		speed: 155,
+		accel: 5,
+		sight: 640,
+		poise: 48,
+		scale: 1.08,
+		agility: 0.45,
+		movement: 'hover',
+		onFoot: true,
+		crew: {
+			gunner: { kit: ['qwaBolt'], range: 420 },
+			hunter: { kit: ['qwaBolt', 'qwaBlade'], range: 260 },
+			berserker: { kit: ['qwaBlade', 'qwaBolt'], range: 90 }
+		},
+		// They come out of the dark and go back into it
+		leans: { caution: 0.25, aggression: 0.1 }
 	},
 	blackManta: {
 		kind: 'blackManta',

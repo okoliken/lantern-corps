@@ -12,6 +12,9 @@
 //                     lands; a forged blade swung with both hands.
 //   Manta's divers    a speargun, one heavy bolt and a long reload; a dive
 //                     knife, stabbed in low.
+//   Thunderers of Qward anti-matter soldiers. Qwa-bolts, javelins of black
+//                     lightning thrown hard, and the same bolt held as a
+//                     blade. Where they walk, light dies (Lights Out).
 //   Black Manta       wrist blades, two quick cuts; a harpoon that bites in and
 //                     reels you to him; and the helmet's eyes, two red beams
 //                     held on you after a long glow (a shield takes them).
@@ -47,10 +50,12 @@ export const GEAR_ABILITIES: ReadonlySet<AbilityId> = new Set<AbilityId>([
 	'diveKnife',
 	'wristBlades',
 	'mantaHarpoon',
-	'opticBlast'
+	'opticBlast',
+	'qwaBolt',
+	'qwaBlade'
 ]);
 export const isGearAbility = (id: AbilityId) => GEAR_ABILITIES.has(id);
-const MELEE: ReadonlySet<AbilityId> = new Set<AbilityId>(['batSwing', 'shockBaton', 'forgeBlade', 'diveKnife', 'wristBlades']);
+const MELEE: ReadonlySet<AbilityId> = new Set<AbilityId>(['batSwing', 'shockBaton', 'forgeBlade', 'diveKnife', 'wristBlades', 'qwaBlade']);
 export const isGearMelee = (id: AbilityId | null) => id !== null && MELEE.has(id);
 
 /** Pistol: three shots, close together, and not where they were aimed. */
@@ -60,9 +65,9 @@ const RIFLE = { shots: 3, gap: 0.1, wild: 0.04 };
 /** The hand-cannon kicks the smith back a step. */
 const CANNON = { recoil: 170 };
 /** A swing lunges them in a little. */
-const LUNGE: Partial<Record<AbilityId, number>> = { batSwing: 260, shockBaton: 200, forgeBlade: 150, diveKnife: 300, wristBlades: 240 };
+const LUNGE: Partial<Record<AbilityId, number>> = { batSwing: 260, shockBaton: 200, forgeBlade: 150, diveKnife: 300, wristBlades: 240, qwaBlade: 220 };
 /** How wide a swing reaches round the aim (cosine of the half angle). */
-const ARC: Partial<Record<AbilityId, number>> = { batSwing: 0.35, shockBaton: 0.45, forgeBlade: 0.05, diveKnife: 0.55, wristBlades: 0.3 };
+const ARC: Partial<Record<AbilityId, number>> = { batSwing: 0.35, shockBaton: 0.45, forgeBlade: 0.05, diveKnife: 0.55, wristBlades: 0.3, qwaBlade: 0.4 };
 /** Wrist blades: the second cut comes this long after the first. */
 const SECOND_CUT = 0.17;
 /** The harpoon: how long it reels you in, and how hard. */
@@ -222,6 +227,17 @@ export function updateGearAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, pl
 			g.fx.push({ kind: 'muzzle', weapon: a.id, x: e.x, y: e.y, angle, dir: e.dir, radius: 0, age: 0, life: 0.12 });
 			return;
 		}
+		case 'qwaBolt': {
+			steer(e, 0, 0, 7, dt);
+			if (b.fired > 0) return;
+			b.fired = 1;
+			const [dx, dy] = t ? leadOnto(e, t, a.speed ?? 760) : [b.aimX, b.aimY];
+			e.dir = dx < 0 ? -1 : 1;
+			const shot = fire(e, w, 'bolt', a, dx, dy, false);
+			shot.look = 'qwa';
+			g.fx.push({ kind: 'muzzle', weapon: a.id, x: e.x, y: e.y, angle: Math.atan2(dy, dx), dir: e.dir, radius: 0, age: 0, life: 0.18 });
+			return;
+		}
 		case 'speargun': {
 			steer(e, 0, 0, 7, dt);
 			if (b.fired > 0) return;
@@ -256,7 +272,8 @@ export function updateGearAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, pl
 		case 'batSwing':
 		case 'shockBaton':
 		case 'forgeBlade':
-		case 'diveKnife': {
+		case 'diveKnife':
+		case 'qwaBlade': {
 			steer(e, 0, 0, 7, dt);
 			if (b.hitDone) return;
 			b.hitDone = true;

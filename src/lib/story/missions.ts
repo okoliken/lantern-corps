@@ -447,6 +447,7 @@ export const ACTS: ActInfo[] = [
 			'gotham-at-night',
 			'qward',
 			'what-grodd-wants',
+			'lights-out',
 			'first-light'
 		]
 	},
@@ -679,6 +680,21 @@ MISSIONS.push({
 		"New: MIND GRIP. Grodd can reach into John's head and lock two of his constructs for a few seconds. His amplifiers make him stronger. Break them."
 	],
 	objectives: ["Clear Grodd's soldiers from the streets", 'Break the three mind amplifiers', 'Take down Grodd']
+});
+
+MISSIONS.push({
+	id: 'lights-out',
+	title: 'Lights Out',
+	tagline: 'Thunderers of Qward came back through the gate. Oa is going dark, and Hal hunts them by the light of his ring.',
+	lantern: 'hal',
+	environment: 'planet',
+	place: 'Oa · the plaza of the Central Battery, at night',
+	briefing: [
+		'Something followed Hal and Kilowog back through the gate from Qward: Thunderers, the anti-matter universe\'s soldiers. They are in the plaza round the Central Battery, and it is failing.',
+		'Kilowog has the rookies on the towers. The plaza is Hal\'s.',
+		'New: THE DARK. You see as far as your ring\'s light, and it reaches as far as your will. Near a Thunderer it shrinks. Some of them carry charges to the foot of the Battery: break them before the fuse burns down.'
+	],
+	objectives: ['Hunt the Thunderers in the dark', 'Break every charge before it goes off', 'Keep the Battery burning']
 });
 
 MISSIONS.push({

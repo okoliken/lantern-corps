@@ -350,6 +350,18 @@ export const BAIT: SceneLine[] = [
 	{ who: 'hawkgirl', text: 'Then keep him out. Break his amplifiers and we break his reach.' }
 ];
 
+/** Before Lights Out: Oa at night, the Battery failing, something in the plaza. */
+export const BATTERY_FAILING: SceneLine[] = [
+	{ who: 'ring', text: 'Warning. Central Battery output falling. Forty percent. Thirty-eight.', mood: 'alarm' },
+	{ who: 'kilowog', text: "Lights are goin' out all over the city, Hal. Somethin' came back through that gate with us." },
+	{ who: 'guardian', text: 'Thunderers of Qward. Anti-matter soldiers. Where they walk, our light dies.' },
+	{ who: 'hal', text: 'So we were followed. Great. How many?' },
+	{ who: 'guardian', text: 'Enough. They are carrying charges to the foot of the Battery. If it fails, every ring in the Corps fails with it.', mood: 'alarm' },
+	{ who: 'kilowog', text: "I've got the rookies on the towers. You go hunt." },
+	{ who: 'hal', text: 'Hunting in the dark, against guys who make the dark. Sure.' },
+	{ who: 'guardian', text: 'Your ring will light your way, as far as your will reaches. Go.' }
+];
+
 /** Before First Light of Fear: Hal on Earth, and a call from Vesk. */
 export const A_LANTERN_IN_YELLOW: SceneLine[] = [
 	{ who: 'hal', text: 'Ferris Air, three in the morning, and the coffee is still terrible.' },

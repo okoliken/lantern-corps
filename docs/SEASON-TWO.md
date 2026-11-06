@@ -110,7 +110,7 @@ Yellow Lanterns are frightening and clever.
 
 ## Who is built
 
-Built and tuned with the bot, with their story scenes: the original twelve, Undertow and The Exile. The other four new ones are being built in order.
+Built and tuned with the bot, with their story scenes: the original twelve, Undertow, The Exile and Lights Out. Fire Season, Taken and Breakout are next.
 
 - Allies: Superman, Wonder Woman, the Flash, Hawkgirl, Batman, Kilowog, and
   Hal and John together.

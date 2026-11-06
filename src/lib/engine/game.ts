@@ -143,6 +143,8 @@ export interface Director {
 	goalFirst?: boolean;
 	/** A player pressed Call for backup (missions where a partner can be called in). */
 	callBackup?(game: Game, caller: Player): void;
+	/** Drawn over the whole world, after everything in it and before the name tags (Oa going dark). */
+	drawOver?(ctx: CanvasRenderingContext2D, alpha: number, time: number): void;
 }
 
 /** How fast a Lantern moves under water, next to dry land. */
@@ -711,7 +713,7 @@ export class Game {
 								drawManhunterCore(ctx, d, 0, 0, this.time);
 								ctx.restore();
 							}
-						: d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit' || d.kind === 'mindAmp' || d.kind === 'fearLens' || d.kind === 'seaBreach'
+						: d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit' || d.kind === 'mindAmp' || d.kind === 'fearLens' || d.kind === 'seaBreach' || d.kind === 'qwardCharge'
 						? () => {} // the mission draws it
 
 						: d.drift
@@ -894,6 +896,7 @@ export class Game {
 		drawTintedAll(ctx, tintedFx, (e) => e.tint, (e) => drawEffect(ctx, e, e.lift ?? 0, this.time, inSpace));
 		drawHeroFx(ctx, heroFx(cw), this.time);
 		drawPsychicFx(ctx, psychicFx(cw), this.time);
+		this.director?.drawOver?.(ctx, alpha, this.time);
 		if (this.nameTags) for (const t of tags) t();
 
 		if (this.debug) this.drawDebug(ctx);
@@ -1012,6 +1015,8 @@ export class Game {
 															? 'Fear lens'
 															: t.dummy.kind === 'seaBreach'
 																? 'Hull breach'
+																: t.dummy.kind === 'qwardCharge'
+																	? 'Anti-matter charge'
 								: 'Dummy'
 				: t.kind === 'ally'
 					? t.player.def.name

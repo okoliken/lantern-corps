@@ -25,6 +25,7 @@ import { LANTERNS } from '../lanterns';
 import {
 	A_LANTERN_IN_YELLOW,
 	BAIT,
+	BATTERY_FAILING,
 	DEAD_CRANE,
 	DREAMS_WITH_TEETH,
 	LEAGUE_INVITE,
@@ -42,6 +43,7 @@ import {
 import { CastScene, type Actor } from './cast';
 import { drawGuardianDais } from './summoned';
 import { drawExileCell } from '../draw/exile';
+import { drawDarkness } from '../draw/darkness';
 
 /** The Guardians on their dais, the middle one speaking for them all. */
 const guardians = (x: number, chill: number): Actor => ({
@@ -208,6 +210,35 @@ export const bait = () =>
 			{ speaker: 'hawkgirl', figure: { hero: 'hawkgirl' }, marks: [{ x: 1300, y: G - 20, lift: 300, dir: -1 }, { at: 0.3, x: 1020, y: G + 10, lift: 0, time: 1.6, dir: -1 }] }
 		]
 	});
+
+export const batteryFailing = () => {
+	const scene: CastScene = new CastScene(BATTERY_FAILING, {
+		talkStarts: 2.4,
+		backdrop: (ctx, t) => drawOaBackdrop(ctx, t, 0),
+		// The city going dark round them, a light at a time; their rings and the Battery's last glow
+		front: (ctx, t) => {
+			const hal = scene.placed.find((p) => p.actor.speaker === 'hal');
+			const kw = scene.placed.find((p) => p.actor.speaker === 'kilowog');
+			const flicker = 0.85 + 0.15 * Math.sin(t * 7) * Math.sin(t * 2.3);
+			drawDarkness(
+				ctx,
+				[
+					{ x: 330, y: OA_GROUND - 200, r: 300 * flicker, strength: 0.85 },
+					...(hal ? [{ x: hal.x, y: hal.y - hal.lift - 70, r: 260 }] : []),
+					...(kw?.shown ? [{ x: kw.x, y: kw.y - kw.lift - 80, r: 220 }] : []),
+					{ x: 300, y: OA_GROUND - 80, r: 220, strength: 0.7 }
+				],
+				Math.min(0.8, t / 4)
+			);
+		},
+		cast: [
+			guardians(300, 0.7),
+			{ speaker: 'hal', figure: { lantern: 'hal' }, aimUp: true, marks: [{ x: 680, y: OA_GROUND, dir: -1 }] },
+			{ speaker: 'kilowog', figure: { lantern: 'kilowog' }, marks: [{ x: 880, y: OA_GROUND, dir: -1 }, { line: 6, x: 1500, y: OA_GROUND - 300, lift: 300, time: 2.2 }] }
+		]
+	});
+	return scene;
+};
 
 /** Hal off duty at Ferris Air: the flight jacket, until the ring calls. */
 const HAL_PILOT: LanternFigure = {

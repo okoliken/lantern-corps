@@ -122,7 +122,9 @@ export type AbilityId =
 	| 'diveKnife'
 	| 'wristBlades'
 	| 'mantaHarpoon'
-	| 'opticBlast';
+	| 'opticBlast'
+	| 'qwaBolt'
+	| 'qwaBlade';
 
 /** How far away a construct is used from. Kits take some of each. */
 type Band = 'close' | 'mid' | 'long' | 'support';
@@ -608,6 +610,16 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	opticBlast: def({
 		id: 'opticBlast', name: 'Optic Blast', band: 'long', tell: 'aim', windup: 0.85, active: 0.7, recover: 0.6, cooldown: 6,
 		minRange: 120, maxRange: 640, damage: 34, knockback: 0, melee: false, heavy: true, chance: 0.9
+	}),
+	// A Thunderer of Qward's qwa-bolt: a javelin of black lightning, thrown hard; it lights up where it goes
+	qwaBolt: def({
+		id: 'qwaBolt', name: 'Qwa-Bolt', band: 'long', tell: 'aim', windup: 0.7, active: 0.2, recover: 0.45, cooldown: 3,
+		minRange: 110, maxRange: 620, damage: 14, knockback: 300, melee: false, heavy: false, chance: 1, speed: 760
+	}),
+	// The same bolt held as a blade, in close
+	qwaBlade: def({
+		id: 'qwaBlade', name: 'Qwa-Blade', band: 'close', tell: 'strike', windup: 0.4, active: 0.2, recover: 0.5, cooldown: 1.4,
+		minRange: 0, maxRange: 72, damage: 12, knockback: 320, melee: true, heavy: false, chance: 1
 	})
 };
 
@@ -682,7 +694,7 @@ export interface RedShot {
 	/** Big constructs (a thrown hammer, a giant fist) hit this much wider than a bolt. */
 	size?: number;
 	/** Not a construct at all: something Grodd threw (a car, a chunk of street), or a real weapon's round (gear.ts). */
-	look?: 'car' | 'rock' | 'bullet' | 'energy' | 'slug' | 'spear';
+	look?: 'car' | 'rock' | 'bullet' | 'energy' | 'slug' | 'spear' | 'qwa';
 	owner: Enemy;
 	x: number;
 	y: number;

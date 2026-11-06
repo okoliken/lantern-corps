@@ -28,6 +28,7 @@ import { HardOrder, buildHardOrderMap } from '$lib/engine/missions/hardOrder';
 import { GroundLevel, buildGroundLevelMap } from '$lib/engine/missions/groundLevel';
 import { Undertow, buildUndertowMap } from '$lib/engine/missions/undertow';
 import { Exile, buildExileMap } from '$lib/engine/missions/exile';
+import { LightsOut, buildLightsOutMap } from '$lib/engine/missions/lightsOut';
 import { KorugarMission, buildKorugarMap } from '$lib/engine/missions/korugar';
 import { GothamAtNight, buildGothamMap } from '$lib/engine/missions/gothamAtNight';
 import { QwardMission, buildQwardMap } from '$lib/engine/missions/qward';
@@ -294,6 +295,13 @@ export function buildMission(id: string, options: Options): MissionRun {
 			const director = new GroundLevel();
 			game.director = director;
 			return { game, director, outro: null, intro: S2.deadCrane };
+		}
+		case 'lights-out': {
+			// Hal alone on Oa, in the dark
+			const game = new Game({ ...options, players: [{ lantern: 'hal', keys: 'solo' }], map: buildLightsOutMap() });
+			const director = new LightsOut();
+			game.director = director;
+			return { game, director, outro: null, intro: S2.batteryFailing };
 		}
 		case 'the-exile': {
 			// Hal tows Sinestro's cell to the gate to Qward; Kilowog keeps the Weaponers off it

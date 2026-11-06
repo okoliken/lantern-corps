@@ -18,12 +18,12 @@ const TAU = Math.PI * 2;
 const OUTLINE = '#030504';
 const FIGURE_SCALE = 1.35;
 
-export type RinglessKind = 'thug' | 'enforcer' | 'weaponer' | 'mantaDiver' | 'blackManta';
+export type RinglessKind = 'thug' | 'enforcer' | 'weaponer' | 'mantaDiver' | 'blackManta' | 'thunderer';
 export const isRinglessKind = (kind: EnemyKind): kind is RinglessKind =>
-	kind === 'thug' || kind === 'enforcer' || kind === 'weaponer' || kind === 'mantaDiver' || kind === 'blackManta';
+	kind === 'thug' || kind === 'enforcer' || kind === 'weaponer' || kind === 'mantaDiver' || kind === 'blackManta' || kind === 'thunderer';
 
 /** What's in their hand: the melee weapon while they swing it, a gun while they fire it, otherwise whatever they reach for first. */
-type Held = 'pistol' | 'bat' | 'rifle' | 'baton' | 'cannon' | 'blade' | 'grenade' | 'speargun' | 'knife' | 'wrist';
+type Held = 'pistol' | 'bat' | 'rifle' | 'baton' | 'cannon' | 'blade' | 'grenade' | 'speargun' | 'knife' | 'wrist' | 'qwa';
 const HELD: Partial<Record<AbilityId, Held>> = {
 	pistol: 'pistol',
 	batSwing: 'bat',
@@ -36,7 +36,9 @@ const HELD: Partial<Record<AbilityId, Held>> = {
 	diveKnife: 'knife',
 	wristBlades: 'wrist',
 	mantaHarpoon: 'wrist',
-	opticBlast: 'wrist'
+	opticBlast: 'wrist',
+	qwaBolt: 'qwa',
+	qwaBlade: 'qwa'
 };
 function heldBy(e: Enemy): Held {
 	const b = e.brain;
@@ -97,6 +99,7 @@ export function drawRinglessEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: nu
 	else if (e.kind === 'enforcer') drawEnforcer(ctx, sk, held, aiming, time);
 	else if (e.kind === 'mantaDiver') drawDiver(ctx, sk, seed, held, aiming, time);
 	else if (e.kind === 'blackManta') drawBlackManta(ctx, sk, e, time);
+	else if (e.kind === 'thunderer') drawThunderer(ctx, sk, held, aiming, time);
 	else drawWeaponer(ctx, sk, held, aiming, time);
 	ctx.restore();
 }
@@ -111,11 +114,11 @@ export function ringlessMuzzle(e: Enemy, x: number, y: number): [number, number]
 	const [ux, uy] = along(sk.front.elbow, sk.front.hand);
 	return [x + (sk.front.hand[0] + ux * reach) * k, y + (sk.front.hand[1] + uy * reach) * s];
 }
-const MUZZLE: Record<Held, number> = { pistol: 8, bat: 0, rifle: 22, baton: 0, cannon: 13, blade: 0, grenade: 0, speargun: 26, knife: 0, wrist: 4 };
+const MUZZLE: Record<Held, number> = { pistol: 8, bat: 0, rifle: 22, baton: 0, cannon: 13, blade: 0, grenade: 0, speargun: 26, knife: 0, wrist: 4, qwa: 18 };
 
 /** Just above their head. */
 export function ringlessTop(e: Enemy, y: number): number {
-	return y - FIGURE_HEIGHT * ENEMIES[e.kind].scale - (e.kind === 'blackManta' ? 22 : e.kind === 'weaponer' ? 12 : 8);
+	return y - FIGURE_HEIGHT * ENEMIES[e.kind].scale - (e.kind === 'blackManta' ? 22 : e.kind === 'thunderer' ? 16 : e.kind === 'weaponer' ? 12 : 8);
 }
 
 function along(a: Point, b: Point): [number, number] {
@@ -574,6 +577,104 @@ function drawDiver(ctx: CanvasRenderingContext2D, sk: Skeleton, seed: number, he
 	arm(sk.front, false);
 }
 
+// ------------------------------------------------------- Thunderers of Qward
+
+const QWARD_ARMOUR = '#2a2a2e';
+const QWARD_ARMOUR_LIT = '#45454c';
+const QWARD_DARK = '#141416';
+const QWARD_SKIN = '#c9c6b4';
+/** Their mark, and their bolts: lightning gone the wrong colour, pale and sour. */
+const QWA = '#e8e3b0';
+
+function drawThunderer(ctx: CanvasRenderingContext2D, sk: Skeleton, held: Held, aiming: boolean, time: number) {
+	const arm = (l: Skeleton['front'], far: boolean) => {
+		segment(ctx, l.shoulder, l.elbow, 3.3, 2.8, far ? QWARD_DARK : QWARD_ARMOUR);
+		segment(ctx, l.elbow, l.hand, 2.8, 2.5, far ? QWARD_DARK : QWARD_ARMOUR_LIT);
+		// Bracer ridges
+		ctx.strokeStyle = far ? '#0a0a0b' : '#5d5d66';
+		ctx.lineWidth = 0.8;
+		for (const k of [0.35, 0.55, 0.75]) {
+			const [px, py] = lerpP(l.elbow, l.hand, k);
+			ctx.beginPath();
+			ctx.arc(px, py, 2.7, 0, TAU);
+			ctx.stroke();
+		}
+		ctx.fillStyle = far ? '#7d7a6c' : QWARD_SKIN;
+		ctx.beginPath();
+		ctx.arc(l.hand[0], l.hand[1], 2.2, 0, TAU);
+		ctx.fill();
+		outline(ctx);
+		// A pointed shoulder plate
+		ctx.fillStyle = far ? QWARD_DARK : QWARD_ARMOUR_LIT;
+		ctx.beginPath();
+		ctx.moveTo(l.shoulder[0] - 4.5, l.shoulder[1] + 2);
+		ctx.lineTo(l.shoulder[0] - 1, l.shoulder[1] - 5);
+		ctx.lineTo(l.shoulder[0] + 4.5, l.shoulder[1] + 1);
+		ctx.closePath();
+		ctx.fill();
+		outline(ctx);
+	};
+	const leg = (l: Skeleton['front'], far: boolean) => {
+		segment(ctx, l.hipJoint, l.knee, 3.8, 3.1, far ? QWARD_DARK : QWARD_ARMOUR);
+		segment(ctx, l.knee, l.foot, 3.1, 2.8, far ? QWARD_DARK : QWARD_ARMOUR_LIT);
+		segment(ctx, lerpP(l.knee, l.foot, 0.55), l.foot, 3.3, 3.0, '#0c0c0d');
+		shoe(ctx, l, '#0c0c0d', null, 5);
+	};
+	arm(sk.back, true);
+	leg(sk.back, true);
+	// A short ragged cape behind
+	const at = frame(sk);
+	ctx.fillStyle = '#1a1820';
+	ctx.fill(poly([at(18, -5.5), at(18, -9), at(-6, -10.5), at(-4, -7), at(-8, -6)]));
+	const body = torsoShape(at, -0.3);
+	const [bx, by] = at(8, -6);
+	const [fx, fy] = at(8, 7);
+	const shade = ctx.createLinearGradient(bx, by, fx, fy);
+	shade.addColorStop(0, QWARD_DARK);
+	shade.addColorStop(1, QWARD_ARMOUR_LIT);
+	ctx.fillStyle = shade;
+	ctx.fill(body);
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.9;
+	ctx.stroke(body);
+	// Their mark on the chest: a lightning bolt, pale
+	ctx.fillStyle = QWA;
+	ctx.globalAlpha *= 0.8 + 0.2 * Math.sin(time * 5);
+	ctx.fill(poly([at(15.5, 2.6), at(12, 4.6), at(12.4, 3.2), at(8.5, 5), at(11.6, 2.2), at(11.2, 3.6)]));
+	ctx.globalAlpha /= 0.8 + 0.2 * Math.sin(time * 5);
+	leg(sk.front, false);
+	// The helmet: tall, crested, a slit across where the eyes would be with a pale light behind it
+	const R = HEAD_R;
+	ctx.save();
+	ctx.translate(...sk.headCenter);
+	ctx.rotate(sk.headAngle);
+	ctx.fillStyle = QWARD_SKIN;
+	ctx.fill(faceShape());
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.stroke(faceShape());
+	ctx.fillStyle = QWARD_ARMOUR;
+	ctx.beginPath();
+	ctx.moveTo(-R - 1, R * 0.9);
+	ctx.lineTo(-R - 1.5, -R * 0.6);
+	ctx.quadraticCurveTo(-R * 0.6, -R - 6, R * 0.2, -R - 9);
+	ctx.lineTo(R * 0.6, -R - 1.5);
+	ctx.quadraticCurveTo(R + 1.6, -R * 0.4, R + 1.6, R * 0.1);
+	ctx.lineTo(R + 1.2, R * 0.3);
+	ctx.lineTo(0, R * 0.2);
+	ctx.closePath();
+	ctx.fill();
+	outline(ctx);
+	ctx.fillStyle = '#060607';
+	ctx.fillRect(R * 0.05, -2.1, R + 1.4, 1.8);
+	ctx.fillStyle = QWA;
+	ctx.globalAlpha *= 0.7 + 0.3 * Math.sin(time * 3.1);
+	ctx.fillRect(R * 0.35, -1.7, R * 0.9, 1);
+	ctx.restore();
+	drawHeld(ctx, sk.front, held, aiming, time);
+	arm(sk.front, false);
+}
+
 // --------------------------------------------------------------- Black Manta
 
 const MANTA = '#111114';
@@ -836,6 +937,23 @@ function drawHeld(ctx: CanvasRenderingContext2D, l: Skeleton['front'], held: Hel
 			ctx.stroke();
 			break;
 		}
+		case 'qwa': {
+			// A javelin of black lightning, jagged, edged in pale light
+			ctx.rotate(-0.25);
+			ctx.strokeStyle = 'rgba(232, 227, 176, 0.55)';
+			ctx.lineWidth = 3;
+			ctx.beginPath();
+			ctx.moveTo(-10, 0);
+			ctx.lineTo(-2, -2);
+			ctx.lineTo(6, 1.5);
+			ctx.lineTo(14, -1.5);
+			ctx.lineTo(22, 0);
+			ctx.stroke();
+			ctx.strokeStyle = '#0a0a06';
+			ctx.lineWidth = 1.3;
+			ctx.stroke();
+			break;
+		}
 		case 'knife': {
 			ctx.rotate(-1.05);
 			ctx.fillStyle = '#1a1a1d';
@@ -894,6 +1012,23 @@ export function drawGearShot(ctx: CanvasRenderingContext2D, s: RedShot, x: numbe
 		ctx.strokeStyle = '#ffe1f6';
 		ctx.lineWidth = 2;
 		ctx.stroke();
+	} else if (s.look === 'qwa') {
+		// A qwa-bolt in flight: black lightning, crackling, pale at the edges
+		const r = Math.floor(time * 30);
+		const pts: [number, number][] = [];
+		for (let i = 0; i <= 5; i++) {
+			const k = i / 5;
+			const jitter = i === 0 || i === 5 ? 0 : (((r * 7 + i * 13) % 9) - 4) * 1.6;
+			pts.push([x - ux * 34 * (1 - k) - uy * jitter, hy - uy * 34 * (1 - k) + ux * jitter]);
+		}
+		ctx.strokeStyle = 'rgba(232, 227, 176, 0.6)';
+		ctx.lineWidth = 6;
+		ctx.beginPath();
+		pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+		ctx.stroke();
+		ctx.strokeStyle = '#0a0a06';
+		ctx.lineWidth = 2.2;
+		ctx.stroke();
 	} else if (s.look === 'spear') {
 		// A speargun's spear: a steel shaft, a barbed head, a line trailing behind
 		ctx.strokeStyle = 'rgba(160, 200, 210, 0.35)';
@@ -945,7 +1080,8 @@ const SWING_COLOR: Partial<Record<AbilityId, string>> = {
 	shockBaton: '214, 160, 255',
 	forgeBlade: '255, 154, 60',
 	diveKnife: '210, 230, 240',
-	wristBlades: '255, 90, 80'
+	wristBlades: '255, 90, 80',
+	qwaBlade: '232, 227, 176'
 };
 const GRENADE_ARC = 150;
 
@@ -1057,7 +1193,7 @@ export function drawGearWorld(ctx: CanvasRenderingContext2D, w: ConstructWorld, 
 			const my = f.y - lift + Math.sin(f.angle) * 12;
 			ctx.translate(mx, my);
 			ctx.rotate(f.angle);
-			ctx.fillStyle = f.weapon === 'pulseRifle' ? `rgba(255, 210, 245, ${1 - k})` : `rgba(255, 220, 140, ${1 - k})`;
+			ctx.fillStyle = f.weapon === 'pulseRifle' ? `rgba(255, 210, 245, ${1 - k})` : f.weapon === 'qwaBolt' ? `rgba(240, 236, 200, ${1 - k})` : `rgba(255, 220, 140, ${1 - k})`;
 			ctx.beginPath();
 			ctx.moveTo(0, -4 * big);
 			ctx.lineTo(12 * big, 0);
