@@ -16,6 +16,7 @@ import {
 	drawKorugarCitadel,
 	drawQwardRift,
 	drawRain,
+	drawSciencellBlock,
 	drawSpaceOverVesk,
 	drawStorm,
 	drawStormRig,
@@ -26,6 +27,7 @@ import { LANTERNS } from '../lanterns';
 import {
 	A_LANTERN_IN_YELLOW,
 	BAIT,
+	CELLS_OPENING,
 	CITY_ON_FIRE,
 	BATTERY_FAILING,
 	DEAD_CRANE,
@@ -48,6 +50,7 @@ import { drawGuardianDais } from './summoned';
 import { drawExileCell } from '../draw/exile';
 import { drawDarkness } from '../draw/darkness';
 import { drawBlaze } from '../draw/fire';
+import { drawBook } from '../draw/sciencells';
 
 /** The Guardians on their dais, the middle one speaking for them all. */
 const guardians = (x: number, chill: number): Actor => ({
@@ -349,6 +352,25 @@ export const yellowRings = () =>
 			{ speaker: 'kilowog', figure: { lantern: 'kilowog' }, marks: [{ x: 900, y: OA_GROUND, dir: -1 }] }
 		]
 	});
+
+export const cellsOpening = () => {
+	const scene: CastScene = new CastScene(CELLS_OPENING, {
+		talkStarts: 2.2,
+		backdrop: (ctx, t) => drawSciencellBlock(ctx, t, Math.min(1, t / 6)),
+		// The Book at her shoulder, open while she talks
+		front: (ctx, t) => {
+			const l = scene.placed.find((p) => p.actor.speaker === 'lyssa');
+			if (l?.shown) drawBook(ctx, l.x + 50, l.y - l.lift - 150, l.x + 14, l.y - l.lift - 110, scene.speaking === 'lyssa' ? 1 : 0, t);
+		},
+		cast: [
+			{ speaker: 'hal', figure: { lantern: 'hal' }, aimUp: true, marks: [{ x: 420, y: G + 40, dir: 1 }] },
+			{ speaker: 'kilowog', figure: { lantern: 'kilowog' }, aimUp: true, marks: [{ x: 260, y: G + 30, dir: 1 }] },
+			// Down from the upper walkway as she introduces herself
+			{ speaker: 'lyssa', figure: { enemy: 'lyssaDrak' }, hidden: true, marks: [{ x: 1000, y: G + 20, lift: 360, dir: -1 }, { line: 2, x: 1000, y: G + 20, lift: 360, dir: -1 }, { wait: 0, x: 960, y: G + 20, lift: 90, time: 1.6, dir: -1 }] }
+		]
+	});
+	return scene;
+};
 
 export const takenOffTheStreets = () =>
 	new CastScene(OFF_THE_STREETS, {

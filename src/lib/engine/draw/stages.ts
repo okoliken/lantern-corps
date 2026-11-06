@@ -809,3 +809,66 @@ export function drawStorm(ctx: CanvasRenderingContext2D, time: number) {
 	ctx.stroke();
 	ctx.restore();
 }
+
+// ------------------------------------------------------------ the Sciencells
+
+/**
+ * The Sciencells from the walkway: a row of cells along the back wall, their
+ * doors sheets of green light, flickering out one by one (`failing` 0..1),
+ * and the alarm washing the block.
+ */
+export function drawSciencellBlock(ctx: CanvasRenderingContext2D, time: number, failing: number) {
+	ctx.fillStyle = '#08130e';
+	ctx.fillRect(0, 0, STAGE_W, STAGE_GROUND);
+	// Two tiers of cells
+	for (const [row, top, h] of [
+		[0, 60, 190],
+		[1, 300, 230]
+	] as const) {
+		for (let i = 0; i < 7; i++) {
+			const x = 40 + i * 196;
+			ctx.fillStyle = '#0c1d15';
+			ctx.fillRect(x, top, 160, h);
+			ctx.strokeStyle = '#1f3a2c';
+			ctx.lineWidth = 6;
+			ctx.strokeRect(x, top, 160, h);
+			// A shape behind each door
+			ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+			ctx.beginPath();
+			ctx.ellipse(x + 80, top + h * 0.55, 22, h * 0.32, 0, 0, TAU);
+			ctx.fill();
+			// The door: gone, or going, or holding
+			const gone = (i * 0.37 + row * 0.2) % 1 < failing;
+			const flicker = gone ? 0 : failing > 0 && Math.sin(time * 30 + i * 3) > 0.4 ? 0.3 : 1;
+			if (flicker > 0) {
+				ctx.fillStyle = green(0.2 * flicker);
+				ctx.fillRect(x + 4, top + 4, 152, h - 8);
+				ctx.strokeStyle = green(0.6 * flicker);
+				ctx.lineWidth = 2;
+				for (let k = x + 20; k < x + 160; k += 24) {
+					ctx.beginPath();
+					ctx.moveTo(k, top + 6);
+					ctx.lineTo(k, top + h - 6);
+					ctx.stroke();
+				}
+			}
+		}
+		// The walkway rail in front of each tier
+		ctx.fillStyle = '#16281f';
+		ctx.fillRect(0, top + h, STAGE_W, 14);
+	}
+	// The floor of the block
+	ctx.fillStyle = '#11211a';
+	ctx.fillRect(0, STAGE_GROUND, STAGE_W, STAGE_H - STAGE_GROUND + UNDER);
+	ctx.strokeStyle = green(0.3);
+	ctx.lineWidth = 1;
+	ctx.beginPath();
+	ctx.moveTo(0, STAGE_GROUND + 0.5);
+	ctx.lineTo(STAGE_W, STAGE_GROUND + 0.5);
+	ctx.stroke();
+	// The alarm: a red-gold wash pulsing through the block
+	if (failing > 0) {
+		ctx.fillStyle = `rgba(255, 190, 40, ${0.1 * failing * (0.5 + 0.5 * Math.sin(time * 5))})`;
+		ctx.fillRect(0, 0, STAGE_W, STAGE_H + UNDER);
+	}
+}

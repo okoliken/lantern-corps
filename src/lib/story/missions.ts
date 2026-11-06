@@ -461,6 +461,7 @@ export const ACTS: ActInfo[] = [
 			'recruited',
 			'rings-go-out',
 			'taken',
+			'breakout',
 			'two-lanterns',
 			'sinestro'
 		]
@@ -635,6 +636,22 @@ MISSIONS.push({
 		'New: CARRIERS. Hurt a carrier enough, or stun him, and he lets go. The Flash will run anyone they drop all the way home. Four taken and the ship has what it came for.'
 	],
 	objectives: ['Make the carriers let go before they reach the ship', 'Keep the rest of the Corps off you', 'Get everyone home']
+});
+
+MISSIONS.push({
+	id: 'breakout',
+	title: 'Breakout',
+	tagline: 'Lyssa Drak opens the Sciencells. Hal and Kilowog have to put every monster back, alive.',
+	lantern: 'hal',
+	environment: 'planet',
+	place: 'Oa · the Sciencells',
+	partner: 'kilowog',
+	briefing: [
+		'Every cell in the block, opening at once. The Sinestro Corps has someone on Oa: Lyssa Drak, keeper of the Book of Parallax, reading the doors open one row at a time.',
+		'Red Lanterns, Manhunters, Weaponers, Thunderers: everyone the Corps ever caged. Kill them and the Corps is no better than Sinestro\'s. Let them go and the universe burns.',
+		"New: SUBDUED. Prisoners can't be killed here. Beat one down far enough and he reels: every hit sends him sliding. Knock him into any open cell and the door shuts. Left alone, they run for the gate."
+	],
+	objectives: ['Beat the prisoners down and knock them back into cells', "Don't let three of them out of the gate", 'Stop Lyssa Drak']
 });
 
 MISSIONS.push({

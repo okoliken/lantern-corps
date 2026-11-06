@@ -292,6 +292,28 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		leans: { aggression: 0.3, caution: 0.1 },
 		lieutenant: true
 	},
+	// Season two, Breakout: the keeper of the Book of Parallax, who opened the Sciencells
+	lyssaDrak: {
+		kind: 'lyssaDrak',
+		name: 'Lyssa Drak',
+		faction: 'rogue',
+		tint: 'fear',
+		description:
+			"Keeper of the Book of Parallax, the Sinestro Corps' scribe of fear. Yellow spears, cages and chains, and she reads from the Book to open another row of cells. Standing near her fills your dread.",
+		mind: 'machine',
+		hp: 1300,
+		speed: 175,
+		accel: 5,
+		sight: 1000,
+		poise: 120,
+		scale: 1.04,
+		agility: 0.65,
+		movement: 'hover',
+		kit: ['spears', 'cage', 'chain', 'blast'],
+		range: 320,
+		leans: { caution: 0.3, patience: 0.25 },
+		lieutenant: true
+	},
 	blackManta: {
 		kind: 'blackManta',
 		name: 'Black Manta',

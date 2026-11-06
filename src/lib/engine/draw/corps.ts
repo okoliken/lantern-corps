@@ -9,7 +9,7 @@ import { drawLantern, ringPosition, FIGURE_HEIGHT, GREEN, type Figure } from './
 import { computeSkeleton, turnScale } from '../animation';
 import { drawChpBody, drawGnortBody, drawGuyBody, drawSalaakBody } from './league';
 
-export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'fearGrunt' | 'scarecrow' | 'sinestroYellow' | 'frightened' | 'arkillo';
+export type CorpsKind = 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'fearGrunt' | 'scarecrow' | 'sinestroYellow' | 'frightened' | 'arkillo' | 'lyssaDrak';
 
 interface CorpsFigure {
 	figure: Figure;
@@ -81,6 +81,13 @@ const CORPS: Record<CorpsKind, CorpsFigure> = {
 		scale: 1.28,
 		build: LANTERNS.kilowog.build!,
 		hunch: LANTERNS.kilowog.hunch!
+	},
+	/** Lyssa Drak of Talok III: pale grey-lilac skin, a black bob, cold eyes, in Sinestro's gold and black. Keeper of the Book of Parallax. */
+	lyssaDrak: {
+		figure: { id: 'lyssaDrak', look: { skin: '#c9c3d6', hair: '#0f0d14', hairStyle: 'bob', mask: false, pointedEars: true }, corps: 'yellow', bulk: 0.9 },
+		scale: 1.04,
+		build: { leg: 1.1, torso: 0.98, arm: 1.02, neck: 1.08 },
+		hunch: -0.03
 	},
 	// Lanterns you spar with in the ring. Same figures the Corps fights beside,
 	// drawn from the other side of the fight.

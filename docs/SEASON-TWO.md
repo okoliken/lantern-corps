@@ -110,13 +110,15 @@ Yellow Lanterns are frightening and clever.
 
 ## Who is built
 
-Built and tuned with the bot, with their story scenes: the original twelve, Undertow, The Exile, Lights Out, Fire Season and Taken. Breakout is next.
+All eighteen episodes are built, with their story scenes, and tuned with the bot.
 
-- Allies: Superman, Wonder Woman, the Flash, Hawkgirl, Batman, Kilowog, and
-  Hal and John together.
+- Allies: Superman, Wonder Woman, the Flash, Hawkgirl, Batman, Aquaman,
+  J'onn J'onzz, Kilowog, and Hal and John together.
 - Enemies: Korugar Enforcers, Scarecrow, Gotham thugs, Weaponers of Qward, the
-  Sinestro Corps, Ray Doyle, Arkillo, Sinestro in yellow, and nightmares (any
-  old enemy, drawn all in yellow).
+  Sinestro Corps, Ray Doyle, Arkillo, Sinestro in yellow, nightmares (any old
+  enemy, drawn all in yellow), Black Manta and his divers, Thunderers of
+  Qward, Firefly, and Lyssa Drak.
 - Mechanics: dread, Mind Grip, the lasso talk-down, rescue charging, side by
-  side, and Sinestro's mirror.
+  side, Sinestro's mirror, dams against the sea, towing, the dark, spreading
+  fire, carriers, and putting prisoners back alive.
 - Green Arrow is not in this game. He can come later as a bonus episode.

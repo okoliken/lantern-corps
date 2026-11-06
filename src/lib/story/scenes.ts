@@ -29,7 +29,8 @@ export type Speaker =
 	| 'ray'
 	| 'aquaman'
 	| 'manta'
-	| 'firefly';
+	| 'firefly'
+	| 'lyssa';
 
 export interface SceneLine {
 	who: Speaker;
@@ -63,7 +64,8 @@ export const SPEAKERS: Record<Speaker, { name: string; color: string }> = {
 	ray: { name: 'Ray Doyle', color: '#ffd23a' },
 	aquaman: { name: 'Aquaman', color: '#f4b04a' },
 	manta: { name: 'Black Manta', color: '#ff4a3a' },
-	firefly: { name: 'Firefly', color: '#ffb12a' }
+	firefly: { name: 'Firefly', color: '#ffb12a' },
+	lyssa: { name: 'Lyssa Drak', color: '#ffd23a' }
 };
 
 /**
@@ -419,6 +421,17 @@ export const OFF_THE_STREETS: SceneLine[] = [
 	{ who: 'ring', text: 'Ship detected over Central City. Yellow energy signature. It is loading.', mood: 'alarm' },
 	{ who: 'flash', text: 'I can get anyone home in a second. I just can\'t catch the ones who fly.' },
 	{ who: 'john', text: 'Then I make them let go, and you run them home. Nobody gets on that ship.' }
+];
+
+/** Before Breakout: the Sciencells, every door opening, and who's opening them. */
+export const CELLS_OPENING: SceneLine[] = [
+	{ who: 'ring', text: 'Alarm. Sciencell block breach. All cells opening.', mood: 'alarm' },
+	{ who: 'kilowog', text: "Every lock on the block, all at once. That ain't a malfunction." },
+	{ who: 'lyssa', text: 'No, Sergeant. That is me. Lyssa Drak, keeper of the Book of Parallax. Sinestro sends his regards.' },
+	{ who: 'lyssa', text: 'Every monster you ever caged is free. Kill them, and you are no better than us. Let them go, and your universe burns.', mood: 'alarm' },
+	{ who: 'hal', text: 'Or option three: we put every one of them back.' },
+	{ who: 'kilowog', text: "Knock 'em down, put 'em back in a cell, the door does the rest. Alive, Jordan. That's the job." },
+	{ who: 'hal', text: 'Alive. Got it. Even the ugly ones.', mood: 'grin' }
 ];
 
 /** Before Two Lanterns: Hal comes to the Watchtower to warn John. */

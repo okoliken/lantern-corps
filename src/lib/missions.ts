@@ -31,6 +31,7 @@ import { Exile, buildExileMap } from '$lib/engine/missions/exile';
 import { LightsOut, buildLightsOutMap } from '$lib/engine/missions/lightsOut';
 import { FireSeason, buildFireSeasonMap } from '$lib/engine/missions/fireSeason';
 import { Taken, buildTakenMap } from '$lib/engine/missions/taken';
+import { Breakout, buildBreakoutMap } from '$lib/engine/missions/breakout';
 import { KorugarMission, buildKorugarMap } from '$lib/engine/missions/korugar';
 import { GothamAtNight, buildGothamMap } from '$lib/engine/missions/gothamAtNight';
 import { QwardMission, buildQwardMap } from '$lib/engine/missions/qward';
@@ -297,6 +298,20 @@ export function buildMission(id: string, options: Options): MissionRun {
 			const director = new GroundLevel();
 			game.director = director;
 			return { game, director, outro: null, intro: S2.deadCrane };
+		}
+		case 'breakout': {
+			// Hal and Kilowog in the Sciencells
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: 'hal', keys: 'solo' },
+					{ lantern: 'kilowog', keys: 'p2', ai: true }
+				],
+				map: buildBreakoutMap()
+			});
+			const director = new Breakout();
+			game.director = director;
+			return { game, director, outro: null, intro: S2.cellsOpening };
 		}
 		case 'taken': {
 			// John and the Flash under a Sinestro Corps ship
