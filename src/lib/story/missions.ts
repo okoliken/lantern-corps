@@ -448,6 +448,7 @@ export const ACTS: ActInfo[] = [
 			'qward',
 			'what-grodd-wants',
 			'lights-out',
+			'fire-season',
 			'first-light'
 		]
 	},
@@ -695,6 +696,22 @@ MISSIONS.push({
 		'New: THE DARK. You see as far as your ring\'s light, and it reaches as far as your will. Near a Thunderer it shrinks. Some of them carry charges to the foot of the Battery: break them before the fuse burns down.'
 	],
 	objectives: ['Hunt the Thunderers in the dark', 'Break every charge before it goes off', 'Keep the Battery burning']
+});
+
+MISSIONS.push({
+	id: 'fire-season',
+	title: 'Fire Season',
+	tagline: "John and J'onn J'onzz. Firefly sets Metropolis burning, and fire is the one thing a Martian fears.",
+	lantern: 'john',
+	environment: 'planet',
+	place: 'Earth · Metropolis, downtown',
+	partner: 'jonn',
+	briefing: [
+		'Garfield Lynns, the Firefly, has brought his work from Gotham to Metropolis: fires from the air, street by street, and he calls it art. People are trapped up the towers he has lit.',
+		"J'onn J'onzz can walk through a wall and carry them out through it. Near fire, he cannot move at all.",
+		"New: FIRE. Fires grow, and a big one spreads. Every construct you put into one beats it down. Keep the fire off J'onn's way, and away from the people waiting for him."
+	],
+	objectives: ["Put out the fires in J'onn's way", "Keep the smoke off the trapped while J'onn gets them out", 'Stop Firefly']
 });
 
 MISSIONS.push({

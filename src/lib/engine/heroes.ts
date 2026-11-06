@@ -36,6 +36,11 @@
 //    Lasso          the golden lasso round someone out of reach: dragged to her, helpless
 //    Bracelets      crossed against a big hit: most of it turned aside, and shots near her burst
 //    Clash          bracelets struck together: a shockwave all around her
+//  J'ONN J'ONZZ (in the air; a telepath who can walk through walls)
+//    Mind Blast     a shout into every mind round him: they drop, stunned
+//    Phase Strike   through whoever he's after like a ghost, solid again on
+//                   the other side, and the blow lands from behind
+//    (Fire Season: near fire he freezes, `afraid`: no powers, no moving)
 //  AQUAMAN (on foot on land; at home in the water)
 //    Trident        in at them and two thrusts that go through whoever's in front
 //    Tide           a wall of water off his hand: everyone in front of him
@@ -70,7 +75,9 @@ type HeroPower =
 	| 'frost'
 	| 'lasso'
 	| 'trident'
-	| 'tide';
+	| 'tide'
+	| 'mindBlast'
+	| 'phaseStrike';
 
 interface Move {
 	power: HeroPower;
@@ -106,11 +113,13 @@ export interface HeroState {
 	rise: number;
 	/** Somewhere the mission needs them to be (Aquaman to people in the water): they go there before anything else. */
 	errand: { x: number; y: number } | null;
+	/** Seconds left frozen with fear (J'onn near fire): no powers, no moving. */
+	afraid: number;
 }
 
 /** A flash of lightning, a tornado, a shockwave: drawn by draw/heroes.ts. */
 export interface HeroFx {
-	kind: 'bolt' | 'tornado' | 'thunder' | 'quake' | 'mace' | 'zip' | 'chakram' | 'nova' | 'cut' | 'heat' | 'frost' | 'lasso' | 'spark' | 'boom' | 'batarang' | 'smoke' | 'toxin' | 'trident' | 'wave' | 'shark' | 'whirl';
+	kind: 'bolt' | 'tornado' | 'thunder' | 'quake' | 'mace' | 'zip' | 'chakram' | 'nova' | 'cut' | 'heat' | 'frost' | 'lasso' | 'spark' | 'boom' | 'batarang' | 'smoke' | 'toxin' | 'trident' | 'wave' | 'shark' | 'whirl' | 'mind';
 	x: number;
 	y: number;
 	/** Bolts and zips: the other end. */
@@ -149,7 +158,9 @@ const COOLDOWNS: Record<HeroPower, number> = {
 	frost: 10,
 	lasso: 6,
 	trident: 1.6,
-	tide: 8
+	tide: 8,
+	mindBlast: 9,
+	phaseStrike: 2.4
 };
 
 // ---- The Flash ----
@@ -200,6 +211,12 @@ export const TRIDENT = { range: 340, speed: 950, reach: 96, thrusts: [0.08, 0.3]
 /** Tide: a cone of water this long and wide; what's in it is thrown back and knocked off its feet. */
 export const TIDE = { range: 360, halfAngle: 0.7, damage: 14, knockback: 680, stun: 0.8, windup: 0.25 };
 
+// ---- J'onn J'onzz ----
+/** Mind Blast: how far it reaches, what it does, and how long they're down for. */
+export const MIND_BLAST = { radius: 250, damage: 12, stun: 1.4, windup: 0.3 };
+/** Phase Strike: how far he goes for it from, how fast through, how far past, and the blow. */
+export const PHASE_STRIKE = { range: 400, speed: 1000, past: 60, damage: 30, knockback: 420 };
+
 const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
 
 const fxLists = new WeakMap<ConstructWorld, HeroFx[]>();
@@ -227,14 +244,15 @@ export function createHeroState(id: HeroId): HeroState {
 	cooldowns.frost = 4;
 	cooldowns.lasso = 2;
 	cooldowns.tide = 3;
-	return { id, move: null, cooldowns, target: null, trail: [], guard: 0, rise: 0, errand: null };
+	cooldowns.mindBlast = 3;
+	return { id, move: null, cooldowns, target: null, trail: [], guard: 0, rise: 0, errand: null, afraid: 0 };
 }
 
 /** Is a hero in the middle of a move that carries them (the Game skips normal movement)? */
 export function heroMoving(p: Player): boolean {
 	const m = p.hero?.move;
 	if (!m) return false;
-	const still: HeroPower[] = ['mace', 'thunder', 'lightning', 'chakram', 'nova', 'heat', 'frost', 'lasso', 'tide'];
+	const still: HeroPower[] = ['mace', 'thunder', 'lightning', 'chakram', 'nova', 'heat', 'frost', 'lasso', 'tide', 'mindBlast'];
 	return !still.includes(m.power) && !(m.power === 'blitz' && m.step === 'hits');
 }
 
@@ -258,8 +276,9 @@ export function updateHero(p: Player, dt: number, w: ConstructWorld, solids: rea
 	for (const t of h.trail) t.age += dt;
 	h.trail = h.trail.filter((t) => t.age < 0.28);
 
-	// Knocked down, or Grodd in their head: no powers
-	if (p.downed || p.confused > 0) {
+	h.afraid = Math.max(0, h.afraid - dt);
+	// Knocked down, Grodd in their head, or frozen with fear: no powers
+	if (p.downed || p.confused > 0 || h.afraid > 0) {
 		h.move = null;
 		h.rise = 0;
 		return;
@@ -409,6 +428,26 @@ function choose(p: Player, h: HeroState, w: ConstructWorld) {
 			return;
 		}
 		if (ready('haymaker') && d <= HAYMAKER.range) begin(h, 'haymaker', t);
+		return;
+	}
+
+	if (h.id === 'jonn') {
+		if (ready('mindBlast') && around(p.x, p.y, MIND_BLAST.radius).length >= 2) {
+			begin(h, 'mindBlast', t);
+			w.effects.push({ kind: 'callout', x: p.x, y: p.y, age: 0, life: 1.1, text: 'MIND BLAST', owner: p });
+			return;
+		}
+		if (!t) return;
+		if (ready('phaseStrike') && dist(t, p) <= PHASE_STRIKE.range) {
+			const m = begin(h, 'phaseStrike', t);
+			// Through them and out the far side
+			const d = dist(t, p) || 1;
+			m.fromX = p.x;
+			m.fromY = p.y;
+			m.x = t.x + ((t.x - p.x) / d) * PHASE_STRIKE.past;
+			m.y = t.y + ((t.y - p.y) / d) * PHASE_STRIKE.past;
+			p.invuln = Math.max(p.invuln, 0.5);
+		}
 		return;
 	}
 
@@ -824,6 +863,40 @@ function run(p: Player, h: HeroState, m: Move, dt: number, w: ConstructWorld, so
 			return;
 		}
 
+		case 'mindBlast': {
+			p.actionTimer = 0.4;
+			p.vx *= 0.8;
+			p.vy *= 0.8;
+			if (m.elapsed < MIND_BLAST.windup) return;
+			if (m.count === 0) {
+				m.count = 1;
+				for (const e of enemiesOf(w)) {
+					if (dist(e, p) > MIND_BLAST.radius) continue;
+					hit(w, p, e, MIND_BLAST.damage, 60, p.x, p.y);
+					e.stun = Math.max(e.stun, MIND_BLAST.stun);
+				}
+				fx.push({ kind: 'mind', x: p.x, y: p.y, age: 0, life: 0.7, radius: MIND_BLAST.radius, lift: p.bodyTop - 20 });
+			}
+			if (m.elapsed > 0.6) done();
+			return;
+		}
+
+		case 'phaseStrike': {
+			const t = m.target;
+			// Ghosting through: untouchable until he's solid again
+			p.invuln = Math.max(p.invuln, 0.1);
+			if (runTo(m.x, m.y, PHASE_STRIKE.speed) || m.elapsed > 0.6) {
+				if (t && isStanding(t) && dist(t, p) < PHASE_STRIKE.past + 60) {
+					hit(w, p, t, PHASE_STRIKE.damage, PHASE_STRIKE.knockback, m.fromX, m.fromY);
+					w.effects.push({ kind: 'impact', x: t.x, y: t.y, age: 0, life: 0.25, lift: 50 });
+				}
+				if (t) face(p, t.x);
+				p.actionTimer = 0.3;
+				done();
+			}
+			return;
+		}
+
 		case 'trident': {
 			const t = m.target;
 			if (!t || !isStanding(t)) {
@@ -1007,6 +1080,8 @@ export class HeroInput implements InputSource {
 		const h = me?.hero;
 		if (!me || !h || me.downed) return IDLE;
 		const dt = 1 / 60;
+		// Frozen with fear: he can't make himself move
+		if (h.afraid > 0) return IDLE;
 		const lead = this.world.players.find((p) => !p.hero && !p.downed) ?? null;
 		const enemies = this.world.dummies.filter((d): d is Enemy => isEnemy(d) && isStanding(d));
 		// A broken Manhunter's core comes first: it has to be smashed before it rebuilds

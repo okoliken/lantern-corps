@@ -606,7 +606,8 @@ export class Game {
 			shotKick: p.shotTimer / SHOT_POSE_TIME,
 			// Cast is strongest right as the construct forms, then eases off
 			cast: p.actionTimer > 0 ? Math.min(1, p.actionTimer / ACTION_POSE_TIME) : 0,
-			hurt: Math.min(1, p.hurtTimer / 0.35),
+			// Frozen with fear (J'onn near fire): shrunk into himself
+			hurt: p.hero?.afraid ? 0.7 : Math.min(1, p.hurtTimer / 0.35),
 			downed: p.downed,
 			victory: Math.min(1, p.victoryTimer / 0.4),
 			build: p.def.build,
@@ -713,7 +714,7 @@ export class Game {
 								drawManhunterCore(ctx, d, 0, 0, this.time);
 								ctx.restore();
 							}
-						: d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit' || d.kind === 'mindAmp' || d.kind === 'fearLens' || d.kind === 'seaBreach' || d.kind === 'qwardCharge'
+						: d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit' || d.kind === 'mindAmp' || d.kind === 'fearLens' || d.kind === 'seaBreach' || d.kind === 'qwardCharge' || d.kind === 'blaze'
 						? () => {} // the mission draws it
 
 						: d.drift
@@ -737,7 +738,7 @@ export class Game {
 			if (hero) {
 				if (hero.trail.length > 1) ground.push({ baseY: y - 0.01, draw: () => drawSpeedTrail(ctx, hero.trail, FIGURE_HEIGHT) });
 				if (hero.id === 'razer') list.push({ baseY: y, draw: () => drawRazerAlly(ctx, p, x, y, env.hasGround, this.time) });
-				else list.push({ baseY: y, draw: () => drawHero(ctx, hero.id, p.def.look, x, y, pose, this.time, sizeOf(p), { guard: hero.guard }) });
+				else list.push({ baseY: y, draw: () => drawHero(ctx, hero.id, p.def.look, x, y, pose, this.time, sizeOf(p), { guard: hero.guard, afraid: hero.afraid > 0 ? 1 : 0, phase: hero.move?.power === 'phaseStrike' ? 1 : 0 }) });
 			} else if (!inJet) list.push({ baseY: y, draw: () => drawLantern(ctx, p.def, x, y, pose, this.time, sizeOf(p)) });
 			// Power Armor goes on over the figure
 			const suit = p.armor;
@@ -1017,6 +1018,8 @@ export class Game {
 																? 'Hull breach'
 																: t.dummy.kind === 'qwardCharge'
 																	? 'Anti-matter charge'
+																	: t.dummy.kind === 'blaze'
+																		? 'Fire'
 								: 'Dummy'
 				: t.kind === 'ally'
 					? t.player.def.name

@@ -79,7 +79,7 @@ export function drawSupermanBody(ctx: CanvasRenderingContext2D, sk: Skeleton, lo
 }
 
 /** The cape: from the shoulders, hanging down his back on the ground, streaming out behind him in the air. */
-function drawCape(ctx: CanvasRenderingContext2D, sk: Skeleton, time: number, pose: LanternPose, colors: [string, string] = [CAPE, CAPE_DARK]) {
+export function drawCape(ctx: CanvasRenderingContext2D, sk: Skeleton, time: number, pose: LanternPose, colors: [string, string] = [CAPE, CAPE_DARK]) {
 	const at = frame(sk);
 	const air = pose.downed ? 0 : pose.altitude;
 	// From straight down (0) round toward straight back (PI/2)

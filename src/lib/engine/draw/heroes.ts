@@ -16,6 +16,7 @@ import { drawLieutenant } from './lieutenants';
 import { enemyPose } from './enemies';
 import { LASSO_GOLD, drawAquamanBody, drawBatmanBody, drawSupermanBody, drawWonderWomanBody } from './league';
 import { FIGURE_HEIGHT, lerpP, poly, segment, shadeColor } from './lantern';
+import { drawJonnBody } from './jonn';
 
 const FIGURE_SCALE = 1.35;
 const OUTLINE = '#030504';
@@ -45,6 +46,9 @@ const NTH_GLOW = '#fff08a';
 export interface HeroLook {
 	/** Wings wrapped round her (Wing Guard), 0..1. */
 	guard?: number;
+	/** J'onn: frozen with fear (0..1), and phasing (0..1). */
+	afraid?: number;
+	phase?: number;
 }
 
 /** Draw the Flash or Hawkgirl. Same contract as drawLantern: (x, y) is the anchor. */
@@ -86,6 +90,8 @@ export function drawHero(
 		drawBatmanBody(ctx, sk, time, pose);
 	} else if (id === 'aquaman') {
 		drawAquamanBody(ctx, sk, look, time, pose);
+	} else if (id === 'jonn') {
+		drawJonnBody(ctx, sk, look, time, pose, { afraid: extra.afraid ?? 0, phase: extra.phase ?? 0 });
 	} else {
 		const flying = air > 0.5 && !pose.downed;
 		const guard = extra.guard ?? 0;
@@ -773,6 +779,25 @@ export function drawHeroFx(ctx: CanvasRenderingContext2D, list: readonly HeroFx[
 				}
 				break;
 			}
+			case 'mind': {
+				// J'onn's mind blast: rings of red-eyed light going out through every head round him
+				const r = (f.radius ?? 250) * Math.min(1, k * 1.5);
+				const lift = f.lift ?? 60;
+				for (let i = 0; i < 3; i++) {
+					const rr = r * (1 - i * 0.22);
+					if (rr <= 0) continue;
+					ctx.strokeStyle = `rgba(255, 70, 60, ${0.55 * fade * (1 - i * 0.25)})`;
+					ctx.lineWidth = 3 - i * 0.7;
+					ctx.beginPath();
+					ctx.ellipse(f.x, f.y - lift * 0.4, rr, rr * 0.55, 0, 0, TAU);
+					ctx.stroke();
+				}
+				ctx.fillStyle = `rgba(120, 220, 140, ${0.12 * fade})`;
+				ctx.beginPath();
+				ctx.ellipse(f.x, f.y - lift * 0.4, r, r * 0.55, 0, 0, TAU);
+				ctx.fill();
+				break;
+			}
 			case 'whirl': {
 				// A whirlpool: rings of water turning in on themselves
 				const r = f.radius ?? 240;
@@ -1081,7 +1106,7 @@ export const leagueHero = (kind: string): HeroId => LEAGUE_KINDS[kind];
 // Built when asked, not when the module loads: this file sits in an import cycle with
 // league.ts, and LASSO_GOLD is not initialised yet if this module is evaluated first
 export function leagueColor(kind: string): string {
-	const colors: Record<HeroId, string> = { flash: '#ffd23f', superman: '#4f8bff', wonderwoman: LASSO_GOLD, hawkgirl: '#e0a458', razer: '#ff2a2a', aquaman: '#f4b04a', batman: '#9aa4b4' };
+	const colors: Record<HeroId, string> = { flash: '#ffd23f', superman: '#4f8bff', wonderwoman: LASSO_GOLD, hawkgirl: '#e0a458', razer: '#ff2a2a', aquaman: '#f4b04a', jonn: '#78dcaa', batman: '#9aa4b4' };
 	return colors[leagueHero(kind)];
 }
 

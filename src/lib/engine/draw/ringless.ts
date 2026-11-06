@@ -8,7 +8,7 @@ import { HEAD_R, computeSkeleton, turnScale, type LanternPose, type Point, type 
 import type { ConstructWorld } from '../constructs/system';
 import { isStanding } from '../dummy';
 import { ENEMIES, type Enemy, type EnemyKind } from '../enemies/enemies';
-import { OPTIC_EYE_GAP, gearOf, grenadeProgress, isGearMelee } from '../enemies/gear';
+import { FLAME_HALF_ANGLE, OPTIC_EYE_GAP, gearOf, grenadeProgress, isGearMelee } from '../enemies/gear';
 import type { AbilityId, RedShot } from '../enemies/redConstructs';
 import { enemyPose } from './enemies';
 import { faceShape, frame, torsoShape } from './heroes';
@@ -18,12 +18,12 @@ const TAU = Math.PI * 2;
 const OUTLINE = '#030504';
 const FIGURE_SCALE = 1.35;
 
-export type RinglessKind = 'thug' | 'enforcer' | 'weaponer' | 'mantaDiver' | 'blackManta' | 'thunderer';
+export type RinglessKind = 'thug' | 'enforcer' | 'weaponer' | 'mantaDiver' | 'blackManta' | 'thunderer' | 'firefly';
 export const isRinglessKind = (kind: EnemyKind): kind is RinglessKind =>
-	kind === 'thug' || kind === 'enforcer' || kind === 'weaponer' || kind === 'mantaDiver' || kind === 'blackManta' || kind === 'thunderer';
+	kind === 'thug' || kind === 'enforcer' || kind === 'weaponer' || kind === 'mantaDiver' || kind === 'blackManta' || kind === 'thunderer' || kind === 'firefly';
 
 /** What's in their hand: the melee weapon while they swing it, a gun while they fire it, otherwise whatever they reach for first. */
-type Held = 'pistol' | 'bat' | 'rifle' | 'baton' | 'cannon' | 'blade' | 'grenade' | 'speargun' | 'knife' | 'wrist' | 'qwa';
+type Held = 'pistol' | 'bat' | 'rifle' | 'baton' | 'cannon' | 'blade' | 'grenade' | 'speargun' | 'knife' | 'wrist' | 'qwa' | 'torch';
 const HELD: Partial<Record<AbilityId, Held>> = {
 	pistol: 'pistol',
 	batSwing: 'bat',
@@ -38,7 +38,9 @@ const HELD: Partial<Record<AbilityId, Held>> = {
 	mantaHarpoon: 'wrist',
 	opticBlast: 'wrist',
 	qwaBolt: 'qwa',
-	qwaBlade: 'qwa'
+	qwaBlade: 'qwa',
+	flamethrower: 'torch',
+	firebomb: 'torch'
 };
 function heldBy(e: Enemy): Held {
 	const b = e.brain;
@@ -74,8 +76,13 @@ function footPose(e: Enemy, hasGround: boolean, time: number): LanternPose {
 
 const scaleOf = (e: Enemy) => FIGURE_SCALE * ENEMIES[e.kind].scale;
 
+/** Firefly flies: the jetpack holds him up, legs trailing. */
+function poseOf(e: Enemy, hasGround: boolean, time: number): LanternPose {
+	return e.kind === 'firefly' ? { ...enemyPose(e, hasGround, time), glow: false } : footPose(e, hasGround, time);
+}
+
 export function drawRinglessEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number) {
-	const pose = footPose(e, hasGround, time);
+	const pose = poseOf(e, hasGround, time);
 	const sk = computeSkeleton(pose, time);
 	const s = scaleOf(e);
 	const seed = seedOf(e);
@@ -91,6 +98,8 @@ export function drawRinglessEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: nu
 		ctx.ellipse(0, 0, 12.5, 3.8, 0, 0, TAU);
 		ctx.fill();
 	}
+	// Up off the ground on the jetpack
+	if (pose.altitude > 0) ctx.translate(0, -pose.hoverHeight * pose.altitude);
 	ctx.scale(pose.dir * turnScale(pose), 1);
 	ctx.lineJoin = 'round';
 	ctx.lineCap = 'round';
@@ -100,25 +109,29 @@ export function drawRinglessEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: nu
 	else if (e.kind === 'mantaDiver') drawDiver(ctx, sk, seed, held, aiming, time);
 	else if (e.kind === 'blackManta') drawBlackManta(ctx, sk, e, time);
 	else if (e.kind === 'thunderer') drawThunderer(ctx, sk, held, aiming, time);
+	else if (e.kind === 'firefly') drawFirefly(ctx, sk, held, aiming, time);
 	else drawWeaponer(ctx, sk, held, aiming, time);
 	ctx.restore();
 }
 
 /** Where their rounds leave from: the end of the gun (or the hand), in world coordinates. */
 export function ringlessMuzzle(e: Enemy, x: number, y: number): [number, number] {
-	const pose = footPose(e, true, 0);
+	const pose = poseOf(e, true, 0);
 	const sk = computeSkeleton(pose, 0);
 	const s = scaleOf(e);
 	const k = pose.dir * turnScale(pose) * s;
 	const reach = MUZZLE[heldBy(e)];
 	const [ux, uy] = along(sk.front.elbow, sk.front.hand);
-	return [x + (sk.front.hand[0] + ux * reach) * k, y + (sk.front.hand[1] + uy * reach) * s];
+	const up = pose.altitude > 0 ? pose.hoverHeight * pose.altitude * s : 0;
+	return [x + (sk.front.hand[0] + ux * reach) * k, y - up + (sk.front.hand[1] + uy * reach) * s];
 }
-const MUZZLE: Record<Held, number> = { pistol: 8, bat: 0, rifle: 22, baton: 0, cannon: 13, blade: 0, grenade: 0, speargun: 26, knife: 0, wrist: 4, qwa: 18 };
+const MUZZLE: Record<Held, number> = { pistol: 8, bat: 0, rifle: 22, baton: 0, cannon: 13, blade: 0, grenade: 0, speargun: 26, knife: 0, wrist: 4, qwa: 18, torch: 16 };
 
 /** Just above their head. */
 export function ringlessTop(e: Enemy, y: number): number {
-	return y - FIGURE_HEIGHT * ENEMIES[e.kind].scale - (e.kind === 'blackManta' ? 22 : e.kind === 'thunderer' ? 16 : e.kind === 'weaponer' ? 12 : 8);
+	const pose = e.kind === 'firefly' ? poseOf(e, true, 0) : null;
+	const up = pose ? pose.hoverHeight * FIGURE_SCALE * ENEMIES[e.kind].scale : 0;
+	return y - up - FIGURE_HEIGHT * ENEMIES[e.kind].scale - (e.kind === 'blackManta' ? 22 : e.kind === 'thunderer' ? 16 : e.kind === 'weaponer' ? 12 : 8);
 }
 
 function along(a: Point, b: Point): [number, number] {
@@ -675,6 +688,124 @@ function drawThunderer(ctx: CanvasRenderingContext2D, sk: Skeleton, held: Held, 
 	arm(sk.front, false);
 }
 
+// -------------------------------------------------------------------- Firefly
+
+const FF_SUIT = '#4a4a2c';
+const FF_SUIT_LIT = '#6b6a3e';
+const FF_DARK = '#2a2a18';
+const FF_ORANGE = '#e8761e';
+const FF_GOGGLE = '#ffb12a';
+
+function drawFirefly(ctx: CanvasRenderingContext2D, sk: Skeleton, held: Held, aiming: boolean, time: number) {
+	const at = frame(sk);
+	// The jetpack's wings: two thin orange-veined fans, buzzing
+	const buzz = Math.sin(time * 60) * 0.12;
+	for (const [k, len] of [
+		[-0.5 + buzz, 22],
+		[-0.15 - buzz, 18]
+	]) {
+		const [rx, ry] = at(15, -7);
+		ctx.save();
+		ctx.translate(rx, ry);
+		ctx.rotate(sk.torsoAngle + Math.PI + k);
+		ctx.fillStyle = 'rgba(255, 190, 120, 0.35)';
+		ctx.strokeStyle = 'rgba(232, 118, 30, 0.8)';
+		ctx.lineWidth = 0.7;
+		ctx.beginPath();
+		ctx.ellipse(len / 2, 0, len / 2, 4, 0, 0, TAU);
+		ctx.fill();
+		ctx.stroke();
+		ctx.restore();
+	}
+	// The pack and its two tanks, a flame out of each nozzle
+	ctx.fillStyle = '#5a5f66';
+	ctx.fill(poly([at(18, -5), at(18, -10), at(5, -10.5), at(5, -5)]));
+	outline(ctx, 0.7);
+	for (const side of [-7.5, -9.5]) {
+		const [nx, ny] = at(4, side);
+		const g = ctx.createLinearGradient(nx, ny, nx, ny + 12);
+		g.addColorStop(0, 'rgba(255, 230, 150, 0.95)');
+		g.addColorStop(1, 'rgba(255, 110, 30, 0)');
+		ctx.fillStyle = g;
+		ctx.beginPath();
+		ctx.ellipse(nx, ny + 5 + Math.sin(time * 40 + side) * 1.2, 1.8, 6, 0, 0, TAU);
+		ctx.fill();
+	}
+	const arm = (l: Skeleton['front'], far: boolean) => {
+		segment(ctx, l.shoulder, l.elbow, 3.2, 2.7, far ? FF_DARK : FF_SUIT);
+		segment(ctx, l.elbow, l.hand, 2.7, 2.4, far ? FF_DARK : FF_SUIT_LIT);
+		ctx.fillStyle = '#2b2a1c';
+		ctx.beginPath();
+		ctx.arc(l.hand[0], l.hand[1], 2.3, 0, TAU);
+		ctx.fill();
+		outline(ctx);
+	};
+	const leg = (l: Skeleton['front'], far: boolean) => {
+		segment(ctx, l.hipJoint, l.knee, 3.7, 3, far ? FF_DARK : FF_SUIT);
+		segment(ctx, l.knee, l.foot, 3, 2.7, far ? FF_DARK : FF_SUIT_LIT);
+		segment(ctx, lerpP(l.knee, l.foot, 0.5), l.foot, 3.1, 2.8, '#1c1b12');
+		shoe(ctx, l, '#1c1b12', null, 4.8);
+	};
+	arm(sk.back, true);
+	leg(sk.back, true);
+	const body = torsoShape(at, -0.2);
+	const [bx, by] = at(8, -6);
+	const [fx, fy] = at(8, 7);
+	const shade = ctx.createLinearGradient(bx, by, fx, fy);
+	shade.addColorStop(0, FF_DARK);
+	shade.addColorStop(1, FF_SUIT_LIT);
+	ctx.fillStyle = shade;
+	ctx.fill(body);
+	ctx.save();
+	ctx.clip(body);
+	// Flames painted up the front of the suit
+	ctx.fillStyle = FF_ORANGE;
+	ctx.fill(poly([at(1, -1), at(9, 1.5), at(5, 3), at(12, 5.5), at(6, 6.8), at(1, 7)]));
+	ctx.fillStyle = '#ffcf5a';
+	ctx.fill(poly([at(1, 1), at(6, 3.5), at(3.5, 4.6), at(1, 5.6)]));
+	ctx.restore();
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.9;
+	ctx.stroke(body);
+	leg(sk.front, false);
+	// The helmet: a rounded dome, two huge round orange goggles, a pair of feelers on top
+	const R = HEAD_R;
+	ctx.save();
+	ctx.translate(...sk.headCenter);
+	ctx.rotate(sk.headAngle);
+	ctx.fillStyle = FF_SUIT;
+	ctx.beginPath();
+	ctx.arc(0, -0.4, R + 1.4, 0, TAU);
+	ctx.fill();
+	outline(ctx, 0.9);
+	ctx.strokeStyle = '#1c1b12';
+	ctx.lineWidth = 0.8;
+	ctx.beginPath();
+	ctx.moveTo(-R * 0.2, -R - 1);
+	ctx.quadraticCurveTo(-R * 0.6, -R - 6, -R * 1.2, -R - 7);
+	ctx.moveTo(R * 0.2, -R - 1);
+	ctx.quadraticCurveTo(R * 0.3, -R - 6, R * 0.9, -R - 8);
+	ctx.stroke();
+	ctx.fillStyle = '#1c1b12';
+	ctx.beginPath();
+	ctx.ellipse(R * 0.7, -0.6, R * 0.58, R * 0.62, 0, 0, TAU);
+	ctx.fill();
+	ctx.fillStyle = FF_GOGGLE;
+	ctx.beginPath();
+	ctx.ellipse(R * 0.72, -0.6, R * 0.44, R * 0.48, 0, 0, TAU);
+	ctx.fill();
+	ctx.fillStyle = 'rgba(255, 255, 220, 0.75)';
+	ctx.beginPath();
+	ctx.ellipse(R * 0.85, -1.4, R * 0.12, R * 0.1, 0, 0, TAU);
+	ctx.fill();
+	// A breather grille under the goggles
+	ctx.fillStyle = '#2b2a1c';
+	ctx.fillRect(R * 0.45, R * 0.5, R * 0.6, R * 0.35);
+	ctx.restore();
+	drawHeld(ctx, sk.front, held, aiming, time);
+	arm(sk.front, false);
+}
+
 // --------------------------------------------------------------- Black Manta
 
 const MANTA = '#111114';
@@ -831,7 +962,7 @@ function drawBlackManta(ctx: CanvasRenderingContext2D, sk: Skeleton, e: Enemy, t
 
 /** Between shots a gun is held at the ready: forward and pointed down a little. */
 const LOW_READY = 0.5;
-const GUNS: ReadonlySet<Held> = new Set<Held>(['pistol', 'rifle', 'cannon', 'speargun']);
+const GUNS: ReadonlySet<Held> = new Set<Held>(['pistol', 'rifle', 'cannon', 'speargun', 'torch']);
 
 /**
  * A weapon in a hand. A gun points along the arm while they aim (the arm is
@@ -952,6 +1083,19 @@ function drawHeld(ctx: CanvasRenderingContext2D, l: Skeleton['front'], held: Hel
 			ctx.strokeStyle = '#0a0a06';
 			ctx.lineWidth = 1.3;
 			ctx.stroke();
+			break;
+		}
+		case 'torch': {
+			// The flamethrower's wand: a short steel barrel, a pilot flame at the tip, the hose back to his tanks
+			ctx.fillStyle = '#4a4f57';
+			ctx.fill(poly([[-4, -1.8], [14, -1.5], [16, -2.2], [16, 2.2], [14, 1.5], [-4, 1.8]]));
+			outline(ctx, 0.6);
+			ctx.fillStyle = '#2b2f36';
+			ctx.fillRect(-1, 1.6, 2.4, 3.6);
+			ctx.fillStyle = `rgba(255, 170, 60, ${0.7 + 0.3 * Math.sin(time * 25)})`;
+			ctx.beginPath();
+			ctx.ellipse(18, 0, 2.4 + Math.sin(time * 31), 1.3, 0, 0, TAU);
+			ctx.fill();
 			break;
 		}
 		case 'knife': {
@@ -1092,7 +1236,7 @@ export function drawGearWorld(ctx: CanvasRenderingContext2D, w: ConstructWorld, 
 		const k = grenadeProgress(n);
 		// Where it lands: a ring that fills as it comes down
 		ctx.save();
-		ctx.strokeStyle = `rgba(230, 170, 255, ${0.45 + 0.4 * k})`;
+		ctx.strokeStyle = n.fire ? `rgba(255, 150, 60, ${0.45 + 0.4 * k})` : `rgba(230, 170, 255, ${0.45 + 0.4 * k})`;
 		ctx.lineWidth = 2;
 		ctx.setLineDash([8, 6]);
 		ctx.lineDashOffset = -time * 30;
@@ -1100,21 +1244,21 @@ export function drawGearWorld(ctx: CanvasRenderingContext2D, w: ConstructWorld, 
 		ctx.ellipse(n.x, n.y, n.radius, n.radius * 0.45, 0, 0, TAU);
 		ctx.stroke();
 		ctx.setLineDash([]);
-		ctx.fillStyle = `rgba(214, 112, 196, ${0.08 + 0.18 * k})`;
+		ctx.fillStyle = n.fire ? `rgba(255, 120, 40, ${0.08 + 0.18 * k})` : `rgba(214, 112, 196, ${0.08 + 0.18 * k})`;
 		ctx.beginPath();
 		ctx.ellipse(n.x, n.y, n.radius * k, n.radius * 0.45 * k, 0, 0, TAU);
 		ctx.fill();
-		// The grenade, lobbed in an arc from the hand
+		// The grenade, lobbed in an arc from the hand (a firebomb: a bottle of fire, tumbling)
 		const gx = n.fromX + (n.x - n.fromX) * k;
 		const gy = n.fromY + (n.y - n.fromY) * k - lift * (1 - k) - GRENADE_ARC * 4 * k * (1 - k);
 		ctx.translate(gx, gy);
 		ctx.rotate(time * 9);
-		ctx.fillStyle = '#2a1838';
+		ctx.fillStyle = n.fire ? '#7a3a14' : '#2a1838';
 		ctx.fillRect(-3.5, -5, 7, 10);
 		ctx.strokeStyle = OUTLINE;
 		ctx.lineWidth = 1;
 		ctx.strokeRect(-3.5, -5, 7, 10);
-		ctx.fillStyle = Math.sin(time * 30) > 0 ? '#ffd0f4' : '#d670c4';
+		ctx.fillStyle = n.fire ? (Math.sin(time * 30) > 0 ? '#ffd27a' : '#ff7a20') : Math.sin(time * 30) > 0 ? '#ffd0f4' : '#d670c4';
 		ctx.fillRect(-1.5, -6.5, 3, 2);
 		ctx.restore();
 	}
@@ -1146,6 +1290,27 @@ export function drawGearWorld(ctx: CanvasRenderingContext2D, w: ConstructWorld, 
 		ctx.closePath();
 		ctx.fill();
 		ctx.stroke();
+		ctx.restore();
+	}
+	for (const f of g.flames) {
+		// Firefly's flame: a cone of fire from his wand, licking and rolling
+		const o = f.owner;
+		const [mx, my] = ringlessMuzzle(o, o.x, o.y);
+		const ux = Math.cos(f.angle);
+		const uy = Math.sin(f.angle);
+		ctx.save();
+		for (let i = 0; i < 16; i++) {
+			const k = ((time * 2.2 + i / 16) % 1);
+			const d = 14 + k * f.reach;
+			const spread = (((i * 37) % 11) / 11 - 0.5) * 2 * FLAME_HALF_ANGLE * d;
+			const px = mx + ux * d - uy * spread;
+			const py = my + uy * d * 0.6 + ux * spread * 0.6 + k * (o.y - my);
+			const r = 6 + k * 26;
+			ctx.fillStyle = k < 0.25 ? `rgba(255, 240, 180, ${0.9 - k})` : k < 0.6 ? `rgba(255, 150, 40, ${0.8 - k * 0.6})` : `rgba(200, 60, 20, ${0.6 * (1 - k)})`;
+			ctx.beginPath();
+			ctx.ellipse(px, py, r, r * 0.7, 0, 0, TAU);
+			ctx.fill();
+		}
 		ctx.restore();
 	}
 	for (const bm of g.beams) {
@@ -1213,6 +1378,16 @@ export function drawGearWorld(ctx: CanvasRenderingContext2D, w: ConstructWorld, 
 				ctx.lineTo(f.x + Math.cos(a) * r * 0.6, f.y - 45 + Math.sin(a) * r);
 			}
 			ctx.stroke();
+		} else if (f.kind === 'burst') {
+			// A firebomb bursting: a ball of fire, rolling out
+			ctx.fillStyle = `rgba(255, 170, 60, ${0.7 * (1 - k)})`;
+			ctx.beginPath();
+			ctx.ellipse(f.x, f.y - 20 * k, f.radius * (0.5 + 0.5 * k), f.radius * 0.5 * (0.5 + 0.5 * k), 0, 0, TAU);
+			ctx.fill();
+			ctx.fillStyle = `rgba(255, 240, 180, ${0.8 * (1 - k)})`;
+			ctx.beginPath();
+			ctx.ellipse(f.x, f.y - 20 * k, f.radius * 0.35, f.radius * 0.2, 0, 0, TAU);
+			ctx.fill();
 		} else {
 			// A stun grenade going off: a hard white flash and a ring
 			ctx.fillStyle = `rgba(255, 240, 255, ${0.55 * (1 - k)})`;

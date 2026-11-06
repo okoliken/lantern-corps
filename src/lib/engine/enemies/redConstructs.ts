@@ -124,7 +124,9 @@ export type AbilityId =
 	| 'mantaHarpoon'
 	| 'opticBlast'
 	| 'qwaBolt'
-	| 'qwaBlade';
+	| 'qwaBlade'
+	| 'flamethrower'
+	| 'firebomb';
 
 /** How far away a construct is used from. Kits take some of each. */
 type Band = 'close' | 'mid' | 'long' | 'support';
@@ -620,6 +622,16 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	qwaBlade: def({
 		id: 'qwaBlade', name: 'Qwa-Blade', band: 'close', tell: 'strike', windup: 0.4, active: 0.2, recover: 0.5, cooldown: 1.4,
 		minRange: 0, maxRange: 72, damage: 12, knockback: 320, melee: true, heavy: false, chance: 1
+	}),
+	// Firefly's flamethrower: a cone of fire held on you, and the ground burning where it ends
+	flamethrower: def({
+		id: 'flamethrower', name: 'Flamethrower', band: 'mid', tell: 'aim', windup: 0.6, active: 1.1, recover: 0.6, cooldown: 4.5,
+		minRange: 0, maxRange: 260, damage: 10, knockback: 60, melee: false, heavy: false, chance: 1, radius: 260
+	}),
+	// An incendiary lobbed onto you: it bursts into fire where it lands
+	firebomb: def({
+		id: 'firebomb', name: 'Firebomb', band: 'long', tell: 'aim', windup: 0.5, active: 0.3, recover: 0.4, cooldown: 5,
+		minRange: 160, maxRange: 620, damage: 14, knockback: 220, melee: false, heavy: true, chance: 0.9, radius: 110
 	})
 };
 

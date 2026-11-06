@@ -487,7 +487,8 @@ export const LOADOUTS: Record<CrewId, ConstructId[]> = {
 	superman: ['beam'],
 	wonderwoman: ['beam'],
 	batman: ['beam'],
-	aquaman: ['beam']
+	aquaman: ['beam'],
+	jonn: ['beam']
 };
 
 /** Everything Hal and John can take into a fight: their kit plus the extras. Each carries ten (KIT_SIZE). */

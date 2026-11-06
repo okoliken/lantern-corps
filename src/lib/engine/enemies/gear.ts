@@ -15,6 +15,9 @@
 //   Thunderers of Qward anti-matter soldiers. Qwa-bolts, javelins of black
 //                     lightning thrown hard, and the same bolt held as a
 //                     blade. Where they walk, light dies (Lights Out).
+//   Firefly           Garfield Lynns, on a jetpack. A flamethrower held on
+//                     you, firebombs lobbed onto you; both leave fire where
+//                     they end (`ignitions`, for the mission to light).
 //   Black Manta       wrist blades, two quick cuts; a harpoon that bites in and
 //                     reels you to him; and the helmet's eyes, two red beams
 //                     held on you after a long glow (a shield takes them).
@@ -52,7 +55,9 @@ export const GEAR_ABILITIES: ReadonlySet<AbilityId> = new Set<AbilityId>([
 	'mantaHarpoon',
 	'opticBlast',
 	'qwaBolt',
-	'qwaBlade'
+	'qwaBlade',
+	'flamethrower',
+	'firebomb'
 ]);
 export const isGearAbility = (id: AbilityId) => GEAR_ABILITIES.has(id);
 const MELEE: ReadonlySet<AbilityId> = new Set<AbilityId>(['batSwing', 'shockBaton', 'forgeBlade', 'diveKnife', 'wristBlades', 'qwaBlade']);
@@ -80,6 +85,8 @@ const SHOCK = { time: 1.1 };
 const GRENADE = { flight: 0.95, stun: 1.5, lead: 0.5 };
 
 export interface Grenade {
+	/** A stun grenade, or one of Firefly's firebombs. */
+	fire?: boolean;
 	owner: Enemy;
 	fromX: number;
 	fromY: number;
@@ -93,7 +100,7 @@ export interface Grenade {
 
 /** Something to draw for a moment: a swing's trail, a muzzle flash, a grenade going off. */
 export interface GearFx {
-	kind: 'swing' | 'muzzle' | 'bang' | 'spark';
+	kind: 'swing' | 'muzzle' | 'bang' | 'spark' | 'burst';
 	weapon?: AbilityId;
 	x: number;
 	y: number;
@@ -118,6 +125,16 @@ export interface Harpoon {
 	reel: number;
 }
 
+/** Firefly's flame, held along the aim while it lasts. */
+export interface Flame {
+	owner: Enemy;
+	angle: number;
+	time: number;
+	tick: number;
+	dps: number;
+	reach: number;
+}
+
 /** The helmet's beams, held along the aim while the blast lasts. */
 export interface OpticBeam {
 	owner: Enemy;
@@ -133,12 +150,15 @@ interface GearWorld {
 	grenades: Grenade[];
 	harpoons: Harpoon[];
 	beams: OpticBeam[];
+	flames: Flame[];
+	/** Where fire has caught this tick (a flame's end, a firebomb's landing): the mission lights it, if it burns things. */
+	ignitions: { x: number; y: number }[];
 	fx: GearFx[];
 }
 const worlds = new WeakMap<ConstructWorld, GearWorld>();
 export function gearOf(w: ConstructWorld): GearWorld {
 	let g = worlds.get(w);
-	if (!g) worlds.set(w, (g = { grenades: [], harpoons: [], beams: [], fx: [] }));
+	if (!g) worlds.set(w, (g = { grenades: [], harpoons: [], beams: [], flames: [], ignitions: [], fx: [] }));
 	return g;
 }
 
@@ -182,6 +202,11 @@ export function startGearAbility(e: Enemy, a: AbilityDef, w: ConstructWorld) {
 			caught: null,
 			reel: 0
 		});
+	}
+	if (a.id === 'flamethrower') g.flames.push({ owner: e, angle, time: a.active, tick: 0, dps: a.damage * b.might, reach: a.radius ?? 260 });
+	if (a.id === 'firebomb') {
+		const t = b.target;
+		g.grenades.push({ fire: true, owner: e, fromX: e.x, fromY: e.y, x: t ? t.x + t.vx * 0.4 : e.x + b.aimX * 300, y: t ? t.y + t.vy * 0.4 : e.y + b.aimY * 300, t: 0, damage: a.damage * b.might, knockback: a.knockback, radius: a.radius ?? 110 });
 	}
 	if (a.id === 'opticBlast') g.beams.push({ owner: e, angle, length: 0, time: a.active, tick: 0, dps: a.damage * b.might });
 	if (a.id === 'stunGrenade') {
@@ -262,6 +287,14 @@ export function updateGearAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, pl
 			cut(e, a, w, players, ctx);
 			return;
 		}
+		case 'flamethrower':
+			// He hangs in the air while it burns; it does the rest (updateGear)
+			steer(e, 0, 0, 8, dt);
+			if (!g.flames.some((f) => f.owner === e)) b.timer = 0;
+			return;
+		case 'firebomb':
+			steer(e, 0, 0, 8, dt);
+			return;
 		case 'mantaHarpoon':
 		case 'opticBlast':
 			// Fired at the start; it does the rest on its own (updateGear). He plants his feet while it lasts.
@@ -315,14 +348,17 @@ export function updateGear(w: ConstructWorld, players: readonly Player[], dt: nu
 	g.fx = g.fx.filter((f) => f.age < f.life);
 	updateHarpoons(w, g, players, dt, damagePlayer);
 	updateBeams(w, g, players, dt, damagePlayer);
+	updateFlames(w, g, players, dt, damagePlayer);
 	for (const n of [...g.grenades]) {
 		n.t += dt;
 		if (n.t < GRENADE.flight) continue;
 		g.grenades.splice(g.grenades.indexOf(n), 1);
-		g.fx.push({ kind: 'bang', x: n.x, y: n.y, angle: 0, dir: 1, radius: n.radius, age: 0, life: 0.5 });
+		g.fx.push({ kind: n.fire ? 'burst' : 'bang', x: n.x, y: n.y, angle: 0, dir: 1, radius: n.radius, age: 0, life: 0.5 });
+		if (n.fire) g.ignitions.push({ x: n.x, y: n.y });
 		for (const p of players) {
 			if (p.downed || Math.hypot(p.x - n.x, p.y - n.y) > n.radius) continue;
 			damagePlayer(w, p, n.damage, n.x, n.y, n.knockback);
+			if (n.fire) continue;
 			if (p.chilled <= 0) w.effects.push({ kind: 'callout', x: p.x, y: p.y - 100, age: 0, life: 1.2, text: 'STUNNED', hurt: true, owner: p });
 			p.chilled = Math.max(p.chilled, GRENADE.stun);
 		}
@@ -416,3 +452,39 @@ const ABILITY_REACH = 680;
 export const OPTIC_EYE_GAP = OPTIC.eyeGap;
 
 const isStandingEnemy = (e: Enemy) => e.down === 0 && !e.gone;
+
+/** Firefly's flame: it follows his aim slowly, burns whoever's in its cone, and the ground where it ends catches. */
+function updateFlames(w: ConstructWorld, g: GearWorld, players: readonly Player[], dt: number, damagePlayer: typeof DamagePlayer) {
+	g.flames = g.flames.filter((f) => {
+		const o = f.owner;
+		f.time -= dt;
+		if (f.time <= 0 || !isStandingEnemy(o) || o.stun > 0) return false;
+		const t = o.brain.target;
+		if (t) {
+			let diff = Math.atan2(t.y - o.y, t.x - o.x) - f.angle;
+			diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+			f.angle += Math.max(-1.2 * dt, Math.min(1.2 * dt, diff));
+		}
+		f.tick -= dt;
+		if (f.tick > 0) return true;
+		f.tick = FLAME.tick;
+		for (const p of players) {
+			if (p.downed) continue;
+			const dx = p.x - o.x;
+			const dy = p.y - o.y;
+			const d = Math.hypot(dx, dy);
+			if (d > f.reach) continue;
+			let off = Math.atan2(dy, dx) - f.angle;
+			off = Math.atan2(Math.sin(off), Math.cos(off));
+			if (d > 30 && Math.abs(off) > FLAME.halfAngle) continue;
+			damagePlayer(w, p, f.dps * FLAME.tick, o.x, o.y, 0);
+		}
+		// Now and then the ground where it ends catches
+		if (Math.random() < FLAME.catches) g.ignitions.push({ x: o.x + Math.cos(f.angle) * f.reach * 0.85, y: o.y + Math.sin(f.angle) * f.reach * 0.85 });
+		return true;
+	});
+}
+
+/** The flame's cone: how wide, how often it bites, and the chance a bite sets the ground alight. */
+const FLAME = { halfAngle: 0.32, tick: 0.25, catches: 0.2 };
+export const FLAME_HALF_ANGLE = FLAME.halfAngle;

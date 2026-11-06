@@ -29,6 +29,7 @@ import { GroundLevel, buildGroundLevelMap } from '$lib/engine/missions/groundLev
 import { Undertow, buildUndertowMap } from '$lib/engine/missions/undertow';
 import { Exile, buildExileMap } from '$lib/engine/missions/exile';
 import { LightsOut, buildLightsOutMap } from '$lib/engine/missions/lightsOut';
+import { FireSeason, buildFireSeasonMap } from '$lib/engine/missions/fireSeason';
 import { KorugarMission, buildKorugarMap } from '$lib/engine/missions/korugar';
 import { GothamAtNight, buildGothamMap } from '$lib/engine/missions/gothamAtNight';
 import { QwardMission, buildQwardMap } from '$lib/engine/missions/qward';
@@ -295,6 +296,20 @@ export function buildMission(id: string, options: Options): MissionRun {
 			const director = new GroundLevel();
 			game.director = director;
 			return { game, director, outro: null, intro: S2.deadCrane };
+		}
+		case 'fire-season': {
+			// John and J'onn in burning Metropolis
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: 'john', keys: 'solo' },
+					{ lantern: 'jonn', keys: 'p2', ai: true }
+				],
+				map: buildFireSeasonMap()
+			});
+			const director = new FireSeason();
+			game.director = director;
+			return { game, director, outro: null, intro: S2.cityOnFire };
 		}
 		case 'lights-out': {
 			// Hal alone on Oa, in the dark

@@ -28,7 +28,8 @@ export type Speaker =
 	| 'grodd'
 	| 'ray'
 	| 'aquaman'
-	| 'manta';
+	| 'manta'
+	| 'firefly';
 
 export interface SceneLine {
 	who: Speaker;
@@ -61,7 +62,8 @@ export const SPEAKERS: Record<Speaker, { name: string; color: string }> = {
 	grodd: { name: 'Grodd', color: '#c79bff' },
 	ray: { name: 'Ray Doyle', color: '#ffd23a' },
 	aquaman: { name: 'Aquaman', color: '#f4b04a' },
-	manta: { name: 'Black Manta', color: '#ff4a3a' }
+	manta: { name: 'Black Manta', color: '#ff4a3a' },
+	firefly: { name: 'Firefly', color: '#ffb12a' }
 };
 
 /**
@@ -360,6 +362,18 @@ export const BATTERY_FAILING: SceneLine[] = [
 	{ who: 'kilowog', text: "I've got the rookies on the towers. You go hunt." },
 	{ who: 'hal', text: 'Hunting in the dark, against guys who make the dark. Sure.' },
 	{ who: 'guardian', text: 'Your ring will light your way, as far as your will reaches. Go.' }
+];
+
+/** Before Fire Season: Metropolis burning, and J'onn says what he's afraid of. */
+export const CITY_ON_FIRE: SceneLine[] = [
+	{ who: 'jonn', text: 'John. Metropolis is burning, and the fires are moving as if someone planned them.' },
+	{ who: 'john', text: 'Planned by who?' },
+	{ who: 'firefly', text: 'By an artist, Lantern! Garfield Lynns. Call me Firefly. Tonight the whole city is my canvas.', mood: 'alarm' },
+	{ who: 'jonn', text: 'I can find the people trapped inside. I can pass through the walls to reach them. But the fire...' },
+	{ who: 'john', text: "J'onn?" },
+	{ who: 'jonn', text: 'Fire is the one thing a Martian fears. When I am near it, I... cannot move.' },
+	{ who: 'john', text: "Then I keep the fire off you, and you get the people. You're not doing this alone." },
+	{ who: 'jonn', text: 'Neither are you. Thank you, John.' }
 ];
 
 /** Before First Light of Fear: Hal on Earth, and a call from Vesk. */

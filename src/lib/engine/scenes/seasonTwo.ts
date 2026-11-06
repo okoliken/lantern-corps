@@ -25,6 +25,7 @@ import { LANTERNS } from '../lanterns';
 import {
 	A_LANTERN_IN_YELLOW,
 	BAIT,
+	CITY_ON_FIRE,
 	BATTERY_FAILING,
 	DEAD_CRANE,
 	DREAMS_WITH_TEETH,
@@ -44,6 +45,7 @@ import { CastScene, type Actor } from './cast';
 import { drawGuardianDais } from './summoned';
 import { drawExileCell } from '../draw/exile';
 import { drawDarkness } from '../draw/darkness';
+import { drawBlaze } from '../draw/fire';
 
 /** The Guardians on their dais, the middle one speaking for them all. */
 const guardians = (x: number, chill: number): Actor => ({
@@ -239,6 +241,35 @@ export const batteryFailing = () => {
 	});
 	return scene;
 };
+
+/** Fires along the far street and the near kerb, for the scene. */
+const SCENE_FIRES = [
+	[180, G + 10, 0.8],
+	[1040, G - 30, 0.6],
+	[1260, G + 30, 1],
+	[420, G - 50, 0.5]
+];
+
+export const cityOnFire = () =>
+	new CastScene(CITY_ON_FIRE, {
+		talkStarts: 2.4,
+		backdrop: (ctx, t) => {
+			drawCentralCity(ctx, t, 1);
+			// The sky orange over the towers
+			const sky = ctx.createLinearGradient(0, 0, 0, G);
+			sky.addColorStop(0, 'rgba(255, 110, 30, 0)');
+			sky.addColorStop(1, 'rgba(255, 110, 30, 0.35)');
+			ctx.fillStyle = sky;
+			ctx.fillRect(0, 0, 1400, G);
+			for (const [x, y, size] of SCENE_FIRES) drawBlaze(ctx, x, y, size, false, t, x * 0.01);
+		},
+		cast: [
+			{ speaker: 'john', figure: { lantern: 'john' }, marks: [{ x: 560, y: G + 40, lift: 260, dir: 1 }, { at: 0.3, x: 600, y: G + 40, lift: 0, time: 1.6, dir: 1 }] },
+			{ speaker: 'jonn', figure: { hero: 'jonn' }, marks: [{ x: 800, y: G + 30, lift: 80, dir: -1 }] },
+			// Firefly crosses the sky as he talks
+			{ speaker: 'firefly', figure: { enemy: 'firefly' }, hidden: true, marks: [{ x: 1600, y: G - 300, lift: 0, dir: -1 }, { line: 2, x: 1600, y: G - 300, dir: -1 }, { wait: 0, x: -200, y: G - 360, time: 4.5, dir: -1 }] }
+		]
+	});
 
 /** Hal off duty at Ferris Air: the flight jacket, until the ring calls. */
 const HAL_PILOT: LanternFigure = {

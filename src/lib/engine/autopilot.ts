@@ -11,7 +11,7 @@ import type { Game } from './game';
 import type { InputSource, Intent } from './input';
 import type { Player } from './player';
 import { BUBBLE_SHIELD } from './constructs/defs';
-import { BODY, isStanding } from './dummy';
+import { BODY, isStanding, type Dummy } from './dummy';
 
 /** Enemies closer than this are worth fighting before moving on. */
 const ENGAGE_RANGE = 520;
@@ -75,8 +75,11 @@ export class Autopilot implements InputSource {
 		}
 
 		// Something the mission wants torn down (a signal spire): shoot it whenever nobody's in the way
-		const spire = game.dummies.filter((d) => (d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit' || d.kind === 'mindAmp' || d.kind === 'fearLens' || d.kind === 'seaBreach' || d.kind === 'qwardCharge') && isStanding(d)).sort((a, b) => dist(a, me) - dist(b, me))[0];
-		if (spire && !core && !game.enemies.some((e) => isStanding(e) && dist(e, me) < 260)) {
+		const objective = (d: Dummy) => (d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit' || d.kind === 'mindAmp' || d.kind === 'fearLens' || d.kind === 'seaBreach' || d.kind === 'qwardCharge' || d.kind === 'blaze') && isStanding(d);
+		// The mission says it can't wait (a fire round a frozen ally): that one, enemies or not
+		const urgent = game.director?.goalFirst && goal && 'kind' in goal && objective(goal as Dummy) ? (goal as Dummy) : null;
+		const spire = urgent ?? game.dummies.filter(objective).sort((a, b) => dist(a, me) - dist(b, me))[0];
+		if (spire && !core && (urgent || !game.enemies.some((e) => isStanding(e) && dist(e, me) < 260))) {
 			// At the middle of it: a spire stands tall, a breach is a hole down at deck level
 			intent.pointer = { x: spire.x, y: spire.y - Math.min(90, BODY[spire.kind].height * 0.5) - me.ringLift };
 			intent.shot = true;
@@ -84,7 +87,12 @@ export class Autopilot implements InputSource {
 			if (d > 320) {
 				intent.moveX = (spire.x - me.x) / d;
 				intent.moveY = (spire.y - me.y) / d;
-			}
+			} else if (d < 140) {
+				// Right on top of it there's no line to fire along: back off a little
+				const away = d > 1 ? d : 1;
+				intent.moveX = d > 1 ? (me.x - spire.x) / away : 1;
+				intent.moveY = d > 1 ? (me.y - spire.y) / away : 0;
+			} else intent.moveX = intent.moveY = 0;
 		}
 
 		// Whatever you're protecting (a ship, colonists) gets the bubble when it's in danger

@@ -28,7 +28,7 @@ import { flyShip } from './ships';
 import { updateSquads, type SquadRole } from './squad';
 import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
 
-export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire' | 'rageBubble' | 'bloodConduit' | 'toxinTank' | 'forgeConduit' | 'mindAmp' | 'fearLens' | 'seaBreach' | 'qwardCharge'>;
+export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire' | 'rageBubble' | 'bloodConduit' | 'toxinTank' | 'forgeConduit' | 'mindAmp' | 'fearLens' | 'seaBreach' | 'qwardCharge' | 'blaze'>;
 type EnemyState = 'idle' | 'move' | 'windup' | 'act' | 'recover';
 export type Role = 'berserker' | 'hunter' | 'gunner';
 /** How a faction thinks: rage never backs down and gets faster when hurt; machines stay cold and regroup. */
@@ -269,6 +269,28 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		},
 		// They come out of the dark and go back into it
 		leans: { caution: 0.25, aggression: 0.1 }
+	},
+	// Season two, Fire Season: a Gotham arsonist who took his work to Metropolis
+	firefly: {
+		kind: 'firefly',
+		name: 'Firefly',
+		faction: 'rogue',
+		tint: 'tech',
+		description:
+			'Garfield Lynns, who sets fires and calls it art. A jetpack with wings, a helmet of big orange goggles, a flamethrower held on you, and firebombs lobbed from above. Everything he fires at burns afterwards.',
+		mind: 'machine',
+		hp: 1200,
+		speed: 210,
+		accel: 5,
+		sight: 1000,
+		poise: 110,
+		scale: 1.05,
+		agility: 0.75,
+		movement: 'hover',
+		kit: ['flamethrower', 'firebomb'],
+		range: 230,
+		leans: { aggression: 0.3, caution: 0.1 },
+		lieutenant: true
 	},
 	blackManta: {
 		kind: 'blackManta',
