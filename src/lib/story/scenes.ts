@@ -303,6 +303,19 @@ export const SINESTROS_WORLD: SceneLine[] = [
 	{ who: 'hal', text: 'He taught me everything I know. Here\'s hoping he forgot something.' }
 ];
 
+/** Before The Exile: the Guardians sentence Sinestro, and take his ring. */
+export const THE_SENTENCE: SceneLine[] = [
+	{ who: 'guardian', text: 'Sinestro of Korugar. You used the ring to rule a world by fear. That is the one thing the ring was made to stop.' },
+	{ who: 'sinestro', text: 'I made Korugar safe. You sit on Oa and call it a crime because you did not think of it first.' },
+	{ who: 'guardian', text: 'Your ring is forfeit.', mood: 'alarm' },
+	{ who: 'sinestro', text: 'Take it. Fear needs no ring, little Guardians.' },
+	{ who: 'guardian', text: 'You are exiled to Qward, the anti-matter universe, where your light can never reach ours. Hal Jordan will take you to the gate.' },
+	{ who: 'hal', text: 'Look at that. The student walks the teacher out.' },
+	{ who: 'sinestro', text: 'Enjoy it, Jordan. Qward has been waiting for me for a long time.' },
+	{ who: 'kilowog', text: "What's that supposed to mean?", mood: 'alarm' },
+	{ who: 'sinestro', text: 'It means you should watch the gate.' }
+];
+
 /** Before Gotham at Night: Batman asked for a Lantern, and for John. */
 export const THE_NARROWS: SceneLine[] = [
 	{ who: 'batman', text: 'You came alone. Good.' },

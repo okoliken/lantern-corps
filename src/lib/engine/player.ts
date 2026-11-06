@@ -145,6 +145,8 @@ export interface Player {
 	branded: number;
 	/** Seconds left moving at a crawl (Superman's freezing breath). */
 	chilled: number;
+	/** Something heavy in tow (a mission's cargo): top speed times this. 1 = free. */
+	burden: number;
 	/** Hal's Chaff: seconds left with enemy shots going for the flares instead of him. */
 	chaff: number;
 	/** Hal's Targeting Lock: seconds left hitting harder. */
@@ -263,6 +265,7 @@ export function createPlayer(slot: number, def: LanternDef, input: InputSource, 
 		armor: null,
 		branded: 0,
 		chilled: 0,
+		burden: 1,
 		chaff: 0,
 		lockOn: 0,
 		usage: {},
@@ -363,6 +366,7 @@ export function updatePlayer(p: Player, intent: Intent, dt: number, world: World
 		(p.firing ? FIRING_SPEED_FACTOR : 1) *
 		(backpedal ? BACKPEDAL_SPEED_FACTOR : 1) *
 		(p.chilled > 0 ? CHILLED_SPEED_FACTOR : 1) *
+		p.burden *
 		(world.speed ?? 1);
 
 	// Steer velocity toward where the input points. Speeding up uses accel,

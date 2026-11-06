@@ -31,7 +31,8 @@ export abstract class DialogueScene {
 	/** 0..1 fading out at the end. */
 	fade = 0;
 	done = false;
-	private lineAge = 0;
+	/** Seconds the current line has been up. */
+	lineAge = 0;
 
 	/** The stage size the scene draws on, and when the talking starts. */
 	protected abstract readonly stage: { width: number; height: number };

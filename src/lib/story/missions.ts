@@ -434,7 +434,8 @@ export const ACTS: ActInfo[] = [
 			'hard-order',
 			'ground-level',
 			'undertow',
-			'korugar'
+			'korugar',
+			'the-exile'
 		]
 	},
 	{
@@ -553,6 +554,22 @@ MISSIONS.push({
 		'Kilowog is going with you. Neither of you thinks Sinestro will come quietly.'
 	],
 	objectives: ["Fight through Sinestro's Enforcers to the palace", 'Face Sinestro under his own statue', 'Bring him down far enough for the Guardians to act']
+});
+
+MISSIONS.push({
+	id: 'the-exile',
+	title: 'The Exile',
+	tagline: "Sinestro's ring is gone. Hal tows his cell to the gate to Qward, and the Weaponers want him first.",
+	lantern: 'hal',
+	environment: 'planet',
+	place: 'The edge of Sector 0 · the gate moon',
+	partner: 'kilowog',
+	briefing: [
+		'The Guardians took Sinestro\'s ring and sentenced him to Qward, the anti-matter universe, where his light can never reach theirs. Their old gate to it stands on a dead moon at the edge of the sector, sealed.',
+		'Hal has to deliver him. Personally. Kilowog is coming to make sure nothing else does.',
+		'New: TOWING. Stay close to the cell and your ring tows it, slowly. Build a construct and the tether lets go (ring shots are fine). Leave the cell alone and the Weaponers will chain it and drag it home.'
+	],
+	objectives: ['Tow the cell to the gate', 'Keep the Weaponers from dragging it away', 'Hold the gate while the Guardians open it']
 });
 
 MISSIONS.push({

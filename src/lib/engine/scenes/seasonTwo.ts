@@ -35,11 +35,13 @@ import {
 	THE_CITADEL,
 	THE_NARROWS,
 	THE_OTHER_SIDE,
+	THE_SENTENCE,
 	UNDER_SINESTRO,
 	YELLOW_RINGS
 } from '../../story/scenes';
 import { CastScene, type Actor } from './cast';
 import { drawGuardianDais } from './summoned';
+import { drawExileCell } from '../draw/exile';
 
 /** The Guardians on their dais, the middle one speaking for them all. */
 const guardians = (x: number, chill: number): Actor => ({
@@ -111,6 +113,55 @@ export const sinestrosWorld = () =>
 			{ speaker: 'kilowog', figure: { lantern: 'kilowog' }, marks: [{ x: 880, y: OA_GROUND, dir: -1 }] }
 		]
 	});
+
+/** Sinestro's ring, pulled off his hand and across to the dais as the sentence is said. */
+function drawRingTaken(ctx: CanvasRenderingContext2D, scene: CastScene, from: { x: number; y: number }, to: { x: number; y: number }, t: number) {
+	// It flies while the sentence is said, and then it's theirs
+	if (scene.line !== 2) return;
+	const k = Math.min(1, scene.lineAge / 1.6);
+	if (k >= 1) return;
+	const x = from.x + (to.x - from.x) * k;
+	const y = from.y + (to.y - from.y) * k - Math.sin(k * Math.PI) * 90;
+	ctx.save();
+	ctx.shadowColor = '#3dff6e';
+	ctx.shadowBlur = 18;
+	ctx.strokeStyle = '#c9ffd7';
+	ctx.lineWidth = 3;
+	ctx.beginPath();
+	ctx.ellipse(x, y, 7, 5, t * 5, 0, Math.PI * 2);
+	ctx.stroke();
+	ctx.restore();
+}
+
+const CELL_AT = { x: 820, y: OA_GROUND + 20 };
+
+export const theSentence = () => {
+	const sentence: CastScene = new CastScene(THE_SENTENCE, {
+		talkStarts: 2.2,
+		backdrop: (ctx, t) => drawOaBackdrop(ctx, t, 0.1),
+		front: (ctx, t, scene) => drawRingTaken(ctx, scene, { x: CELL_AT.x - 14, y: CELL_AT.y - 150 }, { x: 300, y: OA_GROUND - 110 }, t),
+		cast: [
+			guardians(300, 1),
+			{ speaker: 'hal', figure: { lantern: 'hal' }, marks: [{ x: 600, y: OA_GROUND, dir: 1 }] },
+			// Sinestro in the cell, his back straight, facing them
+			{
+				speaker: 'sinestro',
+				figure: {
+					draw: (ctx, x, y, _pose, t, _speaking, scale) => {
+						ctx.save();
+						ctx.translate(x, y);
+						ctx.scale(scale, scale);
+						drawExileCell(ctx, 0, 0, -1, true, false, t, sentence.line < 2);
+						ctx.restore();
+					}
+				},
+				marks: [{ x: CELL_AT.x, y: CELL_AT.y, dir: -1 }]
+			},
+			{ speaker: 'kilowog', figure: { lantern: 'kilowog' }, marks: [{ x: 1020, y: OA_GROUND, dir: -1 }] }
+		]
+	});
+	return sentence;
+};
 
 export const theNarrows = () =>
 	new CastScene(THE_NARROWS, {

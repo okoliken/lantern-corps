@@ -1200,6 +1200,8 @@ interface EnemyBrain {
 	directed: boolean;
 	/** Its own clock, for idle drift and bobbing. */
 	clock: number;
+	/** The mission has it doing something other than fighting (a Weaponer hauling Sinestro's cell off): it goes there, at this speed, and does nothing else. */
+	errand: { x: number; y: number; speed: number } | null;
 
 	/** Fighting now, or held back until the squad leader sends it in (squad.ts). */
 	squad: SquadRole;
@@ -1340,6 +1342,7 @@ export function createEnemy(
 			squadTime: 0,
 			ally: null,
 			lifeLeft: def.lifetime ?? Infinity,
+			errand: null,
 			transformed: false,
 			form: 0,
 			heading: Math.PI,
@@ -1454,6 +1457,17 @@ function think(
 		if (b.state === 'windup' || b.state === 'act') interrupt(e, w, 0.2);
 		b.timer = Math.max(b.timer, 0.2);
 		steer(e, 0, 0, def.accel * 2, dt);
+		return;
+	}
+
+	if (b.errand) {
+		if (b.state === 'windup' || b.state === 'act') interrupt(e, w, 0.2);
+		const dx = b.errand.x - e.x;
+		const dy = b.errand.y - e.y;
+		const d = Math.hypot(dx, dy);
+		const v = d > 6 ? b.errand.speed : 0;
+		steer(e, d > 0 ? (dx / d) * v : 0, d > 0 ? (dy / d) * v : 0, def.accel, dt);
+		if (Math.abs(dx) > 4) face(e, dx);
 		return;
 	}
 
