@@ -79,7 +79,7 @@ export function drawStarfield(
 const GROUND_TILE = 64;
 
 /** How a planet's surface looks: 'dust' (Coast City's outskirts), 'oa' (the Corps' home), 'ash' (a burnt outpost). */
-export type GroundStyle = 'dust' | 'oa' | 'ash' | 'meadow' | 'bloodMoon' | 'street' | 'nightStreet' | 'vault' | 'deck' | 'sea' | 'korugar' | 'qward';
+export type GroundStyle = 'dust' | 'oa' | 'ash' | 'meadow' | 'bloodMoon' | 'street' | 'nightStreet' | 'vault' | 'deck' | 'sea' | 'korugar' | 'qward' | 'rig';
 
 const GROUNDS: Record<GroundStyle, { void: string; base: string; dark: string; light: string; inlay?: string }> = {
 	dust: { void: '#15150f', base: '#3b3a2e', dark: 'rgba(20, 18, 12, 0.35)', light: 'rgba(120, 112, 88, 0.3)' },
@@ -103,7 +103,9 @@ const GROUNDS: Record<GroundStyle, { void: string; base: string; dark: string; l
 	// Korugar's capital: dark violet stone, paved in great slabs, under Sinestro's order
 	korugar: { void: '#0b0610', base: '#2b2233', dark: 'rgba(10, 4, 14, 0.42)', light: 'rgba(190, 130, 210, 0.14)', inlay: 'rgba(210, 110, 200, 0.1)' },
 	// Qward, the anti-matter universe: everything a shade wrong, ash and sulphur under a white-black sky
-	qward: { void: '#0d0d07', base: '#2a2a1c', dark: 'rgba(8, 8, 2, 0.45)', light: 'rgba(230, 220, 120, 0.12)' }
+	qward: { void: '#0d0d07', base: '#2a2a1c', dark: 'rgba(8, 8, 2, 0.45)', light: 'rgba(230, 220, 120, 0.12)' },
+	// An offshore platform: steel grating with yellow safety lines, the dark sea all round it
+	rig: { void: '#03121c', base: '#3d4248', dark: 'rgba(10, 12, 16, 0.4)', light: 'rgba(170, 180, 190, 0.16)', inlay: 'rgba(230, 190, 40, 0.16)' }
 };
 
 /**

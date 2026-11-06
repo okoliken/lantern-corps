@@ -117,7 +117,12 @@ export type AbilityId =
 	| 'shockBaton'
 	| 'stunGrenade'
 	| 'handCannon'
-	| 'forgeBlade';
+	| 'forgeBlade'
+	| 'speargun'
+	| 'diveKnife'
+	| 'wristBlades'
+	| 'mantaHarpoon'
+	| 'opticBlast';
 
 /** How far away a construct is used from. Kits take some of each. */
 type Band = 'close' | 'mid' | 'long' | 'support';
@@ -578,6 +583,31 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	forgeBlade: def({
 		id: 'forgeBlade', name: 'Forged Blade', band: 'close', tell: 'heavy', windup: 0.6, active: 0.3, recover: 0.6, cooldown: 2.6,
 		minRange: 0, maxRange: 86, damage: 18, knockback: 520, melee: true, heavy: false, chance: 1
+	}),
+	// Black Manta's divers: a speargun, one heavy bolt at a time and a long reload
+	speargun: def({
+		id: 'speargun', name: 'Speargun', band: 'long', tell: 'aim', windup: 0.6, active: 0.2, recover: 0.5, cooldown: 2.8,
+		minRange: 100, maxRange: 600, damage: 13, knockback: 260, melee: false, heavy: false, chance: 1, speed: 820
+	}),
+	// A diver's knife, stabbed in low and fast
+	diveKnife: def({
+		id: 'diveKnife', name: 'Dive Knife', band: 'close', tell: 'strike', windup: 0.3, active: 0.16, recover: 0.42, cooldown: 1.1,
+		minRange: 0, maxRange: 58, damage: 9, knockback: 200, melee: true, heavy: false, chance: 1
+	}),
+	// Black Manta's wrist blades: two quick cuts
+	wristBlades: def({
+		id: 'wristBlades', name: 'Wrist Blades', band: 'close', tell: 'strike', windup: 0.38, active: 0.34, recover: 0.5, cooldown: 1.6,
+		minRange: 0, maxRange: 70, damage: 11, knockback: 260, melee: true, heavy: false, chance: 1
+	}),
+	// His harpoon: it bites in and he reels you to him
+	mantaHarpoon: def({
+		id: 'mantaHarpoon', name: 'Harpoon', band: 'mid', tell: 'aim', windup: 0.65, active: 1, recover: 0.4, cooldown: 7,
+		minRange: 160, maxRange: 520, damage: 8, knockback: 0, melee: false, heavy: false, chance: 0.8, speed: 900
+	}),
+	// The helmet's eyes: twin red beams held on you for a moment
+	opticBlast: def({
+		id: 'opticBlast', name: 'Optic Blast', band: 'long', tell: 'aim', windup: 0.85, active: 0.7, recover: 0.6, cooldown: 6,
+		minRange: 120, maxRange: 640, damage: 34, knockback: 0, melee: false, heavy: true, chance: 0.9
 	})
 };
 
@@ -652,7 +682,7 @@ export interface RedShot {
 	/** Big constructs (a thrown hammer, a giant fist) hit this much wider than a bolt. */
 	size?: number;
 	/** Not a construct at all: something Grodd threw (a car, a chunk of street), or a real weapon's round (gear.ts). */
-	look?: 'car' | 'rock' | 'bullet' | 'energy' | 'slug';
+	look?: 'car' | 'rock' | 'bullet' | 'energy' | 'slug' | 'spear';
 	owner: Enemy;
 	x: number;
 	y: number;

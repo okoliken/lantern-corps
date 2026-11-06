@@ -84,6 +84,8 @@ export function drawHero(
 		drawWonderWomanBody(ctx, sk, look, time, pose, extra.guard ?? 0);
 	} else if (id === 'batman') {
 		drawBatmanBody(ctx, sk, time, pose);
+	} else if (id === 'aquaman') {
+		drawAquamanBody(ctx, sk, look, time, pose);
 	} else {
 		const flying = air > 0.5 && !pose.downed;
 		const guard = extra.guard ?? 0;
@@ -713,6 +715,78 @@ export function drawHeroFx(ctx: CanvasRenderingContext2D, list: readonly HeroFx[
 				}
 				break;
 			}
+			case 'trident': {
+				// Aquaman's trident: thrust out along the angle (and back), or thrown from x to x2
+				const lift = f.lift ?? 40;
+				const thrown = f.x2 !== undefined;
+				const reach = thrown ? 0 : (f.radius ?? 90) * Math.sin(Math.min(1, k * 2) * Math.PI * 0.5) * (k > 0.6 ? (1 - k) / 0.4 : 1);
+				const ang = thrown ? Math.atan2(f.y2! - f.y, f.x2! - f.x) : (f.angle ?? 0);
+				const hx = thrown ? f.x + (f.x2! - f.x) * Math.min(1, k * 1.6) : f.x + Math.cos(ang) * reach;
+				const hy = (thrown ? f.y + (f.y2! - f.y) * Math.min(1, k * 1.6) : f.y + Math.sin(ang) * reach) - lift;
+				ctx.translate(hx, hy);
+				ctx.rotate(ang);
+				ctx.strokeStyle = `rgba(160, 230, 255, ${0.5 * fade})`;
+				ctx.lineWidth = 8;
+				ctx.beginPath();
+				ctx.moveTo(-34, 0);
+				ctx.lineTo(10, 0);
+				ctx.stroke();
+				ctx.strokeStyle = '#e8c46a';
+				ctx.lineWidth = 3;
+				ctx.beginPath();
+				ctx.moveTo(-40, 0);
+				ctx.lineTo(8, 0);
+				ctx.moveTo(4, -7);
+				ctx.lineTo(16, -7);
+				ctx.moveTo(4, 7);
+				ctx.lineTo(16, 7);
+				ctx.moveTo(4, -7);
+				ctx.lineTo(4, 7);
+				ctx.moveTo(8, 0);
+				ctx.lineTo(20, 0);
+				ctx.stroke();
+				break;
+			}
+			case 'wave': {
+				// A wall of water rolling out along the angle: a curved crest with spray, breaking as it goes
+				const r = (f.radius ?? 340) * (0.25 + 0.75 * Math.min(1, k * 1.4));
+				const half = 0.7;
+				const ang = f.angle ?? 0;
+				const lift = f.lift ?? 30;
+				ctx.fillStyle = `rgba(40, 140, 190, ${0.35 * fade})`;
+				ctx.beginPath();
+				ctx.ellipse(f.x, f.y, r, r * 0.55, 0, ang - half, ang + half);
+				ctx.ellipse(f.x, f.y, Math.max(1, r - 60), Math.max(1, (r - 60) * 0.55), 0, ang + half, ang - half, true);
+				ctx.closePath();
+				ctx.fill();
+				ctx.strokeStyle = `rgba(220, 245, 255, ${0.85 * fade})`;
+				ctx.lineWidth = 4;
+				ctx.beginPath();
+				ctx.ellipse(f.x, f.y - lift * fade, r, r * 0.55, 0, ang - half, ang + half);
+				ctx.stroke();
+				ctx.fillStyle = `rgba(235, 250, 255, ${0.8 * fade})`;
+				for (let i = 0; i < 9; i++) {
+					const a = ang - half + (i / 8) * half * 2;
+					ctx.beginPath();
+					ctx.arc(f.x + Math.cos(a) * r, f.y + Math.sin(a) * r * 0.55 - lift * fade - 6 - ((i * 7) % 5), 2.5, 0, TAU);
+					ctx.fill();
+				}
+				break;
+			}
+			case 'whirl': {
+				// A whirlpool: rings of water turning in on themselves
+				const r = f.radius ?? 240;
+				ctx.strokeStyle = `rgba(90, 190, 230, ${0.55 * fade})`;
+				ctx.lineWidth = 3;
+				for (let i = 0; i < 4; i++) {
+					const rr = r * (1 - i * 0.22);
+					const spin = time * (2 + i) + i;
+					ctx.beginPath();
+					ctx.ellipse(f.x, f.y, rr, rr * 0.5, 0, spin, spin + 4.2);
+					ctx.stroke();
+				}
+				break;
+			}
 			case 'cut': {
 				// A rage blade's arc
 				const r = f.radius ?? 70;
@@ -1007,7 +1081,7 @@ export const leagueHero = (kind: string): HeroId => LEAGUE_KINDS[kind];
 // Built when asked, not when the module loads: this file sits in an import cycle with
 // league.ts, and LASSO_GOLD is not initialised yet if this module is evaluated first
 export function leagueColor(kind: string): string {
-	const colors: Record<HeroId, string> = { flash: '#ffd23f', superman: '#4f8bff', wonderwoman: LASSO_GOLD, hawkgirl: '#e0a458', razer: '#ff2a2a', batman: '#9aa4b4' };
+	const colors: Record<HeroId, string> = { flash: '#ffd23f', superman: '#4f8bff', wonderwoman: LASSO_GOLD, hawkgirl: '#e0a458', razer: '#ff2a2a', aquaman: '#f4b04a', batman: '#9aa4b4' };
 	return colors[leagueHero(kind)];
 }
 

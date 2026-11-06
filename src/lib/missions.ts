@@ -26,6 +26,7 @@ import { SiegeOfOa, buildOaPlazaMap } from '$lib/engine/missions/siegeOfOa';
 import { Watchtower, buildWatchtowerMap } from '$lib/engine/missions/watchtower';
 import { HardOrder, buildHardOrderMap } from '$lib/engine/missions/hardOrder';
 import { GroundLevel, buildGroundLevelMap } from '$lib/engine/missions/groundLevel';
+import { Undertow, buildUndertowMap } from '$lib/engine/missions/undertow';
 import { KorugarMission, buildKorugarMap } from '$lib/engine/missions/korugar';
 import { GothamAtNight, buildGothamMap } from '$lib/engine/missions/gothamAtNight';
 import { QwardMission, buildQwardMap } from '$lib/engine/missions/qward';
@@ -292,6 +293,20 @@ export function buildMission(id: string, options: Options): MissionRun {
 			const director = new GroundLevel();
 			game.director = director;
 			return { game, director, outro: null, intro: S2.deadCrane };
+		}
+		case 'undertow': {
+			// John and Aquaman on a flooding rig
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: 'john', keys: 'solo' },
+					{ lantern: 'aquaman', keys: 'p2', ai: true }
+				],
+				map: buildUndertowMap()
+			});
+			const director = new Undertow();
+			game.director = director;
+			return { game, director, outro: null, intro: S2.seaComingIn };
 		}
 		case 'hard-order': {
 			// Hal flies with Kilowog and Sinestro: three Lanterns, and the best of them in charge

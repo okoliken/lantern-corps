@@ -36,6 +36,12 @@
 //    Lasso          the golden lasso round someone out of reach: dragged to her, helpless
 //    Bracelets      crossed against a big hit: most of it turned aside, and shots near her burst
 //    Clash          bracelets struck together: a shockwave all around her
+//  AQUAMAN (on foot on land; at home in the water)
+//    Trident        in at them and two thrusts that go through whoever's in front
+//    Tide           a wall of water off his hand: everyone in front of him
+//                   thrown back off their feet
+//    (Undertow: the mission can send him on an errand, to get people out of
+//    the water, and he goes there whatever the fight is doing)
 
 import { hitDummyWithFx, type ConstructWorld } from './constructs/system';
 import { isStanding, type Dummy } from './dummy';
@@ -45,7 +51,26 @@ import type { HeroId } from './lanterns';
 import { moveBody, type Solid } from './physics';
 import { FEET_HALF_H, FEET_HALF_W, type Player } from './player';
 
-type HeroPower = 'blitz' | 'barrage' | 'tornado' | 'lightning' | 'dodge' | 'mace' | 'dive' | 'rush' | 'thunder' | 'guard' | 'blades' | 'chakram' | 'nova' | 'haymaker' | 'heat' | 'frost' | 'lasso';
+type HeroPower =
+	| 'blitz'
+	| 'barrage'
+	| 'tornado'
+	| 'lightning'
+	| 'dodge'
+	| 'mace'
+	| 'dive'
+	| 'rush'
+	| 'thunder'
+	| 'guard'
+	| 'blades'
+	| 'chakram'
+	| 'nova'
+	| 'haymaker'
+	| 'heat'
+	| 'frost'
+	| 'lasso'
+	| 'trident'
+	| 'tide';
 
 interface Move {
 	power: HeroPower;
@@ -79,6 +104,8 @@ export interface HeroState {
 	guard: number;
 	/** How high above her usual flying height Hawkgirl is (a dive), px. */
 	rise: number;
+	/** Somewhere the mission needs them to be (Aquaman to people in the water): they go there before anything else. */
+	errand: { x: number; y: number } | null;
 }
 
 /** A flash of lightning, a tornado, a shockwave: drawn by draw/heroes.ts. */
@@ -120,7 +147,9 @@ const COOLDOWNS: Record<HeroPower, number> = {
 	haymaker: 1.5,
 	heat: 5,
 	frost: 10,
-	lasso: 6
+	lasso: 6,
+	trident: 1.6,
+	tide: 8
 };
 
 // ---- The Flash ----
@@ -165,6 +194,12 @@ export const LASSO = { minRange: 190, range: 600, pull: 900, pullTime: 0.7, stun
 /** Bracelets: how long she holds them up, and how near a shot has to come to burst on them. */
 export const BRACELETS = { time: 1.2, deflect: 120 };
 
+// ---- Aquaman ----
+/** Trident: how far he comes in from, how fast, the two thrusts (seconds in) and how far they reach. */
+export const TRIDENT = { range: 340, speed: 950, reach: 96, thrusts: [0.08, 0.3], halfAngle: 0.5, damage: 21, knockback: 320 };
+/** Tide: a cone of water this long and wide; what's in it is thrown back and knocked off its feet. */
+export const TIDE = { range: 360, halfAngle: 0.7, damage: 14, knockback: 680, stun: 0.8, windup: 0.25 };
+
 const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
 
 const fxLists = new WeakMap<ConstructWorld, HeroFx[]>();
@@ -191,14 +226,15 @@ export function createHeroState(id: HeroId): HeroState {
 	cooldowns.thunder = 5;
 	cooldowns.frost = 4;
 	cooldowns.lasso = 2;
-	return { id, move: null, cooldowns, target: null, trail: [], guard: 0, rise: 0 };
+	cooldowns.tide = 3;
+	return { id, move: null, cooldowns, target: null, trail: [], guard: 0, rise: 0, errand: null };
 }
 
 /** Is a hero in the middle of a move that carries them (the Game skips normal movement)? */
 export function heroMoving(p: Player): boolean {
 	const m = p.hero?.move;
 	if (!m) return false;
-	const still: HeroPower[] = ['mace', 'thunder', 'lightning', 'chakram', 'nova', 'heat', 'frost', 'lasso'];
+	const still: HeroPower[] = ['mace', 'thunder', 'lightning', 'chakram', 'nova', 'heat', 'frost', 'lasso', 'tide'];
 	return !still.includes(m.power) && !(m.power === 'blitz' && m.step === 'hits');
 }
 
@@ -373,6 +409,25 @@ function choose(p: Player, h: HeroState, w: ConstructWorld) {
 			return;
 		}
 		if (ready('haymaker') && d <= HAYMAKER.range) begin(h, 'haymaker', t);
+		return;
+	}
+
+	if (h.id === 'aquaman') {
+		if (!t) return;
+		const d = dist(t, p);
+		if (ready('tide')) {
+			const ang = Math.atan2(t.y - p.y, t.x - p.x);
+			if (inCone(enemies, p, ang, TIDE.range, TIDE.halfAngle).length >= 2 || (isEnemy(t) && t.brain.target === p && d < 200)) {
+				const m = begin(h, 'tide', t);
+				m.x = ang;
+				w.effects.push({ kind: 'callout', x: p.x, y: p.y, age: 0, life: 1.1, text: 'TIDE', owner: p });
+				return;
+			}
+		}
+		if (ready('trident') && d <= TRIDENT.range) {
+			const m = begin(h, 'trident', t);
+			m.step = 'in';
+		}
 		return;
 	}
 
@@ -769,6 +824,58 @@ function run(p: Player, h: HeroState, m: Move, dt: number, w: ConstructWorld, so
 			return;
 		}
 
+		case 'trident': {
+			const t = m.target;
+			if (!t || !isStanding(t)) {
+				done();
+				return;
+			}
+			if (m.step === 'in') {
+				if (runTo(t.x - (t.x > p.x ? 50 : -50), t.y, TRIDENT.speed) || m.elapsed > 0.45) {
+					m.step = 'thrusts';
+					m.elapsed = 0;
+				}
+				return;
+			}
+			// Two thrusts, straight through whoever's in front of the points
+			face(p, t.x);
+			p.vx *= 0.8;
+			p.vy *= 0.8;
+			p.actionTimer = 0.25;
+			p.shotTimer = 0.2;
+			const next = TRIDENT.thrusts[m.count];
+			if (next !== undefined && m.elapsed >= next) {
+				m.count++;
+				const ang = Math.atan2(t.y - p.y, t.x - p.x);
+				for (const e of inCone(foesOf(w), p, ang, TRIDENT.reach + 14, TRIDENT.halfAngle)) {
+					hit(w, p, e, TRIDENT.damage, m.count === TRIDENT.thrusts.length ? TRIDENT.knockback : 60, p.x, p.y);
+				}
+				fx.push({ kind: 'trident', x: p.x, y: p.y, age: 0, life: 0.2, angle: ang, radius: TRIDENT.reach, lift: p.bodyBottom + 40 });
+			}
+			if (m.count >= TRIDENT.thrusts.length && m.elapsed > 0.5) done();
+			return;
+		}
+
+		case 'tide': {
+			const ang = m.x;
+			face(p, p.x + Math.cos(ang) * 10);
+			p.actionTimer = 0.4;
+			p.shotTimer = 0.3;
+			p.vx *= 0.85;
+			p.vy *= 0.85;
+			if (m.elapsed < TIDE.windup) return;
+			if (m.count === 0) {
+				m.count = 1;
+				for (const e of inCone(enemiesOf(w), p, ang, TIDE.range, TIDE.halfAngle)) {
+					hit(w, p, e, TIDE.damage, TIDE.knockback, p.x, p.y);
+					e.stun = Math.max(e.stun, TIDE.stun);
+				}
+				fx.push({ kind: 'wave', x: p.x, y: p.y, age: 0, life: 0.7, angle: ang, radius: TIDE.range, lift: 30 });
+			}
+			if (m.elapsed > 0.55) done();
+			return;
+		}
+
 		case 'haymaker': {
 			const t = m.target;
 			if (!t || !isStanding(t)) {
@@ -914,8 +1021,8 @@ export class HeroInput implements InputSource {
 		if (spire && !core && (!h.target || dist(h.target, me) > busy) && (!lead || dist(spire, lead) < LEASH + 300)) h.target = spire;
 		const t = h.target;
 		const intent: Intent = { ...IDLE };
-		// Only the Flash stays on the ground
-		if (h.id !== 'flash' && h.id !== 'batman' && !me.flying) intent.toggleFly = true;
+		// The Flash, Batman and Aquaman stay on the ground
+		if (h.id !== 'flash' && h.id !== 'batman' && h.id !== 'aquaman' && !me.flying) intent.toggleFly = true;
 
 		if (!this.retreating && me.health < me.maxHealth * RETREAT_BELOW) this.retreating = true;
 		else if (this.retreating && me.health > me.maxHealth * RETURN_ABOVE) this.retreating = false;
@@ -951,7 +1058,11 @@ export class HeroInput implements InputSource {
 			gx = lead.x + side * 150;
 			gy = lead.y + (h.id === 'flash' ? 60 : -40);
 		}
-		if (lead) {
+		// The mission needs them somewhere: that comes first, and the leash doesn't hold them back
+		if (h.errand) {
+			gx = h.errand.x;
+			gy = h.errand.y;
+		} else if (lead) {
 			const d = dist({ x: gx, y: gy }, lead);
 			if (d > LEASH) {
 				gx = lead.x + ((gx - lead.x) * LEASH) / d;

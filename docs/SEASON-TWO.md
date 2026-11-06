@@ -110,7 +110,7 @@ Yellow Lanterns are frightening and clever.
 
 ## Who is built
 
-The original twelve episodes are built and tuned with the bot, with their story scenes. The six new ones are being built in order.
+Built and tuned with the bot, with their story scenes: the original twelve, and Undertow. The other five new ones are being built in order.
 
 - Allies: Superman, Wonder Woman, the Flash, Hawkgirl, Batman, Kilowog, and
   Hal and John together.

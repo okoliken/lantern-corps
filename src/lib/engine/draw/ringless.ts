@@ -1,13 +1,14 @@
-// People without rings (enemies/gear.ts): Gotham thugs, Korugar Enforcers and
-// the Weaponers of Qward, each drawn as themselves, on their feet, holding
-// what they fight with. Also their rounds (bullets, rifle bolts, cannon
-// slugs), stun grenades in the air, and the swings and flashes.
+// People without rings (enemies/gear.ts): Gotham thugs, Korugar Enforcers,
+// the Weaponers of Qward, and Black Manta and his divers, each drawn as
+// themselves, on their feet, holding what they fight with. Also their rounds
+// (bullets, rifle bolts, cannon slugs, spears), stun grenades in the air,
+// Manta's harpoon line and helmet beams, and the swings and flashes.
 
 import { HEAD_R, computeSkeleton, turnScale, type LanternPose, type Point, type Skeleton } from '../animation';
 import type { ConstructWorld } from '../constructs/system';
 import { isStanding } from '../dummy';
 import { ENEMIES, type Enemy, type EnemyKind } from '../enemies/enemies';
-import { gearOf, grenadeProgress, isGearMelee } from '../enemies/gear';
+import { OPTIC_EYE_GAP, gearOf, grenadeProgress, isGearMelee } from '../enemies/gear';
 import type { AbilityId, RedShot } from '../enemies/redConstructs';
 import { enemyPose } from './enemies';
 import { faceShape, frame, torsoShape } from './heroes';
@@ -17,11 +18,12 @@ const TAU = Math.PI * 2;
 const OUTLINE = '#030504';
 const FIGURE_SCALE = 1.35;
 
-export type RinglessKind = 'thug' | 'enforcer' | 'weaponer';
-export const isRinglessKind = (kind: EnemyKind): kind is RinglessKind => kind === 'thug' || kind === 'enforcer' || kind === 'weaponer';
+export type RinglessKind = 'thug' | 'enforcer' | 'weaponer' | 'mantaDiver' | 'blackManta';
+export const isRinglessKind = (kind: EnemyKind): kind is RinglessKind =>
+	kind === 'thug' || kind === 'enforcer' || kind === 'weaponer' || kind === 'mantaDiver' || kind === 'blackManta';
 
 /** What's in their hand: the melee weapon while they swing it, a gun while they fire it, otherwise whatever they reach for first. */
-type Held = 'pistol' | 'bat' | 'rifle' | 'baton' | 'cannon' | 'blade' | 'grenade';
+type Held = 'pistol' | 'bat' | 'rifle' | 'baton' | 'cannon' | 'blade' | 'grenade' | 'speargun' | 'knife' | 'wrist';
 const HELD: Partial<Record<AbilityId, Held>> = {
 	pistol: 'pistol',
 	batSwing: 'bat',
@@ -29,7 +31,12 @@ const HELD: Partial<Record<AbilityId, Held>> = {
 	shockBaton: 'baton',
 	stunGrenade: 'grenade',
 	handCannon: 'cannon',
-	forgeBlade: 'blade'
+	forgeBlade: 'blade',
+	speargun: 'speargun',
+	diveKnife: 'knife',
+	wristBlades: 'wrist',
+	mantaHarpoon: 'wrist',
+	opticBlast: 'wrist'
 };
 function heldBy(e: Enemy): Held {
 	const b = e.brain;
@@ -88,6 +95,8 @@ export function drawRinglessEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: nu
 	const aiming = pose.firing === true;
 	if (e.kind === 'thug') drawThug(ctx, sk, seed, held, aiming, time);
 	else if (e.kind === 'enforcer') drawEnforcer(ctx, sk, held, aiming, time);
+	else if (e.kind === 'mantaDiver') drawDiver(ctx, sk, seed, held, aiming, time);
+	else if (e.kind === 'blackManta') drawBlackManta(ctx, sk, e, time);
 	else drawWeaponer(ctx, sk, held, aiming, time);
 	ctx.restore();
 }
@@ -102,11 +111,11 @@ export function ringlessMuzzle(e: Enemy, x: number, y: number): [number, number]
 	const [ux, uy] = along(sk.front.elbow, sk.front.hand);
 	return [x + (sk.front.hand[0] + ux * reach) * k, y + (sk.front.hand[1] + uy * reach) * s];
 }
-const MUZZLE: Record<Held, number> = { pistol: 8, bat: 0, rifle: 22, baton: 0, cannon: 13, blade: 0, grenade: 0 };
+const MUZZLE: Record<Held, number> = { pistol: 8, bat: 0, rifle: 22, baton: 0, cannon: 13, blade: 0, grenade: 0, speargun: 26, knife: 0, wrist: 4 };
 
 /** Just above their head. */
 export function ringlessTop(e: Enemy, y: number): number {
-	return y - FIGURE_HEIGHT * ENEMIES[e.kind].scale - (e.kind === 'weaponer' ? 12 : 8);
+	return y - FIGURE_HEIGHT * ENEMIES[e.kind].scale - (e.kind === 'blackManta' ? 22 : e.kind === 'weaponer' ? 12 : 8);
 }
 
 function along(a: Point, b: Point): [number, number] {
@@ -448,11 +457,280 @@ function drawWeaponer(ctx: CanvasRenderingContext2D, sk: Skeleton, held: Held, a
 	arm(sk.front, false);
 }
 
+// ----------------------------------------------------- Black Manta's divers
+
+const WETSUIT = '#15181d';
+const WETSUIT_LIT = '#262b33';
+const WETSUIT_DARK = '#0b0d10';
+/** The panels down their sides: each diver's own colour, from the same rig. */
+const DIVER_STRIPES = ['#2a8c8c', '#b8402c', '#2a8c8c', '#c99a2e'] as const;
+const DIVER_SKIN = ['#c99a76', '#8d5a3c', '#e2b58e', '#6b4430'] as const;
+const TANK = '#d9b02a';
+
+function drawDiver(ctx: CanvasRenderingContext2D, sk: Skeleton, seed: number, held: Held, aiming: boolean, time: number) {
+	const stripe = pick(DIVER_STRIPES, seed);
+	const skin = pick(DIVER_SKIN, seed * 5.7);
+	const arm = (l: Skeleton['front'], far: boolean) => {
+		segment(ctx, l.shoulder, l.elbow, 3.1, 2.6, far ? WETSUIT_DARK : WETSUIT);
+		segment(ctx, l.elbow, l.hand, 2.6, 2.3, far ? WETSUIT_DARK : WETSUIT_LIT);
+		// Gloves
+		ctx.fillStyle = '#0a0b0d';
+		ctx.beginPath();
+		ctx.arc(l.hand[0], l.hand[1], 2.2, 0, TAU);
+		ctx.fill();
+		outline(ctx);
+	};
+	const leg = (l: Skeleton['front'], far: boolean) => {
+		const c = far ? WETSUIT_DARK : WETSUIT;
+		segment(ctx, l.hipJoint, l.knee, 3.6, 2.9, c);
+		segment(ctx, l.knee, l.foot, 2.9, 2.5, c);
+		// A stripe down the leg, and dive boots
+		ctx.strokeStyle = far ? shadeColor(stripe, -0.4) : stripe;
+		ctx.lineWidth = 0.9;
+		ctx.beginPath();
+		ctx.moveTo(...lerpP(l.hipJoint, l.knee, 0.1));
+		ctx.lineTo(...lerpP(l.knee, l.foot, 0.8));
+		ctx.stroke();
+		shoe(ctx, l, '#0a0b0d', '#3a3f47', 4.6);
+	};
+	// The air tank on the back, behind everything
+	const at = frame(sk);
+	const tank = poly([at(17, -5.6), at(17, -9.4), at(3, -9.4), at(3, -5.6)]);
+	ctx.fillStyle = TANK;
+	ctx.fill(tank);
+	outline(ctx, 0.7);
+	ctx.fillStyle = '#3a3f47';
+	ctx.beginPath();
+	ctx.arc(...at(18.2, -7.5), 1.3, 0, TAU);
+	ctx.fill();
+	arm(sk.back, true);
+	leg(sk.back, true);
+	// The wetsuit: a coloured panel down the side, a weight belt
+	const body = torsoShape(at);
+	const [bx, by] = at(8, -6);
+	const [fx, fy] = at(8, 7);
+	const shade = ctx.createLinearGradient(bx, by, fx, fy);
+	shade.addColorStop(0, WETSUIT_DARK);
+	shade.addColorStop(1, WETSUIT_LIT);
+	ctx.fillStyle = shade;
+	ctx.fill(body);
+	ctx.save();
+	ctx.clip(body);
+	ctx.fillStyle = stripe;
+	ctx.fill(poly([at(18, 0.4), at(18, 2.2), at(-2, 2.2), at(-2, 0.4)]));
+	ctx.fillStyle = '#2c2f35';
+	ctx.fill(poly([at(1.8, -6), at(1.8, 8), at(-0.6, 8), at(-0.6, -6)]));
+	ctx.fillStyle = '#9aa1ad';
+	for (const k of [-3.5, 1.5, 5.5]) ctx.fill(poly([at(1.6, k), at(1.6, k + 1.6), at(-0.4, k + 1.6), at(-0.4, k)]));
+	ctx.restore();
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.9;
+	ctx.stroke(body);
+	// The hose from the tank over the shoulder to the mask
+	ctx.strokeStyle = '#2b2f36';
+	ctx.lineWidth = 1.2;
+	ctx.beginPath();
+	ctx.moveTo(...at(17.5, -6));
+	ctx.quadraticCurveTo(...at(22, -1), sk.headCenter[0] + HEAD_R * 0.6, sk.headCenter[1] + HEAD_R * 0.9);
+	ctx.stroke();
+	leg(sk.front, false);
+	// Head: a hood, a full-face mask with a glass front and the regulator under it
+	const R = HEAD_R;
+	ctx.save();
+	ctx.translate(...sk.headCenter);
+	ctx.rotate(sk.headAngle);
+	ctx.fillStyle = WETSUIT;
+	ctx.fill(faceShape());
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.stroke(faceShape());
+	ctx.fillStyle = '#2b2f36';
+	ctx.beginPath();
+	ctx.ellipse(R * 0.62, 0.2, R * 0.62, R * 0.95, 0, 0, TAU);
+	ctx.fill();
+	outline(ctx, 0.7);
+	// The glass, the face behind it, light catching it
+	ctx.fillStyle = skin;
+	ctx.beginPath();
+	ctx.ellipse(R * 0.7, -0.6, R * 0.44, R * 0.52, 0, 0, TAU);
+	ctx.fill();
+	ctx.fillStyle = 'rgba(111, 182, 201, 0.55)';
+	ctx.fill();
+	ctx.fillStyle = '#121418';
+	ctx.beginPath();
+	ctx.arc(R * 0.82, -0.9, 0.7, 0, TAU);
+	ctx.fill();
+	ctx.strokeStyle = `rgba(230, 250, 255, ${0.6 + 0.3 * Math.sin(time * 2)})`;
+	ctx.lineWidth = 0.6;
+	ctx.beginPath();
+	ctx.arc(R * 0.7, -0.6, R * 0.34, -2.4, -1.5);
+	ctx.stroke();
+	ctx.fillStyle = '#0b0d10';
+	ctx.beginPath();
+	ctx.ellipse(R * 0.95, R * 0.7, 1.6, 1.2, 0, 0, TAU);
+	ctx.fill();
+	ctx.restore();
+	drawHeld(ctx, sk.front, held, aiming, time);
+	arm(sk.front, false);
+}
+
+// --------------------------------------------------------------- Black Manta
+
+const MANTA = '#111114';
+const MANTA_LIT = '#24242b';
+const MANTA_RIB = '#3a3a44';
+const MANTA_RED = '#c8141c';
+const MANTA_EYE = '#ff2a2a';
+
+function drawBlackManta(ctx: CanvasRenderingContext2D, sk: Skeleton, e: Enemy, time: number) {
+	const b = e.brain;
+	const using = b.state === 'windup' || b.state === 'act' ? b.ability : null;
+	// The eyes glow up through the windup before the beams
+	const glare = using === 'opticBlast' ? (b.state === 'act' ? 1 : 0.4 + 0.6 * Math.abs(Math.sin(time * 14))) : 0.35;
+	const arm = (l: Skeleton['front'], far: boolean) => {
+		segment(ctx, l.shoulder, l.elbow, 3.4, 2.9, far ? '#08080a' : MANTA);
+		segment(ctx, l.elbow, l.hand, 2.9, 2.6, far ? '#08080a' : MANTA_LIT);
+		// The wrist launcher: a red-edged housing, the blade folded along it (out when he cuts)
+		const a = lerpP(l.elbow, l.hand, 0.35);
+		const c = lerpP(l.elbow, l.hand, 0.9);
+		segment(ctx, a, c, 3.3, 3.1, far ? '#16161a' : MANTA_RIB);
+		const [ux, uy] = along(l.elbow, l.hand);
+		const out = using === 'wristBlades' ? 1 : 0.35;
+		ctx.fillStyle = far ? '#7a7f88' : '#c9ced6';
+		ctx.beginPath();
+		ctx.moveTo(c[0] - uy * 2, c[1] + ux * 2);
+		ctx.lineTo(c[0] + ux * 13 * out - uy * 1, c[1] + uy * 13 * out + ux * 1);
+		ctx.lineTo(c[0] - uy * 0.2, c[1] + ux * 0.2);
+		ctx.closePath();
+		ctx.fill();
+		outline(ctx, 0.5);
+		if (using === 'mantaHarpoon' && !far) {
+			// The harpoon loaded on the launcher, its head out over the fist
+			ctx.fillStyle = '#e4e8ee';
+			ctx.beginPath();
+			ctx.moveTo(l.hand[0] + ux * 9, l.hand[1] + uy * 9);
+			ctx.lineTo(l.hand[0] + ux * 4 - uy * 2.6, l.hand[1] + uy * 4 + ux * 2.6);
+			ctx.lineTo(l.hand[0] + ux * 4 + uy * 2.6, l.hand[1] + uy * 4 - ux * 2.6);
+			ctx.closePath();
+			ctx.fill();
+		}
+		ctx.fillStyle = '#060607';
+		ctx.beginPath();
+		ctx.arc(l.hand[0], l.hand[1], 2.4, 0, TAU);
+		ctx.fill();
+		outline(ctx);
+		ctx.strokeStyle = MANTA_RED;
+		ctx.lineWidth = 0.6;
+		ctx.beginPath();
+		ctx.moveTo(...a);
+		ctx.lineTo(...c);
+		ctx.stroke();
+	};
+	const leg = (l: Skeleton['front'], far: boolean) => {
+		segment(ctx, l.hipJoint, l.knee, 3.9, 3.2, far ? '#08080a' : MANTA);
+		segment(ctx, l.knee, l.foot, 3.2, 2.9, far ? '#08080a' : MANTA_LIT);
+		// Ribbed boots
+		segment(ctx, lerpP(l.knee, l.foot, 0.45), l.foot, 3.3, 3.0, far ? '#16161a' : MANTA_RIB);
+		shoe(ctx, l, '#060607', null, 5);
+	};
+	const at = frame(sk);
+	// The air pack on his back, and the two hoses up into the helmet
+	const pack = poly([at(18, -5.4), at(18, -10.4), at(4, -10.4), at(4, -5.4)]);
+	ctx.fillStyle = MANTA_RIB;
+	ctx.fill(pack);
+	outline(ctx, 0.7);
+	arm(sk.back, true);
+	leg(sk.back, true);
+	// The suit: black, ribbed across the chest, a red line down the middle and a red belt
+	const body = torsoShape(at, -0.2);
+	const [bx, by] = at(8, -6);
+	const [fx, fy] = at(8, 7);
+	const shade = ctx.createLinearGradient(bx, by, fx, fy);
+	shade.addColorStop(0, '#060607');
+	shade.addColorStop(1, MANTA_LIT);
+	ctx.fillStyle = shade;
+	ctx.fill(body);
+	ctx.save();
+	ctx.clip(body);
+	ctx.strokeStyle = MANTA_RIB;
+	ctx.lineWidth = 0.9;
+	for (let k = 7; k <= 17; k += 2.5) {
+		ctx.beginPath();
+		ctx.moveTo(...at(k, -6));
+		ctx.lineTo(...at(k, 8));
+		ctx.stroke();
+	}
+	ctx.fillStyle = MANTA_RED;
+	ctx.fill(poly([at(1.6, -6), at(1.6, 8), at(-0.6, 8), at(-0.6, -6)]));
+	ctx.restore();
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.9;
+	ctx.stroke(body);
+	ctx.strokeStyle = '#2b2b33';
+	ctx.lineWidth = 1.5;
+	for (const k of [-7, -9]) {
+		ctx.beginPath();
+		ctx.moveTo(...at(17, k));
+		ctx.quadraticCurveTo(...at(24, k + 1), sk.headCenter[0] - HEAD_R * 0.8, sk.headCenter[1] + HEAD_R * 0.6);
+		ctx.stroke();
+	}
+	leg(sk.front, false);
+	// The helmet: a great black dome far bigger than the head, a ridge over the top, and the two red eyes
+	const R = HEAD_R;
+	ctx.save();
+	ctx.translate(...sk.headCenter);
+	ctx.rotate(sk.headAngle);
+	ctx.fillStyle = MANTA;
+	ctx.beginPath();
+	ctx.moveTo(-R * 1.5, R * 1.25);
+	ctx.quadraticCurveTo(-R * 1.95, -R * 1.2, -R * 0.2, -R * 1.75);
+	ctx.quadraticCurveTo(R * 1.9, -R * 1.7, R * 1.85, R * 0.1);
+	ctx.quadraticCurveTo(R * 1.7, R * 1.3, R * 0.6, R * 1.45);
+	ctx.closePath();
+	ctx.fill();
+	outline(ctx, 0.9);
+	ctx.strokeStyle = MANTA_RIB;
+	ctx.lineWidth = 1.4;
+	ctx.beginPath();
+	ctx.moveTo(-R * 1.2, -R * 1.2);
+	ctx.quadraticCurveTo(R * 0.2, -R * 2.05, R * 1.5, -R * 1.1);
+	ctx.stroke();
+	// A grille over the mouth
+	ctx.strokeStyle = '#3d3d47';
+	ctx.lineWidth = 0.6;
+	for (let i = 0; i < 4; i++) {
+		ctx.beginPath();
+		ctx.moveTo(R * 0.7 + i * 0.9, R * 0.75);
+		ctx.lineTo(R * 0.9 + i * 0.9, R * 1.25);
+		ctx.stroke();
+	}
+	// The eyes: huge, red, glowing harder before the beams
+	ctx.save();
+	ctx.shadowColor = MANTA_EYE;
+	ctx.shadowBlur = 4 + 10 * glare;
+	for (const [ex, ey, rx, ry] of [
+		[R * 1.15, -R * 0.35, R * 0.62, R * 0.48],
+		[R * 0.05, -R * 0.4, R * 0.5, R * 0.44]
+	]) {
+		ctx.fillStyle = '#4a0606';
+		ctx.beginPath();
+		ctx.ellipse(ex, ey, rx, ry, -0.15, 0, TAU);
+		ctx.fill();
+		ctx.fillStyle = `rgba(255, ${Math.round(40 + 60 * glare)}, ${Math.round(40 + 40 * glare)}, ${0.55 + 0.45 * glare})`;
+		ctx.beginPath();
+		ctx.ellipse(ex, ey, rx * 0.82, ry * 0.8, -0.15, 0, TAU);
+		ctx.fill();
+	}
+	ctx.restore();
+	ctx.restore();
+	arm(sk.front, false);
+}
+
 // ---------------------------------------------------------------- what they hold
 
 /** Between shots a gun is held at the ready: forward and pointed down a little. */
 const LOW_READY = 0.5;
-const GUNS: ReadonlySet<Held> = new Set<Held>(['pistol', 'rifle', 'cannon']);
+const GUNS: ReadonlySet<Held> = new Set<Held>(['pistol', 'rifle', 'cannon', 'speargun']);
 
 /**
  * A weapon in a hand. A gun points along the arm while they aim (the arm is
@@ -461,7 +739,7 @@ const GUNS: ReadonlySet<Held> = new Set<Held>(['pistol', 'rifle', 'cannon']);
  * over the grip.
  */
 function drawHeld(ctx: CanvasRenderingContext2D, l: Skeleton['front'], held: Held, aiming: boolean, time: number) {
-	if (held === 'grenade') return;
+	if (held === 'grenade' || held === 'wrist') return;
 	const [ux, uy] = along(l.elbow, l.hand);
 	ctx.save();
 	ctx.translate(...l.hand);
@@ -536,6 +814,37 @@ function drawHeld(ctx: CanvasRenderingContext2D, l: Skeleton['front'], held: Hel
 			ctx.fill();
 			break;
 		}
+		case 'speargun': {
+			// A long black stock, the spear loaded along the top, its barbed head out past the end
+			ctx.fillStyle = '#1c1f24';
+			ctx.fill(poly([[-6, -1.4], [17, -1.4], [17, 1.1], [5, 1.1], [4, 4.2], [1.4, 4.2], [1, 1.1], [-6, 1.1]]));
+			outline(ctx, 0.6);
+			ctx.strokeStyle = '#c9ced6';
+			ctx.lineWidth = 0.9;
+			ctx.beginPath();
+			ctx.moveTo(-4, -2.2);
+			ctx.lineTo(25, -2.2);
+			ctx.stroke();
+			ctx.fillStyle = '#e4e8ee';
+			ctx.fill(poly([[25, -3.6], [29, -2.2], [25, -0.8]]));
+			// The bands that throw it
+			ctx.strokeStyle = '#2d6e6e';
+			ctx.lineWidth = 0.8;
+			ctx.beginPath();
+			ctx.moveTo(15, -2.2);
+			ctx.lineTo(12, 0.6);
+			ctx.stroke();
+			break;
+		}
+		case 'knife': {
+			ctx.rotate(-1.05);
+			ctx.fillStyle = '#1a1a1d';
+			ctx.fillRect(-2.6, -1, 3.6, 2);
+			ctx.fillStyle = '#cfd5dc';
+			ctx.fill(poly([[1, -1.3], [10, -1], [12.5, 0.2], [10, 1.2], [1, 1.2]]));
+			outline(ctx, 0.5);
+			break;
+		}
 		case 'blade': {
 			// A broad dark blade, its edge still hot from the forge
 			ctx.rotate(-1.2);
@@ -585,6 +894,27 @@ export function drawGearShot(ctx: CanvasRenderingContext2D, s: RedShot, x: numbe
 		ctx.strokeStyle = '#ffe1f6';
 		ctx.lineWidth = 2;
 		ctx.stroke();
+	} else if (s.look === 'spear') {
+		// A speargun's spear: a steel shaft, a barbed head, a line trailing behind
+		ctx.strokeStyle = 'rgba(160, 200, 210, 0.35)';
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.moveTo(x - ux * 60, hy - uy * 60 + 3);
+		ctx.quadraticCurveTo(x - ux * 40, hy - uy * 40 + 6, x - ux * 26, hy - uy * 26);
+		ctx.stroke();
+		ctx.strokeStyle = '#c9ced6';
+		ctx.lineWidth = 2.2;
+		ctx.beginPath();
+		ctx.moveTo(x - ux * 26, hy - uy * 26);
+		ctx.lineTo(x, hy);
+		ctx.stroke();
+		ctx.fillStyle = '#eef2f6';
+		ctx.beginPath();
+		ctx.moveTo(x + ux * 8, hy + uy * 8);
+		ctx.lineTo(x - uy * 3.5, hy + ux * 3.5);
+		ctx.lineTo(x + uy * 3.5, hy - ux * 3.5);
+		ctx.closePath();
+		ctx.fill();
 	} else {
 		// The slug: a ball of molten metal, trailing heat
 		const trail = ctx.createLinearGradient(x - ux * 26, hy - uy * 26, x, hy);
@@ -610,7 +940,13 @@ export function drawGearShot(ctx: CanvasRenderingContext2D, s: RedShot, x: numbe
 
 // ------------------------------------------------- grenades, swings and flashes
 
-const SWING_COLOR: Partial<Record<AbilityId, string>> = { batSwing: '255, 255, 255', shockBaton: '214, 160, 255', forgeBlade: '255, 154, 60' };
+const SWING_COLOR: Partial<Record<AbilityId, string>> = {
+	batSwing: '255, 255, 255',
+	shockBaton: '214, 160, 255',
+	forgeBlade: '255, 154, 60',
+	diveKnife: '210, 230, 240',
+	wristBlades: '255, 90, 80'
+};
 const GRENADE_ARC = 150;
 
 /** Stun grenades in the air (and where they'll land), weapon swings, muzzle flashes, grenades going off. */
@@ -644,6 +980,62 @@ export function drawGearWorld(ctx: CanvasRenderingContext2D, w: ConstructWorld, 
 		ctx.strokeRect(-3.5, -5, 7, 10);
 		ctx.fillStyle = Math.sin(time * 30) > 0 ? '#ffd0f4' : '#d670c4';
 		ctx.fillRect(-1.5, -6.5, 3, 2);
+		ctx.restore();
+	}
+	for (const h of g.harpoons) {
+		// The line from his wrist to the harpoon, slack in flight and taut once it bites
+		const o = h.owner;
+		const [hx, hy] = ringlessMuzzle(o, o.x, o.y);
+		const tx = h.x;
+		const ty = h.y - (h.caught ? lift + 6 : lift);
+		ctx.save();
+		ctx.strokeStyle = '#c9ced6';
+		ctx.lineWidth = 1.6;
+		ctx.beginPath();
+		ctx.moveTo(hx, hy);
+		if (h.caught) ctx.lineTo(tx, ty);
+		else ctx.quadraticCurveTo((hx + tx) / 2, (hy + ty) / 2 + 24, tx, ty);
+		ctx.stroke();
+		const a = Math.atan2(ty - hy, tx - hx);
+		ctx.translate(tx, ty);
+		ctx.rotate(a);
+		ctx.fillStyle = '#eef2f6';
+		ctx.strokeStyle = OUTLINE;
+		ctx.lineWidth = 0.8;
+		ctx.beginPath();
+		ctx.moveTo(10, 0);
+		ctx.lineTo(-2, -5);
+		ctx.lineTo(0, 0);
+		ctx.lineTo(-2, 5);
+		ctx.closePath();
+		ctx.fill();
+		ctx.stroke();
+		ctx.restore();
+	}
+	for (const bm of g.beams) {
+		// Two red beams from the helmet's eyes, a white core in each
+		const o = bm.owner;
+		const eyeY = o.y - FIGURE_HEIGHT * ENEMIES[o.kind].scale * 0.86;
+		const ux = Math.cos(bm.angle);
+		const uy = Math.sin(bm.angle);
+		const flicker = 0.85 + 0.15 * Math.sin(time * 50);
+		ctx.save();
+		ctx.lineCap = 'round';
+		for (const side of [-1, 1]) {
+			const sx = o.x + o.dir * 10 - uy * side * OPTIC_EYE_GAP;
+			const sy = eyeY + ux * side * OPTIC_EYE_GAP * 0.5;
+			const ex = o.x + ux * bm.length;
+			const ey = o.y + uy * bm.length - lift + side * 4;
+			ctx.strokeStyle = `rgba(255, 40, 30, ${0.35 * flicker})`;
+			ctx.lineWidth = 14;
+			ctx.beginPath();
+			ctx.moveTo(sx, sy);
+			ctx.lineTo(ex, ey);
+			ctx.stroke();
+			ctx.strokeStyle = `rgba(255, 210, 200, ${flicker})`;
+			ctx.lineWidth = 3;
+			ctx.stroke();
+		}
 		ctx.restore();
 	}
 	for (const f of g.fx) {

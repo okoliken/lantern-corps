@@ -7,7 +7,7 @@ export type CrewId = LanternId | 'kilowog' | 'sinestro' | PrisonerId | HeroId;
 /** Everyone who fights with a Green Lantern ring (heroes have their own powers). */
 export type RingBearerId = Exclude<CrewId, HeroId>;
 /** Earth's heroes who fight beside John in Act 2 (heroes.ts): their own powers, no ring. */
-export type HeroId = 'flash' | 'hawkgirl' | 'razer' | 'superman' | 'wonderwoman' | 'batman';
+export type HeroId = 'flash' | 'hawkgirl' | 'razer' | 'superman' | 'wonderwoman' | 'batman' | 'aquaman';
 /** Green Lanterns the Red Lanterns took prisoner (Act 1, Prison Moon): freed, they fight beside you. */
 export type PrisonerId = 'arisia' | 'katma' | 'boodikka';
 /** The Lanterns you can pick. */
@@ -232,6 +232,18 @@ export const LANTERNS: Record<CrewId, LanternDef> = {
 		traits: { power: 1, durability: 1, cooldown: 1, structureCost: 1 },
 		look: { skin: '#e9c3a0', hair: '#b53a2a', hairStyle: 'swept', mask: false },
 		hero: 'hawkgirl'
+	},
+	aquaman: {
+		id: 'aquaman',
+		name: 'Aquaman',
+		title: 'King of the Seven Seas',
+		blurb: 'Arthur Curry, king of Atlantis. The trident, in close and through whoever is in front of it, and a wall of water off his hand that throws them back off their feet.',
+		maxSpeed: 320,
+		accel: 2600,
+		decel: 2600,
+		traits: { power: 1, durability: 1, cooldown: 1, structureCost: 1 },
+		look: { skin: '#e9c3a0', hair: '#e9d27a', hairStyle: 'swept', mask: false },
+		hero: 'aquaman'
 	}
 };
 

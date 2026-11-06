@@ -691,3 +691,121 @@ export function drawKorugarCitadel(ctx: CanvasRenderingContext2D, time: number, 
 		ctx.restore();
 	}
 }
+
+// ------------------------------------------------------------ an oil platform in a storm
+
+const STORM_RAIN = Array.from({ length: 160 }, (_, i) => [(i * 811) % STAGE_W, (i * 367) % STAGE_H, 0.8 + ((i * 3) % 5) / 10]);
+
+/**
+ * A platform at night in a storm: the derrick and cranes against the clouds,
+ * the sea heaving under it, and the deck's edge in front with its railing.
+ * `manta` (0..1) lights two red eyes up on the far crane: he's watching.
+ */
+export function drawStormRig(ctx: CanvasRenderingContext2D, time: number, manta: number) {
+	const sky = ctx.createLinearGradient(0, 0, 0, STAGE_GROUND);
+	sky.addColorStop(0, '#05080d');
+	sky.addColorStop(1, '#1a2633');
+	ctx.fillStyle = sky;
+	ctx.fillRect(0, 0, STAGE_W, STAGE_GROUND);
+	// Lightning now and then, lighting the clouds from inside
+	const strike = Math.sin(time * 0.9) > 0.97 || Math.sin(time * 1.7 + 1) > 0.985;
+	for (let i = 0; i < 7; i++) {
+		ctx.fillStyle = strike ? 'rgba(180, 200, 230, 0.35)' : 'rgba(40, 50, 64, 0.5)';
+		ctx.beginPath();
+		ctx.ellipse(((i * 260 + time * 14) % (STAGE_W + 400)) - 200, 70 + (i % 3) * 40, 260, 50, 0, 0, TAU);
+		ctx.fill();
+	}
+	// The rig: legs into the sea, the deck, the derrick, a crane with its arm out
+	const base = STAGE_GROUND - 120;
+	ctx.fillStyle = '#0d1218';
+	for (const lx of [380, 640, 900, 1160]) ctx.fillRect(lx - 14, base, 28, 200);
+	ctx.fillRect(300, base - 40, 960, 44);
+	ctx.strokeStyle = '#0d1218';
+	ctx.lineWidth = 5;
+	ctx.beginPath();
+	ctx.moveTo(700, base - 40);
+	ctx.lineTo(780, base - 330);
+	ctx.lineTo(860, base - 40);
+	for (let k = 1; k < 6; k++) {
+		const yy = base - 40 - k * 55;
+		const half = 80 - k * 13;
+		ctx.moveTo(780 - half, yy);
+		ctx.lineTo(780 + half, yy);
+	}
+	ctx.moveTo(1100, base - 40);
+	ctx.lineTo(1100, base - 220);
+	ctx.lineTo(1330, base - 160);
+	ctx.stroke();
+	// Work lights along the deck, and a fire where the charges went off
+	for (const wx of [340, 520, 980, 1220]) {
+		ctx.fillStyle = 'rgba(255, 220, 150, 0.9)';
+		ctx.fillRect(wx, base - 34, 6, 4);
+	}
+	const fire = ctx.createRadialGradient(560, base + 30, 4, 560, base + 30, 90);
+	fire.addColorStop(0, `rgba(255, 150, 60, ${0.7 + 0.2 * Math.sin(time * 9)})`);
+	fire.addColorStop(1, 'rgba(255, 90, 30, 0)');
+	ctx.fillStyle = fire;
+	ctx.fillRect(470, base - 60, 180, 180);
+	// His eyes, up on the crane
+	if (manta > 0) {
+		ctx.save();
+		ctx.shadowColor = '#ff2a2a';
+		ctx.shadowBlur = 14 * manta;
+		ctx.fillStyle = `rgba(255, 50, 40, ${manta})`;
+		ctx.beginPath();
+		ctx.ellipse(1286, base - 186, 5, 3.5, 0, 0, TAU);
+		ctx.ellipse(1302, base - 186, 5, 3.5, 0, 0, TAU);
+		ctx.fill();
+		ctx.restore();
+	}
+	// The sea, heaving
+	const sea = ctx.createLinearGradient(0, base + 40, 0, STAGE_GROUND);
+	sea.addColorStop(0, '#0b2230');
+	sea.addColorStop(1, '#061520');
+	ctx.fillStyle = sea;
+	ctx.beginPath();
+	ctx.moveTo(0, STAGE_GROUND);
+	for (let x = 0; x <= STAGE_W; x += 30) ctx.lineTo(x, base + 50 + Math.sin(x * 0.012 + time * 1.4) * 12);
+	ctx.lineTo(STAGE_W, STAGE_GROUND);
+	ctx.closePath();
+	ctx.fill();
+	// The near deck, where everyone stands: grating, a yellow edge, the rail
+	ctx.fillStyle = '#2f343a';
+	ctx.fillRect(0, STAGE_GROUND, STAGE_W, STAGE_H - STAGE_GROUND + UNDER);
+	ctx.fillStyle = '#d9b02a';
+	for (let x = 0; x < STAGE_W; x += 60) ctx.fillRect(x, STAGE_GROUND + 2, 34, 5);
+	ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+	ctx.lineWidth = 1;
+	for (let x = 0; x < STAGE_W; x += 16) {
+		ctx.beginPath();
+		ctx.moveTo(x, STAGE_GROUND + 10);
+		ctx.lineTo(x - 30, STAGE_H + UNDER);
+		ctx.stroke();
+	}
+	ctx.strokeStyle = '#596069';
+	ctx.lineWidth = 4;
+	ctx.beginPath();
+	ctx.moveTo(0, STAGE_GROUND - 40);
+	ctx.lineTo(STAGE_W, STAGE_GROUND - 40);
+	for (let x = 20; x < STAGE_W; x += 110) {
+		ctx.moveTo(x, STAGE_GROUND - 40);
+		ctx.lineTo(x, STAGE_GROUND);
+	}
+	ctx.stroke();
+}
+
+/** Heavy rain, slanting, over everything. */
+export function drawStorm(ctx: CanvasRenderingContext2D, time: number) {
+	ctx.save();
+	ctx.strokeStyle = 'rgba(180, 200, 220, 0.35)';
+	ctx.lineWidth = 1.3;
+	ctx.beginPath();
+	for (const [x0, y0, speed] of STORM_RAIN) {
+		const y = (y0 + time * 1100 * speed) % (STAGE_H + 60);
+		const x = (x0 + y * 0.4) % STAGE_W;
+		ctx.moveTo(x, y);
+		ctx.lineTo(x - 12, y - 30);
+	}
+	ctx.stroke();
+	ctx.restore();
+}

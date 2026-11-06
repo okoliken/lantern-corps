@@ -26,7 +26,9 @@ export type Speaker =
 	| 'hawkgirl'
 	| 'scarecrow'
 	| 'grodd'
-	| 'ray';
+	| 'ray'
+	| 'aquaman'
+	| 'manta';
 
 export interface SceneLine {
 	who: Speaker;
@@ -57,7 +59,9 @@ export const SPEAKERS: Record<Speaker, { name: string; color: string }> = {
 	hawkgirl: { name: 'Hawkgirl', color: '#f0c465' },
 	scarecrow: { name: 'Scarecrow', color: '#b9c86a' },
 	grodd: { name: 'Grodd', color: '#c79bff' },
-	ray: { name: 'Ray Doyle', color: '#ffd23a' }
+	ray: { name: 'Ray Doyle', color: '#ffd23a' },
+	aquaman: { name: 'Aquaman', color: '#f4b04a' },
+	manta: { name: 'Black Manta', color: '#ff4a3a' }
 };
 
 /**
@@ -273,6 +277,18 @@ export const DEAD_CRANE: SceneLine[] = [
 	{ who: 'superman', text: "I can't get them out and hold it. Neither can you. You hold it and shield them, I lower it. Slowly." },
 	{ who: 'john', text: 'Slowly. Right. Everything the ring has done for me so far has been fast.' },
 	{ who: 'superman', text: 'Then today you learn the other half. The ring holds things up too.' }
+];
+
+/** Before Undertow: a platform holed below the waterline, and Aquaman comes up out of the sea. */
+export const SEA_COMING_IN: SceneLine[] = [
+	{ who: 'ring', text: 'Distress signal. Meridian platform, forty miles out. Hull breach below the waterline.', mood: 'alarm' },
+	{ who: 'aquaman', text: 'Green Lantern! Down here. The sea told me about this before your radio did.' },
+	{ who: 'john', text: "Aquaman. Superman said you'd be out here. What holed it?" },
+	{ who: 'aquaman', text: "Not what. Who. They pulled something of Atlantis up from the trench, and Black Manta wants it. He doesn't care who drowns while he takes it." },
+	{ who: 'manta', text: 'King of the Seven Seas, and a Lantern. Hold back the ocean if you can, heroes.', mood: 'alarm' },
+	{ who: 'aquaman', text: "There are crews below. The water's coming up one deck at a time." },
+	{ who: 'john', text: 'Then I shut the holes and you get them out. Last time somebody asked me to hold something up, it was a crane.' },
+	{ who: 'aquaman', text: "The sea is heavier. Don't let go." }
 ];
 
 /** Before Korugar: Hal tells the Guardians what he saw on Vesk, and they already knew. */

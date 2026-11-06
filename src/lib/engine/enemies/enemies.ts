@@ -28,7 +28,7 @@ import { flyShip } from './ships';
 import { updateSquads, type SquadRole } from './squad';
 import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
 
-export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire' | 'rageBubble' | 'bloodConduit' | 'toxinTank' | 'forgeConduit' | 'mindAmp' | 'fearLens'>;
+export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire' | 'rageBubble' | 'bloodConduit' | 'toxinTank' | 'forgeConduit' | 'mindAmp' | 'fearLens' | 'seaBreach'>;
 type EnemyState = 'idle' | 'move' | 'windup' | 'act' | 'recover';
 export type Role = 'berserker' | 'hunter' | 'gunner';
 /** How a faction thinks: rage never backs down and gets faster when hurt; machines stay cold and regroup. */
@@ -217,6 +217,54 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		},
 		// Patient: they wait for the shot, and they don't rush in
 		leans: { patience: 0.4, caution: 0.3, aggression: -0.2 }
+	},
+	// Season two, Undertow: Black Manta's crew, come up out of the sea onto the rig
+	mantaDiver: {
+		kind: 'mantaDiver',
+		name: "Manta's diver",
+		faction: 'rogue',
+		tint: 'tech',
+		description:
+			"Black Manta's hired divers, in black wetsuits and full-face masks, still dripping. Spearguns, one heavy bolt and a long reload, and dive knives for close in. They work in pairs: one fires while the other closes.",
+		mind: 'machine',
+		hp: 130,
+		speed: 160,
+		accel: 5,
+		sight: 680,
+		poise: 34,
+		scale: 1,
+		agility: 0.35,
+		movement: 'hover',
+		onFoot: true,
+		crew: {
+			gunner: { kit: ['speargun'], range: 420 },
+			hunter: { kit: ['speargun', 'diveKnife'], range: 260 },
+			berserker: { kit: ['diveKnife'], range: 80 }
+		},
+		// Professionals: they keep their distance and wait for the reload
+		leans: { patience: 0.2, caution: 0.15 }
+	},
+	blackManta: {
+		kind: 'blackManta',
+		name: 'Black Manta',
+		faction: 'rogue',
+		tint: 'tech',
+		description:
+			"David Hyde, the ocean's worst pirate, in the black suit and the great bug-eyed helmet. Wrist blades, two quick cuts; a harpoon that reels you in; and the helmet's eyes: a long red glow, then two beams held on you. A shield takes the beams.",
+		mind: 'machine',
+		hp: 1500,
+		speed: 170,
+		accel: 5,
+		sight: 900,
+		poise: 140,
+		scale: 1.1,
+		agility: 0.6,
+		movement: 'hover',
+		onFoot: true,
+		kit: ['wristBlades', 'mantaHarpoon', 'opticBlast'],
+		range: 260,
+		leans: { aggression: 0.15, patience: 0.2 },
+		lieutenant: true
 	},
 	// Season two, Act 3: a frightened man a yellow ring found first. Not a villain: it is the ring doing this.
 	frightened: {
@@ -1214,10 +1262,12 @@ export function createEnemy(
 	// that arrives together doesn't attack together
 	const cooldowns = {} as Record<AbilityId, number>;
 	const uses = {} as Record<AbilityId, number>;
+	// (only what they carry: the dice don't depend on how many moves exist in the game)
 	for (const id of Object.keys(ABILITIES) as AbilityId[]) {
-		cooldowns[id] = 0.8 + rand() * 1.6;
+		cooldowns[id] = 0;
 		uses[id] = 0;
 	}
+	for (const id of kit) cooldowns[id] = 0.8 + rand() * 1.6;
 	return {
 		kind,
 		x,

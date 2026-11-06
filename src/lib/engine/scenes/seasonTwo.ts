@@ -16,6 +16,8 @@ import {
 	drawQwardRift,
 	drawRain,
 	drawSpaceOverVesk,
+	drawStorm,
+	drawStormRig,
 	drawTeleport,
 	drawWatchtowerDeck
 } from '../draw/stages';
@@ -27,6 +29,7 @@ import {
 	DREAMS_WITH_TEETH,
 	LEAGUE_INVITE,
 	SIDE_BY_SIDE,
+	SEA_COMING_IN,
 	SINESTROS_WORLD,
 	STILL_BURNING,
 	THE_CITADEL,
@@ -83,6 +86,18 @@ export const deadCrane = () =>
 			// Under the far end of the container, holding it up
 			{ speaker: 'superman', figure: { hero: 'superman' }, pose: { firing: true, aimX: -0.15, aimY: -1 }, marks: [{ x: 640, y: G - 34, dir: -1 }] },
 			{ speaker: 'john', figure: { lantern: 'john' }, marks: [{ x: 260, y: G + 40, lift: 420, dir: 1 }, { at: 0.4, x: 330, y: G + 40, lift: 0, time: 1.6, dir: 1 }] }
+		]
+	});
+
+export const seaComingIn = () =>
+	new CastScene(SEA_COMING_IN, {
+		talkStarts: 2.4,
+		backdrop: (ctx, t, scene) => drawStormRig(ctx, t, saying(scene, 'manta')),
+		front: (ctx, t) => drawStorm(ctx, t),
+		cast: [
+			{ speaker: 'john', figure: { lantern: 'john' }, marks: [{ x: 300, y: G + 40, lift: 300, dir: 1 }, { at: 0.3, x: 520, y: G + 40, lift: 0, time: 1.8, dir: 1 }] },
+			// Up out of the sea and over the rail
+			{ speaker: 'aquaman', figure: { hero: 'aquaman' }, hidden: true, marks: [{ x: 1000, y: G + 40, lift: 170, dir: -1 }, { line: 1, x: 1000, y: G + 40, lift: 170, dir: -1 }, { wait: 0.15, x: 820, y: G + 40, lift: 0, time: 1, dir: -1 }] }
 		]
 	});
 

@@ -11,7 +11,7 @@ import type { Game } from './game';
 import type { InputSource, Intent } from './input';
 import type { Player } from './player';
 import { BUBBLE_SHIELD } from './constructs/defs';
-import { isStanding } from './dummy';
+import { BODY, isStanding } from './dummy';
 
 /** Enemies closer than this are worth fighting before moving on. */
 const ENGAGE_RANGE = 520;
@@ -75,9 +75,10 @@ export class Autopilot implements InputSource {
 		}
 
 		// Something the mission wants torn down (a signal spire): shoot it whenever nobody's in the way
-		const spire = game.dummies.filter((d) => (d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit' || d.kind === 'mindAmp' || d.kind === 'fearLens') && isStanding(d)).sort((a, b) => dist(a, me) - dist(b, me))[0];
+		const spire = game.dummies.filter((d) => (d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit' || d.kind === 'mindAmp' || d.kind === 'fearLens' || d.kind === 'seaBreach') && isStanding(d)).sort((a, b) => dist(a, me) - dist(b, me))[0];
 		if (spire && !core && !game.enemies.some((e) => isStanding(e) && dist(e, me) < 260)) {
-			intent.pointer = { x: spire.x, y: spire.y - 90 - me.ringLift };
+			// At the middle of it: a spire stands tall, a breach is a hole down at deck level
+			intent.pointer = { x: spire.x, y: spire.y - Math.min(90, BODY[spire.kind].height * 0.5) - me.ringLift };
 			intent.shot = true;
 			const d = dist(spire, me);
 			if (d > 320) {

@@ -27,10 +27,11 @@ export type Figure =
 	/** Someone drawn by the scene itself (the Guardians on their dais, J'onn in his own art). */
 	| { draw: (ctx: CanvasRenderingContext2D, x: number, y: number, pose: LanternPose, t: number, speaking: boolean, scale: number) => void };
 
-/** Where an actor goes, and when: at `at` seconds, or when line `line` starts. */
+/** Where an actor goes, and when: at `at` seconds, when line `line` starts, or `wait` seconds after their last move ends. */
 export interface Mark {
 	at?: number;
 	line?: number;
+	wait?: number;
 	x: number;
 	y: number;
 	/** Height off the ground they float at here (0 = on their feet). */
@@ -128,7 +129,12 @@ export class CastScene extends DialogueScene {
 			const marks = p.actor.marks;
 			while (p.next < marks.length) {
 				const m = marks[p.next];
-				const due = m.line !== undefined ? this.line >= m.line : this.time >= (m.at ?? 0);
+				const due =
+					m.wait !== undefined
+						? this.time >= p.started + p.duration + m.wait
+						: m.line !== undefined
+							? this.line >= m.line
+							: this.time >= (m.at ?? 0);
 				if (!due) break;
 				p.from = { x: p.x, y: p.y, lift: p.lift };
 				p.to = { x: m.x, y: m.y, lift: m.lift ?? 0 };

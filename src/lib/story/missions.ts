@@ -433,6 +433,7 @@ export const ACTS: ActInfo[] = [
 			'watchtower',
 			'hard-order',
 			'ground-level',
+			'undertow',
 			'korugar'
 		]
 	},
@@ -520,6 +521,22 @@ MISSIONS.push({
 		'Stay close to the container and your ring holds it up, at a cost. Every second you are away, the strain climbs.'
 	],
 	objectives: ['Stay close to the container to brace it', 'Get the three crews to the exit', 'Shield the crews from falling cargo', 'Hold it while Superman lowers it']
+});
+
+MISSIONS.push({
+	id: 'undertow',
+	title: 'Undertow',
+	tagline: 'John and Aquaman on a sinking rig. Black Manta came for what it found, and the sea is coming in.',
+	lantern: 'john',
+	environment: 'planet',
+	place: 'The Pacific · Meridian platform, forty miles out',
+	partner: 'aquaman',
+	briefing: [
+		'Meridian, a deep-sea platform, hauled something up from the trench last week. It is Atlantean, and Aquaman came to take it home. Black Manta got there first.',
+		"Manta's charges holed the hull below the waterline, and the sea is coming in deck by deck. There are crews still below. Aquaman will go into the water for them.",
+		'New: DAMS. Every construct you put into a breach builds a dam across it, and the sea pushes it loose again. Keep the holes shut and the decks dry enough for the crews to get out.'
+	],
+	objectives: ['Dam the breaches with your constructs', 'Keep the water down while Aquaman gets the crews out', 'Stop Black Manta']
 });
 
 MISSIONS.push({

@@ -10,10 +10,16 @@
 //   Weaponers of Qward the anti-matter universe's smiths. A hand-cannon of
 //                     their own making, slow and heavy, that bursts where it
 //                     lands; a forged blade swung with both hands.
+//   Manta's divers    a speargun, one heavy bolt and a long reload; a dive
+//                     knife, stabbed in low.
+//   Black Manta       wrist blades, two quick cuts; a harpoon that bites in and
+//                     reels you to him; and the helmet's eyes, two red beams
+//                     held on you after a long glow (a shield takes them).
 //
 // Projectiles go into the Red Lantern shot list (it flies them, hits things
 // and bursts shells), with a `look` so they're drawn as what they are.
-// Grenades and the swing trails live here (updateGear, once a tick).
+// Grenades, harpoons, Manta's beams and the swing trails live here
+// (updateGear, once a tick).
 
 import type { damagePlayer as DamagePlayer } from '../combat';
 import type { ConstructWorld } from '../constructs/system';
@@ -29,9 +35,22 @@ export interface GearCtx {
 	fire: typeof Fire;
 }
 
-export const GEAR_ABILITIES: ReadonlySet<AbilityId> = new Set<AbilityId>(['pistol', 'batSwing', 'pulseRifle', 'shockBaton', 'stunGrenade', 'handCannon', 'forgeBlade']);
+export const GEAR_ABILITIES: ReadonlySet<AbilityId> = new Set<AbilityId>([
+	'pistol',
+	'batSwing',
+	'pulseRifle',
+	'shockBaton',
+	'stunGrenade',
+	'handCannon',
+	'forgeBlade',
+	'speargun',
+	'diveKnife',
+	'wristBlades',
+	'mantaHarpoon',
+	'opticBlast'
+]);
 export const isGearAbility = (id: AbilityId) => GEAR_ABILITIES.has(id);
-const MELEE: ReadonlySet<AbilityId> = new Set<AbilityId>(['batSwing', 'shockBaton', 'forgeBlade']);
+const MELEE: ReadonlySet<AbilityId> = new Set<AbilityId>(['batSwing', 'shockBaton', 'forgeBlade', 'diveKnife', 'wristBlades']);
 export const isGearMelee = (id: AbilityId | null) => id !== null && MELEE.has(id);
 
 /** Pistol: three shots, close together, and not where they were aimed. */
@@ -41,9 +60,15 @@ const RIFLE = { shots: 3, gap: 0.1, wild: 0.04 };
 /** The hand-cannon kicks the smith back a step. */
 const CANNON = { recoil: 170 };
 /** A swing lunges them in a little. */
-const LUNGE: Partial<Record<AbilityId, number>> = { batSwing: 260, shockBaton: 200, forgeBlade: 150 };
+const LUNGE: Partial<Record<AbilityId, number>> = { batSwing: 260, shockBaton: 200, forgeBlade: 150, diveKnife: 300, wristBlades: 240 };
 /** How wide a swing reaches round the aim (cosine of the half angle). */
-const ARC: Partial<Record<AbilityId, number>> = { batSwing: 0.35, shockBaton: 0.45, forgeBlade: 0.05 };
+const ARC: Partial<Record<AbilityId, number>> = { batSwing: 0.35, shockBaton: 0.45, forgeBlade: 0.05, diveKnife: 0.55, wristBlades: 0.3 };
+/** Wrist blades: the second cut comes this long after the first. */
+const SECOND_CUT = 0.17;
+/** The harpoon: how long it reels you in, and how hard. */
+const HARPOON = { reel: 0.75, pull: 760, stop: 70 };
+/** The helmet's beams: how wide they hit, and how often they bite. */
+const OPTIC = { width: 26, tick: 0.1, eyeGap: 7 };
 /** The baton's jolt: legs that won't answer for a moment. */
 const SHOCK = { time: 1.1 };
 /** Stun grenades: time in the air, how long the stun lasts. */
@@ -74,14 +99,41 @@ export interface GearFx {
 	life: number;
 }
 
+/** Black Manta's harpoon: flying, or bitten in and reeling someone to him. */
+export interface Harpoon {
+	owner: Enemy;
+	x: number;
+	y: number;
+	vx: number;
+	vy: number;
+	life: number;
+	damage: number;
+	/** Who it's in, and how much longer it pulls. */
+	caught: Player | null;
+	reel: number;
+}
+
+/** The helmet's beams, held along the aim while the blast lasts. */
+export interface OpticBeam {
+	owner: Enemy;
+	angle: number;
+	/** How far they reach this tick (a wall stops them). */
+	length: number;
+	time: number;
+	tick: number;
+	dps: number;
+}
+
 interface GearWorld {
 	grenades: Grenade[];
+	harpoons: Harpoon[];
+	beams: OpticBeam[];
 	fx: GearFx[];
 }
 const worlds = new WeakMap<ConstructWorld, GearWorld>();
 export function gearOf(w: ConstructWorld): GearWorld {
 	let g = worlds.get(w);
-	if (!g) worlds.set(w, (g = { grenades: [], fx: [] }));
+	if (!g) worlds.set(w, (g = { grenades: [], harpoons: [], beams: [], fx: [] }));
 	return g;
 }
 
@@ -112,6 +164,21 @@ export function startGearAbility(e: Enemy, a: AbilityDef, w: ConstructWorld) {
 		e.vy += b.aimY * lunge;
 		g.fx.push({ kind: 'swing', weapon: a.id, x: e.x, y: e.y, angle, dir: e.dir, radius: a.maxRange + 18, age: 0, life: 0.26 });
 	}
+	if (a.id === 'mantaHarpoon') {
+		const speed = a.speed ?? 900;
+		g.harpoons.push({
+			owner: e,
+			x: e.x + b.aimX * 20,
+			y: e.y + b.aimY * 20,
+			vx: b.aimX * speed,
+			vy: b.aimY * speed,
+			life: (a.maxRange + 40) / speed,
+			damage: a.damage * b.might,
+			caught: null,
+			reel: 0
+		});
+	}
+	if (a.id === 'opticBlast') g.beams.push({ owner: e, angle, length: 0, time: a.active, tick: 0, dps: a.damage * b.might });
 	if (a.id === 'stunGrenade') {
 		const t = b.target;
 		const tx = t ? t.x + t.vx * GRENADE.lead : e.x + b.aimX * a.maxRange * 0.7;
@@ -155,27 +222,45 @@ export function updateGearAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, pl
 			g.fx.push({ kind: 'muzzle', weapon: a.id, x: e.x, y: e.y, angle, dir: e.dir, radius: 0, age: 0, life: 0.12 });
 			return;
 		}
+		case 'speargun': {
+			steer(e, 0, 0, 7, dt);
+			if (b.fired > 0) return;
+			b.fired = 1;
+			const [dx, dy] = t ? leadOnto(e, t, a.speed ?? 820) : [b.aimX, b.aimY];
+			e.dir = dx < 0 ? -1 : 1;
+			const shot = fire(e, w, 'bolt', a, dx, dy, false);
+			shot.look = 'spear';
+			return;
+		}
+		case 'wristBlades': {
+			steer(e, 0, 0, 7, dt);
+			// Two cuts: one as it starts, one a beat later with a second lunge
+			const due = b.elapsed >= SECOND_CUT ? 2 : 1;
+			if (b.fired >= due) return;
+			b.fired++;
+			if (b.fired === 2) {
+				e.vx += b.aimX * (LUNGE.wristBlades ?? 0) * 0.6;
+				e.vy += b.aimY * (LUNGE.wristBlades ?? 0) * 0.6;
+				g.fx.push({ kind: 'swing', weapon: a.id, x: e.x, y: e.y, angle: Math.atan2(b.aimY, b.aimX), dir: (e.dir * -1) as 1 | -1, radius: a.maxRange + 18, age: 0, life: 0.22 });
+			}
+			cut(e, a, w, players, ctx);
+			return;
+		}
+		case 'mantaHarpoon':
+		case 'opticBlast':
+			// Fired at the start; it does the rest on its own (updateGear). He plants his feet while it lasts.
+			steer(e, 0, 0, 10, dt);
+			if (a.id === 'mantaHarpoon' && !g.harpoons.some((h) => h.owner === e)) b.timer = 0;
+			if (a.id === 'opticBlast' && !g.beams.some((bm) => bm.owner === e)) b.timer = 0;
+			return;
 		case 'batSwing':
 		case 'shockBaton':
-		case 'forgeBlade': {
+		case 'forgeBlade':
+		case 'diveKnife': {
 			steer(e, 0, 0, 7, dt);
 			if (b.hitDone) return;
 			b.hitDone = true;
-			const reach = a.maxRange + 24;
-			const cos = ARC[a.id] ?? 0.35;
-			for (const p of players) {
-				if (p.downed || Math.hypot(p.x - e.x, p.y - e.y) > reach || !inArc(e, p, cos)) continue;
-				const dealt = damagePlayer(w, p, power(e, a), e.x, e.y, a.knockback);
-				w.effects.push({ kind: 'impact', x: p.x, y: p.y, age: 0, life: 0.2, lift: 40 });
-				if (a.id === 'shockBaton') {
-					g.fx.push({ kind: 'spark', weapon: a.id, x: p.x, y: p.y, angle: 0, dir: e.dir, radius: 30, age: 0, life: 0.45 });
-					// The jolt goes through even if the bubble took the hit: it's the current, not the blow
-					if (dealt > 0 || p.chilled <= 0) {
-						if (p.chilled <= 0) w.effects.push({ kind: 'callout', x: p.x, y: p.y - 100, age: 0, life: 1.1, text: 'SHOCKED', hurt: true, owner: p });
-						p.chilled = Math.max(p.chilled, SHOCK.time);
-					}
-				}
-			}
+			cut(e, a, w, players, ctx);
 			return;
 		}
 		case 'stunGrenade':
@@ -185,12 +270,34 @@ export function updateGearAbility(e: Enemy, a: AbilityDef, w: ConstructWorld, pl
 	}
 }
 
+/** A swing or a stab: everyone in front of them within reach. */
+function cut(e: Enemy, a: AbilityDef, w: ConstructWorld, players: readonly Player[], { damagePlayer, power }: GearCtx) {
+	const g = gearOf(w);
+	const reach = a.maxRange + 24;
+	const cos = ARC[a.id] ?? 0.35;
+	for (const p of players) {
+		if (p.downed || Math.hypot(p.x - e.x, p.y - e.y) > reach || !inArc(e, p, cos)) continue;
+		const dealt = damagePlayer(w, p, power(e, a), e.x, e.y, a.knockback);
+		w.effects.push({ kind: 'impact', x: p.x, y: p.y, age: 0, life: 0.2, lift: 40 });
+		if (a.id === 'shockBaton') {
+			g.fx.push({ kind: 'spark', weapon: a.id, x: p.x, y: p.y, angle: 0, dir: e.dir, radius: 30, age: 0, life: 0.45 });
+			// The jolt goes through even if the bubble took the hit: it's the current, not the blow
+			if (dealt > 0 || p.chilled <= 0) {
+				if (p.chilled <= 0) w.effects.push({ kind: 'callout', x: p.x, y: p.y - 100, age: 0, life: 1.1, text: 'SHOCKED', hurt: true, owner: p });
+				p.chilled = Math.max(p.chilled, SHOCK.time);
+			}
+		}
+	}
+}
+
 /** Once a tick: grenades in flight and going off, and the trails fading. */
 export function updateGear(w: ConstructWorld, players: readonly Player[], dt: number, damagePlayer: typeof DamagePlayer) {
 	const g = worlds.get(w);
 	if (!g) return;
 	for (const f of g.fx) f.age += dt;
 	g.fx = g.fx.filter((f) => f.age < f.life);
+	updateHarpoons(w, g, players, dt, damagePlayer);
+	updateBeams(w, g, players, dt, damagePlayer);
 	for (const n of [...g.grenades]) {
 		n.t += dt;
 		if (n.t < GRENADE.flight) continue;
@@ -207,3 +314,88 @@ export function updateGear(w: ConstructWorld, players: readonly Player[], dt: nu
 
 /** How far through its flight a grenade is (0..1), for drawing the arc and the warning. */
 export const grenadeProgress = (n: Grenade) => Math.min(1, n.t / GRENADE.flight);
+
+const shieldedFrom = (w: ConstructWorld, p: Player) => w.shields.some((sh) => sh.target === p);
+
+/** Harpoons fly until they hit someone or run out of line; one that bites reels them in. A shield knocks it away. */
+function updateHarpoons(w: ConstructWorld, g: GearWorld, players: readonly Player[], dt: number, damagePlayer: typeof DamagePlayer) {
+	g.harpoons = g.harpoons.filter((h) => {
+		const o = h.owner;
+		if (!isStandingEnemy(o)) return false;
+		if (h.caught) {
+			const p = h.caught;
+			h.reel -= dt;
+			h.x = p.x;
+			h.y = p.y;
+			const dx = o.x - p.x;
+			const dy = o.y - p.y;
+			const d = Math.hypot(dx, dy) || 1;
+			if (h.reel <= 0 || p.downed || d < HARPOON.stop || shieldedFrom(w, p)) return false;
+			p.vx = (dx / d) * HARPOON.pull;
+			p.vy = (dy / d) * HARPOON.pull;
+			return true;
+		}
+		h.life -= dt;
+		h.x += h.vx * dt;
+		h.y += h.vy * dt;
+		if (w.obstacles.some((ob) => h.x > ob.x && h.x < ob.x + ob.w && h.y > ob.y && h.y < ob.y + ob.h)) return false;
+		for (const p of players) {
+			if (p.downed || Math.hypot(p.x - h.x, p.y - h.y) > 30) continue;
+			damagePlayer(w, p, h.damage, h.x - h.vx * 0.05, h.y - h.vy * 0.05, 0);
+			if (shieldedFrom(w, p) || p.dash) return false;
+			h.caught = p;
+			h.reel = HARPOON.reel;
+			w.effects.push({ kind: 'callout', x: p.x, y: p.y - 100, age: 0, life: 1, text: 'HOOKED', hurt: true, owner: p });
+			return true;
+		}
+		return h.life > 0;
+	});
+}
+
+/** The helmet's beams: they reach until a wall, and bite whoever's in them, a shield taking it instead. */
+function updateBeams(w: ConstructWorld, g: GearWorld, players: readonly Player[], dt: number, damagePlayer: typeof DamagePlayer) {
+	g.beams = g.beams.filter((bm) => {
+		const o = bm.owner;
+		bm.time -= dt;
+		if (bm.time <= 0 || !isStandingEnemy(o) || o.stun > 0) return false;
+		// It drags round after you, slowly
+		const t = o.brain.target;
+		if (t) {
+			const want = Math.atan2(t.y - o.y, t.x - o.x);
+			let diff = want - bm.angle;
+			diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+			bm.angle += Math.max(-0.9 * dt, Math.min(0.9 * dt, diff));
+		}
+		const ux = Math.cos(bm.angle);
+		const uy = Math.sin(bm.angle);
+		const reach = ABILITY_REACH;
+		let length = reach;
+		for (let d = 20; d < reach; d += 16) {
+			const x = o.x + ux * d;
+			const y = o.y + uy * d;
+			if (w.obstacles.some((ob) => x > ob.x && x < ob.x + ob.w && y > ob.y && y < ob.y + ob.h)) {
+				length = d;
+				break;
+			}
+		}
+		bm.length = length;
+		bm.tick -= dt;
+		if (bm.tick > 0) return true;
+		bm.tick = OPTIC.tick;
+		for (const p of players) {
+			if (p.downed) continue;
+			const along = (p.x - o.x) * ux + (p.y - o.y) * uy;
+			const off = Math.abs(-(p.x - o.x) * uy + (p.y - o.y) * ux);
+			if (along < 0 || along > length || off > OPTIC.width) continue;
+			damagePlayer(w, p, bm.dps * OPTIC.tick, o.x, o.y, 0);
+		}
+		return true;
+	});
+}
+
+/** How far the helmet's beams reach. */
+const ABILITY_REACH = 680;
+/** The two beams leave the helmet this far apart (for drawing). */
+export const OPTIC_EYE_GAP = OPTIC.eyeGap;
+
+const isStandingEnemy = (e: Enemy) => e.down === 0 && !e.gone;
