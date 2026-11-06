@@ -47,6 +47,7 @@ import { BloodOath } from '$lib/engine/scenes/bloodOath';
 import { LastLight } from '$lib/engine/scenes/lastLight';
 import type { LanternId } from '$lib/engine/lanterns';
 import { Summoned } from '$lib/engine/scenes/summoned';
+import * as S2 from '$lib/engine/scenes/seasonTwo';
 
 export interface MissionRun {
 	game: Game;
@@ -153,7 +154,7 @@ export function buildMission(id: string, options: Options): MissionRun {
 			});
 			const director = new Watchtower();
 			game.director = director;
-			return { game, director, outro: null };
+			return { game, director, outro: null, intro: S2.leagueInvite };
 		}
 		case 'sinestro': {
 			// The finale: Hal and John (you pick) with Kilowog, on Korugar
@@ -169,7 +170,7 @@ export function buildMission(id: string, options: Options): MissionRun {
 			});
 			const director = new SinestroFinale();
 			game.director = director;
-			return { game, director, outro: null };
+			return { game, director, outro: S2.stillBurning, intro: S2.theCitadel };
 		}
 		case 'two-lanterns': {
 			// John and Hal together on the Watchtower: you pick, the other fights beside you
@@ -184,7 +185,7 @@ export function buildMission(id: string, options: Options): MissionRun {
 			});
 			const director = new TwoLanterns();
 			game.director = director;
-			return { game, director, outro: null };
+			return { game, director, outro: null, intro: S2.sideBySide };
 		}
 		case 'rings-go-out': {
 			// Hal and Kilowog, pulling Lanterns out ahead of the Sinestro Corps
@@ -198,7 +199,7 @@ export function buildMission(id: string, options: Options): MissionRun {
 			});
 			const director = new RingsGoOut();
 			game.director = director;
-			return { game, director, outro: null };
+			return { game, director, outro: null, intro: S2.yellowRings };
 		}
 		case 'recruited': {
 			// John and Wonder Woman, back on Earth
@@ -212,14 +213,14 @@ export function buildMission(id: string, options: Options): MissionRun {
 			});
 			const director = new Recruited();
 			game.director = director;
-			return { game, director, outro: null };
+			return { game, director, outro: null, intro: S2.dreamsWithTeeth };
 		}
 		case 'first-light': {
 			// Hal alone against Sinestro with the yellow ring
 			const game = new Game({ ...options, players: [{ lantern: 'hal', keys: 'solo' }], map: buildFirstLightMap() });
 			const director = new FirstLight();
 			game.director = director;
-			return { game, director, outro: null };
+			return { game, director, outro: null, intro: S2.aLanternInYellow };
 		}
 		case 'what-grodd-wants': {
 			// John with the Flash and Hawkgirl, back in Central City
@@ -234,7 +235,7 @@ export function buildMission(id: string, options: Options): MissionRun {
 			});
 			const director = new WhatGroddWants();
 			game.director = director;
-			return { game, director, outro: null };
+			return { game, director, outro: null, intro: S2.bait };
 		}
 		case 'qward': {
 			// Hal and Kilowog in the anti-matter universe
@@ -248,7 +249,7 @@ export function buildMission(id: string, options: Options): MissionRun {
 			});
 			const director = new QwardMission();
 			game.director = director;
-			return { game, director, outro: null };
+			return { game, director, outro: null, intro: S2.theOtherSide };
 		}
 		case 'gotham-at-night': {
 			// John and Batman, on foot in the Narrows
@@ -262,7 +263,7 @@ export function buildMission(id: string, options: Options): MissionRun {
 			});
 			const director = new GothamAtNight();
 			game.director = director;
-			return { game, director, outro: null };
+			return { game, director, outro: null, intro: S2.theNarrows };
 		}
 		case 'korugar': {
 			// Hal and Kilowog, sent to bring Sinestro in
@@ -276,7 +277,7 @@ export function buildMission(id: string, options: Options): MissionRun {
 			});
 			const director = new KorugarMission();
 			game.director = director;
-			return { game, director, outro: null };
+			return { game, director, outro: null, intro: S2.sinestrosWorld };
 		}
 		case 'ground-level': {
 			// John and Superman, no enemies: Superman holds the far end of the load the whole time
@@ -290,7 +291,7 @@ export function buildMission(id: string, options: Options): MissionRun {
 			});
 			const director = new GroundLevel();
 			game.director = director;
-			return { game, director, outro: null };
+			return { game, director, outro: null, intro: S2.deadCrane };
 		}
 		case 'hard-order': {
 			// Hal flies with Kilowog and Sinestro: three Lanterns, and the best of them in charge
@@ -306,7 +307,7 @@ export function buildMission(id: string, options: Options): MissionRun {
 			});
 			const director = new HardOrder();
 			game.director = director;
-			return { game, director, outro: null };
+			return { game, director, outro: null, intro: S2.underSinestro };
 		}
 		case 'manhunter-prime': {
 			const map = buildHeartMap();

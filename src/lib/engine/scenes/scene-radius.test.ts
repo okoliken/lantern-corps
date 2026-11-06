@@ -20,6 +20,7 @@ import { TheSignal } from './theSignal';
 import { TheTrail } from './theTrail';
 import type { DialogueScene, Line } from './scene';
 import * as STORY from '../../story/scenes';
+import * as S2 from './seasonTwo';
 
 const bad: string[] = [];
 
@@ -78,7 +79,9 @@ const SCENES: [string, (lines: Line[]) => DialogueScene, Line[]][] = [
 	['BloodWorld', (l) => new BloodWorld(l), STORY.BLOOD_WORLD],
 	['BloodOath', (l) => new BloodOath(l), STORY.BLOOD_OATH],
 	['LastLight', (l) => new LastLight(l), STORY.LAST_LIGHT],
-	['OaLanding', (l) => new OaLanding(l, 0.7), STORY.OA_LANDING]
+	['OaLanding', (l) => new OaLanding(l, 0.7), STORY.OA_LANDING],
+	// Season two: each scene brings its own lines
+	...Object.entries(S2).map(([name, make]): [string, (lines: Line[]) => DialogueScene, Line[]] => [name, () => make(), []])
 ];
 
 const VIEW = { width: 1600, height: 900 } as never;

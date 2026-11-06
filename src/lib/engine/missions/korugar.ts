@@ -431,7 +431,7 @@ export class KorugarMission implements MissionDirector {
 }
 
 /** Sinestro in stone on a pedestal, arms folded behind him by the look of it. */
-function drawStatue(ctx: CanvasRenderingContext2D, x: number, y: number, time: number) {
+export function drawStatue(ctx: CanvasRenderingContext2D, x: number, y: number, time: number) {
 	ctx.save();
 	// Pedestal
 	ctx.fillStyle = '#3a3044';

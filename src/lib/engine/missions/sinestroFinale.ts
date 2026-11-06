@@ -410,8 +410,8 @@ export class SinestroFinale implements MissionDirector {
 // ------------------------------------------------------------- drawing helpers
 
 /** The great yellow lantern: a Power Battery three times a Lantern's height, burning yellow. */
-function drawGreatLantern(ctx: CanvasRenderingContext2D, x: number, y: number, time: number) {
-	drawWashed(ctx, x, y, { side: 260, up: 520, down: 120 }, { color: '#ffcf2e', amount: 0.62 }, (c) => {
+export function drawGreatLantern(ctx: CanvasRenderingContext2D, x: number, y: number, time: number) {
+	drawWashed(ctx, x, y, { side: 260, up: 520, down: 120 }, { color: '#ffcf2e', amount: 0.85 }, (c) => {
 		c.translate(x, y);
 		c.scale(3.2, 3.2);
 		drawBattery(c, { x: 0, y: 0, charge: BATTERY_MAX_CHARGE }, true, time);

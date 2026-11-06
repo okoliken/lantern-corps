@@ -32,25 +32,25 @@ const TAU = Math.PI * 2;
 const HOVER = 12;
 
 /** Draw any enemy: Red Lanterns, Manhunter Drones, Red Lantern fighters. */
-export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number) {
+export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number, overlay = true) {
 	if (e.kind === 'manhunterDrone') {
 		drawManhunterDrone(ctx, e, x, y, hasGround, time);
-		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, y - RED_HAND_LIFT - 38, machineMuzzle(e, x, y), time);
+		if (overlay && isStanding(e)) drawEnemyOverlay(ctx, e, x, y, y - RED_HAND_LIFT - 38, machineMuzzle(e, x, y), time);
 		return;
 	}
 	if (e.kind === 'redFighter') {
 		drawRedFighter(ctx, e, x, y, hasGround, time);
-		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, y - RED_HAND_LIFT - 30, machineMuzzle(e, x, y), time);
+		if (overlay && isStanding(e)) drawEnemyOverlay(ctx, e, x, y, y - RED_HAND_LIFT - 30, machineMuzzle(e, x, y), time);
 		return;
 	}
 	if (e.kind === 'rageTurret') {
 		drawRageTurret(ctx, e, x, y, hasGround, time);
-		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, y - 78, [x + e.brain.aimX * 26, y - RED_HAND_LIFT], time);
+		if (overlay && isStanding(e)) drawEnemyOverlay(ctx, e, x, y, y - 78, [x + e.brain.aimX * 26, y - RED_HAND_LIFT], time);
 		return;
 	}
 	if (isRinglessKind(e.kind)) {
 		drawRinglessEnemy(ctx, e, x, y, hasGround, time);
-		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, ringlessTop(e, y), ringlessMuzzle(e, x, y), time);
+		if (overlay && isStanding(e)) drawEnemyOverlay(ctx, e, x, y, ringlessTop(e, y), ringlessMuzzle(e, x, y), time);
 		return;
 	}
 	if (isCorpsKind(e.kind)) {
@@ -58,7 +58,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 		// and the construct forming in the hand in real ring energy
 		const pose = { ...enemyPose(e, hasGround, time), glow: true };
 		drawCorpsLantern(ctx, e.kind, x, y, pose, time);
-		if (isStanding(e)) {
+		if (overlay && isStanding(e)) {
 			const kind = e.kind;
 			const top = corpsTop(kind, y, pose);
 			const hand = corpsRing(kind, x, y, pose, time);
@@ -69,47 +69,47 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 	}
 	if (isGorillaKind(e.kind)) {
 		drawGorilla(ctx, e, x, y, hasGround, time);
-		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, gorillaTop(e, y), gorillaHand(e, x, y), time);
+		if (overlay && isStanding(e)) drawEnemyOverlay(ctx, e, x, y, gorillaTop(e, y), gorillaHand(e, x, y), time);
 		return;
 	}
 	if (e.kind === 'reverseFlash') {
 		drawReverseFlash(ctx, e, x, y, hasGround, time);
-		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, reverseFlashTop(y), reverseFlashHand(e, x, y), time);
+		if (overlay && isStanding(e)) drawEnemyOverlay(ctx, e, x, y, reverseFlashTop(y), reverseFlashHand(e, x, y), time);
 		return;
 	}
 	if (isAquamanKind(e.kind)) {
 		drawAquamanEnemy(ctx, e, x, y, hasGround, time);
-		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, aquamanTop(e, y), aquamanHand(e, x, y), time);
+		if (overlay && isStanding(e)) drawEnemyOverlay(ctx, e, x, y, aquamanTop(e, y), aquamanHand(e, x, y), time);
 		return;
 	}
 	if (isBatmanKind(e.kind)) {
 		drawBatmanEnemy(ctx, e, x, y, hasGround, time);
-		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, batmanTop(y), batmanHand(e, x, y), time);
+		if (overlay && isStanding(e)) drawEnemyOverlay(ctx, e, x, y, batmanTop(y), batmanHand(e, x, y), time);
 		return;
 	}
 	if (isLeagueKind(e.kind)) {
 		drawLeagueEnemy(ctx, e, x, y, hasGround, time);
-		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, leagueTop(e, y), leagueHand(e, x, y), time);
+		if (overlay && isStanding(e)) drawEnemyOverlay(ctx, e, x, y, leagueTop(e, y), leagueHand(e, x, y), time);
 		return;
 	}
 	if (e.kind === 'manhunter' || e.kind === 'manhunterPrime') {
 		drawManhunter(ctx, e, x, y, hasGround, time);
-		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, manhunterTop(e, y), manhunterHand(e, x, y), time);
+		if (overlay && isStanding(e)) drawEnemyOverlay(ctx, e, x, y, manhunterTop(e, y), manhunterHand(e, x, y), time);
 		return;
 	}
 	if (e.kind === 'dexStarr') {
 		drawDexStarrEnemy(ctx, e, x, y, hasGround, time);
-		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, dexStarrTop(e, y), dexStarrHand(e, x, y), time);
+		if (overlay && isStanding(e)) drawEnemyOverlay(ctx, e, x, y, dexStarrTop(e, y), dexStarrHand(e, x, y), time);
 		return;
 	}
 	if (isLieutenantKind(e.kind)) {
 		drawLieutenant(ctx, e, x, y, hasGround, time);
-		if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, lieutenantTop(e, y), lieutenantHand(e, x, y), time);
+		if (overlay && isStanding(e)) drawEnemyOverlay(ctx, e, x, y, lieutenantTop(e, y), lieutenantHand(e, x, y), time);
 		return;
 	}
 	// Rage Grunts: humanoid aliens, one build per role (redLanterns.ts)
 	drawRedLanternAlien(ctx, e, x, y, hasGround, time);
-	if (isStanding(e)) drawEnemyOverlay(ctx, e, x, y, redLanternTop(e, y), redLanternHand(e, x, y), time);
+	if (overlay && isStanding(e)) drawEnemyOverlay(ctx, e, x, y, redLanternTop(e, y), redLanternHand(e, x, y), time);
 }
 
 /** Where an enemy's projectiles, beams and chains come from, in world coordinates. */

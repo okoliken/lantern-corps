@@ -3,7 +3,30 @@
 
 import { GREEN_LIGHT, THEME_GREEN } from '../theme';
 
-export type Speaker = 'tomar' | 'hal' | 'john' | 'ring' | 'guardian' | 'kilowog' | 'razer' | 'jonn' | 'ganthet' | 'arisia' | 'atrocitus' | 'katma' | 'boodikka';
+export type Speaker =
+	| 'tomar'
+	| 'hal'
+	| 'john'
+	| 'ring'
+	| 'guardian'
+	| 'kilowog'
+	| 'razer'
+	| 'jonn'
+	| 'ganthet'
+	| 'arisia'
+	| 'atrocitus'
+	| 'katma'
+	| 'boodikka'
+	// Season two
+	| 'sinestro'
+	| 'superman'
+	| 'wonderwoman'
+	| 'batman'
+	| 'flash'
+	| 'hawkgirl'
+	| 'scarecrow'
+	| 'grodd'
+	| 'ray';
 
 export interface SceneLine {
 	who: Speaker;
@@ -25,7 +48,16 @@ export const SPEAKERS: Record<Speaker, { name: string; color: string }> = {
 	arisia: { name: 'Arisia', color: '#ffe08a' },
 	atrocitus: { name: 'Atrocitus', color: '#ff3b30' },
 	katma: { name: 'Katma Tui', color: '#e58bc0' },
-	boodikka: { name: 'Boodikka', color: '#ffae7a' }
+	boodikka: { name: 'Boodikka', color: '#ffae7a' },
+	sinestro: { name: 'Sinestro', color: '#e58bc0' },
+	superman: { name: 'Superman', color: '#7fb0ff' },
+	wonderwoman: { name: 'Wonder Woman', color: '#ffd766' },
+	batman: { name: 'Batman', color: '#aeb6c0' },
+	flash: { name: 'The Flash', color: '#ff6a5c' },
+	hawkgirl: { name: 'Hawkgirl', color: '#f0c465' },
+	scarecrow: { name: 'Scarecrow', color: '#b9c86a' },
+	grodd: { name: 'Grodd', color: '#c79bff' },
+	ray: { name: 'Ray Doyle', color: '#ffd23a' }
 };
 
 /**
@@ -201,4 +233,159 @@ export const OA_LANDING: SceneLine[] = [
 	{ who: 'tomar', text: 'Outposts along the frontier of your sector are going silent. Kel-Aris Station stopped answering this morning.' },
 	{ who: 'hal', text: "Red light, dead outposts... sounds like somebody's picking a fight." },
 	{ who: 'tomar', text: 'Then be careful, my friend. Whatever it is, it is angry. And it is coming this way.' }
+];
+
+// ---------------------------------------------------------------- Season Two
+// A scene before every episode: who's there, what's happened since the last
+// one, and why they're going in.
+
+/** Before The Watchtower: John is beamed up to meet the League. */
+export const LEAGUE_INVITE: SceneLine[] = [
+	{ who: 'ring', text: 'Teleport complete. Earth orbit: the Justice League Watchtower.' },
+	{ who: 'john', text: 'First Oa, now this. Somebody could warn a guy before they beam him into space.' },
+	{ who: 'superman', text: "Sorry about that. Welcome aboard, John. We've heard a lot about Detroit." },
+	{ who: 'flash', text: 'Mostly from me. I may have told it with more gorillas.', mood: 'grin' },
+	{ who: 'wonderwoman', text: 'You have fought a war, Lantern. We want to see what you do when the thing in front of you is not an enemy.' },
+	{ who: 'john', text: 'Then what is it?' },
+	{ who: 'hawkgirl', text: "People. Falling, panicking, in the way. The things you can't hit." },
+	{ who: 'superman', text: "Four drills. Take your time. Nobody's keeping score." },
+	{ who: 'flash', text: "I'm keeping score.", mood: 'grin' }
+];
+
+/** Before Hard Order: Hal and Kilowog fly under Sinestro to Vesk. */
+export const UNDER_SINESTRO: SceneLine[] = [
+	{ who: 'ring', text: 'Approaching Vesk Colony. Raider signatures in the fields.', mood: 'alarm' },
+	{ who: 'sinestro', text: 'Atrocitus is finished and his dogs still bite. Jordan, Kilowog: you will follow my lead, and you will not improvise.' },
+	{ who: 'hal', text: "Improvising's kind of my thing.", mood: 'grin' },
+	{ who: 'sinestro', text: 'I know. It is why you need me.' },
+	{ who: 'kilowog', text: 'He trained half the Corps, Hal. Me included. Do what he says and we all go home.' },
+	{ who: 'sinestro', text: 'A world is kept safe by order. Remember that when you see what order costs.' },
+	{ who: 'hal', text: "...What's that supposed to mean?" },
+	{ who: 'sinestro', text: 'Down. Now.', mood: 'alarm' }
+];
+
+/** Before Ground Level: Superman already has the far end of the load. */
+export const DEAD_CRANE: SceneLine[] = [
+	{ who: 'superman', text: "John! Glad you could make it. I've got the far end." },
+	{ who: 'john', text: "That's a full container on a dead crane. What happened?" },
+	{ who: 'superman', text: "The lifter lost power mid-swing. There are three crews in the yard under it, and they're not moving fast enough.", mood: 'alarm' },
+	{ who: 'john', text: 'Then I take the near end and you get them out.' },
+	{ who: 'superman', text: "I can't get them out and hold it. Neither can you. You hold it and shield them, I lower it. Slowly." },
+	{ who: 'john', text: 'Slowly. Right. Everything the ring has done for me so far has been fast.' },
+	{ who: 'superman', text: 'Then today you learn the other half. The ring holds things up too.' }
+];
+
+/** Before Korugar: Hal tells the Guardians what he saw on Vesk, and they already knew. */
+export const SINESTROS_WORLD: SceneLine[] = [
+	{ who: 'hal', text: "He saved Vesk. Then he put the whole colony under curfew. Kids afraid to step outside. That's not the Corps.", mood: 'alarm' },
+	{ who: 'guardian', text: "We know. Korugar has lived that way for years. Sinestro's laws, Sinestro's police, his face on every wall." },
+	{ who: 'kilowog', text: 'You knew? And you let him?', mood: 'alarm' },
+	{ who: 'guardian', text: 'Korugar was the safest world in its sector. We told ourselves that was enough. It was not.' },
+	{ who: 'guardian', text: 'Sinestro is to be brought to Oa. You trained under him, Hal Jordan. You will bring him.' },
+	{ who: 'hal', text: 'Me. Of course me.' },
+	{ who: 'kilowog', text: "I'm comin' too. He won't come quiet, and you know it." },
+	{ who: 'hal', text: 'He taught me everything I know. Here\'s hoping he forgot something.' }
+];
+
+/** Before Gotham at Night: Batman asked for a Lantern, and for John. */
+export const THE_NARROWS: SceneLine[] = [
+	{ who: 'batman', text: 'You came alone. Good.' },
+	{ who: 'john', text: "You asked for a Lantern. I'm the one who lives here. What's going on?" },
+	{ who: 'batman', text: 'Crane. The Scarecrow. Three tanks of fear toxin venting into the Narrows. People down there are reliving their worst nights.' },
+	{ who: 'john', text: 'And you need a ring for that?' },
+	{ who: 'batman', text: 'Your ring runs on will. His toxin eats will. I need to know what happens when they meet, before he finds out for himself.' },
+	{ who: 'john', text: "So I'm the experiment." },
+	{ who: 'batman', text: "You're the only one who'll feel it working. If your constructs start to shrink, hit back. Don't back off." },
+	{ who: 'scarecrow', text: "Welcome to the Narrows, Lantern. Let's find out what frightens you.", mood: 'alarm' }
+];
+
+/** Before Qward: the exile's trail ends at a tear in space. */
+export const THE_OTHER_SIDE: SceneLine[] = [
+	{ who: 'ring', text: "Sinestro's trace ends here. Anti-matter readings off the scale." },
+	{ who: 'kilowog', text: 'He went through smilin\', Hal. Nobody smiles goin\' into exile.' },
+	{ who: 'hal', text: "The Weaponers wanted him. You don't come for a guy unless you've got something waiting for him." },
+	{ who: 'guardian', text: 'Qward is beyond our sight. Your willpower will come back slowly there. Do not stay.' },
+	{ who: 'hal', text: 'In and out. Find out what they are making for him, break it, come home.' },
+	{ who: 'kilowog', text: "I hate this place already, and I ain't even in it.", mood: 'grin' },
+	{ who: 'hal', text: 'After you, Sarge.' }
+];
+
+/** Before What Grodd Wants: Gorilla City tech on every corner of Central City. */
+export const BAIT: SceneLine[] = [
+	{ who: 'flash', text: "Gorilla tech on every corner, John. Nobody's guarding it like they want to keep it." },
+	{ who: 'hawkgirl', text: "Because it's bait. Grodd doesn't lose things. He leaves them where he wants us." },
+	{ who: 'john', text: 'Bait for what?' },
+	{ who: 'flash', text: "Last time, you put him through a bank. I'm guessing bait for you.", mood: 'grin' },
+	{ who: 'grodd', text: 'Not for you, Lantern. For the ring. A weapon that does whatever its bearer\'s mind tells it. Imagine it with a better mind.', mood: 'alarm' },
+	{ who: 'john', text: "He's in my head. I can hear him." },
+	{ who: 'hawkgirl', text: 'Then keep him out. Break his amplifiers and we break his reach.' }
+];
+
+/** Before First Light of Fear: Hal on Earth, and a call from Vesk. */
+export const A_LANTERN_IN_YELLOW: SceneLine[] = [
+	{ who: 'hal', text: 'Ferris Air, three in the morning, and the coffee is still terrible.' },
+	{ who: 'ring', text: 'Distress call. Vesk Colony, Sector 2814.', mood: 'alarm' },
+	{ who: 'hal', text: 'Vesk? We cleared Vesk.' },
+	{ who: 'ring', text: 'The colonists report a Lantern. A Lantern in yellow.' },
+	{ who: 'hal', text: 'Ring, get me Kilowog.' },
+	{ who: 'ring', text: 'Kilowog is three sectors away. The Guardians advise that it is probably nothing.' },
+	{ who: 'hal', text: "It's never nothing. Okay. Just me, then.", mood: 'chosen' }
+];
+
+/** Before Recruited: Wonder Woman finds John on his roof. */
+export const DREAMS_WITH_TEETH: SceneLine[] = [
+	{ who: 'wonderwoman', text: 'Lantern. Your city is dreaming, and its dreams have teeth.' },
+	{ who: 'john', text: 'Red Lanterns on the riverfront. In yellow. I put those away.' },
+	{ who: 'wonderwoman', text: 'They are not real. A yellow ring is pulling them out of frightened minds, and it has found its bearer. A night watchman.' },
+	{ who: 'john', text: "Ray Doyle. I know him. He works the lot by my old site. He's never hurt anyone." },
+	{ who: 'wonderwoman', text: 'Which is why we will not hurt him. Wear the ring down. My lasso will do the rest.' },
+	{ who: 'john', text: 'And then?' },
+	{ who: 'wonderwoman', text: 'Then you talk to him, as a friend. The truth sets people free, John. That is what the lasso is for.' },
+	{ who: 'ray', text: "Stay back! Please... I can't make it stop!", mood: 'alarm' }
+];
+
+/** Before The Rings Go Out: Hal, beaten, and yellow rings flying out across the sectors. */
+export const YELLOW_RINGS: SceneLine[] = [
+	{ who: 'kilowog', text: "He beat you, Hal. One on one. I ain't never seen anybody do that." },
+	{ who: 'hal', text: 'It was like the ring knew I was scared before I did. Every construct came out smaller.' },
+	{ who: 'guardian', text: 'Yellow rings are flying across the sectors. Hundreds. Each one seeks someone who can instill great fear.', mood: 'alarm' },
+	{ who: 'guardian', text: 'On Graxos IV, three of ours are down with drained rings, and the new Corps is hunting them.' },
+	{ who: 'hal', text: 'Katma. Boodikka. Arisia.' },
+	{ who: 'kilowog', text: "Then get up, Jordan. You lost one fight. Don't lose the next three." },
+	{ who: 'hal', text: "...Right. Let's go get our friends." }
+];
+
+/** Before Two Lanterns: Hal comes to the Watchtower to warn John. */
+export const SIDE_BY_SIDE: SceneLine[] = [
+	{ who: 'john', text: "Hal Jordan, on the Watchtower. The League's going to want your autograph." },
+	{ who: 'hal', text: 'No time. I came to warn you. The Sinestro Corps is coming here.' },
+	{ who: 'john', text: 'Here? Why the Watchtower?' },
+	{ who: 'hal', text: "Because it's where Earth's heroes sleep. Scare them, and Earth is next." },
+	{ who: 'ring', text: 'Multiple yellow signatures approaching. Contact in sixty seconds.', mood: 'alarm' },
+	{ who: 'superman', text: "We're holding the lower decks. The training deck is yours, Lanterns." },
+	{ who: 'hal', text: 'Two Lanterns from Earth, together. Try to keep up, Stewart.', mood: 'grin' },
+	{ who: 'john', text: "Stay close, Jordan. Fear can't get a grip on either of us that way." }
+];
+
+/** Before the finale: up the steps of Sinestro's citadel. */
+export const THE_CITADEL: SceneLine[] = [
+	{ who: 'kilowog', text: 'Korugar. Last time we were here, he was one of us.' },
+	{ who: 'john', text: "That's his lantern. The great yellow one. It's charging every ring in his Corps." },
+	{ who: 'sinestro', text: 'Jordan. Stewart. Sergeant. You came all the way to my home to be afraid together.' },
+	{ who: 'hal', text: 'We came to finish it, Sinestro.', mood: 'alarm' },
+	{ who: 'sinestro', text: 'Finish it? I taught you everything you know, Jordan. Every move you make, I have already seen.', mood: 'alarm' },
+	{ who: 'hal', text: 'Not everything. You never taught me how to lose and get back up.' },
+	{ who: 'john', text: 'Up the steps. All three of us.' }
+];
+
+/** The end of season two: Sinestro beaten, and his lantern still burning. */
+export const STILL_BURNING: SceneLine[] = [
+	{ who: 'kilowog', text: "He's down. Sinestro's finally down." },
+	{ who: 'john', text: "The Guardians can have him. Let's see them hold him this time." },
+	{ who: 'hal', text: "John. The lantern. It's still burning.", mood: 'alarm' },
+	{ who: 'sinestro', text: 'Of course it is, Jordan. You beat a man. You cannot beat fear. Fear was here before your light, and it will be here after.' },
+	{ who: 'guardian', text: 'Bring him home, Lanterns. The yellow lantern will be... studied.' },
+	{ who: 'kilowog', text: "Studied. Sure. That's how it started with the Manhunters." },
+	{ who: 'john', text: 'Then we watch it. Both of us.' },
+	{ who: 'hal', text: 'In brightest day, in blackest night, no evil shall escape our sight.', mood: 'chosen' }
 ];

@@ -13,6 +13,11 @@ and Atrocitus. Season two goes back and forth between two lives:
 
 The season ends with the Sinestro Corps.
 
+Eighteen episodes, six an act, so it runs longer than season one's sixteen.
+Every episode opens on a story scene (scenes/seasonTwo.ts, lines in
+story/scenes.ts): who's there, what happened since the last one, and why
+they're going in. The finale closes on one too.
+
 The rule underneath it: willpower is overcoming fear. Season one's enemies were
 angry. Season two's are frightening, and the fights are about not letting them
 get into your head.
@@ -30,42 +35,59 @@ Two lives, and the first crack in Sinestro. No yellow yet.
 3. **Ground Level** · John, with Superman. A cargo lifter loses power over a full
    dock. No villain: a weight to hold up and a crowd that will not move fast
    enough. Superman takes the far end, and it is still too much for two.
-4. **Korugar** · Hal, Kilowog. Sinestro's home world, kept "safe" by terror:
+4. **Undertow** · John, with Aquaman. *New.* Black Manta hits an offshore rig
+   and the sea comes in deck by deck. John learns to hold water back (walls and
+   dams) while Aquaman gets the crew out. Rising water; Manta and his divers.
+5. **Korugar** · Hal, Kilowog. Sinestro's home world, kept "safe" by terror:
    his own police, his face on every wall. The Guardians order him brought in,
-   and Hal has to do it. Sinestro does not come quietly. He is stripped of the
-   ring and exiled.
+   and Hal has to do it. Sinestro does not come quietly.
+6. **The Exile** · Hal and Kilowog. *New.* Stripped of the ring, Sinestro is
+   towed in a cell to the gate to Qward. The Weaponers come through to take
+   him; towing slows Hal, and a dropped cell gets dragged off. At the gate he
+   goes through anyway, smiling.
 
 ## Act Two · Fear Spreads
 
 Fear on Earth, a yellow ring in space, and the first time fear beats will.
 
-5. **Gotham at Night** · John, with Batman. Scarecrow's fear gas: the first time
+7. **Gotham at Night** · John, with Batman. Scarecrow's fear gas: the first time
    John's constructs flicker and shrink because he is afraid. The dread meter
    arrives here.
-6. **Qward** · Hal and Kilowog. They follow the exile into the anti-matter
+8. **Qward** · Hal and Kilowog. They follow the exile into the anti-matter
    universe and find the Weaponers forging a yellow ring for him.
-7. **What Grodd Wants** · John, with the Flash and Hawkgirl. Grodd wants the
+9. **What Grodd Wants** · John, with the Flash and Hawkgirl. Grodd wants the
    ring, and he gets inside John's head.
-8. **First Light of Fear** · Hal. Sinestro comes back wearing yellow. One on
+10. **Lights Out** · Hal, on Oa. *New.* Thunderers of Qward slip back through
+   the gate and sabotage the Central Battery. Oa goes dark: you see only as far
+   as your ring's light. Hunt them and defuse their charges.
+11. **Fire Season** · John, with J'onn J'onzz. *New.* Firefly sets Metropolis
+   burning from the air. Fire spreads; J'onn, afraid of fire, freezes near it.
+   John clears the way and stops Firefly.
+12. **First Light of Fear** · Hal. Sinestro comes back wearing yellow. One on
    one, and Hal loses. The act ends there.
 
 ## Act Three · The Sinestro Corps
 
 Yellow rings go looking for the fearful.
 
-9. **Recruited** · John, with Wonder Woman. A yellow ring finds Ray Doyle, a
+13. **Recruited** · John, with Wonder Woman. A yellow ring finds Ray Doyle, a
    frightened night watchman in Detroit. Its nightmares (yellow copies of old
    enemies) come first; then Ray, who can't be beaten: wear him down, and while
    Wonder Woman's lasso holds him, stay close and talk him down. Every hit you
    take sets him back.
-10. **The Rings Go Out** · Hal and Kilowog on Graxos IV. Katma, Boodikka and
+14. **The Rings Go Out** · Hal and Kilowog on Graxos IV. Katma, Boodikka and
     Arisia are down with drained rings and hunted. Drive the hunters off each,
     then charge her ring; you can't do it with hunters on top of her. Then
     Arkillo, the Sinestro Corps' drill sergeant.
-11. **Two Lanterns** · John and Hal (choose who you play) on the Watchtower.
+15. **Taken** · John, with the Flash. *New.* The Sinestro Corps snatches
+    frightened people off Central City's streets and flies them to a ship.
+    Catch the carriers; the Flash runs the people home.
+16. **Breakout** · Hal and Kilowog, on Oa. *New.* Lyssa Drak opens the
+    Sciencells. The prisoners go back alive: knock down, cage, hold till locked.
+17. **Two Lanterns** · John and Hal (choose who you play) on the Watchtower.
     Three waves cut in through the glass, then Arkillo and Scarecrow, who has a
     yellow ring now. Side by side, fear can't get a grip on either of you.
-12. **Sinestro** · John, Hal and Kilowog on Korugar. Up the citadel steps, then
+18. **Sinestro** · John, Hal and Kilowog on Korugar. Up the citadel steps, then
     Sinestro and his MIRROR (hits during it come back at you). At half health he
     draws on the great yellow lantern: break its three lenses, then beat him.
     The lantern is still burning when it's over: a seed for season three.
@@ -88,7 +110,7 @@ Yellow Lanterns are frightening and clever.
 
 ## Who is built
 
-All twelve episodes are built and tuned with the bot.
+The original twelve episodes are built and tuned with the bot, with their story scenes. The six new ones are being built in order.
 
 - Allies: Superman, Wonder Woman, the Flash, Hawkgirl, Batman, Kilowog, and
   Hal and John together.
