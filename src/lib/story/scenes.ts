@@ -410,6 +410,17 @@ export const YELLOW_RINGS: SceneLine[] = [
 	{ who: 'hal', text: "...Right. Let's go get our friends." }
 ];
 
+/** Before Taken: people going missing in Central City, and a ship over downtown. */
+export const OFF_THE_STREETS: SceneLine[] = [
+	{ who: 'flash', text: "John, people are going missing all over Central City. Grabbed right off the street. I saw yellow light, and then nothing." },
+	{ who: 'john', text: "The Sinestro Corps. They're taking people?" },
+	{ who: 'flash', text: "Only the scared ones. A kid who's afraid of the dark. A guy who hasn't left his flat in a year." },
+	{ who: 'john', text: "Fear. They're taking it back to Korugar like fuel." },
+	{ who: 'ring', text: 'Ship detected over Central City. Yellow energy signature. It is loading.', mood: 'alarm' },
+	{ who: 'flash', text: 'I can get anyone home in a second. I just can\'t catch the ones who fly.' },
+	{ who: 'john', text: 'Then I make them let go, and you run them home. Nobody gets on that ship.' }
+];
+
 /** Before Two Lanterns: Hal comes to the Watchtower to warn John. */
 export const SIDE_BY_SIDE: SceneLine[] = [
 	{ who: 'john', text: "Hal Jordan, on the Watchtower. The League's going to want your autograph." },

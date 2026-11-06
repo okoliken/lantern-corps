@@ -291,7 +291,11 @@ export function updateHero(p: Player, dt: number, w: ConstructWorld, solids: rea
 			return false;
 		});
 	}
-	if (!h.move) choose(p, h, w);
+	if (!h.move) {
+		choose(p, h, w);
+		// On an errand (someone to carry out): only what they can do where they stand, nothing that carries them off
+		if (h.errand && h.move && heroMoving(p)) h.move = null;
+	}
 	if (h.move) run(p, h, h.move, dt, w, solids);
 	// Hawkgirl drops back to her usual height after a dive
 	if (h.move?.power !== 'dive') h.rise = Math.max(0, h.rise - 400 * dt);
@@ -1072,6 +1076,12 @@ export class HeroInput implements InputSource {
 	private orbitDir: 1 | -1 = Math.random() < 0.5 ? 1 : -1;
 	private flipIn = 2;
 	private retreating = false;
+	/** Getting nowhere toward an errand (something in the way): seconds of it, and a sidestep to get round. */
+	private stuck = 0;
+	private detour = 0;
+	private detourSide: 1 | -1 = 1;
+	private lastX = 0;
+	private lastY = 0;
 
 	constructor(private world: HeroWorld) {}
 
@@ -1160,6 +1170,23 @@ export class HeroInput implements InputSource {
 			const k = Math.min(1, d / 60) / d;
 			intent.moveX = dx * k;
 			intent.moveY = dy * k;
+		}
+		// On an errand and not getting anywhere (a parked car in the way): step round it
+		const moved = Math.hypot(me.x - this.lastX, me.y - this.lastY);
+		this.lastX = me.x;
+		this.lastY = me.y;
+		if (h.errand && d > 40 && moved < 0.5 && !h.move) this.stuck += dt;
+		else this.stuck = Math.max(0, this.stuck - dt);
+		if (this.stuck > 0.5 && this.detour <= 0) {
+			this.detour = 0.9;
+			this.detourSide = this.detourSide === 1 ? -1 : 1;
+			this.stuck = 0;
+		}
+		if (this.detour > 0 && d > 12) {
+			this.detour -= dt;
+			const s = this.detourSide;
+			intent.moveX = (-dy / d) * s * 0.9 + (dx / d) * 0.3;
+			intent.moveY = (dx / d) * s * 0.9 + (dy / d) * 0.3;
 		}
 		return intent;
 	}

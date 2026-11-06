@@ -308,7 +308,7 @@ export class Undertow implements MissionDirector {
 		const lowerDone = this.crews.filter((c) => c.deck === 'lower').every((c) => c.state === 'out' || c.state === 'lost');
 		if (this.phase === 'flood' && (lowerDone || this.elapsed > MANTA_AFTER)) this.startManta(game);
 		if (this.phase === 'manta') this.updateManta();
-		if (this.lost >= 2) this.lose('crews');
+		if (this.lost >= 2) return this.lose('crews');
 		const crewsDone = this.crews.every((c) => c.state === 'out' || c.state === 'lost');
 		if (this.mantaGone && crewsDone) this.win(game);
 	}

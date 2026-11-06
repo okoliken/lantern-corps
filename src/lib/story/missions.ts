@@ -460,6 +460,7 @@ export const ACTS: ActInfo[] = [
 		lineup: [
 			'recruited',
 			'rings-go-out',
+			'taken',
 			'two-lanterns',
 			'sinestro'
 		]
@@ -618,6 +619,22 @@ MISSIONS.push({
 		'Drive the hunters off each one, then stay close for a few seconds: your ring charges hers, and she flies out. You cannot charge a ring with hunters on top of her, and you cannot be in three places at once. Pick.'
 	],
 	objectives: ['Drive the hunters off each stranded Lantern', "Stay close to charge her ring, and she's out", 'Deal with whoever is leading the hunt']
+});
+
+MISSIONS.push({
+	id: 'taken',
+	title: 'Taken',
+	tagline: 'John and the Flash. The Sinestro Corps is snatching frightened people off the streets, and flying them up to a ship.',
+	lantern: 'john',
+	environment: 'planet',
+	place: 'Earth · Central City, at night',
+	partner: 'flash',
+	briefing: [
+		'People are going missing all over Central City, grabbed off the street in a flash of yellow light. Only the frightened ones: a kid afraid of the dark, a man who has not left his flat in a year.',
+		'A Sinestro Corps ship is hanging over downtown, and its crew are carrying them up to it. Fear is fuel, and Sinestro is filling his tanks.',
+		'New: CARRIERS. Hurt a carrier enough, or stun him, and he lets go. The Flash will run anyone they drop all the way home. Four taken and the ship has what it came for.'
+	],
+	objectives: ['Make the carriers let go before they reach the ship', 'Keep the rest of the Corps off you', 'Get everyone home']
 });
 
 MISSIONS.push({

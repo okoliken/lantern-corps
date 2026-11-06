@@ -30,6 +30,7 @@ import { Undertow, buildUndertowMap } from '$lib/engine/missions/undertow';
 import { Exile, buildExileMap } from '$lib/engine/missions/exile';
 import { LightsOut, buildLightsOutMap } from '$lib/engine/missions/lightsOut';
 import { FireSeason, buildFireSeasonMap } from '$lib/engine/missions/fireSeason';
+import { Taken, buildTakenMap } from '$lib/engine/missions/taken';
 import { KorugarMission, buildKorugarMap } from '$lib/engine/missions/korugar';
 import { GothamAtNight, buildGothamMap } from '$lib/engine/missions/gothamAtNight';
 import { QwardMission, buildQwardMap } from '$lib/engine/missions/qward';
@@ -296,6 +297,20 @@ export function buildMission(id: string, options: Options): MissionRun {
 			const director = new GroundLevel();
 			game.director = director;
 			return { game, director, outro: null, intro: S2.deadCrane };
+		}
+		case 'taken': {
+			// John and the Flash under a Sinestro Corps ship
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: 'john', keys: 'solo' },
+					{ lantern: 'flash', keys: 'p2', ai: true }
+				],
+				map: buildTakenMap()
+			});
+			const director = new Taken();
+			game.director = director;
+			return { game, director, outro: null, intro: S2.takenOffTheStreets };
 		}
 		case 'fire-season': {
 			// John and J'onn in burning Metropolis

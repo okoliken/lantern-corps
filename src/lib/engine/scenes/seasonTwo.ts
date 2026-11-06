@@ -9,6 +9,7 @@ import {
 	STAGE_GROUND as G,
 	drawCentralCity,
 	drawCoastHarbour,
+	drawFearShip,
 	drawFerrisAirfield,
 	drawGorillaCrate,
 	drawGothamRoof,
@@ -30,6 +31,7 @@ import {
 	DEAD_CRANE,
 	DREAMS_WITH_TEETH,
 	LEAGUE_INVITE,
+	OFF_THE_STREETS,
 	SIDE_BY_SIDE,
 	SEA_COMING_IN,
 	SINESTROS_WORLD,
@@ -345,6 +347,21 @@ export const yellowRings = () =>
 			guardians(300, 0.8),
 			{ speaker: 'hal', figure: { lantern: 'hal' }, hurt: 0.35, marks: [{ x: 700, y: OA_GROUND, dir: -1 }] },
 			{ speaker: 'kilowog', figure: { lantern: 'kilowog' }, marks: [{ x: 900, y: OA_GROUND, dir: -1 }] }
+		]
+	});
+
+export const takenOffTheStreets = () =>
+	new CastScene(OFF_THE_STREETS, {
+		talkStarts: 2.4,
+		backdrop: (ctx, t, scene) => {
+			drawCentralCity(ctx, t, 1);
+			// The ship only shows when the ring finds it
+			if (scene.line >= 4) drawFearShip(ctx, 980, 150, t);
+		},
+		cast: [
+			{ speaker: 'john', figure: { lantern: 'john' }, marks: [{ x: 520, y: G + 40, dir: 1 }] },
+			// The Flash, there before you saw him come
+			{ speaker: 'flash', figure: { hero: 'flash' }, marks: [{ x: 1600, y: G + 30, dir: -1 }, { at: 0.6, x: 760, y: G + 30, time: 0.25, dir: -1 }] }
 		]
 	});
 
