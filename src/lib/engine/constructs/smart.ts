@@ -180,6 +180,26 @@ export function pickConstruct(p: Player, w: ConstructWorld): SmartPick | null {
 	return best;
 }
 
+/**
+ * Like pickConstruct, for someone who wants to show you everything they
+ * have (a rival Lantern): of every construct that makes sense right now, the
+ * one used longest ago (`lastUsed` is when each slot was last used).
+ */
+export function pickVaried(p: Player, w: ConstructWorld, lastUsed: readonly number[]): SmartPick | null {
+	const s = read(p, w);
+	let best: SmartPick | null = null;
+	let bestAgo = -Infinity;
+	p.loadout.forEach((def, slot) => {
+		if (!ready(p, slot) || score(def, s, p, w) <= 0.2) return;
+		const ago = -(lastUsed[slot] ?? -Infinity) + Math.random();
+		if (ago > bestAgo) {
+			bestAgo = ago;
+			best = { slot, hold: holdFor(def) };
+		}
+	});
+	return best;
+}
+
 export interface SmartChoice extends SmartPick {
 	/** It's the right construct but it's still cooling down: wait for it rather than use a worse one. */
 	wait: boolean;

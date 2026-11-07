@@ -1323,6 +1323,8 @@ export interface Enemy extends Dummy {
 	brain: EnemyBrain;
 	/** A nightmare: a yellow ring's copy of something you have beaten before, drawn all in fear's yellow (season two). */
 	phantom?: boolean;
+	/** Moved and fought by a Lantern with their whole kit (rival.ts), not by its own brain. */
+	puppet?: boolean;
 }
 
 export function isEnemy(d: Dummy): d is Enemy {
@@ -1476,7 +1478,7 @@ const UNTINTED: ReadonlySet<string> = new Set(['number', 'pop', 'text', 'burst',
 
 /** One tick for every enemy: think, then the red constructs move. Moving the bodies happens in updateDummy. */
 export function updateEnemies(w: ConstructWorld, players: readonly Player[], dt: number) {
-	const pack = w.dummies.filter((d): d is Enemy => isEnemy(d) && isStanding(d));
+	const pack = w.dummies.filter((d): d is Enemy => isEnemy(d) && isStanding(d) && !d.puppet);
 	updatePressure(w.pressure, players, dt);
 	updateSquads(pack, players, w, dt);
 	const attackers: (Attacker & { e: Enemy })[] = pack.map((e) => ({ e, target: e.brain.target, attack: attackOf(e) }));

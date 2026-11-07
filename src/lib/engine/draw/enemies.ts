@@ -179,6 +179,11 @@ function enemyChestLift(e: Enemy): number {
  * ranged attack, the roar's closing rings, the health bar, and "!" / "!!"
  * before close and heavy attacks. `top` is just above its head.
  */
+/** Just the health bar and name over a Lantern fighting with their whole kit (the Lantern is drawn like a player: rival.ts). */
+export function drawRivalOverlay(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, top: number, time: number) {
+	inTint(ctx, ENEMIES[e.kind].tint ?? 'corps', () => drawEnemyOverlay(ctx, e, x, y, top, [x, top + 30], time));
+}
+
 function drawEnemyOverlay(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, top: number, muzzle: [number, number], time: number) {
 	const def = ENEMIES[e.kind];
 	const s = FIGURE_SCALE * def.scale;

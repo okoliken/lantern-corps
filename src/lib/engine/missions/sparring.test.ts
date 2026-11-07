@@ -89,7 +89,8 @@ describe('Sparring · One on One', () => {
 		const { game, sparring, run } = setup('boodikka');
 		run(3);
 		const me = game.players[0];
-		// Health regrows, so put them down properly rather than setting the flag
+		// Health regrows, so put them down properly rather than setting the flag (and not in the moment after a hit, when nothing lands)
+		me.invuln = 0;
 		damagePlayer(game.constructs, me, me.health + 10, me.x + 40, me.y, 0);
 		run(0.1);
 		expect(sparring.state).toBe('lost');

@@ -31,7 +31,7 @@ const TOUGHNESS = 5.5;
 const MIGHT = 2.9;
 /** Sinestro here: the best Lantern in the Corps, fighting for his world. */
 const SINESTRO_HEALTH = 4.2;
-const SINESTRO_MIGHT = 3.2;
+const SINESTRO_MIGHT = 6.4;
 /** At this much health left, the Guardians step in. */
 const JUDGEMENT_AT = 0.25;
 const JUDGEMENT_TIME = 7;

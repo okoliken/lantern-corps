@@ -13,7 +13,7 @@
 //  - shields itself or its partner when they're hurt and something's coming,
 //  - uses constructs that suit the moment, and its signature when surrounded.
 
-import { pickConstruct } from './constructs/smart';
+import { pickConstruct, pickVaried } from './constructs/smart';
 import { BUBBLE_SHIELD } from './constructs/defs';
 import type { ConstructWorld } from './constructs/system';
 import { aimPoint, isStanding, type Dummy } from './dummy';
@@ -68,6 +68,12 @@ export class AllyInput implements InputSource {
 	/** Badly hurt: backing out of the fight to recover, then coming back. */
 	private retreating = false;
 
+	/** A rival: uses everything in the kit in turn, not just the best thing for the moment. */
+	varied = false;
+	/** When each slot was last used (seconds of this brain's clock), for `varied`. */
+	private lastUsed: number[] = [];
+	private clock = 0;
+
 	constructor(private world: AllyWorld) {}
 
 	read(): Intent {
@@ -76,6 +82,7 @@ export class AllyInput implements InputSource {
 			me.lock = null;
 			this.lockedPartner = false;
 		}
+		this.clock += TICK;
 		this.signatureRest = Math.max(0, this.signatureRest - TICK);
 		this.shieldRest = Math.max(0, this.shieldRest - TICK);
 		this.shieldRoll = Math.max(0, this.shieldRoll - TICK);
@@ -304,8 +311,9 @@ export class AllyInput implements InputSource {
 
 		// The smart ring picks, for every partner; a little willpower is kept in reserve so they're never left exhausted
 		this.closeIn = false;
-		const smart = me.willpower > 30 ? pickConstruct(me, this.world.constructs) : null;
+		const smart = me.willpower > 30 ? (this.varied ? pickVaried(me, this.world.constructs, this.lastUsed) : pickConstruct(me, this.world.constructs)) : null;
 		if (!smart) return;
+		this.lastUsed[smart.slot] = this.clock;
 		const def = me.loadout[smart.slot];
 		// Hal goes in close for his melee constructs
 		this.closeIn = me.def.id === 'hal' && (def.behavior === 'slash' || def.behavior === 'smash' || def.behavior === 'grind');

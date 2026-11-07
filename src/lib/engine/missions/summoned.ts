@@ -27,7 +27,7 @@ const INTRO_TIME = 3;
 /** Three stars: done within this many seconds. */
 const PAR_TIME = 300;
 /** How hard they hit, and how much they can take, on top of their base. */
-const MIGHT = { kilowog: 2.4, sinestro: 3 };
+const MIGHT = { kilowog: 2.4, sinestro: 6.4 };
 const HEALTH = { kilowog: 4, sinestro: 4 };
 /** Kilowog hurt this much (health left, 0..1), and Sinestro has seen enough. */
 export const SINESTRO_STEPS_IN = 0.6;

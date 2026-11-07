@@ -4,6 +4,7 @@
 
 import { updateGear } from './enemies/gear';
 import { updateFear } from './enemies/fear';
+import { RIVAL_KITS, createRival, followRival, updateRival, type Rival } from './rival';
 import { drawFearShot, drawFearWorld } from './draw/fear';
 import { drawGearShot, drawGearWorld } from './draw/ringless';
 import { drawWashed, type Wash } from './draw/wash';
@@ -39,7 +40,7 @@ import {
 	drawTrap
 } from './draw/constructs';
 import { drawBattery, drawBeam, drawChargeLink, drawCrosshair, drawDownedNotice, drawGoalArrow, drawHud, type HudSlotRect } from './draw/effects';
-import { drawEnemy, enemyMuzzle } from './draw/enemies';
+import { drawEnemy, drawRivalOverlay, enemyMuzzle } from './draw/enemies';
 import { drawSpaceRock } from './draw/escort';
 import { drawRageTorpedo } from './draw/interceptor';
 import { drawArmorSuit, drawChaff, drawLockReticle } from './draw/kits';
@@ -238,6 +239,8 @@ export class Game {
 	private showSlots: boolean;
 	private view: View = { width: 0, height: 0 };
 	private started = false;
+	/** Lanterns on the other side, fighting with their whole kit (rival.ts). */
+	private rivals = new Map<Enemy, Rival>();
 
 	constructor({
 		players,
@@ -460,6 +463,7 @@ export class Game {
 			if (this.infiniteSurge && !p.dash) p.surge = 100;
 		}
 
+		if (!this.freezeEnemies) this.updateRivals(dt);
 		updateHeroFx(this.constructs, dt);
 		if (!this.freezeEnemies) updateEnemies(this.constructs, this.players, dt);
 		updateConstructWorld(this.constructs, dt);
@@ -475,6 +479,15 @@ export class Game {
 			if (enemy && this.freezeEnemies) {
 				d.vx = d.vy = 0;
 				d.brain.state = 'idle';
+			}
+			// A Lantern with their whole kit: the body goes where they go
+			const rival = enemy && d.puppet && isStanding(d) ? this.rivals.get(d) : undefined;
+			if (rival) {
+				d.flash = Math.max(0, d.flash - dt);
+				d.caged = Math.max(0, d.caged - dt);
+				d.stun = Math.max(0, d.stun - dt);
+				followRival(rival);
+				continue;
 			}
 			// Drifting things (asteroids) keep their speed and pass over everything; their director removes them
 			if (d.drift) {
@@ -619,6 +632,47 @@ export class Game {
 	}
 
 	/** Where the ring is on this Lantern's aimed skeleton, relative to their anchor. */
+	/** Give every Lantern who turns up on the other side their whole kit, and run them. */
+	private updateRivals(dt: number) {
+		for (const d of this.dummies) {
+			if (!isEnemy(d) || !isStanding(d) || this.rivals.has(d)) continue;
+			const kit = RIVAL_KITS[d.kind];
+			if (kit) this.rivals.set(d, createRival(d, kit, this.map.obstacles, this.constructs.space));
+		}
+		const foes = this.players.filter((p) => !p.downed);
+		for (const [body, r] of this.rivals) {
+			if (!isStanding(body)) {
+				this.rivals.delete(body);
+				continue;
+			}
+			updateRival(r, foes, this.constructs, this.rules, dt, (p) => this.updateRing(p));
+		}
+	}
+
+	/** The construct world to draw: yours, with every rival's constructs added in. */
+	private withRivalConstructs(): ConstructWorld {
+		const cw = this.constructs;
+		const worlds = [cw, ...[...this.rivals.values()].map((r) => r.world)];
+		return {
+			...cw,
+			projectiles: worlds.flatMap((w) => w.projectiles),
+			tethers: worlds.flatMap((w) => w.tethers),
+			traps: worlds.flatMap((w) => w.traps),
+			shields: worlds.flatMap((w) => w.shields),
+			fortresses: worlds.flatMap((w) => w.fortresses),
+			turrets: worlds.flatMap((w) => w.turrets),
+			aids: worlds.flatMap((w) => w.aids),
+			effects: worlds.flatMap((w) => w.effects),
+			pillarStrikes: worlds.flatMap((w) => w.pillarStrikes),
+			pending: worlds.flatMap((w) => w.pending)
+		};
+	}
+
+	/** The Lanterns fighting you with their whole kit (drawn like players). */
+	get rivalLanterns(): Player[] {
+		return [...this.rivals.values()].map((r) => r.me);
+	}
+
 	private updateRing(p: Player) {
 		const pose = { ...this.poseFor(p), firing: true };
 		const [rx, ry] = ringPosition(0, 0, pose, this.time, sizeOf(p));
@@ -636,7 +690,9 @@ export class Game {
 	 */
 	render(ctx: CanvasRenderingContext2D, alpha = 1) {
 		const { width, height } = this.view;
-		const { camera, map, constructs: cw } = this;
+		const { camera, map } = this;
+		// What every Lantern built, on both sides (rivals keep theirs in worlds of their own)
+		const cw = this.rivals.size ? this.withRivalConstructs() : this.constructs;
 		const env = ENVIRONMENT_RULES[map.environment];
 		const camX = lerp(camera.prevX, camera.x, alpha);
 		const camY = lerp(camera.prevY, camera.y, alpha);
@@ -693,6 +749,7 @@ export class Game {
 		for (const d of this.dummies) {
 			const x = lerp(d.prevX, d.x, alpha);
 			const y = lerp(d.prevY, d.y, alpha);
+			if (isEnemy(d) && this.rivals.has(d)) continue;
 			ground.push({
 				baseY: y,
 				draw: isEnemy(d)
@@ -729,7 +786,8 @@ export class Game {
 
 		const overlays: (() => void)[] = [];
 		const tags: (() => void)[] = [];
-		for (const p of this.players) {
+		const lanterns = this.rivals.size ? [...this.players, ...this.rivalLanterns] : this.players;
+		for (const p of lanterns) {
 			if (p.boarded) continue;
 			const x = lerp(p.prevX, p.x, alpha);
 			const y = lerp(p.prevY, p.y, alpha);
@@ -783,6 +841,12 @@ export class Game {
 				}
 			}
 
+			// A rival: their health bar and name over them, like any enemy
+			if (p.slot < 0) {
+				const body = [...this.rivals.values()].find((r) => r.me === p)?.body;
+				if (body) overlays.push(() => drawRivalOverlay(ctx, body, x, y, y - p.bodyTop - 6, this.time));
+				continue;
+			}
 			const who = this.aiSlots.has(p.slot) ? 'AI' : `P${p.slot + 1}`;
 			const tag = this.showSlots ? `${who} · ${p.def.name}` : p.def.name;
 			// Above the head, however big the Lantern is
@@ -797,7 +861,7 @@ export class Game {
 		for (const o of overlays) o();
 
 		// Jet Strike (and the Fighter Jet construct): the fighter jet wrapped around Hal
-		for (const p of this.players) {
+		for (const p of lanterns) {
 			if (!p.dash || (p.dash.kind !== 'jet' && !p.dash.look)) continue;
 			const x = lerp(p.prevX, p.x, alpha);
 			const y = lerp(p.prevY, p.y, alpha);
@@ -869,8 +933,8 @@ export class Game {
 			tinted(ctx, c.tint, () => drawRedCage(ctx, c, x, y - this.poseFor(t).hoverHeight * t.altitude * 1.35, top, this.time));
 		}
 		drawFallingMeteors(ctx, cw.red.strikes, this.time);
-		drawGearWorld(ctx, cw, RED_HAND_LIFT, this.time);
-		drawFearWorld(ctx, cw, (e) => this.redHand(e, alpha), this.time);
+		drawGearWorld(ctx, this.constructs, RED_HAND_LIFT, this.time);
+		drawFearWorld(ctx, this.constructs, (e) => this.redHand(e, alpha), this.time);
 		for (const c of cw.red.chains) {
 			const t = c.target;
 			const bodyY = lerp(t.prevY, t.y, alpha) - this.poseFor(t).hoverHeight * t.altitude * 1.35 - FIGURE_HEIGHT * 0.55;
@@ -900,8 +964,8 @@ export class Game {
 			else drawEffect(ctx, e, e.lift ?? 0, this.time, inSpace);
 		}
 		drawTintedAll(ctx, tintedFx, (e) => e.tint, (e) => drawEffect(ctx, e, e.lift ?? 0, this.time, inSpace));
-		drawHeroFx(ctx, heroFx(cw), this.time);
-		drawPsychicFx(ctx, psychicFx(cw), this.time);
+		drawHeroFx(ctx, heroFx(this.constructs), this.time);
+		drawPsychicFx(ctx, psychicFx(this.constructs), this.time);
 		this.director?.drawOver?.(ctx, alpha, this.time);
 		if (this.nameTags) for (const t of tags) t();
 

@@ -381,6 +381,12 @@ export class Sparring {
 		return this.foe ? Math.max(0, this.foe.hp / this.foe.maxHp) : 1;
 	}
 
+	/** Keep your opponent in the shot (a Lantern with their whole kit flies all over the ring). */
+	cameraPoints(): [number, number][] {
+		const f = this.foe;
+		return f && isStanding(f) ? [[f.x, f.y - 60]] : [];
+	}
+
 	get objective(): string {
 		if (this.state === 'won') return `${this.opponent.name} yields.`;
 		if (this.state === 'lost') return `${this.opponent.name} put you down.`;
@@ -402,7 +408,8 @@ export class Sparring {
 			case 'fighting': {
 				this.elapsed += dt;
 				const foe = this.foe;
-				if (foe && isStanding(foe)) dodgeIfShot(foe, game.constructs, game.time, leagueCtx());
+				// A Lantern with their whole kit (rival.ts) does their own dodging
+				if (foe && isStanding(foe) && !foe.puppet) dodgeIfShot(foe, game.constructs, game.time, leagueCtx());
 				if (foe && isStanding(foe) && !me.downed) this.intent(game, foe, me, dt);
 				if (foe && !isStanding(foe)) {
 					this.state = 'won';
@@ -451,6 +458,8 @@ export class Sparring {
 			b.goal = 'approach';
 			b.goalTimer = 2;
 		}
+		// A Lantern with their whole kit picks their own constructs
+		if (f.puppet) return;
 		this.intentIn -= dt;
 		if (this.intentIn > 0 || (b.state !== 'move' && b.state !== 'idle')) return;
 		this.intentIn = INTENT_EVERY;
