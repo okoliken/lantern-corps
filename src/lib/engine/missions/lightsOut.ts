@@ -28,8 +28,9 @@ import { Comms, type CommsLine, type MissionDirector, type MissionMeter, type Mi
 
 const LIVES = 3;
 const INTRO_TIME = 3;
-const TOUGHNESS = 3.8;
-const MIGHT = 5.2;
+const TOUGHNESS = 4.6;
+// A bolt is ~48 of Hal's 150: three or four to put him down, not two, since most come out of the dark
+const MIGHT = 3.4;
 /** The Battery's light: where it starts (already failing), and what a charge going off takes. */
 const START_POWER = 0.6;
 const CHARGE_BLAST = 0.14;
@@ -40,7 +41,7 @@ const PLANT_AT = 170;
 /** The dark: how dark at full power and at none. */
 const DARK = { lit: 0.55, out: 0.94 };
 /** Hal's light: its reach at no willpower and at full, and how much a Thunderer near him takes off it. */
-export const RING_LIGHT = { min: 150, max: 380, eaten: 0.45, eatRange: 260 };
+export const RING_LIGHT = { min: 150, max: 380, eaten: 0.3, eatRange: 260 };
 /** The next wave comes once this one's down, or after this long regardless. */
 const WAVE_AFTER = 50;
 
@@ -348,6 +349,8 @@ export class LightsOut implements MissionDirector {
 		for (const c of this.charges) lights.push({ x: c.dummy.x, y: c.dummy.y - 24, r: 120, strength: 0.7 });
 		for (const s of game.constructs.red.shots) if (s.look === 'qwa') lights.push({ x: s.x, y: s.y - 50, r: 110, strength: 0.6 });
 		for (const f of gearOf(game.constructs).fx) if (f.kind === 'muzzle' && f.weapon === 'qwaBolt') lights.push({ x: f.x, y: f.y - 60, r: 180, strength: 0.7 * (1 - f.age / f.life) });
+		// A Thunderer winding up a throw: the bolt in his hand lights him, so it can be dodged
+		for (const e of game.enemies) if (e.kind === 'thunderer' && e.brain.state === 'windup' && isStanding(e)) lights.push({ x: e.x, y: e.y - 60, r: 130, strength: 0.75 });
 		// Your constructs light their own way
 		for (const e of game.constructs.effects) if (e.kind === 'impact' || e.kind === 'burst') lights.push({ x: e.x, y: e.y - 30, r: 90, strength: 0.5 });
 		drawDarkness(ctx, lights, this.darkness);
