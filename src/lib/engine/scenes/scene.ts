@@ -19,6 +19,11 @@ const TYPE_SPEED = 45;
 /** Seconds a finished line stays up before the next one, if nobody clicks. */
 const READ_TIME = 4;
 
+/** Where everyone's feet are on a stage, as a share of its height (the grounds sit at 600–630 of 784, shadows a little under). */
+const FEET = 0.83;
+/** Room kept between the feet and the top of the dialogue box. */
+const FEET_GAP = 10;
+
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const easeOut = (t: number) => 1 - (1 - t) ** 3;
 
@@ -97,15 +102,21 @@ export abstract class DialogueScene {
 		this.lineAge = 0;
 	}
 
-	draw(ctx: CanvasRenderingContext2D, view: View) {
+	/** `covered`: how much of the bottom of the screen the dialogue box hides. */
+	draw(ctx: CanvasRenderingContext2D, view: View, covered = 0) {
 		const t = this.time;
 		const { width, height } = this.stage;
-		// Fit the stage to the screen (cover), a little high so the dialogue box doesn't hide feet
+		// Fit the stage to the screen (cover), a little high; on a short screen
+		// (a phone) the box takes more of it, so lift the stage until everyone's
+		// feet clear the box
 		const k = Math.max(view.width / width, view.height / height);
+		let y = (view.height - height * k) * 0.2 - view.height * 0.06;
+		const over = y + height * FEET * k - (view.height - covered - FEET_GAP);
+		if (covered > 0 && over > 0) y -= over;
 		ctx.save();
 		ctx.fillStyle = '#000';
 		ctx.fillRect(0, 0, view.width, view.height);
-		ctx.translate((view.width - width * k) / 2, (view.height - height * k) * 0.2 - view.height * 0.06);
+		ctx.translate((view.width - width * k) / 2, y);
 		ctx.scale(k, k);
 		this.drawStage(ctx, t);
 		ctx.restore();

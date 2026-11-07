@@ -14,6 +14,7 @@
 	let { scene, onDone }: Props = $props();
 
 	let canvas: HTMLCanvasElement;
+	let box: HTMLDivElement;
 	// Mirrors of the scene for the dialogue box (the scene doesn't know Svelte)
 	let who = $state<Speaker | null>(null);
 	let text = $state('');
@@ -22,14 +23,19 @@
 	onMount(() => {
 		const { ctx, view, destroy } = fitCanvas(canvas);
 		let last = performance.now();
+		// How much of the screen the dialogue box covers: the most it has needed
+		// so far, eased in, so the stage settles once instead of bobbing per line
+		let covered = 0;
 		let frame = requestAnimationFrame(function tick(now) {
+			const need = view.height - box.offsetTop;
+			covered += (Math.max(covered, need) - covered) * Math.min(1, ((now - last) / 1000) * 8);
 			// Clamp the step so a background tab doesn't jump the scene ahead, and
 			// never go backwards: a frame's timestamp can sit a hair before the
 			// performance.now() we started from, and a negative clock made the
 			// scenes draw negative radii.
 			scene.update(Math.max(0, Math.min(0.05, (now - last) / 1000)));
 			last = now;
-			scene.draw(ctx, view);
+			scene.draw(ctx, view, covered);
 			const line = scene.current;
 			who = line ? (line.who as Speaker) : null;
 			text = line ? line.text.slice(0, Math.floor(scene.shown)) : '';
@@ -59,13 +65,14 @@
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions (keys are handled on the window) -->
 <div class="scene" onclick={() => scene.advance()}>
 	<canvas bind:this={canvas}></canvas>
-	{#if who}
-		<div class="dialogue">
+	<!-- Always laid out (hidden with no line) so the stage can make room for it from the start -->
+	<div class="dialogue" class:empty={!who} bind:this={box}>
+		{#if who}
 			<span class="name" style:color={SPEAKERS[who].color}>{SPEAKERS[who].name}</span>
 			<p>{text}</p>
 			{#if complete}<span class="next">▼</span>{/if}
-		</div>
-	{/if}
+		{/if}
+	</div>
 	<button
 		class="skip"
 		onclick={(e) => {
@@ -101,6 +108,9 @@
 		border: 3px solid var(--ink);
 		border-radius: 18px;
 		box-shadow: 5px 6px 0 var(--ink);
+	}
+	.dialogue.empty {
+		visibility: hidden;
 	}
 	/* The speaker's name on a tag over the bubble's edge, in their own colour */
 	.name {
@@ -154,5 +164,22 @@
 	kbd {
 		font-size: 11px;
 		opacity: 0.7;
+	}
+	/* A phone on its side: a slimmer box, so the stage keeps more of the screen */
+	@media (max-height: 500px) {
+		.dialogue {
+			bottom: 8px;
+			min-height: 64px;
+			padding: 16px 16px 10px;
+			width: min(760px, calc(100% - 24px));
+		}
+		.name {
+			font-size: 16px;
+			top: -14px;
+		}
+		p {
+			font-size: 15px;
+			line-height: 1.35;
+		}
 	}
 </style>
