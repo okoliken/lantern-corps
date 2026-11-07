@@ -29,7 +29,7 @@ export const DUEL_TIME = 120;
 /** Sinestro: the yellow ring keeps him above this share of his health. */
 export const FLOOR = 0.35;
 const SINESTRO_HEALTH = 6;
-const SINESTRO_MIGHT = 2.6;
+const SINESTRO_MIGHT = 4.3;
 /** On top of the fear every yellow construct brings: dread a second within this range of him. */
 const PRESENCE = { range: 620, dread: 0.03 };
 const DEFEAT_TIME = 9;

@@ -25,6 +25,7 @@ import { GRODD_ABILITIES, startGroddAbility, updateGroddAbility, updatePsychicFx
 import { REVERSE_FLASH_ABILITIES, startReverseFlashAbility, updateReverseFlashAbility } from './reverseFlash';
 import { LEAGUE_ABILITIES, startLeagueAbility, updateLeagueAbility, type LeagueCtx } from './league';
 import { GEAR_ABILITIES, startGearAbility, updateGearAbility, type GearCtx } from './gear';
+import { FEAR_ABILITIES, startFearAbility, updateFearAbility, type FearCtx } from './fear';
 
 export type AbilityId =
 	| 'claws'
@@ -126,7 +127,14 @@ export type AbilityId =
 	| 'qwaBolt'
 	| 'qwaBlade'
 	| 'flamethrower'
-	| 'firebomb';
+	| 'firebomb'
+	// Sinestro's yellow ring (fear.ts)
+	| 'fearHounds'
+	| 'fangs'
+	| 'gatling'
+	| 'crushingHand'
+	| 'executioner'
+	| 'impalers';
 
 /** How far away a construct is used from. Kits take some of each. */
 type Band = 'close' | 'mid' | 'long' | 'support';
@@ -632,13 +640,43 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
 	firebomb: def({
 		id: 'firebomb', name: 'Firebomb', band: 'long', tell: 'aim', windup: 0.5, active: 0.3, recover: 0.4, cooldown: 5,
 		minRange: 160, maxRange: 620, damage: 14, knockback: 220, melee: false, heavy: true, chance: 0.9, radius: 110
+	}),
+	// Sinestro's yellow ring (fear.ts). Two hounds of his own, built to hunt you down
+	fearHounds: def({
+		id: 'fearHounds', name: 'Fear Hounds', band: 'support', tell: 'build', windup: 0.6, active: 0.3, recover: 0.35, cooldown: 9,
+		minRange: 0, maxRange: 1000, damage: 0, knockback: 0, melee: false, heavy: false, chance: 1
+	}),
+	// A hound's bite, lunged in
+	fangs: def({
+		id: 'fangs', name: 'Fangs', band: 'close', tell: 'strike', windup: 0.32, active: 0.25, recover: 0.45, cooldown: 0.9,
+		minRange: 0, maxRange: 64, damage: 7, knockback: 160, melee: false, heavy: false, chance: 1
+	}),
+	// A rotary cannon of Korugar beside him, swept across you
+	gatling: def({
+		id: 'gatling', name: 'Gatling', band: 'mid', tell: 'build', windup: 0.65, active: 2.4, recover: 0.4, cooldown: 7,
+		minRange: 110, maxRange: 620, damage: 1.9, knockback: 30, melee: false, heavy: false, chance: 1, speed: 1150
+	}),
+	// A giant gauntlet up out of the ground: per second while it holds you (the throw is more)
+	crushingHand: def({
+		id: 'crushingHand', name: 'Crushing Hand', band: 'mid', tell: 'sky', windup: 0.45, active: 0.3, recover: 0.35, cooldown: 6,
+		minRange: 0, maxRange: 640, damage: 5, knockback: 460, melee: false, heavy: true, chance: 1, radius: 74
+	}),
+	// A guillotine over where you're going
+	executioner: def({
+		id: 'executioner', name: 'Executioner', band: 'long', tell: 'sky', windup: 0.4, active: 0.3, recover: 0.4, cooldown: 6.5,
+		minRange: 140, maxRange: 760, damage: 17, knockback: 380, melee: false, heavy: true, chance: 1, radius: 120
+	}),
+	// Spikes tearing up out of the ground in a line toward you
+	impalers: def({
+		id: 'impalers', name: 'Impalers', band: 'mid', tell: 'heavy', windup: 0.5, active: 0.7, recover: 0.4, cooldown: 4.5,
+		minRange: 0, maxRange: 600, damage: 11, knockback: 300, melee: false, heavy: false, chance: 1
 	})
 };
 
 /** What the machines use. They're never part of a Red Lantern's random kit. */
 const MACHINE_ABILITIES: readonly AbilityId[] = ['eyeLaser', 'sweep', 'pulse', 'strafe', 'bombs'];
 /** Signature moves of named Red Lanterns, never handed out in random kits. */
-const SIGNATURE_ABILITIES: readonly AbilityId[] = ['swoop', ...CORPS_ABILITIES, ...RAZER_ABILITIES, ...GRODD_ABILITIES, ...REVERSE_FLASH_ABILITIES, ...LEAGUE_ABILITIES, ...GEAR_ABILITIES];
+const SIGNATURE_ABILITIES: readonly AbilityId[] = ['swoop', ...CORPS_ABILITIES, ...RAZER_ABILITIES, ...GRODD_ABILITIES, ...REVERSE_FLASH_ABILITIES, ...LEAGUE_ABILITIES, ...GEAR_ABILITIES, ...FEAR_ABILITIES];
 
 /**
  * Every red construct a Red Lantern's kit can be built from. Built the first
@@ -706,7 +744,7 @@ export interface RedShot {
 	/** Big constructs (a thrown hammer, a giant fist) hit this much wider than a bolt. */
 	size?: number;
 	/** Not a construct at all: something Grodd threw (a car, a chunk of street), or a real weapon's round (gear.ts). */
-	look?: 'car' | 'rock' | 'bullet' | 'energy' | 'slug' | 'spear' | 'qwa';
+	look?: 'car' | 'rock' | 'bullet' | 'energy' | 'slug' | 'spear' | 'qwa' | 'fearRound';
 	owner: Enemy;
 	x: number;
 	y: number;
@@ -818,6 +856,18 @@ export function power(e: Enemy, a: AbilityDef): number {
 /** What the League's moves borrow from this module's imports (see LeagueCtx). */
 export const leagueCtx = (): LeagueCtx => ({ damagePlayer, heroFx, steer, power });
 const gearCtx = (): GearCtx => ({ damagePlayer, steer, power, fire });
+const fearCtx = (): FearCtx => ({
+	damagePlayer,
+	steer,
+	fire,
+	summon(w, kind, x, y, owner) {
+		const e = createEnemy(kind, x, y);
+		e.dir = owner.dir;
+		e.brain.alert = 10;
+		w.dummies.push(e);
+		return e;
+	}
+});
 
 export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Player[]) {
 	const b = e.brain;
@@ -835,6 +885,7 @@ export function startAbility(e: Enemy, w: ConstructWorld, players: readonly Play
 	if (REVERSE_FLASH_ABILITIES.has(a.id)) return startReverseFlashAbility(e, a, w);
 	if (LEAGUE_ABILITIES.has(a.id)) return startLeagueAbility(e, a, w, players, leagueCtx());
 	if (GEAR_ABILITIES.has(a.id)) return startGearAbility(e, a, w);
+	if (FEAR_ABILITIES.has(a.id)) return startFearAbility(e, a, w, fearCtx());
 	switch (a.id) {
 		case 'claws':
 			e.vx += b.aimX * 340;
@@ -1019,6 +1070,10 @@ export function updateAbility(e: Enemy, w: ConstructWorld, players: readonly Pla
 	}
 	if (GEAR_ABILITIES.has(a.id)) {
 		updateGearAbility(e, a, w, players, dt, gearCtx());
+		return b.timer <= 0;
+	}
+	if (FEAR_ABILITIES.has(a.id)) {
+		updateFearAbility(e, a, w, players, dt, fearCtx());
 		return b.timer <= 0;
 	}
 	if (CORPS_ABILITIES.has(a.id)) {

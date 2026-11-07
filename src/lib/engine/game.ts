@@ -3,6 +3,8 @@
 // /lab page, and in tests.
 
 import { updateGear } from './enemies/gear';
+import { updateFear } from './enemies/fear';
+import { drawFearShot, drawFearWorld } from './draw/fear';
 import { drawGearShot, drawGearWorld } from './draw/ringless';
 import { drawWashed, type Wash } from './draw/wash';
 import { castBeam } from './beam';
@@ -47,7 +49,7 @@ import { HeroInput, heroFx, heroMoving, updateHero, updateHeroFx } from './heroe
 import { drawHero, drawHeroFx, drawRazerAlly, drawSpeedTrail } from './draw/heroes';
 import { drawManhunterCore, drawMindLock, drawPsychicFx, drawThrownDebris } from './draw/gorillas';
 import { psychicFx } from './enemies/grodd';
-import { RED_HAND_LIFT, type RedShot } from './enemies/redConstructs';
+import { ABILITIES, RED_HAND_LIFT, fire, type RedShot } from './enemies/redConstructs';
 import { damagePlayer, updatePlayerCombat, revivePlayer } from './combat';
 import { ENEMIES, createEnemy, enemyLabel, isEnemy, tintOf, updateEnemies, type Tint, type Enemy, type EnemyKind, type Role } from './enemies/enemies';
 import {
@@ -462,6 +464,7 @@ export class Game {
 		if (!this.freezeEnemies) updateEnemies(this.constructs, this.players, dt);
 		updateConstructWorld(this.constructs, dt);
 		updateGear(this.constructs, this.players, dt, damagePlayer);
+		updateFear(this.constructs, this.players, dt, damagePlayer, fire, ABILITIES.gatling);
 		updateAidStations(this.constructs, this.players, dt);
 		updateSignatureWorld(this.constructs, dt);
 		this.handleEvents();
@@ -846,6 +849,7 @@ export class Game {
 			const x = lerp(s.prevX, s.x, alpha);
 			const y = lerp(s.prevY, s.y, alpha);
 			if (s.look === 'car' || s.look === 'rock') drawThrownDebris(ctx, s, x, y, RED_HAND_LIFT, this.time);
+			else if (s.look === 'fearRound') drawFearShot(ctx, s, x, y, RED_HAND_LIFT);
 			else if (s.look) drawGearShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
 			else if (s.kind === 'hammer' || s.kind === 'fist' || s.kind === 'blade') drawCorpsShot(ctx, s, x, y, RED_HAND_LIFT, this.time);
 			else redShots.push(s);
@@ -866,6 +870,7 @@ export class Game {
 		}
 		drawFallingMeteors(ctx, cw.red.strikes, this.time);
 		drawGearWorld(ctx, cw, RED_HAND_LIFT, this.time);
+		drawFearWorld(ctx, cw, (e) => this.redHand(e, alpha), this.time);
 		for (const c of cw.red.chains) {
 			const t = c.target;
 			const bodyY = lerp(t.prevY, t.y, alpha) - this.poseFor(t).hoverHeight * t.altitude * 1.35 - FIGURE_HEIGHT * 0.55;

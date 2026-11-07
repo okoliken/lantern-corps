@@ -24,6 +24,7 @@ import { DUMMY_HALF_W, isStanding, type Dummy, type TargetKind } from '../dummy'
 import { bodyAim, type Player } from '../player';
 import { attackStarted, mayAttack, updatePressure, type Attacker } from './director';
 import { ABILITIES, RED_HAND_LIFT, SWOOP_HEIGHT, cancelAbility, startAbility, updateAbility, updateRedConstructs, type AbilityDef, type AbilityId, RAGE_VS_SHIELD, randomKit } from './redConstructs';
+import { MAX_HOUNDS } from './fear';
 import { flyShip } from './ships';
 import { updateSquads, type SquadRole } from './squad';
 import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
@@ -387,7 +388,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		faction: 'rogue',
 		tint: 'fear',
 		description:
-			'The greatest Lantern the Corps ever had, with a ring that runs on fear. Blades, spears, cages, a beam and falling stars, all in yellow, and every moment near him fills your dread.',
+			'The greatest Lantern the Corps ever had, with a ring that runs on fear. Hounds that hunt you down, a rotary cannon, a giant hand up out of the ground, an executioner\'s blade, spikes, cages and a beam, all in yellow, and every moment near him fills your dread.',
 		mind: 'rage',
 		hp: 2200,
 		speed: 190,
@@ -397,8 +398,8 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		scale: 1.12,
 		agility: 0.8,
 		movement: 'hover',
-		kit: ['scythe', 'spears', 'cage', 'beam', 'meteors', 'chain', 'charge'],
-		range: 220,
+		kit: ['fearHounds', 'gatling', 'crushingHand', 'executioner', 'impalers', 'cage', 'beam'],
+		range: 260,
 		leans: { aggression: 0.55, caution: -0.3, patience: -0.3 },
 		lieutenant: true
 	},
@@ -1092,6 +1093,28 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 	},
 
 	// Built by a Red Lantern (the Rage Turret construct): stays put, shoots, burns out
+	// Sinestro builds these: great yellow hounds that hunt you down. They go when he does.
+	fearHound: {
+		kind: 'fearHound',
+		name: 'Fear Hound',
+		faction: 'rogue',
+		tint: 'fear',
+		description: 'A great yellow hound Sinestro built out of fear. It runs you down and bites. Break it, or keep away until it burns out.',
+		mind: 'rage',
+		hp: 110,
+		speed: 300,
+		accel: 7,
+		sight: 1000,
+		poise: 30,
+		scale: 1,
+		agility: 0.3,
+		movement: 'hover',
+		onFoot: true,
+		kit: ['fangs'],
+		range: 50,
+		leans: { aggression: 0.8, caution: -0.6 },
+		lifetime: 16
+	},
 	rageTurret: {
 		kind: 'rageTurret',
 		name: 'Rage Turret',
@@ -1726,6 +1749,9 @@ function trySupport(e: Enemy, t: Player, pack: readonly Enemy[], dist: number): 
 			worth = ally !== undefined;
 		} else if (id === 'redWall') {
 			worth = b.sinceHit < 1.5 || (b.goal === 'hold' && Math.random() < 0.25);
+		} else if (id === 'fearHounds') {
+			const building = b.state === 'windup' && b.ability === 'fearHounds' ? 1 : 0;
+			worth = pack.filter((o) => o.kind === 'fearHound').length + building < MAX_HOUNDS;
 		} else if (id === 'redTurret') {
 			// Count the ones being built right now too, or two builders could both go over the limit
 			const building = pack.filter((o) => o.brain.ability === 'redTurret' && (o.brain.state === 'windup' || o.brain.state === 'act')).length;
