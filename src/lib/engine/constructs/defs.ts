@@ -88,7 +88,18 @@ type ConstructShape =
 	| 'ejector'
 	| 'cluster'
 	| 'chaff'
-	| 'lock';
+	| 'lock'
+	// Sinestro's own: the Korugar kit (draw/sinestro.ts)
+	| 'saber'
+	| 'talon'
+	| 'needle'
+	| 'prism'
+	| 'spires'
+	| 'verdict'
+	| 'sentinel'
+	| 'legion'
+	| 'glaive'
+	| 'rebuke';
 
 export interface ConstructDef {
 	id: string;
@@ -404,6 +415,57 @@ export const CONSTRUCTS = {
 	sentry: {
 		id: 'sentry', name: 'Sentry Gun', short: 'Sentry', space: { name: 'Gun Drone', short: 'Drone' }, behavior: 'turret', shape: 'sentry',
 		cost: 20, cooldown: 2, damage: 5, knockback: 30, range: 60, speed: 1150, duration: 18, hp: 150, radius: 420
+	},
+	// ---- Sinestro: Korugar's ruler. Precise, cold, and built to command ----
+	// A long duelling sabre with a basket hilt: a wide, fast cut
+	korugarSaber: {
+		id: 'korugarSaber', name: 'Korugar Saber', short: 'Saber', behavior: 'slash', shape: 'saber',
+		cost: 3, cooldown: 0.28, damage: 26, knockback: 200, range: 98
+	},
+	// A clawed hand on a jointed arm: it closes on them and drags them to him
+	seizingTalon: {
+		id: 'seizingTalon', name: 'Seizing Talon', short: 'Talon', behavior: 'grab', shape: 'talon',
+		cost: 6, cooldown: 0.8, damage: 12, knockback: 0, range: 380, speed: 1100
+	},
+	// Five crystal needles in a tight fan: each one passes through everything in its line
+	needleVolley: {
+		id: 'needleVolley', name: 'Needle Volley', short: 'Needles', behavior: 'lances', shape: 'needle',
+		cost: 10, cooldown: 1.2, damage: 17, knockback: 140, range: 660, speed: 1350, count: 5
+	},
+	// A six-sided crystal cell that closes round whatever walks in
+	prismCell: {
+		id: 'prismCell', name: 'Prism Cell', short: 'Prism', space: { name: 'Prism Snare', short: 'Prism' }, behavior: 'trap', shape: 'prism',
+		cost: 12, cooldown: 1.4, damage: 0, knockback: 0, range: 110, radius: 46, duration: 8
+	},
+	// Obelisks of Korugar burst up out of the ground under them
+	korugarSpires: {
+		id: 'korugarSpires', name: 'Korugar Spires', short: 'Spires', space: { name: 'Shard Eruption', short: 'Shards' }, behavior: 'pillars', shape: 'spires',
+		cost: 16, cooldown: 2.2, damage: 46, knockback: 260, range: 360, radius: 78, charge: 0.45, stun: 1.3
+	},
+	// Hold to draw a lance of light back, let go: it goes through the whole line
+	verdict: {
+		id: 'verdict', name: 'Verdict', behavior: 'snipe', shape: 'verdict',
+		cost: 12, cooldown: 0.5, damage: 140, knockback: 320, range: 920, charge: 0.75
+	},
+	// Three daggers circling over him, cutting shards at whatever he fights
+	sentinelBlades: {
+		id: 'sentinelBlades', name: 'Sentinel Blades', short: 'Sentinels', behavior: 'wingman', shape: 'sentinel',
+		cost: 20, cooldown: 4, damage: 10, knockback: 60, range: 60, speed: 1100, duration: 12, hp: 80, radius: 420
+	},
+	// Korugar's honour guard, raised in light: crested helms, tower shields, javelins
+	honorGuard: {
+		id: 'honorGuard', name: 'Honor Guard', short: 'Guard', behavior: 'squad', shape: 'legion',
+		cost: 22, cooldown: 4, damage: 11, knockback: 70, range: 70, speed: 950, duration: 14, hp: 85, radius: 400, count: 3
+	},
+	// A two-bladed crescent, thrown spinning: it cuts on the way out and back
+	crescentGlaive: {
+		id: 'crescentGlaive', name: 'Crescent Glaive', short: 'Glaive', behavior: 'boomerang', shape: 'glaive',
+		cost: 8, cooldown: 1, damage: 22, knockback: 150, range: 360, speed: 700, radius: 20
+	},
+	// Blades thrust up out of the ground in a ring round him: get back
+	rebuke: {
+		id: 'rebuke', name: 'Rebuke', behavior: 'area', shape: 'rebuke',
+		cost: 18, cooldown: 2.4, damage: 26, knockback: 540, range: 160
 	}
 } satisfies Record<string, ConstructDef>;
 
@@ -475,7 +537,7 @@ export const LOADOUTS: Record<CrewId, ConstructId[]> = {
 	// Hammers and fists first, always
 	kilowog: ['hammer', 'fist', 'shockwave', 'cannon', 'minigun', 'wall', 'cage', 'rockets', 'beam', 'pillars'],
 	// Sinestro (season two): precise, cold and cutting
-	sinestro: ['energySword', 'beam', 'cage', 'precisionRifle', 'halSaw', 'chain', 'shockwave', 'fist', 'ibeams', 'wall'],
+	sinestro: ['korugarSaber', 'verdict', 'needleVolley', 'seizingTalon', 'crescentGlaive', 'prismCell', 'korugarSpires', 'sentinelBlades', 'honorGuard', 'rebuke'],
 	// The prisoners (Prison Moon): each with their own way of fighting
 	arisia: ['energySword', 'beam', 'halSaw', 'glove', 'gatling', 'grenades', 'chain', 'shockwave', 'fist', 'anvil'],
 	katma: ['precisionRifle', 'rifle', 'ibeams', 'heavyCannon', 'wall', 'cage', 'shockwave', 'beam', 'ironFist', 'missilePods'],

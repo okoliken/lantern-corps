@@ -44,6 +44,7 @@ import { drawEnemy, drawRivalOverlay, enemyMuzzle } from './draw/enemies';
 import { drawSpaceRock } from './draw/escort';
 import { drawRageTorpedo } from './draw/interceptor';
 import { drawArmorSuit, drawChaff, drawLockReticle } from './draw/kits';
+import { drawTalonArm } from './draw/sinestro';
 import { drawFallingMeteors, drawRedBeam, drawRedCage, drawRedChain, drawRedEffect, drawRedGround, drawRedShot, drawBrand } from './draw/redConstructs';
 import { AllyInput } from './ally';
 import { HeroInput, heroFx, heroMoving, updateHero, updateHeroFx } from './heroes';
@@ -154,7 +155,7 @@ export interface Director {
 const UNDERWATER_SPEED = 0.72;
 
 /** Constructs drawn in the Lantern's hand while they're in use. */
-const HELD_LOOKS: ReadonlySet<string> = new Set(['minigun', 'cannon', 'sniper', 'shotgun', 'rockets', 'rifle', 'cutter']);
+const HELD_LOOKS: ReadonlySet<string> = new Set(['minigun', 'cannon', 'sniper', 'shotgun', 'rockets', 'rifle', 'cutter', 'verdict']);
 
 /** How big a Lantern is drawn next to Hal and John (Kilowog is huge). */
 const sizeOf = (p: Player) => p.def.figureScale ?? 1;
@@ -879,7 +880,8 @@ export class Game {
 			const lift = pr.lift;
 			if (pr.kind === 'hook') {
 				const [rx, ry] = ringPosition(pr.owner.x, pr.owner.y, { ...this.poseFor(pr.owner), firing: true }, this.time, sizeOf(pr.owner));
-				drawChain(ctx, rx, ry, x, y - lift, this.time);
+				if (pr.def.shape === 'talon') drawTalonArm(ctx, rx, ry, x, y - lift, this.time);
+				else drawChain(ctx, rx, ry, x, y - lift, this.time);
 			}
 			drawProjectile(ctx, pr, x, y, lift, this.time);
 		}
@@ -887,7 +889,8 @@ export class Game {
 			const [rx, ry] = ringPosition(t.owner.x, t.owner.y, { ...this.poseFor(t.owner), firing: true }, this.time, sizeOf(t.owner));
 			const target = t.target;
 			const [tx, ty] = 'homeX' in target ? [target.x, target.y - 38] : [target.x + target.w / 2, target.y - (target as Obstacle).height / 2];
-			drawChain(ctx, rx, ry, tx, ty, this.time);
+			if (t.look === 'talon') drawTalonArm(ctx, rx, ry, tx, ty, this.time, true);
+			else drawChain(ctx, rx, ry, tx, ty, this.time);
 		}
 
 		// Bubble shields around whoever they protect (a mission draws its own things' bubbles)

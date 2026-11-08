@@ -33,7 +33,18 @@ export const ABOUT: Partial<Record<ConstructId, string>> = {
 	mortar: 'Mark a spot and four shells come whistling down on it, one after another.',
 	gunship: 'An attack helicopter hovers on your wing, its chin gun on whatever you are fighting.',
 	claymores: 'Lay three directional mines in a line ahead. Whatever walks in gets the blast.',
-	sentry: 'A machine gun behind sandbags. Tougher than a turret, fires faster, holds a lane.'
+	sentry: 'A machine gun behind sandbags. Tougher than a turret, fires faster, holds a lane.',
+	// ---- Sinestro: Korugar's ruler ----
+	korugarSaber: 'A long duelling sabre: a wide, fast cut that reaches further than a sword.',
+	verdict: 'Hold to draw a lance of light back, let go: it goes through a whole line of them.',
+	needleVolley: 'Five crystal needles in a tight fan, each one through everything in its line.',
+	seizingTalon: 'A clawed hand on a jointed arm closes on them and drags them to you.',
+	crescentGlaive: 'A two-bladed crescent thrown spinning: it cuts on the way out and on the way back.',
+	prismCell: 'A crystal cell waits on the ground and closes round whatever walks in.',
+	korugarSpires: 'Mark a spot: obelisks burst up out of the ground there and leave them dazed.',
+	sentinelBlades: 'Three daggers circle over you for a while, cutting shards at whatever you fight.',
+	honorGuard: "Korugar's honour guard in light: three soldiers with shields who follow you and throw javelins.",
+	rebuke: 'Blades thrust up out of the ground all round you and throw everyone back.'
 };
 
 /** How you use it, in a word or two, from what it does. */

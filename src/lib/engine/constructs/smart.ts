@@ -138,8 +138,9 @@ function score(def: ConstructDef, s: Situation, p: Player, w: ConstructWorld): n
 			return inLine >= 2 ? 0.72 : 0.42;
 		}
 		case 'squad': {
-			const out = w.turrets.some((t) => t.owner === p && t.follow);
-			return !out && s.all.length >= 2 ? 0.66 : 0;
+			const out = w.turrets.some((t) => t.owner === p && t.def.behavior === 'squad');
+			if (out || !hasTarget) return 0;
+			return s.all.length >= 2 ? 0.66 : 0.45;
 		}
 		case 'armor':
 			return !p.armor && (near >= 2 || p.health < p.maxHealth * 0.45) ? 0.8 : 0;

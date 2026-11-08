@@ -17,6 +17,7 @@ import { uiFont } from './fonts';
 import { drawAnvilDrop, drawClusterBomb, drawCutter, drawFlakShell, drawGirder, drawGrenade, drawMarine, drawSidewinder, drawSpring, drawTrain, drawWingman, drawWreckingBall, glovePath, ironFistDetail, ironFistPath, riflePath } from './kits';
 import { green, greenCore, GREEN_LIGHT, GREEN_CORE } from '../../theme';
 import { drawBombRun, drawClaymore, drawGunship, drawMortarDrop, drawSentryGun, drawTank } from './armory';
+import { drawGlaive, drawHonorGuard, drawJavelin, drawNeedle, drawPrismCell, drawPrismTrap, drawRebuke, drawSaberSlash, drawSentinels, drawShard, drawSpires, drawTalonHead, drawVerdictHeld, drawVerdictShot } from './sinestro';
 
 const CORE = GREEN_CORE;
 const TAU = Math.PI * 2;
@@ -280,6 +281,8 @@ export function drawHeldConstruct(
 	} else if (shape === 'rockets') {
 		energy(ctx, rocketPodPath(), { time, edge: 1.6 });
 		sparks(ctx, 30, 0, 8, 4, time);
+	} else if (shape === 'verdict') {
+		drawVerdictHeld(ctx, time);
 	}
 	ctx.restore();
 }
@@ -353,6 +356,8 @@ export function drawLaserSight(
 /** An Auto-Turret construct: tripod legs, a body, and twin barrels that track targets. In space, a Sentry Drone. */
 export function drawAutoTurret(ctx: CanvasRenderingContext2D, t: Turret, time: number, space = false) {
 	if (t.def.shape === 'gunship') return drawGunship(ctx, t, time, space);
+	if (t.def.shape === 'sentinel') return drawSentinels(ctx, t, time, space);
+	if (t.def.shape === 'legion') return drawHonorGuard(ctx, t, time, space);
 	if (t.def.behavior === 'wingman') return drawWingman(ctx, t, time, space);
 	if (t.def.shape === 'sentry' && !space) return drawSentryGun(ctx, t, time);
 	if (t.follow) return drawMarine(ctx, t, time, space);
@@ -439,7 +444,12 @@ export function drawProjectile(ctx: CanvasRenderingContext2D, pr: Projectile, x:
 	const uy = pr.vy / speed;
 	if (pr.kind === 'train' && pr.def.shape === 'tank') return drawTank(ctx, pr, x, y, time);
 	if (pr.kind === 'train') return drawTrain(ctx, pr, x, y, lift, time);
+	if (pr.kind === 'girder' && pr.def.shape === 'needle') return drawNeedle(ctx, pr, x, y, lift, time);
 	if (pr.kind === 'girder') return drawGirder(ctx, pr, x, y, lift, time);
+	if (pr.kind === 'hook' && pr.def.shape === 'talon') return drawTalonHead(ctx, pr, x, y, lift, time);
+	if (pr.kind === 'saw' && pr.def.shape === 'glaive') return drawGlaive(ctx, pr, x, y, lift, time);
+	if (pr.kind === 'bolt' && pr.def.shape === 'sentinel') return drawShard(ctx, pr, x, y, lift);
+	if (pr.kind === 'bolt' && pr.def.shape === 'legion') return drawJavelin(ctx, pr, x, y, lift, time);
 	if (pr.kind === 'shell' && pr.def.shape === 'grenade') return drawGrenade(ctx, pr, x, y, lift, time);
 	if (pr.kind === 'shell' && pr.def.shape === 'flak') return drawFlakShell(ctx, pr, x, y, lift, time);
 	if (pr.kind === 'missile' && pr.def.shape === 'sidewinder') return drawSidewinder(ctx, pr, x, y, lift, time);
@@ -599,6 +609,7 @@ export function drawTrap(ctx: CanvasRenderingContext2D, t: Trap, time: number) {
 		drawMine(ctx, t, time);
 		return;
 	}
+	if (t.look === 'prism') return drawPrismTrap(ctx, t, time);
 	const pulse = 0.6 + 0.4 * Math.sin(time * 4);
 	const r = t.radius;
 	ctx.save();
@@ -1027,6 +1038,10 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 
 	switch (e.kind) {
 		case 'slash': {
+			if (e.form === 'saber') {
+				drawSaberSlash(ctx, e, lift, time);
+				break;
+			}
 			// The sword sweeps across the aim, leaving a crescent trail and afterimages
 			const reach = e.radius ?? 75;
 			const aim = e.angle ?? 0;
@@ -1175,6 +1190,10 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			break;
 		}
 		case 'shockwave': {
+			if (e.form === 'rebuke') {
+				drawRebuke(ctx, e, time);
+				break;
+			}
 			// Two rings racing out along the ground, with radial streaks
 			const r = e.radius ?? 150;
 			ctx.shadowColor = GREEN;
@@ -1333,6 +1352,10 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			break;
 		}
 		case 'snipe': {
+			if (e.form === 'verdict') {
+				drawVerdictShot(ctx, e, lift, time);
+				break;
+			}
 			// The shot: a blinding line along its whole path, then a fading trail
 			const len = e.value ?? 600;
 			const a = e.angle ?? 0;
@@ -1426,8 +1449,12 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 			ctx.fillText(e.text ?? '', e.x, ty);
 			break;
 		}
+		case 'prismCell':
+			drawPrismCell(ctx, e, time);
+			break;
 		case 'pillars': {
 			if (e.form === 'anvil') drawAnvilDrop(ctx, e, time);
+			else if (e.form === 'spires') drawSpires(ctx, e, time);
 			else if (e.form === 'mortar') drawMortarDrop(ctx, e, time);
 			else if (e.form === 'bombRun') drawBombRun(ctx, e, time);
 			else if (space) drawViceCrush(ctx, e, time);

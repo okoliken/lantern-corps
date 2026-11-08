@@ -80,6 +80,8 @@ interface Tether {
 	target: Dummy | Obstacle;
 	/** Seconds of pulling left. */
 	time: number;
+	/** What's pulling: a chain, or Sinestro's talon. */
+	look?: string;
 }
 
 export interface Trap {
@@ -95,7 +97,7 @@ export interface Trap {
 	/** Cage: how long it holds what it catches. */
 	hold: number;
 	/** Drawn as one of Hal's cluster bombs, or John's claymores, instead of a mine. */
-	look?: 'cluster' | 'claymore';
+	look?: 'cluster' | 'claymore' | 'prism';
 	/** Mine: its blast. */
 	blast?: { radius: number; damage: number; knockback: number };
 }
@@ -188,7 +190,9 @@ export interface Effect {
 		| 'bigHammer'
 		| 'hammerSpin'
 		| 'hammerDrop'
-		| 'swordArc';
+		| 'swordArc'
+		// Sinestro's Prism Cell, closed round what it caught (draw/sinestro.ts)
+		| 'prismCell';
 	x: number;
 	y: number;
 	age: number;
@@ -215,6 +219,8 @@ export interface Effect {
 	index?: number;
 	/** Who made it: effects at hand height are drawn at that Lantern's ring height. */
 	owner?: Player;
+	/** What it's wrapped round (a Prism Cell's catch): gone when that's free. */
+	held?: Dummy;
 }
 
 /** An Auto-Turret construct, built on the ground, shooting on its own. */
@@ -603,6 +609,7 @@ function fireSniper(p: Player, def: ConstructDef, charge: number, w: ConstructWo
 
 	w.effects.push({
 		kind: 'snipe',
+		form: def.shape,
 		x: ox,
 		y: oy,
 		age: 0,
@@ -761,7 +768,7 @@ function slash(p: Player, def: ConstructDef, w: ConstructWorld) {
 		const [cx, cy] = center(o);
 		if (inArc(cx, cy, def.range + Math.max(o.w, o.h) / 2)) damageObstacle(w, o, power(p, def.damage));
 	}
-	w.effects.push({ kind: 'slash', x: p.x + p.ringDX * 0.4, y: p.y, age: 0, life: 0.35, angle: aim, radius: def.range, owner: p, lift: p.ringLift });
+	w.effects.push({ kind: 'slash', form: def.shape, x: p.x + p.ringDX * 0.4, y: p.y, age: 0, life: 0.35, angle: aim, radius: def.range, owner: p, lift: p.ringLift });
 }
 
 function placeWall(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
@@ -801,7 +808,7 @@ function placeTrap(p: Player, def: ConstructDef, w: ConstructWorld) {
 	if (mine.length >= MAX_TRAPS_PER_PLAYER) w.traps.splice(w.traps.indexOf(mine[0]), 1);
 	const x = p.x + p.aimX * def.range;
 	const y = p.y + p.aimY * def.range;
-	w.traps.push({ kind: 'cage', owner: p, x, y, radius: def.radius ?? 40, life: durable(p, TRAP_LIFE), hold: durable(p, def.duration ?? 3) });
+	w.traps.push({ kind: 'cage', owner: p, x, y, radius: def.radius ?? 40, life: durable(p, TRAP_LIFE), hold: durable(p, def.duration ?? 3), look: def.shape === 'prism' ? 'prism' : undefined });
 	w.effects.push({ kind: 'snap', x, y, age: 0, life: 0.4, radius: def.radius });
 }
 
@@ -899,7 +906,7 @@ function shockwave(p: Player, def: ConstructDef, w: ConstructWorld) {
 		const [cx, cy] = center(o);
 		if (Math.hypot(cx - p.x, cy - p.y) <= def.range) damageObstacle(w, o, power(p, def.damage));
 	}
-	w.effects.push({ kind: 'shockwave', x: p.x, y: p.y, age: 0, life: 0.65, radius: def.range, owner: p });
+	w.effects.push({ kind: 'shockwave', form: def.shape, x: p.x, y: p.y, age: 0, life: 0.65, radius: def.range, owner: p });
 }
 
 /** Rocket Pod: a fan of missiles, each homing in on one of the enemies ahead. */
@@ -1104,7 +1111,7 @@ function moveMarine(t: Turret, w: ConstructWorld, dt: number): Dummy | null {
 /** Marine Fireteam: construct Marines that go where John's will sends them and pick their own targets. */
 function callFireteam(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 	// One fireteam at a time: the old one is dismissed
-	w.turrets = w.turrets.filter((t) => t.owner !== p || !t.follow);
+	w.turrets = w.turrets.filter((t) => t.owner !== p || !t.follow || t.def.behavior === 'wingman');
 	const life = durable(p, def.duration ?? 12);
 	const hp = durable(p, def.hp ?? 60);
 	const n = Math.min(def.count ?? 3, FIRETEAM_SPOTS.length);
@@ -1445,7 +1452,7 @@ export function updateConstructWorld(w: ConstructWorld, dt: number) {
 	}
 
 	for (const e of w.effects) e.age += dt;
-	w.effects = w.effects.filter((e) => e.age < e.life);
+	w.effects = w.effects.filter((e) => e.age < e.life && (!e.held || (e.held.caged > 0 && isStanding(e.held))));
 }
 
 function updateProjectiles(w: ConstructWorld, dt: number) {
@@ -1566,7 +1573,7 @@ function projectileHit(w: ConstructWorld, pr: Projectile, dummy: Dummy | null, s
 		const target = dummy ?? (solid?.movable ? solid : null);
 		if (target) {
 			if (dummy) hitDummyWithFx(w, dummy, pr.damage, 0, pr.x, pr.y, pr.owner, pr.damage, !pr.noSurge);
-			w.tethers.push({ owner: pr.owner, target, time: TETHER_TIME });
+			w.tethers.push({ owner: pr.owner, target, time: TETHER_TIME, look: pr.def.shape });
 		} else {
 			w.effects.push({ kind: 'impact', x: pr.x, y: pr.y, age: 0, life: 0.15, owner: pr.owner, lift: pr.lift });
 		}
@@ -1774,6 +1781,7 @@ function updateTraps(w: ConstructWorld, dt: number) {
 		if (catchable) {
 			catchable.caged = t.hold;
 			catchable.vx = catchable.vy = 0;
+			if (t.look === 'prism') w.effects.push({ kind: 'prismCell', x: catchable.x, y: catchable.y, age: 0, life: t.hold, radius: t.radius, held: catchable });
 			w.effects.push({ kind: 'snap', x: t.x, y: t.y, age: 0, life: 0.3, radius: t.radius });
 			continue;
 		}

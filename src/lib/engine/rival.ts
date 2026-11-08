@@ -38,12 +38,12 @@ import { updateWillpower } from './willpower';
  */
 export const RIVAL_KITS: Partial<Record<EnemyKind, { crew: CrewId; hit: number }>> = {
 	sparHal: { crew: 'hal', hit: 0.8 },
-	sparJohn: { crew: 'john', hit: 0.55 },
+	sparJohn: { crew: 'john', hit: 0.52 },
 	kilowog: { crew: 'kilowog', hit: 1.35 },
 	sparKatma: { crew: 'katma', hit: 0.8 },
 	sparArisia: { crew: 'arisia', hit: 1.75 },
 	sparBoodikka: { crew: 'boodikka', hit: 1 },
-	sinestro: { crew: 'sinestro', hit: 0.35 }
+	sinestro: { crew: 'sinestro', hit: 0.27 }
 };
 
 /** A stand-in can take this much in a tick without going down (it's put back every tick). */
