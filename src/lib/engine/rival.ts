@@ -40,10 +40,10 @@ export const RIVAL_KITS: Partial<Record<EnemyKind, { crew: CrewId; hit: number }
 	sparHal: { crew: 'hal', hit: 0.8 },
 	sparJohn: { crew: 'john', hit: 0.52 },
 	kilowog: { crew: 'kilowog', hit: 1.35 },
-	sparKatma: { crew: 'katma', hit: 0.8 },
+	sparKatma: { crew: 'katma', hit: 0.62 },
 	sparArisia: { crew: 'arisia', hit: 1.75 },
-	sparBoodikka: { crew: 'boodikka', hit: 1 },
-	sinestro: { crew: 'sinestro', hit: 0.27 }
+	sparBoodikka: { crew: 'boodikka', hit: 0.88 },
+	sinestro: { crew: 'sinestro', hit: 0.21 }
 };
 
 /** A stand-in can take this much in a tick without going down (it's put back every tick). */
@@ -54,6 +54,12 @@ const STAND_IN_HP = 1e6;
  * times how much the fight says this Lantern can hurt (its might).
  */
 export const RIVAL_HIT = 0.045;
+
+/**
+ * How high a body's hitbox sits (brain.air, in steps of 70px above where an
+ * enemy normally hovers) for a Lantern drawn `bodyBottom` above the ground.
+ */
+const airFor = (p: Player) => Math.max(0, p.bodyBottom - 12 * 1.35) / 70;
 
 export interface Rival {
 	body: Enemy;
@@ -143,6 +149,7 @@ function syncStandIns(r: Rival, foes: readonly Player[]) {
 		s.x = s.prevX = s.homeX = p.x;
 		s.y = s.prevY = s.homeY = p.y;
 		s.vx = s.vy = 0;
+		s.brain.air = airFor(p);
 		s.hp = s.maxHp = STAND_IN_HP;
 		s.caged = 0;
 		s.stun = 0;
@@ -191,5 +198,7 @@ export function followRival(r: Rival) {
 	body.dir = me.dir;
 	body.brain.aimX = me.aimX;
 	body.brain.aimY = me.aimY;
+	// Hit where they're drawn: up in the air with the Lantern, not on the ground below
+	body.brain.air = airFor(me);
 	body.brain.state = 'idle';
 }

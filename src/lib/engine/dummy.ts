@@ -269,6 +269,9 @@ function airAndGrowth(d: Dummy): [number, number] {
 	return brain ? [brain.air * 70, 1 + 0.28 * brain.form] : [0, 1];
 }
 
+/** How far up off the ground a target's body is (a leap, a swoop, a Lantern in flight). */
+export const airOf = (d: Dummy): number => (d.drift ? 0 : airAndGrowth(d)[0]);
+
 /** The target's body as seen by a shot flying at `lift`, as a box on the ground plane. */
 export function hurtbox(d: Dummy, lift: number): Solid {
 	// A floating round thing: a circle's worth of body around its drawn centre

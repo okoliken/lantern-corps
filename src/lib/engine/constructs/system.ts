@@ -14,7 +14,7 @@ import type { Tint } from '../enemies/enemies';
 import { dreadPower, relieveDread } from '../dread';
 import { damagePlayer } from '../combat';
 import { castBeam, castThrough } from '../beam';
-import { DUMMY_HALF_H, DUMMY_HALF_W, aimPoint, distanceToBody, footprintGap, footprintPoint, hitDummy, hurtbox, isStanding, type Dummy } from '../dummy';
+import { DUMMY_HALF_H, DUMMY_HALF_W, aimPoint, airOf, distanceToBody, footprintGap, footprintPoint, hitDummy, hurtbox, isStanding, type Dummy } from '../dummy';
 import type { Intent } from '../input';
 import type { RedWorld } from '../enemies/redConstructs';
 import type { Obstacle } from '../map';
@@ -1721,17 +1721,18 @@ function updateTurrets(w: ConstructWorld, dt: number) {
 		if (flier) {
 			const from = { x: t.x + Math.cos(t.aim) * 40, y: t.y - (flier - FLIER_SHOT_LIFT) };
 			const dx = target.x - from.x;
-			const dy = target.y - from.y;
+			const dy = target.y - airOf(target) - from.y;
 			const len = Math.hypot(dx, dy) || 1;
 			const bolt = launch(t.owner, { ...boltDef, range: len + 60 }, 'bolt', dx / len, dy / len, w, from);
 			bolt.lift = FLIER_SHOT_LIFT;
 			continue;
 		}
-		const bolt = launch(t.owner, boltDef, 'bolt', Math.cos(t.aim), Math.sin(t.aim), w, {
-			x: t.x + Math.cos(t.aim) * 16,
-			y: t.y + Math.sin(t.aim) * 8
-		});
-		bolt.lift = w.space ? SENTRY_DRONE_HOVER : AUTO_TURRET_HEAD;
+		// At the body, wherever it is: something up in the air is shot up in the air
+		const lift = w.space ? SENTRY_DRONE_HOVER : AUTO_TURRET_HEAD;
+		const from = { x: t.x + Math.cos(t.aim) * 16, y: t.y + Math.sin(t.aim) * 8 };
+		const shot = Math.atan2(target.y - airOf(target) - from.y, target.x - from.x);
+		const bolt = launch(t.owner, boltDef, 'bolt', Math.cos(shot), Math.sin(shot), w, from);
+		bolt.lift = lift;
 	}
 	w.turrets = alive;
 }

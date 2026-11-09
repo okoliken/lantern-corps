@@ -48,6 +48,9 @@ const SHIELD_REST = 5;
 const RETREAT_BELOW = 0.3;
 const RETURN_ABOVE = 0.65;
 
+/** Constructs a rival uses before it takes a breather. */
+const RIVAL_BURST = 3;
+
 export class AllyInput implements InputSource {
 	/** The Lantern this brain controls (set once the player exists). */
 	me: Player | null = null;
@@ -73,6 +76,8 @@ export class AllyInput implements InputSource {
 	/** When each slot was last used (seconds of this brain's clock), for `varied`. */
 	private lastUsed: number[] = [];
 	private clock = 0;
+	/** A rival's constructs since its last breather. */
+	private burst = 0;
 
 	constructor(private world: AllyWorld) {}
 
@@ -308,6 +313,11 @@ export class AllyInput implements InputSource {
 		this.decideIn -= TICK;
 		if (this.decideIn > 0 || me.exhausted) return;
 		this.decideIn = 0.35 + Math.random() * 0.4;
+		// A rival comes in bursts, with a breather between them, so you have room to answer
+		if (this.varied) {
+			this.burst = (this.burst + 1) % RIVAL_BURST;
+			this.decideIn = this.burst === 0 ? 1.8 + Math.random() * 0.8 : 0.7 + Math.random() * 0.5;
+		}
 
 		// The smart ring picks, for every partner; a little willpower is kept in reserve so they're never left exhausted
 		this.closeIn = false;
