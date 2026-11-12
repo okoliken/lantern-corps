@@ -70,6 +70,7 @@ import { drawCorpsShot } from './draw/corpsConstructs';
 import { drawObstacle, drawPlanetGround, drawStarfield, makeStars, type WorldRect } from './draw/world';
 import { DUMMY_HALF_H, DUMMY_HALF_W, createDummy, hurtbox, isStanding, updateDummy, type Dummy } from './dummy';
 import { SIGNATURES, updateSignature, updateSignatureWorld } from './constructs/signature';
+import { drawSonicCone } from './draw/sonicBoom';
 import { drawCallout, drawEjectorSeat, drawFortressBack, drawFortressFront, drawJet } from './draw/signature';
 import { ENVIRONMENT_RULES, type EnvironmentKind } from './environment';
 import {
@@ -775,7 +776,7 @@ export class Game {
 								drawManhunterCore(ctx, d, 0, 0, this.time);
 								ctx.restore();
 							}
-						: d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit' || d.kind === 'mindAmp' || d.kind === 'fearLens' || d.kind === 'seaBreach' || d.kind === 'qwardCharge' || d.kind === 'blaze'
+						: d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit' || d.kind === 'mindAmp' || d.kind === 'fearLens' || d.kind === 'parallaxGrip' || d.kind === 'seaBreach' || d.kind === 'qwardCharge' || d.kind === 'blaze'
 						? () => {} // the mission draws it
 
 						: d.drift
@@ -868,6 +869,7 @@ export class Game {
 			const y = lerp(p.prevY, p.y, alpha);
 			const bodyY = y - this.poseFor(p).hoverHeight * 1.35 - 34;
 			if (p.dash.look === 'ejector') drawEjectorSeat(ctx, x, bodyY, p.dash.dx, p.dash.dy, this.time, p.def);
+			else if (p.dash.look === 'boom') drawSonicCone(ctx, x, bodyY, p.dash.dx, p.dash.dy, this.time);
 			else drawJet(ctx, x, bodyY, p.dash.dx, p.dash.dy, this.time, p.def);
 		}
 		// Fortress domes go over whoever is inside (they're see-through)
@@ -1084,6 +1086,8 @@ export class Game {
 													? 'Forge conduit'
 													: t.dummy.kind === 'mindAmp'
 														? 'Mind amplifier'
+														: t.dummy.kind === 'parallaxGrip'
+															? 'Tendril'
 														: t.dummy.kind === 'fearLens'
 															? 'Fear lens'
 															: t.dummy.kind === 'seaBreach'

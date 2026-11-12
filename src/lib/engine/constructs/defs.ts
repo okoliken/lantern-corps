@@ -38,7 +38,8 @@ export type Behavior =
 	| 'chaff' // press: flares that pull enemy shots off him for a while
 	| 'lock' // press: paints a target: everything he fires for a while hits harder
 	| 'wingman' // press: a small jet that flies alongside him and fires with him
-	| 'carrier'; // press: a carrier rises behind him and launches a wave of jets at where he aims
+	| 'carrier' // press: a carrier rises behind him and launches a wave of jets at where he aims
+	| 'boom'; // press: a supersonic dash along the aim, through everything, and the shock cone left behind it hits again
 
 /** Drawing style for a construct. Forge constructs will add their own. */
 type ConstructShape =
@@ -91,6 +92,7 @@ type ConstructShape =
 	| 'chaff'
 	| 'lock'
 	| 'carrier'
+	| 'boom'
 	// Sinestro's own: the Korugar kit (draw/sinestro.ts)
 	| 'saber'
 	| 'talon'
@@ -298,6 +300,12 @@ export const CONSTRUCTS = {
 	},
 	// A whole aircraft carrier behind him, its deck launching a wave of jets at the mark: each
 	// one dives on whatever is nearest it and bombs it. Count = jets, radius = each bomb's blast
+	// Through the sound barrier: Hal goes through the line faster than it can react, and the
+	// shock cone he leaves along it hits everything again. Radius = the cone's reach either side
+	sonicBoom: {
+		id: 'sonicBoom', name: 'Sonic Boom', short: 'Boom', behavior: 'boom', shape: 'boom',
+		cost: 16, cooldown: 3.2, damage: 52, knockback: 520, range: 560, speed: 1800, radius: 120
+	},
 	carrierStrike: {
 		id: 'carrierStrike', name: 'Carrier Strike', short: 'Carrier', behavior: 'carrier', shape: 'carrier',
 		cost: 30, cooldown: 9, damage: 46, knockback: 380, range: 760, radius: 120, count: 6, stun: 0.35
@@ -563,7 +571,7 @@ export const LOADOUTS: Record<CrewId, ConstructId[]> = {
 
 /** Everything Hal and John can take into a fight: their kit plus the extras. Each carries ten (KIT_SIZE). */
 export const ARMORY: Partial<Record<CrewId, ConstructId[]>> = {
-	hal: [...LOADOUTS.hal, 'missileBarrage', 'bombingRun', 'carrierStrike'],
+	hal: [...LOADOUTS.hal, 'missileBarrage', 'bombingRun', 'carrierStrike', 'sonicBoom'],
 	john: [...LOADOUTS.john, 'tank', 'mortar', 'gunship', 'claymores', 'sentry']
 };
 /** Constructs on the hotbar: keys 1 to 0. */

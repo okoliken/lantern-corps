@@ -187,7 +187,10 @@ interface Dash {
 	damage?: number;
 	knockback?: number;
 	/** Drawn as a fighter jet around the Lantern (the Fighter Jet construct); a strafing run fires as it goes; the ejector seat hits nothing. */
-	look?: 'jet' | 'strafe' | 'ejector';
+	look?: 'jet' | 'strafe' | 'ejector' | 'boom';
+	/** Sonic Boom: where the run started (the shock cone runs from here), and what the cone does. */
+	from?: { x: number; y: number };
+	cone?: { damage: number; knockback: number; radius: number };
 }
 
 /** John's Power Armor while it's on: less damage taken, and the ring shot becomes an arm cannon. */

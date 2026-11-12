@@ -121,4 +121,4 @@ export class Music {
 }
 
 /** Which enemies make it boss music. */
-export const BOSS_KINDS: ReadonlySet<string> = new Set(['atrocitus', 'manhunterPrime', 'razer', 'grodd', 'reverseFlash', 'dexStarr', 'bleez', 'hammond']);
+export const BOSS_KINDS: ReadonlySet<string> = new Set(['atrocitus', 'manhunterPrime', 'razer', 'grodd', 'reverseFlash', 'dexStarr', 'bleez', 'hammond', 'hunger']);

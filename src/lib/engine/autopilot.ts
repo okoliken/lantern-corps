@@ -75,7 +75,7 @@ export class Autopilot implements InputSource {
 		}
 
 		// Something the mission wants torn down (a signal spire): shoot it whenever nobody's in the way
-		const objective = (d: Dummy) => (d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit' || d.kind === 'mindAmp' || d.kind === 'fearLens' || d.kind === 'seaBreach' || d.kind === 'qwardCharge' || d.kind === 'blaze') && isStanding(d);
+		const objective = (d: Dummy) => (d.kind === 'signalSpire' || d.kind === 'rageBubble' || d.kind === 'bloodConduit' || d.kind === 'toxinTank' || d.kind === 'forgeConduit' || d.kind === 'mindAmp' || d.kind === 'fearLens' || d.kind === 'parallaxGrip' || d.kind === 'seaBreach' || d.kind === 'qwardCharge' || d.kind === 'blaze') && isStanding(d);
 		// The mission says it can't wait (a fire round a frozen ally): that one, enemies or not
 		const urgent = game.director?.goalFirst && goal && 'kind' in goal && objective(goal as Dummy) ? (goal as Dummy) : null;
 		const spire = urgent ?? game.dummies.filter(objective).sort((a, b) => dist(a, me) - dist(b, me))[0];

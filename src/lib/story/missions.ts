@@ -476,7 +476,7 @@ export const ACTS: ActInfo[] = [
 		lineup: [
 			'studied',
 			'gala',
-			{ title: 'Warnings', tagline: 'John comes home to Coast City; on Oa, Sinestro tells the Guardians what they already know.' }
+			'warning'
 		]
 	},
 	{
@@ -484,7 +484,7 @@ export const ACTS: ActInfo[] = [
 		season: 3,
 		title: 'Parallax',
 		tagline: 'The fear the Guardians locked inside their own Battery breaks loose. Hal opens Sinestro\u2019s cell.',
-		lineup: [{ title: 'Coming soon', tagline: 'Parallax tears through Oa; Hammond takes Coast City; John holds it.' }]
+		lineup: ['unbound', { title: 'Coming soon', tagline: 'Hal opens Sinestro\u2019s cell; Hammond takes Coast City; John holds it.' }]
 	},
 	{
 		number: 9,
@@ -841,4 +841,35 @@ MISSIONS.push({
 		'Hammond throws the jets parked on the apron (step out of the yellow line), and he can take the construct in your hand and turn it on you: when he does, use a different one. If he takes someone up, hit him to break his concentration, then catch them.'
 	],
 	objectives: ['Catch the helicopter: stay under it', 'Take down Hector Hammond', 'Don\u2019t let Carol fall']
+});
+
+MISSIONS.push({
+	id: 'warning',
+	title: 'The Warning',
+	tagline: 'On Oa, Sinestro tells the Guardians what they already know. In Coast City, John comes home to a city too frightened to move.',
+	lantern: 'john',
+	environment: 'planet',
+	place: 'Coast City · downtown',
+	briefing: [
+		'Whatever pulled Hammond up into the dark feeds on fear, and it has sent something ahead of it: the Hunger, a beast of smoke and yellow light, loose in downtown Coast City.',
+		'People are frozen in the streets, too frightened to move. Stand next to one and your ring steadies them: they run for the subway. Every one still frozen makes the Hunger harder to hurt, so get them out first.',
+		'It hunts the frozen ones, and if it reaches one it feeds: it heals and grows. When it roars, anyone running near it freezes again, and it sends Fear Hounds after the runners.'
+	],
+	objectives: ['Free the frozen people', 'Don\u2019t let it feed', 'Destroy the Hunger']
+});
+
+MISSIONS.push({
+	id: 'unbound',
+	title: 'Unbound',
+	tagline: 'The Central Battery breaks open, and the fear the Guardians locked inside it ten billion years ago comes out hungry.',
+	lantern: 'hal',
+	environment: 'planet',
+	place: 'Oa · the Central Battery',
+	partner: 'kilowog',
+	briefing: [
+		'Parallax is out. It towers over the plaza, and it remembers every Guardian who locked it away. Six of them stand against it.',
+		'It reaches down and takes hold of a Guardian with a tendril (a yellow ring tightens round them first). Break the GRIP, where it is wrapped round them, before it drains them grey. It slams tendrils down on you too: get out of the yellow ring on the ground.',
+		'New construct: SONIC BOOM. A supersonic run along your aim, straight through everything, and the shock cone hits it all again. Run it through a grip. You cannot beat Parallax today: hold on until it has had enough of Oa.'
+	],
+	objectives: ['Break every grip on a Guardian', 'Keep out of its slams', 'Hold out until it leaves Oa']
 });

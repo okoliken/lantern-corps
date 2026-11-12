@@ -152,6 +152,8 @@ function score(def: ConstructDef, s: Situation, p: Player, w: ConstructWorld): n
 			return p.chaff <= 0 && s.all.some((o) => dist(o, p) > 200 && dist(o, p) < 700) && s.rushed ? 0.55 : 0;
 		case 'lock':
 			return p.lockOn <= 0 && hasTarget && d < 700 ? 0.58 : 0;
+		case 'boom':
+			return hasTarget && d > 80 && d < def.range ? 0.55 + 0.1 * Math.min(cluster - 1, 2) : 0;
 		case 'carrier':
 			return hasTarget && d < def.range ? 0.62 + 0.1 * Math.min(cluster - 1, 2) : 0;
 		default:

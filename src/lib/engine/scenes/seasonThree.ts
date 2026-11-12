@@ -2,12 +2,15 @@
 // place and a cast on marks; the lines are in story/scenes.ts.
 
 import { OA_GROUND, drawOaBackdrop } from '../draw/oa';
-import { THE_GALA, THE_STUDY } from '../../story/scenes';
+import { THE_GALA, THE_STUDY, THE_UNBOUND, THE_WARNING } from '../../story/scenes';
 import { CastScene } from './cast';
 import { drawGuardian, drawGuardianDais } from './summoned';
+import { green } from '../../theme';
 import { drawStudiedLantern } from '../missions/studied';
 import { drawParallax } from '../draw/parallax';
-import { STAGE_GROUND, STAGE_H, STAGE_W, drawFerrisAirfield } from '../draw/stages';
+import { STAGE_GROUND, STAGE_H, STAGE_W, drawCentralCity, drawFerrisAirfield } from '../draw/stages';
+import { createEnemy } from '../enemies/enemies';
+import { drawHunger } from '../draw/hunger';
 import { FIGURE_HEIGHT, drawLantern, ringPosition, type Figure as LanternFigure, type LanternPose } from '../draw/lantern';
 import { LANTERNS } from '../lanterns';
 import { drawJet } from '../missions/gala';
@@ -523,4 +526,296 @@ function drawHammondTurning(ctx: CanvasRenderingContext2D, x: number, y: number,
 		ctx.fill();
 		ctx.restore();
 	}
+}
+
+// ------------------------------------------------------------- episode 3
+
+/** Lines 0-4 on Oa at Sinestro's cell; from line 5, Coast City, where John has just landed. */
+const WARN_CITY = 5;
+/** Where the Central Battery stands in the Oa backdrop. */
+const BATTERY_AT = { x: 330, top: 335, bottom: 515 };
+
+/** Yellow cracking up the inside of the Central Battery: a thread at first, wider on Sinestro's lines, a pulse through it. */
+function batteryCracks(ctx: CanvasRenderingContext2D, t: number, line: number, age: number) {
+	const grow = line < 1 ? 0 : line === 1 ? Math.min(1, age / 3) * 0.4 : line === 2 ? 0.4 + Math.min(1, age / 3) * 0.1 : 0.5 + Math.min(1, age / 2.5) * 0.5;
+	if (grow <= 0) return;
+	const { x, top, bottom } = BATTERY_AT;
+	const h = bottom - top;
+	ctx.save();
+	ctx.globalCompositeOperation = 'lighter';
+	const pulse = line >= 3 ? 0.5 + 0.5 * Math.sin(t * 5) : 0.3;
+	const g = ctx.createRadialGradient(x, top + h * 0.55, 10, x, top + h * 0.55, 160);
+	g.addColorStop(0, `rgba(255, 210, 60, ${0.35 * grow * (0.6 + 0.4 * pulse)})`);
+	g.addColorStop(1, 'rgba(255, 170, 0, 0)');
+	ctx.fillStyle = g;
+	ctx.fillRect(x - 170, top - 20, 340, h + 40);
+	ctx.strokeStyle = `rgba(255, 220, 90, ${0.55 + 0.4 * pulse})`;
+	ctx.lineCap = 'round';
+	// Cracks climbing from the base, branching
+	for (let c = 0; c < 4; c++) {
+		const sx = x - 36 + c * 24;
+		const len = h * grow * (0.6 + 0.12 * c);
+		ctx.lineWidth = 2.5 + grow * 2;
+		ctx.beginPath();
+		ctx.moveTo(sx, bottom - 10);
+		for (let k = 1; k <= 8; k++) {
+			const ny = bottom - 10 - (len * k) / 8;
+			const nx = sx + Math.sin(k * 2.1 + c * 1.7) * 6 + Math.sin(k * 5.3 + c) * 2.5;
+			ctx.lineTo(nx, ny);
+			if (k % 3 === 0 && grow > 0.5) {
+				ctx.moveTo(nx, ny);
+				ctx.lineTo(nx + (c % 2 ? 18 : -18), ny - 16);
+				ctx.moveTo(nx, ny);
+			}
+		}
+		ctx.stroke();
+	}
+	ctx.restore();
+}
+
+/** Coast City at night, people frozen in the street, and the Hunger at the end of the block. */
+function warningCity(ctx: CanvasRenderingContext2D, t: number, line: number, age: number, hunger: ReturnType<typeof createEnemy>) {
+	drawCentralCity(ctx, t, 1);
+	// A yellow haze down the street toward it
+	const haze = ctx.createLinearGradient(1400, 0, 500, 0);
+	haze.addColorStop(0, 'rgba(255, 190, 40, 0.22)');
+	haze.addColorStop(1, 'rgba(255, 190, 40, 0)');
+	ctx.fillStyle = haze;
+	ctx.fillRect(0, 0, STAGE_W, STAGE_H);
+	// The people, rooted to the spot, shaking
+	FROZEN.forEach((f, i) => {
+		const pose: LanternPose = { dir: f.dir, walkPhase: 0, altitude: 0, hoverHeight: 8, lean: 0, glow: false, shadow: true, firing: false, aimX: f.dir, aimY: 0, hurt: 0.75 + 0.1 * Math.sin(t * 20 + i) };
+		drawLantern(ctx, GUESTS[i + 3].figure, f.x + Math.sin(t * 40 + i) * 1.2, G + f.dy, pose, t, 1.05);
+		ctx.save();
+		ctx.globalCompositeOperation = 'lighter';
+		const k = (t * 0.8 + i * 0.3) % 1;
+		ctx.fillStyle = `rgba(255, 200, 60, ${0.4 * (1 - k)})`;
+		ctx.beginPath();
+		ctx.arc(f.x, G + f.dy - 130 - k * 50, 5 + k * 8, 0, Math.PI * 2);
+		ctx.fill();
+		// The one nearest it, being fed on
+		if (i === FROZEN.length - 1 && line >= WARN_CITY + 1) {
+			ctx.strokeStyle = `rgba(255, 220, 90, ${0.6 + 0.3 * Math.sin(t * 8)})`;
+			ctx.lineWidth = 8;
+			ctx.beginPath();
+			ctx.moveTo(f.x, G + f.dy - 90);
+			ctx.quadraticCurveTo(f.x + 80, G + f.dy - 220, 1150, G - 110);
+			ctx.stroke();
+		}
+		ctx.restore();
+	});
+	// The Hunger, at the end of the block, rearing up to roar on the last line
+	hunger.brain.state = line >= WARN_CITY + 1 && age < 2.4 ? 'windup' : 'idle';
+	hunger.dir = -1;
+	ctx.save();
+	ctx.translate(1180, G + 20);
+	ctx.scale(1.15, 1.15);
+	drawHunger(ctx, hunger, 0, 0, true, t, 0.3);
+	ctx.restore();
+	if (line >= WARN_CITY + 1) {
+		const k = (age % 1.6) / 1.6;
+		ctx.save();
+		ctx.globalCompositeOperation = 'lighter';
+		ctx.strokeStyle = `rgba(255, 210, 70, ${0.5 * (1 - k)})`;
+		ctx.lineWidth = 5;
+		ctx.beginPath();
+		ctx.ellipse(1150, G - 100, 80 + k * 600, 40 + k * 260, 0, 0, Math.PI * 2);
+		ctx.stroke();
+		ctx.restore();
+	}
+}
+const FROZEN = [
+	{ x: 520, dy: 10, dir: 1 as const },
+	{ x: 640, dy: 40, dir: -1 as const },
+	{ x: 790, dy: 0, dir: 1 as const },
+	{ x: 900, dy: 35, dir: 1 as const }
+];
+
+export const theWarning = () => {
+	const beat = { line: 0, age: 0 };
+	const hunger = createEnemy('hunger', 0, 0);
+	return new CastScene(THE_WARNING, {
+		talkStarts: 2,
+		backdrop: (ctx, t, scene) => {
+			beat.line = scene.line;
+			beat.age = scene.lineAge;
+			if (scene.line >= WARN_CITY) warningCity(ctx, t, scene.line, scene.lineAge, hunger);
+			else {
+				drawOaBackdrop(ctx, t, scene.line >= 3 ? 0.4 : 0);
+				batteryCracks(ctx, t, scene.line, scene.lineAge);
+			}
+		},
+		front: (ctx, t, scene) => {
+			if (scene.line < WARN_CITY) cellBars(ctx, 1180, OA_GROUND + 10, t);
+			// The cut to Earth: a flash of green as the ring's call carries
+			if (scene.line === WARN_CITY && scene.lineAge < 0.7) {
+				ctx.fillStyle = `rgba(0, 0, 0, ${1 - scene.lineAge / 0.7})`;
+				ctx.fillRect(0, 0, STAGE_W, STAGE_H);
+			}
+			if (scene.line === WARN_CITY - 1 && scene.lineAge > 2) {
+				ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(1, (scene.lineAge - 2) / 1.5)})`;
+				ctx.fillRect(0, 0, STAGE_W, STAGE_H);
+			}
+		},
+		cast: [
+			{ speaker: 'guardian', figure: { draw: (ctx, gx, gy, _pose, t, speaking) => drawGuardianDais(ctx, gx, gy, t, speaking, 0.6) }, marks: [{ x: 640, y: OA_GROUND - 40 }, { line: WARN_CITY, x: -900, y: OA_GROUND - 40 }] },
+			{ speaker: 'hal', figure: { lantern: 'hal' }, marks: [{ x: 930, y: OA_GROUND + 40, dir: 1 }, { line: 1, x: 860, y: OA_GROUND + 40, time: 1, dir: -1 }, { line: 3, x: 960, y: OA_GROUND + 40, time: 1.2, dir: 1 }, { line: WARN_CITY, x: -900, y: OA_GROUND + 40 }] },
+			{ speaker: 'sinestro', figure: { enemy: 'sinestro' }, marks: [{ x: 1180, y: OA_GROUND, dir: -1 }, { line: WARN_CITY, x: 2900, y: OA_GROUND }] },
+			{ speaker: 'john', figure: { lantern: 'john' }, hidden: true, marks: [{ x: 260, y: G + 50, lift: 380, dir: 1 }, { line: WARN_CITY, x: 380, y: G + 50, time: 1.8, dir: 1 }] }
+		]
+	});
+};
+
+// ------------------------------------------------------------- episode 4
+
+/** The line it breaks out on, and where it comes from and goes to on the stage. */
+const BREAK_LINE = 3;
+const PX_FROM = { x: 330, y: 430, s: 0.25 };
+const PX_TO = { x: 720, y: 250, s: 0.95 };
+/** The three Guardians on the dais (the third is the one it takes). */
+const DAIS = { x: 760, y: OA_GROUND - 40 };
+
+function unboundParallax(line: number, age: number): { x: number; y: number; s: number } | null {
+	if (line < BREAK_LINE) return null;
+	const k = line === BREAK_LINE ? Math.min(1, age / 2.6) : 1;
+	const e = k * k * (3 - 2 * k);
+	return { x: PX_FROM.x + (PX_TO.x - PX_FROM.x) * e, y: PX_FROM.y + (PX_TO.y - PX_FROM.y) * e, s: PX_FROM.s + (PX_TO.s - PX_FROM.s) * e };
+}
+
+/** The taken Guardian: off the dais from line 4, up toward it. */
+function takenLift(line: number, age: number): number {
+	if (line < 4) return 0;
+	const k = line === 4 ? Math.max(0, Math.min(1, (age - 1.6) / 2)) : 1;
+	return k * 210;
+}
+
+function drawUnboundDais(ctx: CanvasRenderingContext2D, x: number, y: number, t: number, speaking: boolean, line: number, age: number) {
+	ctx.fillStyle = '#13201b';
+	ctx.strokeStyle = green(0.35);
+	ctx.lineWidth = 2;
+	for (const [w, h, dy] of [
+		[330, 26, 40],
+		[260, 22, 18],
+		[190, 20, -2]
+	]) {
+		ctx.beginPath();
+		ctx.rect(x - w / 2, y + dy, w, h);
+		ctx.fill();
+		ctx.stroke();
+	}
+	const px = unboundParallax(line, age);
+	[-62, 0, 62].forEach((dx, i) => {
+		const bob = Math.sin(t * 1.3 + i * 2) * 3;
+		const lift = i === 2 ? takenLift(line, age) : 0;
+		// The one it takes is drawn over it, in front (see theUnbound)
+		if (lift > 0) return;
+		const gx = x + dx + (i === 2 ? lift * 0.35 : 0);
+		const gy = y - 6 + bob - (i === 1 ? 10 : 0) - lift;
+		// Their will at it, while they still have it
+		if (px && line >= BREAK_LINE + 1 && lift < 20) beam(ctx, gx, gy - 60, px.x + (gx - px.x) * 0.2, px.y + 40, 0.9, t + i);
+		drawGuardian(ctx, gx, gy, i === 1 && speaking ? 1 : 0, lift > 0 ? Math.min(1, lift / 120) : 0, t + i);
+	});
+}
+
+export const theUnbound = () => {
+	// The scene's line and age, for the dais (its figure draw isn't given them)
+	const beat = { line: 0, age: 0 };
+	return new CastScene(THE_UNBOUND, {
+		talkStarts: 2,
+		backdrop: (ctx, t, scene) => {
+			beat.line = scene.line;
+			beat.age = scene.lineAge;
+			drawOaBackdrop(ctx, t, scene.line >= BREAK_LINE ? 1 : scene.line >= 1 ? 0.4 : 0);
+			// The Battery going yellow, then bursting
+			if (scene.line < BREAK_LINE) batteryCracks(ctx, t, scene.line + 2, scene.lineAge);
+			else drawEmptyBattery(ctx, t);
+		},
+		front: (ctx, t, scene) => {
+			const { line, lineAge: age } = scene;
+			const px = unboundParallax(line, age);
+			if (line === BREAK_LINE && age < 1.2) {
+				// The burst: a flash, shards of the Battery's shell flying
+				const k = age / 1.2;
+				ctx.save();
+				ctx.globalCompositeOperation = 'lighter';
+				ctx.fillStyle = `rgba(255, 230, 140, ${0.75 * (1 - k)})`;
+				ctx.fillRect(0, 0, STAGE_W, STAGE_H);
+				ctx.restore();
+				ctx.fillStyle = '#0c2a1d';
+				ctx.strokeStyle = 'rgba(120, 255, 170, 0.7)';
+				for (let i = 0; i < 12; i++) {
+					const a = (i / 12) * Math.PI * 2;
+					const d = k * (200 + (i % 4) * 60);
+					ctx.save();
+					ctx.translate(330 + Math.cos(a) * d, 420 + Math.sin(a) * d * 0.7 + k * k * 120);
+					ctx.rotate(a + k * 6);
+					ctx.beginPath();
+					ctx.moveTo(-14, -6);
+					ctx.lineTo(16, -10);
+					ctx.lineTo(4, 14);
+					ctx.closePath();
+					ctx.fill();
+					ctx.stroke();
+					ctx.restore();
+				}
+			}
+			if (px) {
+				const grabs = [];
+				const lift = takenLift(line, age);
+				if (line >= 4) grabs.push({ x: DAIS.x + 62 + lift * 0.35, y: DAIS.y - 60 - lift, k: line === 4 ? Math.min(1, Math.max(0, (age - 0.8) / 0.8)) : 1 });
+				drawParallax(ctx, px.x, px.y, px.s, t, { grabs, hit: line >= 4 ? 0.5 + 0.3 * Math.sin(t * 7) : 0, rage: line === BREAK_LINE ? 1 : 0.7 });
+				// The Guardian it has, in front of it, struggling in the coils
+				if (lift > 0) {
+					const gx = DAIS.x + 62 + lift * 0.35;
+					const gy = DAIS.y - 6 - lift;
+					drawGuardian(ctx, gx, gy + Math.sin(t * 9) * 3, 0, Math.min(1, lift / 120), t + 2);
+					ctx.save();
+					ctx.lineCap = 'round';
+					for (let i = 0; i < 3; i++) {
+						ctx.strokeStyle = 'rgba(90, 50, 6, 0.95)';
+						ctx.lineWidth = 9;
+						ctx.beginPath();
+						ctx.ellipse(gx, gy - 34 + i * 13, 17, 6, Math.sin(t * 3 + i) * 0.3, 0, Math.PI * 2);
+						ctx.stroke();
+						ctx.strokeStyle = 'rgba(245, 190, 50, 0.95)';
+						ctx.lineWidth = 4;
+						ctx.stroke();
+					}
+					ctx.restore();
+				}
+			}
+		},
+		cast: [
+			{ speaker: 'guardian', figure: { draw: (ctx, gx, gy, _pose, t, speaking) => drawUnboundDais(ctx, gx, gy, t, speaking, beat.line, beat.age) }, marks: [{ x: DAIS.x, y: DAIS.y }] },
+			{ speaker: 'kilowog', figure: { lantern: 'kilowog' }, marks: [{ x: 1080, y: OA_GROUND + 30, dir: -1 }, { line: 5, x: 980, y: OA_GROUND, lift: 260, time: 1.4, dir: -1 }] },
+			{ speaker: 'hal', figure: { lantern: 'hal' }, marks: [{ x: 1200, y: OA_GROUND + 40, dir: -1 }, { line: 2, x: 1150, y: OA_GROUND + 40, time: 0.8, dir: -1 }, { line: 5, x: 1060, y: OA_GROUND + 20, lift: 300, time: 1.2, dir: -1 }] },
+			{ speaker: 'parallax', figure: { draw: () => {} }, marks: [{ x: -500, y: OA_GROUND }] }
+		]
+	});
+};
+
+/** The Central Battery after it broke: its window dark and split, a yellow stain still leaking out of the top. */
+function drawEmptyBattery(ctx: CanvasRenderingContext2D, t: number) {
+	const { x, top, bottom } = BATTERY_AT;
+	ctx.save();
+	ctx.fillStyle = '#0a1d14';
+	ctx.beginPath();
+	ctx.roundRect(x - 40, top - 5, 80, bottom - top + 10, 12);
+	ctx.fill();
+	// The split, jagged down the middle, yellow still glowing in it
+	ctx.strokeStyle = `rgba(255, 200, 60, ${0.6 + 0.3 * Math.sin(t * 6)})`;
+	ctx.lineWidth = 4;
+	ctx.beginPath();
+	ctx.moveTo(x - 4, top - 40);
+	for (let k = 1; k <= 8; k++) ctx.lineTo(x + (k % 2 ? 9 : -7), top - 40 + ((bottom - top + 40) * k) / 8);
+	ctx.stroke();
+	ctx.globalCompositeOperation = 'lighter';
+	const g = ctx.createRadialGradient(x, top - 50, 4, x, top - 50, 90);
+	g.addColorStop(0, 'rgba(255, 210, 70, 0.5)');
+	g.addColorStop(1, 'rgba(255, 170, 0, 0)');
+	ctx.fillStyle = g;
+	ctx.beginPath();
+	ctx.arc(x, top - 50, 90, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.restore();
 }

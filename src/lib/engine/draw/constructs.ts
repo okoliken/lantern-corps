@@ -17,6 +17,7 @@ import { uiFont } from './fonts';
 import { drawAnvilDrop, drawClusterBomb, drawCutter, drawFlakShell, drawGirder, drawGrenade, drawMarine, drawSidewinder, drawSpring, drawTrain, drawWingman, drawWreckingBall, glovePath, ironFistDetail, ironFistPath, riflePath } from './kits';
 import { green, greenCore, GREEN_LIGHT, GREEN_CORE } from '../../theme';
 import { drawCarrier } from './carrier';
+import { drawSonicBoom } from './sonicBoom';
 import { drawBombRun, drawClaymore, drawGunship, drawMortarDrop, drawSentryGun, drawTank } from './armory';
 import { drawGlaive, drawHonorGuard, drawJavelin, drawNeedle, drawPrismCell, drawPrismTrap, drawRebuke, drawSaberSlash, drawSentinels, drawShard, drawSpires, drawTalonHead, drawVerdictHeld, drawVerdictShot } from './sinestro';
 
@@ -1040,6 +1041,9 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 	switch (e.kind) {
 		case 'carrier':
 			drawCarrier(ctx, e, time);
+			break;
+		case 'sonicBoom':
+			drawSonicBoom(ctx, e);
 			break;
 		case 'slash': {
 			if (e.form === 'saber') {

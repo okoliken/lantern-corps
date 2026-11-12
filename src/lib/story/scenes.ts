@@ -32,7 +32,8 @@ export type Speaker =
 	| 'firefly'
 	| 'lyssa'
 	| 'carol'
-	| 'hammond';
+	| 'hammond'
+	| 'parallax';
 
 export interface SceneLine {
 	who: Speaker;
@@ -69,7 +70,8 @@ export const SPEAKERS: Record<Speaker, { name: string; color: string }> = {
 	firefly: { name: 'Firefly', color: '#ffb12a' },
 	lyssa: { name: 'Lyssa Drak', color: '#ffd23a' },
 	carol: { name: 'Carol Ferris', color: '#ff8fa0' },
-	hammond: { name: 'Hector Hammond', color: '#f2c94c' }
+	hammond: { name: 'Hector Hammond', color: '#f2c94c' },
+	parallax: { name: 'Parallax', color: '#ffb020' }
 };
 
 /**
@@ -496,4 +498,25 @@ export const THE_GALA: SceneLine[] = [
 	{ who: 'hammond', text: "It didn't fall, Carol. It came looking for me. And now I can hear what every one of you is thinking." },
 	{ who: 'hammond', text: "You are all so LOUD.", mood: 'grin' },
 	{ who: 'hal', text: 'Carol, get everyone back. Now.', mood: 'alarm' }
+];
+
+/** Season three, episode 3: Sinestro's warning on Oa, and what John finds at home in Coast City. */
+export const THE_WARNING: SceneLine[] = [
+	{ who: 'hal', text: 'You knew. You knew what was inside that lantern.' },
+	{ who: 'sinestro', text: 'Everyone on Oa knows, Jordan. They simply never say it. Look behind you. Look at your Battery.' },
+	{ who: 'guardian', text: 'The Battery holds. It has held for ten billion years.' },
+	{ who: 'sinestro', text: 'What fell on Earth was not a fragment. It was a seed. It plants fear, and then it comes back to eat what grew.' },
+	{ who: 'hal', text: 'Coast City. John, are you home? Tell me you are home.', mood: 'alarm' },
+	{ who: 'john', text: "Just touched down. Hal... nobody's moving. They're standing in the street, frozen, like statues." },
+	{ who: 'john', text: "And there's something at the end of the block. It's eating it. Their fear. It's eating it.", mood: 'alarm' }
+];
+
+/** Season three, episode 4: the Central Battery breaks open, and Parallax comes out. */
+export const THE_UNBOUND: SceneLine[] = [
+	{ who: 'guardian', text: 'The Battery is failing. Every Guardian to the plaza. We seal it, now.' },
+	{ who: 'kilowog', text: "Sirs... the light in there. It's gone yellow." },
+	{ who: 'hal', text: "That's not a crack. That's a door.", mood: 'alarm' },
+	{ who: 'parallax', text: 'TEN BILLION YEARS IN YOUR LIGHT. IN THE DARK OF IT. I REMEMBER EVERY ONE OF YOU.' },
+	{ who: 'guardian', text: 'Hold it! All of you, HOLD it!' },
+	{ who: 'hal', text: "It's got one of them! Kilowog, GO!", mood: 'alarm' }
 ];

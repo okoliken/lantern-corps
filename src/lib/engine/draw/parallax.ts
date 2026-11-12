@@ -8,6 +8,8 @@ export interface ParallaxPose {
 	hit?: number;
 	/** 0..1, rage: the eyes and mouth burn. */
 	rage?: number;
+	/** How far its loose tendrils wave out (1 = full length). */
+	reach?: number;
 }
 
 export function drawParallax(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, t: number, pose: ParallaxPose = {}) {
@@ -19,7 +21,7 @@ export function drawParallax(ctx: CanvasRenderingContext2D, x: number, y: number
 	// The loose tendrils, waving
 	for (let i = 0; i < 8; i++) {
 		const a = (i / 8) * Math.PI * 2 + 0.3;
-		const len = (220 + 60 * Math.sin(t * 1.3 + i * 2.1)) * s;
+		const len = (220 + 60 * Math.sin(t * 1.3 + i * 2.1)) * s * (pose.reach ?? 1);
 		const ex = x + Math.cos(a) * len;
 		const ey = y + Math.sin(a) * len * 0.75 + 40 * s;
 		const cx = x + Math.cos(a + 0.6 * Math.sin(t * 1.7 + i)) * len * 0.6;

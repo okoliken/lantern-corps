@@ -56,6 +56,8 @@ import { Summoned } from '$lib/engine/scenes/summoned';
 import * as S2 from '$lib/engine/scenes/seasonTwo';
 import * as S3 from '$lib/engine/scenes/seasonThree';
 import { Gala, buildGalaMap } from '$lib/engine/missions/gala';
+import { Warning, buildWarningMap } from '$lib/engine/missions/warning';
+import { Unbound, buildUnboundMap } from '$lib/engine/missions/unbound';
 import { Studied, buildStudiedMap } from '$lib/engine/missions/studied';
 
 export interface MissionRun {
@@ -350,6 +352,27 @@ export function buildMission(id: string, options: Options): MissionRun {
 			const director = new LightsOut();
 			game.director = director;
 			return { game, director, outro: null, intro: S2.batteryFailing };
+		}
+		case 'unbound': {
+			// Hal and Kilowog on Oa: Parallax out of the Battery, reaching for the Guardians
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: 'hal', keys: 'solo' },
+					{ lantern: 'kilowog', keys: 'p2', ai: true }
+				],
+				map: buildUnboundMap()
+			});
+			const director = new Unbound();
+			game.director = director;
+			return { game, director, outro: null, intro: S3.theUnbound };
+		}
+		case 'warning': {
+			// John alone, home in Coast City: frozen people, and the Hunger feeding on them
+			const game = new Game({ ...options, players: [{ lantern: 'john', keys: 'solo' }], map: buildWarningMap() });
+			const director = new Warning();
+			game.director = director;
+			return { game, director, outro: null, intro: S3.theWarning };
 		}
 		case 'gala': {
 			// Hal alone at the Ferris gala: the helicopter, then Hammond

@@ -29,7 +29,7 @@ import { flyShip } from './ships';
 import { updateSquads, type SquadRole } from './squad';
 import { chooseGoal, clearShot, navigate, perceive, tryDodge, wander, type Goal } from './tactics';
 
-export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire' | 'rageBubble' | 'bloodConduit' | 'toxinTank' | 'forgeConduit' | 'mindAmp' | 'fearLens' | 'seaBreach' | 'qwardCharge' | 'blaze'>;
+export type EnemyKind = Exclude<TargetKind, 'dummy' | 'spaceRock' | 'rageTorpedo' | 'manhunterCore' | 'signalSpire' | 'rageBubble' | 'bloodConduit' | 'toxinTank' | 'forgeConduit' | 'mindAmp' | 'fearLens' | 'seaBreach' | 'qwardCharge' | 'blaze' | 'parallaxGrip'>;
 type EnemyState = 'idle' | 'move' | 'windup' | 'act' | 'recover';
 export type Role = 'berserker' | 'hunter' | 'gunner';
 /** How a faction thinks: rage never backs down and gets faster when hurt; machines stay cold and regroup. */
@@ -335,6 +335,29 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		kit: ['meteors', 'chain', 'blast'],
 		range: 420,
 		leans: { caution: 0.45, patience: 0.3 },
+		lieutenant: true
+	},
+	// Season three, The Warning: what Parallax's fear made out of Coast City's panic
+	hunger: {
+		kind: 'hunger',
+		name: 'The Hunger',
+		faction: 'rogue',
+		tint: 'fear',
+		description:
+			'A beast of smoke and yellow light that Parallax\u2019s fear made out of Coast City\u2019s panic. It feeds on frightened people: the more of them panicking near it, the harder it is to hurt.',
+		mind: 'rage',
+		hp: 1600,
+		speed: 210,
+		accel: 5,
+		sight: 1200,
+		poise: 260,
+		scale: 1,
+		agility: 0.35,
+		movement: 'hover',
+		onFoot: true,
+		kit: ['slam', 'charge', 'roar', 'claws'],
+		range: 160,
+		leans: { aggression: 0.7, caution: -0.3 },
 		lieutenant: true
 	},
 	blackManta: {

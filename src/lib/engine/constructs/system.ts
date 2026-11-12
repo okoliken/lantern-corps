@@ -195,7 +195,9 @@ export interface Effect {
 		// Sinestro's Prism Cell, closed round what it caught (draw/sinestro.ts)
 		| 'prismCell'
 		// Hal's Carrier Strike: the carrier and its jets (it launches them as it ages, see updateCarriers)
-		| 'carrier';
+		| 'carrier'
+		// Hal's Sonic Boom: the shock cone along the line he just went down (`mark` is the far end)
+		| 'sonicBoom';
 	x: number;
 	y: number;
 	age: number;
@@ -718,6 +720,8 @@ function perform(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 		case 'carrier':
 			launchCarrier(p, def, w);
 			return true;
+		case 'boom':
+			return sonicBoom(p, def, w);
 		default:
 			return false;
 	}
@@ -916,6 +920,59 @@ function shockwave(p: Player, def: ConstructDef, w: ConstructWorld) {
 		if (Math.hypot(cx - p.x, cy - p.y) <= def.range) damageObstacle(w, o, power(p, def.damage));
 	}
 	w.effects.push({ kind: 'shockwave', form: def.shape, x: p.x, y: p.y, age: 0, life: 0.65, radius: def.range, owner: p });
+}
+
+/** Sonic Boom: a burn run at supersonic speed, the shock cone to follow (see runBurn in signature.ts). */
+function sonicBoom(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
+	const len = Math.hypot(p.aimX, p.aimY) || 1;
+	const speed = def.speed ?? 1800;
+	const time = def.range / speed;
+	p.dash = {
+		kind: 'burn',
+		dx: p.aimX / len,
+		dy: p.aimY / len,
+		speed,
+		time,
+		blocked: false,
+		hit: [],
+		damage: power(p, def.damage),
+		knockback: power(p, def.knockback),
+		look: 'boom',
+		from: { x: p.x, y: p.y },
+		cone: { damage: power(p, def.damage * 0.6), knockback: power(p, def.knockback * 0.7), radius: def.radius ?? 120 }
+	};
+	p.invuln = Math.max(p.invuln, time + 0.2);
+	p.firing = false;
+	w.effects.push({ kind: 'shockwave', x: p.x, y: p.y, age: 0, life: 0.35, radius: 70, owner: p });
+	return true;
+}
+
+/** The shock cone catching up with him: everything along the line he went down is hit again, thrown out from it. */
+export function sonicCone(p: Player, w: ConstructWorld) {
+	const d = p.dash;
+	if (!d?.from || !d.cone) return;
+	const { x: ax, y: ay } = d.from;
+	const bx = p.x;
+	const by = p.y;
+	const lx = bx - ax;
+	const ly = by - ay;
+	const l2 = lx * lx + ly * ly || 1;
+	for (const t of w.dummies) {
+		if (!isStanding(t)) continue;
+		const k = Math.max(0, Math.min(1, ((t.x - ax) * lx + (t.y - ay) * ly) / l2));
+		const cx = ax + lx * k;
+		const cy = ay + ly * k;
+		if (footprintGap(t, cx, cy) > d.cone.radius) continue;
+		// Thrown out sideways from the line
+		hitDummyWithFx(w, t, d.cone.damage, d.cone.knockback, cx - (t.x - cx) * 0.2, cy - (t.y - cy) * 0.2, p);
+	}
+	for (const o of breakables(w)) {
+		const [ox, oy] = center(o);
+		const k = Math.max(0, Math.min(1, ((ox - ax) * lx + (oy - ay) * ly) / l2));
+		if (Math.hypot(ox - (ax + lx * k), oy - (ay + ly * k)) <= d.cone.radius + Math.max(o.w, o.h) / 2) damageObstacle(w, o, d.cone.damage);
+	}
+	w.effects.push({ kind: 'sonicBoom', x: ax, y: ay, age: 0, life: 0.7, radius: d.cone.radius, mark: { x: bx, y: by }, owner: p });
+	w.effects.push({ kind: 'callout', x: bx, y: by, age: 0, life: 0.8, text: 'BOOM', owner: p });
 }
 
 /** Carrier Strike's timing: it rises, then launches a jet every `every` seconds; each takes `flight` to reach the mark. */

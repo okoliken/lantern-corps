@@ -30,7 +30,10 @@ into his Armory:
 - **Carrier Strike** (The Gala): an aircraft carrier rises behind him and
   launches six jets at the crosshair; each hunts the nearest enemy there and
   bombs it.
-- *(planned)* Act 2 and Act 3 each bring more, building to the finale.
+- **Sonic Boom** (Unbound): a supersonic run along the aim, straight through
+  everything; the shock cone he leaves behind hits the whole line again.
+- *(planned)* More in Act 2 and Act 3 (Ace Frame, a construct mech, is saved for
+  the finale), building to the fight in the sun.
 
 ## Acts
 
@@ -48,11 +51,21 @@ into his Armory:
    beaten, he lifts Carol into the sky: hit him to break his concentration,
    then catch her. Beaten, he's pulled up into the dark by something calling
    him.
-3. *(planned)* John arrives on Earth; Sinestro's warning on Oa.
+3. **The Warning** (John, Coast City). Scene: on Oa, Sinestro tells Hal what
+   the Guardians won't say while yellow cracks crawl up the Central Battery;
+   then Coast City, people frozen in the street, the Hunger feeding. Mission:
+   free the frozen people (stand by them, they run for the subway); every one
+   still frozen is armour on the Hunger; it hunts and feeds on them, roars to
+   freeze the runners again, and sends Fear Hounds after them.
 
 ### Act 2: Parallax
-Parallax breaks loose and tears through the Guardians. Hal frees Sinestro.
-Hammond, feeding Parallax, takes Coast City; John holds it.
+4. **Unbound** (Hal + Kilowog, Oa). Scene: the Battery bursts, Parallax rises,
+   the Guardians fire on it and it takes one. Mission: Parallax looms over the
+   plaza and reaches down for the six Guardians; break each tendril's grip
+   before it drains them grey, dodge its slams, survive the fear things. It
+   can't be beaten yet: it leaves, toward Earth. New construct: Sonic Boom.
+5. *(planned)* Hal frees Sinestro. Hammond, feeding Parallax, takes Coast
+   City; John holds it.
 
 ### Act 3: Into the Sun
 Both Lanterns, Kilowog and Sinestro against Parallax. John keeps it off

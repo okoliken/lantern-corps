@@ -24,6 +24,7 @@ import {
 	damageObstacle,
 	hitDummyWithFx,
 	launch,
+	sonicCone,
 	type ConstructWorld,
 	type Fortress
 } from './system';
@@ -230,8 +231,9 @@ function runBurn(p: Player, dt: number, w: ConstructWorld) {
 	if (d.look === 'strafe') strafe(p, dt, w);
 	// The ejector seat is an escape: it hits nothing on the way
 	if (d.look === 'ejector') return;
+	const reach = d.look === 'boom' ? BOOM_REACH : JET.hitRadius;
 	for (const t of w.dummies) {
-		if (!isStanding(t) || d.hit.includes(t) || footprintGap(t, p.x, p.y) > JET.hitRadius) continue;
+		if (!isStanding(t) || d.hit.includes(t) || footprintGap(t, p.x, p.y) > reach) continue;
 		d.hit.push(t);
 		const side = (t.x - p.x) * -d.dy + (t.y - p.y) * d.dx >= 0 ? 1 : -1;
 		hitDummyWithFx(w, t, d.damage ?? 20, d.knockback ?? 300, t.x + d.dy * side * 20 - d.dx * 10, t.y - d.dx * side * 20 - d.dy * 10, p);
@@ -240,11 +242,14 @@ function runBurn(p: Player, dt: number, w: ConstructWorld) {
 	w.effects.push({ kind: 'afterimage', x: p.x, y: p.y, age: 0, life: 0.3, angle: Math.atan2(d.dy, d.dx), owner: p, lift: p.ringLift });
 	d.time -= dt;
 	if (d.time <= 0 || d.blocked) {
+		if (d.look === 'boom') sonicCone(p, w);
 		p.dash = null;
 		p.vx *= 0.3;
 		p.vy *= 0.3;
 	}
 }
+/** How wide the Sonic Boom's run hits, either side of Hal. */
+const BOOM_REACH = 75;
 
 /** The run ends: the jet fires its missiles and dissolves. */
 function finishJet(p: Player, w: ConstructWorld) {
