@@ -153,6 +153,8 @@ const KEYBOARD_HALF_ANGLE = (30 * Math.PI) / 180;
 const BEHIND_COST = 0.6;
 /** ...one attacking you as this much nearer... */
 const THREAT_PULL = 0.75;
+/** A mission's must-break thing (a grip on a Guardian) wins over anything up to about three times as close. */
+const PRIORITY_PULL = 0.3;
 /** ...and the one you're already shooting as this much nearer, so the aim doesn't flick between two. */
 const KEEP_PULL = 0.7;
 /** Mouse aim assist: snap only to something this close to the crosshair direction. */
@@ -204,6 +206,7 @@ export function findAutoTarget(p: Player, w: TargetWorld, reach = AUTO_RANGE, op
 			score *= 1 + BEHIND_COST * ((1 - ahead) / 2);
 			const brain = (d as { brain?: { target: Player | null } }).brain;
 			if (brain?.target === p) score *= THREAT_PULL;
+			if (d.priority) score *= PRIORITY_PULL;
 			if (current?.kind === 'enemy' && current.dummy === d) score *= KEEP_PULL;
 		} else {
 			// The cone is checked against where the shot would go to hit its body, not its feet

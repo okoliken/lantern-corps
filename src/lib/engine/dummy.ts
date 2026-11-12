@@ -44,6 +44,8 @@ export interface Dummy {
 	down: number;
 	/** Training dummies pop back up; enemies stay defeated. */
 	respawns: boolean;
+	/** Something the mission needs broken now (a grip on a Guardian): auto-aim, the smart ring, airstrikes and partners go for it first. */
+	priority?: boolean;
 	/** A defeated enemy that has finished lingering: remove it from the world. */
 	gone: boolean;
 	/** Which way it faces: 1 right, -1 left. */

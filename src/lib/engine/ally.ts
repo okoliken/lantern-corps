@@ -21,6 +21,9 @@ import { isEnemy, type Enemy } from './enemies/enemies';
 
 /** A partner goes for a rebuilding Manhunter core from this far away. */
 const CORE_RANGE = 900;
+/** How far a partner goes to break a mission's must-break thing, and how close it gets to it. */
+const JOB_REACH = 2200;
+const JOB_RANGE = 220;
 import { IDLE, type InputSource, type Intent } from './input';
 import type { Player } from './player';
 
@@ -117,9 +120,39 @@ export class AllyInput implements InputSource {
 			// The surge bar is the real limit; this just stops it firing the moment it refills
 			this.signatureRest = 6;
 		}
-		this.useConstructs(me, target, enemies, intent);
+		const job = this.retreating ? null : this.jobFor(me, partner);
+		if (job) {
+			// The mission needs this broken: go and break it, constructs and all
+			const [ax, ay] = aimPoint(job, me.ringLift);
+			intent.pointer = { x: ax, y: ay - me.ringLift };
+			intent.shot = true;
+			const d = dist(job, me);
+			if (d > JOB_RANGE) {
+				intent.moveX = (job.x - me.x) / d;
+				intent.moveY = (job.y - me.y) / d;
+			}
+		}
+		this.useConstructs(me, job ?? target, enemies, intent);
 		this.smashCore(me, intent);
 		return intent;
+	}
+
+	/** The must-break thing to go for (a grip on a Guardian): the one my partner isn't nearest, so we split them. */
+	private job: Dummy | null = null;
+	private jobFor(me: Player, partner: Player | null): Dummy | null {
+		const open = this.world.dummies.filter((d) => d.priority && isStanding(d) && dist(d, me) < JOB_REACH);
+		if (this.job && open.includes(this.job)) return this.job;
+		let best: Dummy | null = null;
+		let bestScore = -Infinity;
+		for (const d of open) {
+			const score = (partner ? Math.min(dist(d, partner), 600) : 0) - dist(d, me) * 0.6;
+			if (score > bestScore) {
+				bestScore = score;
+				best = d;
+			}
+		}
+		this.job = best;
+		return best;
 	}
 
 	/** A broken Manhunter pulling itself back together nearby: drop everything and shoot its core (the one furthest along). */
@@ -301,7 +334,7 @@ export class AllyInput implements InputSource {
 		}
 	}
 
-	private useConstructs(me: Player, target: Enemy | null, enemies: Enemy[], intent: Intent) {
+	private useConstructs(me: Player, target: Dummy | null, enemies: Enemy[], intent: Intent) {
 		if (!target) {
 			this.plan = null;
 			return;

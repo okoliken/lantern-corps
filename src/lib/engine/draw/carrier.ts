@@ -44,8 +44,9 @@ export function drawCarrier(ctx: CanvasRenderingContext2D, e: Effect, time: numb
 	for (let i = 0; i < jets; i++) {
 		const k = (e.age - CARRIER.rise - i * CARRIER.every) / CARRIER.flight;
 		if (k < 0 || k > 1.8) continue;
-		const ex = mark.x + Math.sin(i * 2.4) * 40;
-		const ey = mark.y - JET_ALT;
+		const to = e.marks?.[i] ?? mark;
+		const ex = to.x + Math.sin(i * 2.4) * 40;
+		const ey = to.y - JET_ALT;
 		const at = (k: number): [number, number] => {
 			// Off the catapult and climbing, then the dive onto the mark, then pulling up and away
 			if (k <= 1) return [sx + (ex - sx) * k, sy + (ey - sy) * k - Math.sin(k * Math.PI) * 90];
@@ -72,30 +73,35 @@ export function drawCarrier(ctx: CanvasRenderingContext2D, e: Effect, time: numb
 		// The bomb it lets go of on the dive
 		if (k > 0.55 && k < 1) {
 			const b = (k - 0.55) / 0.45;
-			const bx = x + (mark.x - x) * b;
-			const by = y + (mark.y - y) * b * b;
+			const bx = x + (to.x - x) * b;
+			const by = y + (to.y - y) * b * b;
 			const bomb = new Path2D();
 			bomb.ellipse(bx, by, 6, 11, 0, 0, TAU);
 			energy(ctx, bomb, { time, edge: 1.4, body: 0.8 });
 		}
 	}
 
-	// The mark on the ground while jets are still to come
-	if (e.age < e.life - 1) {
-		const r = (e.radius ?? 120) * 0.8;
+	// A mark on the ground under every target a jet is still on its way to
+	const r = (e.radius ?? 120) * 0.8;
+	const pending = (e.marks ?? []).slice(e.launched ?? 0);
+	if (pending.length === 0 && e.age < CARRIER.rise) pending.push({ x: mark.x, y: mark.y, on: null });
+	const seen = new Set<unknown>();
+	for (const m of pending) {
+		if (m.on && seen.has(m.on)) continue;
+		seen.add(m.on);
 		ctx.strokeStyle = green(0.75);
 		ctx.lineWidth = 3;
 		ctx.setLineDash([12, 9]);
 		ctx.lineDashOffset = -time * 40;
 		ctx.beginPath();
-		ctx.ellipse(mark.x, mark.y, r, r * 0.42, 0, 0, TAU);
+		ctx.ellipse(m.x, m.y, r, r * 0.42, 0, 0, TAU);
 		ctx.stroke();
 		ctx.setLineDash([]);
 		ctx.beginPath();
-		ctx.moveTo(mark.x - r - 14, mark.y);
-		ctx.lineTo(mark.x - r * 0.5, mark.y);
-		ctx.moveTo(mark.x + r * 0.5, mark.y);
-		ctx.lineTo(mark.x + r + 14, mark.y);
+		ctx.moveTo(m.x - r - 14, m.y);
+		ctx.lineTo(m.x - r * 0.5, m.y);
+		ctx.moveTo(m.x + r * 0.5, m.y);
+		ctx.lineTo(m.x + r + 14, m.y);
 		ctx.stroke();
 	}
 	ctx.restore();

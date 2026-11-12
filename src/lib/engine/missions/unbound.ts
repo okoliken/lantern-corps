@@ -54,15 +54,15 @@ const GUARDIAN_SPOTS = [
 /** How long to hold out. */
 export const SURVIVE = 150;
 /** Its grab: a warning first, then the grip, which drains the Guardian over `drain` seconds unless it's broken. */
-export const GRAB = { warn: 1.8, drain: 10, every: 10, fastest: 5.5, gripHp: 340 };
+export const GRAB = { warn: 2, drain: 11, every: 9, fastest: 5.5, gripHp: 520 };
 /** At most this many held at once, by how long it has been going. */
 const HOLDS = [
 	{ after: 0, most: 1 },
-	{ after: 45, most: 2 },
+	{ after: 35, most: 2 },
 	{ after: 100, most: 3 }
 ];
 /** Its tendril slam on a Lantern: warned, then a hit where the ring was. */
-export const SLAM = { every: 5.5, warn: 1.3, radius: 125, damage: 46, knockback: 600 };
+export const SLAM = { every: 6, warn: 1.4, radius: 125, damage: 42, knockback: 600 };
 /** Fear things out of the Battery. */
 const SPAWN = { every: 20, first: 12 };
 const TOUGHNESS = 2.6;
@@ -291,6 +291,7 @@ export class Unbound implements MissionDirector {
 		d.kind = 'parallaxGrip';
 		d.hp = d.maxHp = GRAB.gripHp;
 		d.respawns = false;
+		d.priority = true;
 		game.dummies.push(d);
 		g.grip = d;
 		if (this.gripsCut === 0) this.once('grip', 'Kilowog', 'It’s got one! Hit the GRIP, where it’s wrapped round him!');

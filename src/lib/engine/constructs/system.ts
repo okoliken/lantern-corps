@@ -224,9 +224,10 @@ export interface Effect {
 	index?: number;
 	/** Who made it: effects at hand height are drawn at that Lantern's ring height. */
 	owner?: Player;
-	/** Carrier Strike: where the jets are going (it follows the nearest enemy) and how many have gone. */
+	/** Carrier Strike: where he aimed, how many bombs have landed, and each jet's own target (picked as it launches). */
 	mark?: { x: number; y: number };
 	launched?: number;
+	marks?: { x: number; y: number; on: Dummy | null }[];
 	/** What it's wrapped round (a Prism Cell's catch): gone when that's free. */
 	held?: Dummy;
 }
@@ -976,9 +977,9 @@ export function sonicCone(p: Player, w: ConstructWorld) {
 }
 
 /** Carrier Strike's timing: it rises, then launches a jet every `every` seconds; each takes `flight` to reach the mark. */
-export const CARRIER = { behind: 250, rise: 0.6, every: 0.36, flight: 0.62, hunt: 300 };
+export const CARRIER = { behind: 250, rise: 0.6, every: 0.36, flight: 0.62, hunt: 760 };
 
-/** Carrier Strike: the carrier rises behind him; its jets go for the crosshair. */
+/** Carrier Strike: the carrier rises behind him; its jets spread out over everything in reach (see updateCarriers). */
 function launchCarrier(p: Player, def: ConstructDef, w: ConstructWorld) {
 	const len = Math.hypot(p.aimX, p.aimY) || 1;
 	const ux = p.aimX / len;
@@ -1003,31 +1004,37 @@ function launchCarrier(p: Player, def: ConstructDef, w: ConstructWorld) {
 	});
 }
 
-/** Each carrier sends its jets off on time; a jet's bomb lands `flight` after it launches, on the enemy nearest the mark. */
+/**
+ * Each carrier sends its jets off on time. Every jet picks its own target as it
+ * launches, like an air wing working a battlefield: whatever the mission says
+ * matters most first (a Guardian's grip), then whoever nobody has bombed yet,
+ * nearest Hal first. It follows that target down and the bomb lands on it.
+ */
 function updateCarriers(w: ConstructWorld) {
 	for (const e of w.effects) {
 		if (e.kind !== 'carrier' || !e.mark || !e.owner) continue;
 		const def = e.owner.loadout.find((d) => d.id === e.form) ?? CONSTRUCTS.carrierStrike;
 		const jets = def.count ?? 6;
+		const marks = (e.marks ??= []);
+		const p = e.owner;
+		// Jets off the deck by now: each picks a target
+		const off = Math.min(jets, Math.max(0, Math.floor((e.age - CARRIER.rise) / CARRIER.every) + 1));
+		while (marks.length < off) marks.push(carrierTarget(w, p, e.mark, marks));
+		// Targets move: the jet follows them down
+		for (const m of marks) {
+			if (m.on && isStanding(m.on)) {
+				m.x = m.on.x;
+				m.y = m.on.y;
+			}
+		}
 		// Bombs due by now: one per jet that has had time to get there
 		const due = Math.min(jets, Math.max(0, Math.floor((e.age - CARRIER.rise - CARRIER.flight) / CARRIER.every) + 1));
 		while ((e.launched ?? 0) < due) {
+			const m = marks[e.launched ?? 0];
 			e.launched = (e.launched ?? 0) + 1;
-			// It hunts: the bomb goes on whoever's closest to the mark
-			let best: Dummy | null = null;
-			let bestD = CARRIER.hunt;
-			for (const d of w.dummies) {
-				if (!isStanding(d)) continue;
-				const dd = Math.hypot(d.x - e.mark.x, d.y - e.mark.y);
-				if (dd < bestD) {
-					bestD = dd;
-					best = d;
-				}
-			}
-			if (best) e.mark = { x: best.x, y: best.y };
-			const p = e.owner;
+			if (!m) continue;
 			const r = def.radius ?? 120;
-			const { x, y } = e.mark;
+			const { x, y } = m;
 			for (const d of w.dummies) {
 				if (!isStanding(d) || footprintGap(d, x, y) > r) continue;
 				hitDummyWithFx(w, d, power(p, def.damage), power(p, def.knockback), x, y - 40, p);
@@ -1040,6 +1047,25 @@ function updateCarriers(w: ConstructWorld) {
 			w.effects.push({ kind: 'blast', x, y, age: 0, life: 0.55, radius: r * 1.1 });
 		}
 	}
+}
+
+/** One jet's target: priority things first, then the least-bombed, nearest Hal; nothing in reach and it hits the crosshair. */
+function carrierTarget(w: ConstructWorld, p: Player, aim: { x: number; y: number }, taken: { on: Dummy | null }[]): { x: number; y: number; on: Dummy | null } {
+	const standing = w.dummies.filter((d) => isStanding(d) && Math.hypot(d.x - p.x, d.y - p.y) <= CARRIER.hunt);
+	const real = standing.filter((d) => 'brain' in d || d.priority);
+	const pool = real.length > 0 ? real : standing;
+	let best: Dummy | null = null;
+	let bestScore = Infinity;
+	for (const d of pool) {
+		const already = taken.filter((m) => m.on === d).length;
+		// A priority target takes two jets before the rest get a look-in
+		const score = (d.priority ? -2 : 0) + already * (d.priority ? 0.5 : 1) + Math.hypot(d.x - p.x, d.y - p.y) / 1000;
+		if (score < bestScore) {
+			bestScore = score;
+			best = d;
+		}
+	}
+	return best ? { x: best.x, y: best.y, on: best } : { x: aim.x, y: aim.y, on: null };
 }
 
 /** Rocket Pod: a fan of missiles, each homing in on one of the enemies ahead. */

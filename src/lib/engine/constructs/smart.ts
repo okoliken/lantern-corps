@@ -35,7 +35,7 @@ export interface SmartPick {
 /** Things worth hitting: enemies and asteroids (not training dummies... unless that's all there is). */
 function hostiles(w: ConstructWorld): Dummy[] {
 	const all = w.dummies.filter(isStanding);
-	const real = all.filter((d) => 'brain' in d || d.drift);
+	const real = all.filter((d) => 'brain' in d || d.drift || d.priority);
 	return real.length > 0 ? real : all;
 }
 
@@ -60,8 +60,9 @@ function read(p: Player, w: ConstructWorld): Situation {
 	const all = hostiles(w);
 	let target = p.attackTarget?.kind === 'enemy' ? p.attackTarget.dummy : null;
 	if (!target) {
-		// Nothing aimed at: the nearest threat within reach
-		for (const d of all) if (dist(d, p) < 600 && (!target || dist(d, p) < dist(target, p))) target = d;
+		// Nothing aimed at: whatever the mission needs broken, else the nearest threat within reach
+		for (const d of all) if (d.priority && dist(d, p) < 700 && (!target || dist(d, p) < dist(target, p))) target = d;
+		if (!target) for (const d of all) if (dist(d, p) < 600 && (!target || dist(d, p) < dist(target, p))) target = d;
 	}
 	const near = all.filter((d) => dist(d, p) < 150).length;
 	const cluster = target ? all.filter((d) => dist(d, target!) < 110).length : 0;
