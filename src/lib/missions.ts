@@ -54,6 +54,8 @@ import { LastLight } from '$lib/engine/scenes/lastLight';
 import type { LanternId } from '$lib/engine/lanterns';
 import { Summoned } from '$lib/engine/scenes/summoned';
 import * as S2 from '$lib/engine/scenes/seasonTwo';
+import * as S3 from '$lib/engine/scenes/seasonThree';
+import { Studied, buildStudiedMap } from '$lib/engine/missions/studied';
 
 export interface MissionRun {
 	game: Game;
@@ -347,6 +349,20 @@ export function buildMission(id: string, options: Options): MissionRun {
 			const director = new LightsOut();
 			game.director = director;
 			return { game, director, outro: null, intro: S2.batteryFailing };
+		}
+		case 'studied': {
+			// Hal and Kilowog hold the containment ring round the cracked yellow lantern
+			const game = new Game({
+				...options,
+				players: [
+					{ lantern: 'hal', keys: 'solo' },
+					{ lantern: 'kilowog', keys: 'p2', ai: true }
+				],
+				map: buildStudiedMap()
+			});
+			const director = new Studied();
+			game.director = director;
+			return { game, director, outro: null, intro: S3.theStudy };
 		}
 		case 'the-exile': {
 			// Hal tows Sinestro's cell to the gate to Qward; Kilowog keeps the Weaponers off it

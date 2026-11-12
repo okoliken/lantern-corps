@@ -468,3 +468,18 @@ export const STILL_BURNING: SceneLine[] = [
 	{ who: 'john', text: 'Then we watch it. Both of us.' },
 	{ who: 'hal', text: 'In brightest day, in blackest night, no evil shall escape our sight.', mood: 'chosen' }
 ];
+
+// ---------------------------------------------------------------- Season Three
+
+/** Before Season 3, episode 1: Oa, the yellow lantern in its containment ring, and Sinestro in his cell. */
+export const THE_STUDY: SceneLine[] = [
+	{ who: 'guardian', text: 'The yellow lantern will be studied, Lanterns. And when we understand it, it will be destroyed.' },
+	{ who: 'sinestro', text: 'You will not destroy it. You will not even understand it. Ask yourselves why your rings were always afraid of yellow.' },
+	{ who: 'sinestro', text: 'Before there was a Corps, the first Lanterns went to war with a thing made of fear. It called itself Parallax.' },
+	{ who: 'sinestro', text: 'It plucked them out of the sky one by one, and drank their will until their light went grey.' },
+	{ who: 'sinestro', text: 'Your Guardians could not kill it. So they locked it inside the Central Battery, and its yellow stained every ring they ever made.' },
+	{ who: 'guardian', text: 'Enough! Stand guard over the containment ring. Both of you.', mood: 'alarm' },
+	{ who: 'kilowog', text: "Don't listen to him, Jordan. He'd say anything to get out of that cell." },
+	{ who: 'hal', text: "Maybe. But nobody told him he was wrong." },
+	{ who: 'sinestro', text: "Guard it well. What's inside that lantern has been waiting a very long time.", mood: 'grin' }
+];

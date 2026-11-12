@@ -465,6 +465,33 @@ export const ACTS: ActInfo[] = [
 			'two-lanterns',
 			'sinestro'
 		]
+	},
+	// ---- Season three: Parallax (docs/SEASON-THREE.md). What was inside the yellow lantern,
+	// and what the Guardians always knew.
+	{
+		number: 7,
+		season: 3,
+		title: 'The Impurity',
+		tagline: 'The yellow lantern cracks on Oa, and a piece of what was inside it falls to Earth.',
+		lineup: [
+			'studied',
+			{ title: 'The Gala', tagline: 'The Ferris Aircraft gala. Hector Hammond moves things with his mind, and Hal\u2019s constructs are among them.' },
+			{ title: 'Warnings', tagline: 'John comes home to Coast City; on Oa, Sinestro tells the Guardians what they already know.' }
+		]
+	},
+	{
+		number: 8,
+		season: 3,
+		title: 'Parallax',
+		tagline: 'The fear the Guardians locked inside their own Battery breaks loose. Hal opens Sinestro\u2019s cell.',
+		lineup: [{ title: 'Coming soon', tagline: 'Parallax tears through Oa; Hammond takes Coast City; John holds it.' }]
+	},
+	{
+		number: 9,
+		season: 3,
+		title: 'Into the Sun',
+		tagline: 'Both Lanterns, Kilowog and Sinestro against Parallax, and the long way down into the sun.',
+		lineup: [{ title: 'Coming soon', tagline: 'The end of Parallax, and what Sinestro does next.' }]
 	}
 ];
 
@@ -781,4 +808,22 @@ MISSIONS.push({
 		'Keep the pod whole while Wonder Woman throws everything at it',
 		'Get a shield up before Hawkgirl lands a pass'
 	]
+});
+
+// ---------------------------------------------------------------- Season Three
+
+MISSIONS.push({
+	id: 'studied',
+	title: 'Studied',
+	tagline: 'The Guardians locked the yellow lantern in a containment ring to study it. It cracked. Fear is pouring out.',
+	lantern: 'hal',
+	environment: 'planet',
+	place: 'Oa · the containment ring',
+	partner: 'kilowog',
+	briefing: [
+		'The Guardians brought Sinestro\u2019s great yellow lantern home to be studied. Four pylons hold it in a ring of green light in the middle of the plaza.',
+		'This morning it cracked. Something in it is pushing out through the cracks, and taking shape: Sinestro Corps soldiers and Fear Hounds made of yellow light.',
+		'New: THE CONTAINMENT RING. They will go for the pylons and tear at them. A pylon that falls lets the lantern leak faster. Stand by a damaged pylon with nothing on you and Hal pours his will into it to mend it. And every few seconds the lantern pulses: fear over everyone near it.'
+	],
+	objectives: ['Keep the fear off the four pylons', 'Mend damaged pylons with your will', 'Hold the ring until the Guardians can seal it']
 });
