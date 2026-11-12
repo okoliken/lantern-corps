@@ -24,10 +24,12 @@ Ferris Aircraft gala, the Guardians' fear, and the ending in the sun.
 ## Hal's new constructs
 
 Hal can't beat Parallax with the kit he has. Every act of the season gives him
-something new, each from the film, and each one also goes into his Armory:
+something new and original (not copied from the film), each one also going
+into his Armory:
 
-- **Race Track** (The Gala): loops up at the crosshair; sweeps whoever is on
-  it along it, and anything falling onto it rides it down safely.
+- **Carrier Strike** (The Gala): an aircraft carrier rises behind him and
+  launches six jets at the crosshair; each hunts the nearest enemy there and
+  bombs it.
 - *(planned)* Act 2 and Act 3 each bring more, building to the finale.
 
 ## Acts
@@ -40,8 +42,8 @@ something new, each from the film, and each one also goes into his Armory:
    fragment streaks away, toward Earth.
 2. **The Gala** (Hal, Coast City). The Ferris Aircraft gala. Hector Hammond,
    touched by the fragment, can move things with his mind: he turns the show
-   helicopter over the crowd (build the new Race Track under it and it rides
-   the loop down), flings the jets parked on the apron, and takes the
+   helicopter over the crowd (Hal flies under it and holds it up all the way
+   down), flings the jets parked on the apron, and takes the
    construct in Hal's hand and turns it on him (use a different one). Half
    beaten, he lifts Carol into the sky: hit him to break his concentration,
    then catch her. Beaten, he's pulled up into the dark by something calling

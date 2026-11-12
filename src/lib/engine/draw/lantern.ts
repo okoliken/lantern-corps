@@ -37,6 +37,11 @@ export interface Outfit {
 	boots: string;
 	/** A hard hat (John on the building site). */
 	hardHat?: string;
+	/** A long gown in this colour from the waist down, over the legs. */
+	dress?: string;
+	/** A collared shirt showing at the neck, and a tie (suits and dinner jackets). */
+	shirt?: string;
+	tie?: string;
 }
 
 
@@ -171,6 +176,7 @@ function drawFigure(ctx: CanvasRenderingContext2D, def: Figure, x: number, y: nu
 	// ---- Body, near side on top ----
 	drawTorso(ctx, sk, def, bulk);
 	drawLeg(ctx, sk.front, false, legs, def.outfit);
+	if (def.outfit?.dress) drawDress(ctx, sk, def.outfit.dress, time);
 	drawHead(ctx, sk, def, ringActive && !def.outfit, pulse);
 	drawArm(ctx, sk.front, false, arms, def);
 	// No ring yet in everyday clothes
@@ -327,6 +333,23 @@ function drawTorso(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, k: 
 		ctx.moveTo(...at(1.2, -4.6));
 		ctx.lineTo(...at(1.2, 5.1));
 		ctx.stroke();
+		if (o.dress) {
+			// A gown's bodice: no belt, just the neckline
+			ctx.save();
+			ctx.clip(body);
+			ctx.fillStyle = o.dress;
+			ctx.fill(poly([at(-3, -8), at(9, -8), at(9, 9), at(-3, 9)]));
+			ctx.restore();
+		}
+		if (o.shirt) {
+			// Shirt front in the open jacket, and the tie down it
+			ctx.fillStyle = o.shirt;
+			ctx.fill(poly([at(17.6, 2.2), at(18.6, 5.6), at(9.5, 6.4), at(12, 3.6)]));
+			if (o.tie) {
+				ctx.fillStyle = o.tie;
+				ctx.fill(poly([at(17.4, 4.2), at(17.4, 5.5), at(10.5, 6.1), at(9.4, 5.3), at(10.5, 4.6)]));
+			}
+		}
 		ctx.strokeStyle = OUTLINE;
 		ctx.lineWidth = 0.9;
 		ctx.stroke(body);
@@ -452,6 +475,9 @@ function drawHead(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, ring
 		return;
 	}
 
+	const cranium = def.look.cranium ?? 0;
+	if (cranium > 0) drawCranium(ctx, skin, cranium, pulse);
+
 	// Skull and jaw as one shape: round at the back, brow, nose, lips, firm chin
 	const face = new Path2D();
 	face.moveTo(-R * 0.95, -1);
@@ -499,7 +525,16 @@ function drawHead(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, ring
 		ctx.fill();
 		ctx.stroke();
 	}
-	drawHair(ctx, def);
+	if (cranium < 0.35) drawHair(ctx, def);
+	else {
+		// What's left of his hair: thin and grey round the sides, under the swollen dome
+		ctx.strokeStyle = def.look.hair;
+		ctx.lineWidth = 1.1;
+		ctx.beginPath();
+		ctx.moveTo(-R + 0.2, -1.5);
+		ctx.quadraticCurveTo(-R - 0.8, 1.5, -R + 0.8, 3.6);
+		ctx.stroke();
+	}
 	if (def.outfit?.hardHat) drawHardHat(ctx, def.outfit.hardHat);
 
 	if (def.look.mask) {
@@ -523,7 +558,18 @@ function drawHead(ctx: CanvasRenderingContext2D, sk: Skeleton, def: Figure, ring
 		// John: no mask. His eyes glow green while the ring is active, like the animated series.
 		ctx.fillStyle = shadeColor(skin, -0.35);
 		ctx.fillRect(R - 3.1, -2.3, 3.4, 0.9); // brow
-		if (ringActive) {
+		const eyeGlow = def.look.eyeGlow ?? 0;
+		if (eyeGlow > 0) {
+			// Fear's light, burning in the eye
+			ctx.save();
+			ctx.shadowColor = '#ffd23a';
+			ctx.shadowBlur = 9 * eyeGlow;
+			ctx.fillStyle = `rgba(255, ${Math.round(250 - 40 * eyeGlow)}, ${Math.round(200 * (1 - eyeGlow))}, 1)`;
+			ctx.beginPath();
+			ctx.ellipse(R - 0.9, -0.2, 1.2 + 0.3 * eyeGlow, 0.75, 0, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.restore();
+		} else if (ringActive) {
 			ctx.save();
 			ctx.shadowColor = P.glow;
 			ctx.shadowBlur = 6 * pulse;
@@ -768,10 +814,91 @@ function drawHardHat(ctx: CanvasRenderingContext2D, color: string) {
 	ctx.fillRect(-1, -R - 1.2, 1.4, R - 0.5);
 }
 
+/** The swollen dome of Hammond's skull, up and back from the face, veins standing out on it. */
+function drawCranium(ctx: CanvasRenderingContext2D, skin: string, c: number, pulse: number) {
+	const R = HEAD_R;
+	const throb = 1 + 0.025 * c * (pulse - 0.75) * 4;
+	const cx = -R * 0.35 * c;
+	const cy = -R * 0.85 * c;
+	const rx = R * (1 + 1.05 * c) * throb;
+	const ry = R * (1 + 1.2 * c) * throb;
+	const g = ctx.createRadialGradient(cx + rx * 0.3, cy - ry * 0.35, 1, cx, cy, ry);
+	g.addColorStop(0, shadeColor(skin, 0.12));
+	g.addColorStop(1, shadeColor(skin, -0.12));
+	ctx.fillStyle = g;
+	ctx.beginPath();
+	ctx.ellipse(cx, cy, rx, ry, -0.2, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.stroke();
+	// Veins
+	ctx.strokeStyle = `rgba(150, 60, 85, ${0.35 + 0.45 * c})`;
+	ctx.lineWidth = 0.55;
+	ctx.beginPath();
+	for (const [x0, y0, x1, y1, x2, y2] of [
+		[-0.55, -0.75, -0.25, -0.45, -0.4, -0.05],
+		[0.05, -0.95, 0.3, -0.6, 0.15, -0.25],
+		[-0.85, -0.2, -0.55, 0, -0.7, 0.35],
+		[0.45, -0.7, 0.75, -0.45, 0.6, -0.1]
+	]) {
+		ctx.moveTo(cx + rx * x0, cy + ry * y0);
+		ctx.quadraticCurveTo(cx + rx * x1, cy + ry * y1, cx + rx * x2, cy + ry * y2);
+	}
+	ctx.stroke();
+	// A shine on the dome
+	ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+	ctx.beginPath();
+	ctx.ellipse(cx + rx * 0.3, cy - ry * 0.5, rx * 0.25, ry * 0.12, -0.5, 0, Math.PI * 2);
+	ctx.fill();
+}
+
+/** A long gown from the waist to the floor, swaying, over the legs. */
+function drawDress(ctx: CanvasRenderingContext2D, sk: Skeleton, colour: string, time: number) {
+	const [hx, hy] = sk.hip;
+	const feetY = Math.max(sk.front.foot[1], sk.back.foot[1]) + 1;
+	const feetX = (sk.front.foot[0] + sk.back.foot[0]) / 2;
+	const sway = Math.sin(time * 1.7) * 0.8;
+	const skirt = new Path2D();
+	skirt.moveTo(hx - 4.6, hy - 1.5);
+	skirt.quadraticCurveTo(hx - 6, (hy + feetY) / 2, feetX - 8 + sway, feetY);
+	skirt.quadraticCurveTo(feetX + sway, feetY + 1.6, feetX + 9 + sway, feetY);
+	skirt.quadraticCurveTo(hx + 6.5, (hy + feetY) / 2, hx + 5, hy - 1.5);
+	skirt.closePath();
+	const g = ctx.createLinearGradient(hx - 7, 0, hx + 8, 0);
+	g.addColorStop(0, shadeColor(colour, -0.3));
+	g.addColorStop(1, shadeColor(colour, 0.15));
+	ctx.fillStyle = g;
+	ctx.fill(skirt);
+	ctx.strokeStyle = OUTLINE;
+	ctx.lineWidth = 0.8;
+	ctx.stroke(skirt);
+	// Folds
+	ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+	ctx.lineWidth = 0.5;
+	ctx.beginPath();
+	ctx.moveTo(hx + 1, hy + 3);
+	ctx.quadraticCurveTo(hx + 1.5, (hy + feetY) / 2, feetX + 2 + sway, feetY - 0.5);
+	ctx.moveTo(hx - 2, hy + 3);
+	ctx.quadraticCurveTo(hx - 3, (hy + feetY) / 2, feetX - 4 + sway, feetY - 0.5);
+	ctx.stroke();
+}
+
 function drawHair(ctx: CanvasRenderingContext2D, def: Figure) {
 	const R = HEAD_R;
 	const hair = new Path2D();
-	if (def.look.hairStyle === 'swept') {
+	if (def.look.hairStyle === 'long') {
+		// Long and loose: over the crown, a side part, down past the shoulders at the back
+		hair.moveTo(-R - 1.2, R * 2.7);
+		hair.quadraticCurveTo(-R - 2.4, R * 1.2, -R - 1.4, -R * 0.4);
+		hair.quadraticCurveTo(-R - 0.6, -R - 1.6, 0.4, -R - 1.7);
+		hair.quadraticCurveTo(R + 1.2, -R - 1.2, R + 1, -R * 0.2);
+		hair.lineTo(R + 0.4, -1.4);
+		hair.quadraticCurveTo(R - 1.6, -3, 0.2, -2.2);
+		hair.quadraticCurveTo(-R * 0.5, -1.2, -R * 0.4, R * 1.2);
+		hair.quadraticCurveTo(-R * 0.3, R * 2.2, R * 0.2, R * 2.8);
+		hair.closePath();
+	} else if (def.look.hairStyle === 'swept') {
 		// Hal: short at the back and sides, a swept wave up at the front
 		hair.moveTo(-R - 0.2, 1.4);
 		hair.quadraticCurveTo(-R - 0.9, -3.5, -2.5, -R - 0.4);

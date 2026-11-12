@@ -277,7 +277,7 @@ export function drawGunship(ctx: CanvasRenderingContext2D, t: Turret, time: numb
 // ---------------------------------------------------------- bombing run
 
 /** A fighter jet in ring energy, nose along +x (Hal's bombing run). */
-function jet(ctx: CanvasRenderingContext2D, time: number) {
+export function jet(ctx: CanvasRenderingContext2D, time: number) {
 	const body = new Path2D();
 	body.moveTo(44, 0);
 	body.lineTo(18, -6);

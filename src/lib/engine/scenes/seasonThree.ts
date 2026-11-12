@@ -10,9 +10,9 @@ import { drawParallax } from '../draw/parallax';
 import { STAGE_GROUND, STAGE_H, STAGE_W, drawFerrisAirfield } from '../draw/stages';
 import { FIGURE_HEIGHT, drawLantern, ringPosition, type Figure as LanternFigure, type LanternPose } from '../draw/lantern';
 import { LANTERNS } from '../lanterns';
-import { GUESTS, drawCarol, drawGuest, drawJet } from '../missions/gala';
-import { createEnemy } from '../enemies/enemies';
-import { drawEnemy } from '../draw/enemies';
+import { drawJet } from '../missions/gala';
+import { CAROL, GUESTS, drawGuest } from '../draw/galaPeople';
+import { drawHammondMan } from '../draw/hammond';
 
 /** Bars of green light across a Sciencell door. */
 function cellBars(ctx: CanvasRenderingContext2D, x: number, y: number, time: number) {
@@ -340,7 +340,7 @@ const G = STAGE_GROUND;
 const HAL_TUX: LanternFigure = {
 	id: 'hal',
 	look: { ...LANTERNS.hal.look, mask: false },
-	outfit: { top: '#16161c', topLit: '#2c2c36', trousers: '#121216', boots: '#0b0b0d' }
+	outfit: { top: '#16161c', topLit: '#2c2c36', trousers: '#121216', boots: '#0b0b0d', shirt: '#f2efe6', tie: '#0b0b0d' }
 };
 /** The jet he lifts, where it's parked, and where it ends up (in the hangar wall). */
 const GALA_JET = { x: 980, y: G + 125 };
@@ -397,48 +397,46 @@ function drawScaledJet(ctx: CanvasRenderingContext2D, x: number, y: number, alt:
 	ctx.restore();
 }
 
-/** The guests on the apron behind them: champagne, then panic. */
-function galaGuests(ctx: CanvasRenderingContext2D, t: number, line: number) {
+/** The guests on the apron behind them: champagne, then (once he shows what he is) they scatter. */
+function galaGuests(ctx: CanvasRenderingContext2D, t: number, line: number, age: number) {
+	const run = line < 3 ? 0 : line === 3 ? Math.max(0, age - 1.2) : 3 + age;
 	GUESTS.slice(0, 12).forEach((g, i) => {
-		const x = 700 + ((i * 97) % 520);
-		const y = G - 20 + ((i * 37) % 50);
-		ctx.save();
-		ctx.translate(x, y);
-		ctx.scale(1.25, 1.25);
-		drawGuest(ctx, 0, 0, g, t, line >= 3, i);
-		ctx.restore();
+		const home = 640 + ((i * 97) % 560);
+		const away = home < 1000 ? -1 : 1;
+		const x = home + away * Math.min(520, run * 150) * (0.7 + (i % 3) * 0.15);
+		const y = G - 25 + ((i * 37) % 50);
+		if (x < -60 || x > STAGE_W + 60) return;
+		drawGuest(ctx, x, y, g, t, run > 0, i, 1.05);
 	});
 }
 
+/** The shard he carries in his hand, and what it does to him on line 3: it burns into him, his skull swells, he lifts off the ground. */
+const HAMMOND_TURN = { flare: 0.5, into: 1.1, grow: 3.2 };
+
 export const theGala = () => {
-	const hammond = createEnemy('hammond', 1250, G + 40);
-	hammond.dir = -1;
+	// Which line we're on, for the actors who change with it (the scene gives it to backdrop and front)
+	const beat = { line: 0, age: 0 };
 	return new CastScene(THE_GALA, {
 		talkStarts: 2,
 		backdrop: (ctx, t, scene) => {
+			beat.line = scene.line;
+			beat.age = scene.lineAge;
 			drawFerrisAirfield(ctx, t, 0);
-			galaGuests(ctx, t, scene.line);
+			galaGuests(ctx, t, scene.line, scene.lineAge);
 		},
 		front: (ctx, t, scene) => {
 			galaJet(ctx, t, scene.line, scene.lineAge);
-			// His mind reaching out, a yellow shimmer over everything while he speaks
-			if (scene.line === 3 || scene.line === 4) {
-				ctx.fillStyle = `rgba(255, 210, 70, ${0.05 + 0.04 * Math.sin(t * 6)})`;
+			// His mind reaching out, a yellow shimmer over everything once it has him
+			if (scene.line >= 3 && scene.line <= 4) {
+				const k = scene.line === 3 ? Math.min(1, Math.max(0, (scene.lineAge - HAMMOND_TURN.into) / 1.5)) : 1;
+				ctx.fillStyle = `rgba(255, 210, 70, ${(0.05 + 0.04 * Math.sin(t * 6)) * k})`;
 				ctx.fillRect(0, 0, STAGE_W, STAGE_H);
 			}
 		},
 		cast: [
 			{
 				speaker: 'carol',
-				figure: {
-					draw: (ctx, x, y, _pose, t, _speaking, scale) => {
-						ctx.save();
-						ctx.translate(x, y);
-						ctx.scale(scale * 1.3, scale * 1.3);
-						drawCarol(ctx, 0, 0, 0, t, false, false);
-						ctx.restore();
-					}
-				},
+				figure: { draw: (ctx, x, y, pose, t, _speaking, scale) => drawLantern(ctx, CAROL, x, y, { ...pose, firing: false }, t, scale * 0.95) },
 				marks: [{ x: 560, y: G + 40, dir: 1 }, { line: 5, x: 760, y: G + 30, time: 1.4, dir: -1 }]
 			},
 			{
@@ -449,18 +447,80 @@ export const theGala = () => {
 			},
 			{
 				speaker: 'hammond',
-				figure: {
-					draw: (ctx, x, y, _pose, t, speaking, scale) => {
-						hammond.brain.state = speaking ? 'act' : 'idle';
-						ctx.save();
-						ctx.translate(x, y);
-						ctx.scale(scale * 0.72, scale * 0.72);
-						drawEnemy(ctx, hammond, 0, 0, true, t, false);
-						ctx.restore();
-					}
-				},
-				marks: [{ x: 1200, y: G + 40, dir: -1 }]
+				figure: { draw: (ctx, x, y, pose, t, speaking, scale) => drawHammondTurning(ctx, x, y, pose, t, scale, beat) },
+				// Watching from the back of the crowd, then he comes over
+				marks: [{ x: 1330, y: G + 20, dir: -1 }, { line: 1, x: 1200, y: G + 40, time: 2.4, dir: -1 }]
 			}
 		]
 	});
 };
+
+function drawHammondTurning(ctx: CanvasRenderingContext2D, x: number, y: number, pose: LanternPose, t: number, scale: number, beat: { line: number; age: number }) {
+	const { line, age } = beat;
+	const turned = line > 3 ? 1 : line < 3 ? 0 : Math.min(1, Math.max(0, (age - HAMMOND_TURN.into) / (HAMMOND_TURN.grow - HAMMOND_TURN.into)));
+	const ease = turned * turned * (3 - 2 * turned);
+	// Before: on his feet, the shard in his hand, held up to look at while Carol talks about it
+	const holding = line < 3 || (line === 3 && age < HAMMOND_TURN.into);
+	const looking = line === 2 || line === 3;
+	// After: floating, reaching out with his mind (the jet, line 3 on; at Hal, line 4)
+	const reaching = (line === 3 && age > HAMMOND_TURN.grow) || line === 4;
+	const p: LanternPose = {
+		...pose,
+		altitude: ease,
+		hoverHeight: 30,
+		glow: false,
+		firing: (holding && looking) || reaching,
+		aimX: reaching ? pose.dir : pose.dir * 0.45,
+		aimY: reaching ? -0.35 : -0.75,
+		victory: line === 4 ? 0.5 : 0,
+		cast: 0
+	};
+	const glow = holding ? 0.15 + 0.1 * Math.sin(t * 3) : Math.max(ease, 0.3);
+	drawHammondMan(ctx, x, y, p, ease, glow, t, scale * 1.08);
+	const [hx, hy] = ringPosition(x, y, p, t, scale * 1.08);
+	if (holding) {
+		// The shard: a splinter of the yellow lantern, pulsing in his palm
+		const flare = line === 3 ? Math.min(1, age / HAMMOND_TURN.flare) : 0;
+		ctx.save();
+		ctx.globalCompositeOperation = 'lighter';
+		const r = 14 + 6 * Math.sin(t * 5) + flare * 60;
+		const g = ctx.createRadialGradient(hx, hy - 4, 0, hx, hy - 4, r);
+		g.addColorStop(0, `rgba(255, 245, 190, ${0.8})`);
+		g.addColorStop(1, 'rgba(255, 190, 20, 0)');
+		ctx.fillStyle = g;
+		ctx.beginPath();
+		ctx.arc(hx, hy - 4, r, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.restore();
+		ctx.fillStyle = '#ffd23a';
+		ctx.strokeStyle = '#6a4a06';
+		ctx.lineWidth = 1.5;
+		ctx.beginPath();
+		ctx.moveTo(hx, hy - 16);
+		ctx.lineTo(hx + 5, hy - 5);
+		ctx.lineTo(hx, hy + 2);
+		ctx.lineTo(hx - 4, hy - 6);
+		ctx.closePath();
+		ctx.fill();
+		ctx.stroke();
+	} else if (line === 3 && age < HAMMOND_TURN.into + 1.2) {
+		// It burns into him: a flash at his head, a ring of yellow going out from it
+		const k = (age - HAMMOND_TURN.into) / 1.2;
+		const top = y - (FIGURE_HEIGHT * 0.9 + p.hoverHeight * ease * 1.35) * scale * 1.08 - 40;
+		ctx.save();
+		ctx.globalCompositeOperation = 'lighter';
+		ctx.strokeStyle = `rgba(255, 220, 90, ${0.9 * (1 - k)})`;
+		ctx.lineWidth = 6 * (1 - k) + 1;
+		ctx.beginPath();
+		ctx.arc(x, top + 40, 20 + k * 220, 0, Math.PI * 2);
+		ctx.stroke();
+		const g = ctx.createRadialGradient(x, top + 40, 0, x, top + 40, 120);
+		g.addColorStop(0, `rgba(255, 240, 170, ${0.85 * (1 - k)})`);
+		g.addColorStop(1, 'rgba(255, 190, 20, 0)');
+		ctx.fillStyle = g;
+		ctx.beginPath();
+		ctx.arc(x, top + 40, 120, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.restore();
+	}
+}

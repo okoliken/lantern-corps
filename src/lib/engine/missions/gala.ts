@@ -5,15 +5,14 @@
 // can move things.
 //
 //   helicopter  At the gala, Hammond turns the show helicopter over the crowd.
-//               Hal's new construct, the Race Track: build it under the
-//               helicopter's shadow and it rides the track down in one piece.
+//               Hal flies under its shadow and holds it up with the ring,
+//               and has to stay under it all the way down.
 //   hammond     He floats out of the hangar. He lifts the parked jets and
 //               flings them, and he takes hold of whatever construct Hal is
 //               holding: it's his for a few seconds, and he turns it on Hal.
-//               Use a different one.
+//               Use a different one. Hal has his new Carrier Strike for him.
 //   carol       Half beaten, he lifts Carol Ferris into the sky. Hit him to
-//               break his concentration, then catch her as she falls (fly
-//               under her, or build the track under her).
+//               break his concentration, then catch her as she falls.
 //
 // Win: Hammond beaten. Something in the sky pulls him away.
 // Lose: the helicopter comes down on the crowd, Carol hits the ground, or Hal
@@ -22,11 +21,10 @@
 import { createEnemy, type Enemy } from '../enemies/enemies';
 import { damagePlayer } from '../combat';
 import { CONSTRUCTS } from '../constructs/defs';
-import { raceTracks } from '../constructs/system';
 import { addDread } from '../dread';
 import { isStanding } from '../dummy';
 import { drawEnemy } from '../draw/enemies';
-import { RACE_LOOP } from '../draw/constructs';
+import { GUESTS, drawCarol, drawGuest } from '../draw/galaPeople';
 import type { Drawable, Game } from '../game';
 import type { GameMap } from '../map';
 import type { Player } from '../player';
@@ -57,7 +55,7 @@ const PARKED = [
 /** Seconds of the gala before the helicopter goes wrong. */
 const GALA_TIME = 4;
 /** The helicopter: where it starts, how high, how fast it comes down, and how low it must be for the track to catch it. */
-export const HELI = { x: 2350, y: 950, alt: 1000, fall: 44, drift: 55, catchBelow: 760 };
+export const HELI = { x: 2350, y: 950, alt: 1000, fall: 44, drift: 55, catchBelow: 760, holdRange: 150, setDown: 150 };
 /** Hammond: how tough, how hard he hits. */
 const HAMMOND_HEALTH = 4.6;
 const HAMMOND_MIGHT = 3.6;
@@ -70,6 +68,8 @@ export const CAROL = { at: 0.5, alt: 620, rise: 110, breakHits: 0.08, patience: 
 
 /** Heights are drawn squashed this much, so a helicopter way up still fits on screen with Hal. */
 const SKY_DRAW = 0.42;
+/** Hammond never gets further than this from Hal. */
+const LEASH = 520;
 
 export type GalaPhase = 'gala' | 'helicopter' | 'hammond' | 'carol';
 
@@ -78,16 +78,10 @@ interface Heli {
 	y: number;
 	alt: number;
 	spin: number;
-	/** 0 falling, then riding the track down (0..1), then 2 down safe. */
+	/** 0 falling (or held), 2 down safe. */
 	saved: number;
-	trackX: number;
-	trackY: number;
-	caughtX: number;
-	trackR: number;
-	/** How high it was when the track caught it. */
-	caughtAt: number;
-	/** Going round the loop: where its body is, and which way up. */
-	ride: { x: number; y: number; tilt: number } | null;
+	/** Hal's under it, holding it up with the ring. */
+	held: boolean;
 }
 
 interface Thrown {
@@ -158,8 +152,10 @@ export class Gala implements MissionDirector {
 	seized = 0;
 	/** The jets on the apron: still parked, or thrown and wrecked where they came down. */
 	jets = PARKED.map((p, i) => ({ x: p.x, y: p.y, parked: true, wreck: false, spin: 0, dir: i % 2 ? -1 : 1 }));
-	/** The track's slot in Hal's kit. */
-	trackSlot = 8;
+	/** Carrier Strike's slot in Hal's kit. */
+	carrierSlot = 8;
+	/** Hammond coming out of the hangar: seconds left of it. */
+	private entrance = 0;
 	private phaseTime = 0;
 	private throwIn = THROW.every;
 	private seizeIn = SEIZE.every;
@@ -183,12 +179,12 @@ export class Gala implements MissionDirector {
 			case 'gala':
 				return 'The Ferris Aircraft gala';
 			case 'helicopter':
-				return this.heli && this.heli.saved > 0 ? 'Set it down...' : `Catch the helicopter: build the RACE TRACK (key ${this.trackSlot + 1}) under its shadow`;
+				return this.heli?.held ? 'Stay under it: set it down gently' : 'Fly under the helicopter (its shadow) to catch it';
 			case 'carol':
 				if (this.carol.state === 'falling') return 'Catch Carol!';
 				return 'Hammond has Carol: hit him to break his concentration';
 			default:
-				return this.state === 'won' ? 'Hammond is beaten' : 'Take down Hector Hammond';
+				return this.state === 'won' ? 'Hammond is beaten' : `Take down Hector Hammond (CARRIER STRIKE: key ${this.carrierSlot + 1})`;
 		}
 	}
 
@@ -210,10 +206,10 @@ export class Gala implements MissionDirector {
 
 	warning(): string | null {
 		if (this.state !== 'playing') return null;
-		if (this.phase === 'helicopter' && this.heli?.saved === 0) return this.heli.alt < HELI.catchBelow ? `NOW! Race Track (key ${this.trackSlot + 1}) under the helicopter!` : 'The helicopter is coming down on the crowd!';
+		if (this.phase === 'helicopter' && this.heli?.saved === 0 && !this.heli.held) return this.heli.alt < HELI.catchBelow ? 'NOW! Get under the helicopter!' : 'The helicopter is coming down on the crowd!';
 		if (this.carol.state === 'falling') return 'Carol is falling! Get under her!';
 		if (this.thrown.some((t) => t.lift > 0)) return 'He is lifting a jet! Get out of its line!';
-		if (this.held) return `He has your ${this.held.id === 'raceTrack' ? 'Race Track' : (CONSTRUCTS as Record<string, { name: string }>)[this.held.id]?.name ?? 'construct'}! Use a different one!`;
+		if (this.held) return `He has your ${(CONSTRUCTS as Record<string, { name: string }>)[this.held.id]?.name ?? 'construct'}! Use a different one!`;
 		return null;
 	}
 
@@ -223,7 +219,7 @@ export class Gala implements MissionDirector {
 	}
 
 	get resultText(): string {
-		if (this.state === 'won') return "Coast City's gala ends with a helicopter on a race track, a hangar full of wrecked jets, and Hector Hammond pulled up into the dark by something only he could hear.";
+		if (this.state === 'won') return "Coast City's gala ends with a helicopter set down on the apron, a hangar full of wrecked jets, and Hector Hammond pulled up into the dark by something only he could hear.";
 		if (this.failReason === 'crowd') return 'The helicopter came down on the crowd.';
 		if (this.failReason === 'carol') return 'Carol hit the ground.';
 		return 'Hal went down one time too many.';
@@ -269,7 +265,7 @@ export class Gala implements MissionDirector {
 
 		switch (this.phase) {
 			case 'gala':
-				if (this.phaseTime > GALA_TIME) this.startHelicopter(hal);
+				if (this.phaseTime > GALA_TIME) this.startHelicopter();
 				break;
 			case 'helicopter':
 				this.updateHeli(game, dt);
@@ -278,6 +274,7 @@ export class Gala implements MissionDirector {
 			case 'carol': {
 				const h = this.hammond;
 				if (h && !isStanding(h)) return this.win(game);
+				if (h) this.keepInSight(h, hal, dt);
 				if (this.phase === 'hammond' && h && h.hp <= h.maxHp * CAROL.at && this.carol.state === 'crowd') this.takeCarol(h);
 				if (this.phase === 'carol') this.updateCarol(game, hal, dt);
 				if (this.carol.state !== 'held' && this.carol.state !== 'falling') {
@@ -304,15 +301,15 @@ export class Gala implements MissionDirector {
 		this.state = 'playing';
 		this.phase = 'gala';
 		this.phaseTime = 0;
-		// The track in his kit for tonight, where the chaff usually is
+		// His new Carrier Strike in his kit for tonight, where the chaff usually is
 		const hal = game.players[0];
-		const slot = hal.loadout.findIndex((d) => d.id === 'raceTrack');
-		this.trackSlot = slot;
+		const slot = hal.loadout.findIndex((d) => d.id === 'carrierStrike');
+		this.carrierSlot = slot;
 		if (slot < 0) {
 			const at = hal.loadout.findIndex((d) => d.id === 'chaff');
-			this.trackSlot = at >= 0 ? at : hal.loadout.length - 1;
-			hal.loadout[this.trackSlot] = CONSTRUCTS.raceTrack;
-			hal.cooldowns[this.trackSlot] = 0;
+			this.carrierSlot = at >= 0 ? at : hal.loadout.length - 1;
+			hal.loadout[this.carrierSlot] = CONSTRUCTS.carrierStrike;
+			hal.cooldowns[this.carrierSlot] = 0;
 		}
 		this.comms.scene([
 			['Hal', 'Everybody back, away from the hangar! Where did he go? He was right there...'],
@@ -320,56 +317,38 @@ export class Gala implements MissionDirector {
 		]);
 	}
 
-	private startHelicopter(hal: Player) {
+	private startHelicopter() {
 		this.phase = 'helicopter';
 		this.phaseTime = 0;
-		this.heli = { x: HELI.x, y: HELI.y, alt: HELI.alt, spin: 0, saved: 0, trackX: 0, trackY: 0, caughtX: 0, trackR: 170, caughtAt: 0, ride: null };
+		this.heli = { x: HELI.x, y: HELI.y, alt: HELI.alt, spin: 0, saved: 0, held: false };
 		this.comms.scene([
 			['Carol', "The display helicopter... it's turning. Something's wrong with it!"],
-			['Hal', "It's coming down on the crowd. Okay. Okay. Something to catch it on..."],
-			['Hal', `A race track. Build it under the shadow (key ${this.trackSlot + 1}), let it ride down.`]
+			['Hal', "It's coming down on the crowd. Get under it. Hold it. Bring it down slow."]
 		]);
-		hal.selected = this.trackSlot;
 	}
 
 	private updateHeli(game: Game, dt: number) {
 		const h = this.heli!;
-		if (h.saved > 0) {
-			// Riding the track: round the loop and down onto the apron
-			// Down onto the start of the track, up the ramp, round the loop, and off the far end
-			h.saved = Math.min(1, h.saved + dt / 3);
-			const k = h.saved;
-			const lr = h.trackR * RACE_LOOP;
-			h.ride = null;
-			const start = h.trackX - h.trackR * 0.9;
-			h.y = h.trackY;
-			if (k < 0.2) {
-				const e = k / 0.2;
-				h.x = h.caughtX + (start - h.caughtX) * e;
-				h.alt = h.caughtAt * (1 - e) * (1 - e);
-				h.spin = 0;
-			} else if (k < 0.35) {
-				h.x = start + (h.trackX - start) * ((k - 0.2) / 0.15);
-				h.alt = 0;
-			} else if (k < 0.75) {
-				const a = ((k - 0.35) / 0.4) * Math.PI * 2;
-				h.x = h.trackX + Math.sin(a) * lr;
-				h.alt = (lr - Math.cos(a) * lr) / SKY_DRAW;
-				// On the inside of the track, skids to the rail
-				const r = lr - 30;
-				h.ride = { x: h.trackX + Math.sin(a) * r, y: h.trackY - lr + Math.cos(a) * r, tilt: -a };
-			} else {
-				h.x = h.trackX + ((k - 0.75) / 0.25) * h.trackR * 1.15;
-				h.alt = 0;
-				h.spin = 0;
+		const hal = game.players[0];
+		const was = h.held;
+		// Held while Hal is under it: the ring takes its weight and lets it down slowly
+		h.held = !hal.downed && Math.hypot(hal.x - h.x, (hal.y - h.y) * 1.3) < HELI.holdRange;
+		if (h.held) {
+			if (!was) {
+				game.constructs.effects.push({ kind: 'callout', x: h.x, y: h.y - 80, age: 0, life: 1.2, text: 'GOT IT!' });
+				this.once('heldHeli', 'Hal', 'Got it. Easy... easy. Nobody move.');
 			}
-			if (h.saved >= 1) {
+			h.alt = Math.max(0, h.alt - HELI.setDown * dt);
+			h.spin *= 1 - Math.min(1, dt * 2);
+			if (h.alt <= 0) {
 				h.saved = 2;
-				h.alt = 0;
+				h.held = false;
+				game.constructs.effects.push({ kind: 'callout', x: h.x, y: h.y - 80, age: 0, life: 1.4, text: 'SAFE' });
 				this.startHammond(game);
 			}
 			return;
 		}
+		if (was) this.once('lostHeli', 'Carol', "Hal, it's falling again! Get back under it!");
 		h.alt -= HELI.fall * dt * (1 + this.phaseTime / 45);
 		h.spin += dt * 3.2;
 		const dx = CROWD.x - h.x;
@@ -378,23 +357,6 @@ export class Gala implements MissionDirector {
 		if (d > 10) {
 			h.x += (dx / d) * HELI.drift * dt;
 			h.y += (dy / d) * HELI.drift * dt;
-		}
-		if (h.alt < HELI.catchBelow) {
-			const track = raceTracks(game.constructs).find((t) => Math.hypot(t.x - h.x, (t.y - h.y) * 1.4) < t.radius * 1.05);
-			if (track) {
-				h.saved = 0.001;
-				h.trackX = track.x;
-				h.caughtX = h.x;
-				h.trackY = track.y;
-				h.trackR = track.radius;
-				h.caughtAt = h.alt;
-				// It stays up till the helicopter's off it
-				for (const e of game.constructs.effects) if (e.kind === 'raceTrack' && e.x === track.x && e.y === track.y) e.life = Math.max(e.life, e.age + 3.4);
-				this.phaseTime = 0;
-				game.constructs.effects.push({ kind: 'callout', x: h.x, y: h.y - 80, age: 0, life: 1.4, text: 'CAUGHT!' });
-				this.comms.say('Hal', 'Got it... round the loop... and down. Easy.', true);
-				return;
-			}
 		}
 		if (h.alt <= 0) {
 			h.alt = 0;
@@ -417,13 +379,38 @@ export class Gala implements MissionDirector {
 		h.brain.alert = 10;
 		h.hp = h.maxHp = h.brain.lastHp = Math.round(h.maxHp * HAMMOND_HEALTH);
 		this.hammond = h;
-		this.throwIn = 4;
-		this.seizeIn = 9;
+		this.entrance = 2.5;
+		this.throwIn = 5;
+		this.seizeIn = 10;
 		this.comms.scene([
 			['Hammond', 'That was me, Hal. The helicopter. I only had to think about it.'],
 			['Hammond', 'And I can hear you thinking. Green. All that green, and so afraid underneath it.'],
-			['Hal', 'Okay. Nobody else gets hurt tonight, Hector.']
+			['Hal', `Okay. Nobody else gets hurt tonight, Hector. Time to try something new. (CARRIER STRIKE: key ${this.carrierSlot + 1})`]
 		]);
+	}
+
+	/** He never hides: he drifts out of the hangar and stays where Hal can see him, close enough to hit. */
+	private keepInSight(h: Enemy, hal: Player, dt: number) {
+		if (this.entrance > 0) {
+			// Floating out of the hangar door, slowly, before he does anything
+			this.entrance -= dt;
+			h.y = Math.min(h.y + 70 * dt, DOOR.y + 220);
+			h.brain.state = 'idle';
+			this.throwIn = Math.max(this.throwIn, 1);
+			this.seizeIn = Math.max(this.seizeIn, 3);
+		}
+		const dx = h.x - hal.x;
+		const dy = h.y - hal.y;
+		const d = Math.hypot(dx, dy) || 1;
+		const far = d - LEASH;
+		if (far > 0) {
+			const k = Math.min(far, 320 * dt);
+			h.x -= (dx / d) * k;
+			h.y -= (dy / d) * k;
+		}
+		h.x = Math.max(260, Math.min(W - 260, h.x));
+		h.y = Math.max(DOOR.y + 120, Math.min(RUNWAY.y - 80, h.y));
+		h.dir = hal.x >= h.x ? 1 : -1;
 	}
 
 	/** He lifts a parked jet, holds it up a moment, and flings it at where Hal is. */
@@ -570,7 +557,7 @@ export class Gala implements MissionDirector {
 		if (c.state === 'falling') {
 			c.vy = Math.min(CAROL.fastest, c.vy + CAROL.gravity * dt);
 			c.alt -= c.vy * dt;
-			const caught = (!hal.downed && Math.hypot(hal.x - c.x, hal.y - c.y) < CAROL.catchRange) || raceTracks(game.constructs).some((t) => Math.hypot(t.x - c.x, (t.y - c.y) * 1.4) < t.radius);
+			const caught = (!hal.downed && Math.hypot(hal.x - c.x, hal.y - c.y) < CAROL.catchRange);
 			if (caught) {
 				c.state = 'safe';
 				c.alt = 0;
@@ -644,8 +631,10 @@ export class Gala implements MissionDirector {
 			return [[this.taken.x, this.taken.y - 200 - Math.min(700, rise * rise * 70)]];
 		}
 		if (this.phase === 'helicopter' && this.heli && this.heli.saved < 2) return [[this.heli.x, this.heli.y], [this.heli.x, this.heli.y - this.heli.alt * SKY_DRAW]];
-		if (this.carol.state === 'held' || this.carol.state === 'falling') return [[this.carol.x, this.carol.y], [this.carol.x, this.carol.y - this.carol.alt * SKY_DRAW]];
-		return [];
+		const h = this.hammond;
+		const him: [number, number][] = h && isStanding(h) ? [[h.x, h.y], [h.x, h.y - 200]] : [];
+		if (this.carol.state === 'held' || this.carol.state === 'falling') return [[this.carol.x, this.carol.y], [this.carol.x, this.carol.y - this.carol.alt * SKY_DRAW], ...(this.carol.state === 'held' ? him : [])];
+		return him;
 	}
 
 	goal(): { x: number; y: number } | null {
@@ -673,9 +662,12 @@ export class Gala implements MissionDirector {
 		}
 		for (const [i, g] of GUESTS.entries()) list.push({ baseY: CROWD.y + g.dy, draw: () => drawGuest(ctx, CROWD.x + g.dx, CROWD.y + g.dy, g, time, this.phase === 'helicopter' || this.phase === 'carol', i) });
 		const c = this.carol;
-		if (c.state !== 'down') list.push({ baseY: c.y, draw: () => drawCarol(ctx, c.x, c.y, c.alt * SKY_DRAW, time, c.state === 'held' || c.state === 'falling', c.state === 'held') });
+		if (c.state !== 'down') list.push({ baseY: c.y, draw: () => drawCarol(ctx, c.x, c.y, c.alt * SKY_DRAW, time, c.state === 'held' || c.state === 'falling', c.state === 'held', CAROL.catchRange, 0.95, this.hammond && this.hammond.x < c.x ? -1 : 1) });
 		const h = this.heli;
-		if (h) list.push({ baseY: h.y, draw: () => drawHelicopter(ctx, h.x, h.y, h.alt * SKY_DRAW, h.saved > 0 ? 0 : Math.sin(h.spin) * 0.5, time, h.saved === 0, h.ride) });
+		if (h) {
+			list.push({ baseY: h.y, draw: () => drawHelicopter(ctx, h.x, h.y, h.alt * SKY_DRAW, h.saved > 0 ? 0 : Math.sin(h.spin) * 0.5, time, h.saved === 0 && !h.held) });
+			if (h.held) list.push({ baseY: h.y + 1, draw: () => drawHold(ctx, this.halAt.x, this.halAt.y, h.x, h.y - h.alt * SKY_DRAW, time) });
+		}
 		for (const t of this.turned) list.push({ baseY: t.y, draw: () => drawTurned(ctx, t, time) });
 		const tk = this.taken;
 		if (tk) {
@@ -684,158 +676,6 @@ export class Gala implements MissionDirector {
 		}
 		return list;
 	}
-}
-
-// ------------------------------------------------------------- the gala's people
-
-export interface Guest {
-	dx: number;
-	dy: number;
-	suit: string;
-	skin: string;
-	dress: boolean;
-}
-
-export const GUESTS: Guest[] = (() => {
-	const out: Guest[] = [];
-	const suits = ['#1b1c22', '#2a2230', '#5a1e2a', '#14324a', '#3a3a3a', '#6a4a1a'];
-	const skins = ['#e0b08a', '#8d5a3a', '#c48e66', '#f1cfae', '#5e3b26'];
-	for (let i = 0; i < 22; i++) {
-		const a = i * 2.39996;
-		const r = 70 + 26 * Math.sqrt(i) * 3;
-		out.push({ dx: Math.cos(a) * r * 1.5, dy: 60 + Math.sin(a) * r * 0.55, suit: suits[i % suits.length], skin: skins[(i * 3) % skins.length], dress: i % 3 === 1 });
-	}
-	return out;
-})();
-
-export function drawGuest(ctx: CanvasRenderingContext2D, x: number, y: number, g: Guest, time: number, panic: boolean, i: number) {
-	const bob = panic ? Math.abs(Math.sin(time * 9 + i)) * 4 : 0;
-	ctx.save();
-	ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-	ctx.beginPath();
-	ctx.ellipse(x, y, 12, 4, 0, 0, Math.PI * 2);
-	ctx.fill();
-	ctx.translate(x, y - bob);
-	ctx.strokeStyle = '#0a0806';
-	ctx.lineWidth = 2;
-	ctx.fillStyle = g.suit;
-	if (g.dress) {
-		ctx.beginPath();
-		ctx.moveTo(-5, -40);
-		ctx.lineTo(5, -40);
-		ctx.lineTo(11, 0);
-		ctx.lineTo(-11, 0);
-		ctx.closePath();
-		ctx.fill();
-		ctx.stroke();
-	} else {
-		ctx.fillRect(-6, -40, 12, 22);
-		ctx.strokeRect(-6, -40, 12, 22);
-		ctx.fillStyle = '#121216';
-		ctx.fillRect(-5, -18, 4, 18);
-		ctx.fillRect(1, -18, 4, 18);
-	}
-	// Arms up when it all goes wrong
-	ctx.strokeStyle = g.skin;
-	ctx.lineWidth = 3;
-	ctx.beginPath();
-	if (panic) {
-		ctx.moveTo(-5, -36);
-		ctx.lineTo(-10, -52);
-		ctx.moveTo(5, -36);
-		ctx.lineTo(10, -52);
-	} else {
-		ctx.moveTo(-6, -36);
-		ctx.lineTo(-8, -22);
-		ctx.moveTo(6, -36);
-		ctx.lineTo(8, -22);
-	}
-	ctx.stroke();
-	ctx.fillStyle = g.skin;
-	ctx.beginPath();
-	ctx.arc(0, -47, 6, 0, Math.PI * 2);
-	ctx.fill();
-	ctx.strokeStyle = '#0a0806';
-	ctx.lineWidth = 1.5;
-	ctx.stroke();
-	ctx.restore();
-}
-
-/** Carol Ferris in her gala dress: on her feet, or held up in the air in his yellow grip. */
-export function drawCarol(ctx: CanvasRenderingContext2D, x: number, y: number, alt: number, time: number, up: boolean, gripped: boolean) {
-	ctx.save();
-	// Her shadow, and a mark round it when she's up there (where to be when she falls)
-	ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-	ctx.beginPath();
-	ctx.ellipse(x, y, 14 + alt * 0.03, 5 + alt * 0.01, 0, 0, Math.PI * 2);
-	ctx.fill();
-	if (up) {
-		ctx.strokeStyle = `rgba(120, 255, 160, ${0.5 + 0.3 * Math.sin(time * 8)})`;
-		ctx.lineWidth = 3;
-		ctx.setLineDash([10, 8]);
-		ctx.beginPath();
-		ctx.ellipse(x, y, CAROL.catchRange, CAROL.catchRange * 0.45, 0, 0, Math.PI * 2);
-		ctx.stroke();
-		ctx.setLineDash([]);
-	}
-	ctx.translate(x, y - alt);
-	if (gripped) {
-		ctx.globalCompositeOperation = 'lighter';
-		const g = ctx.createRadialGradient(0, -30, 4, 0, -30, 60);
-		g.addColorStop(0, 'rgba(255, 220, 90, 0.5)');
-		g.addColorStop(1, 'rgba(255, 180, 0, 0)');
-		ctx.fillStyle = g;
-		ctx.beginPath();
-		ctx.arc(0, -30, 60, 0, Math.PI * 2);
-		ctx.fill();
-		ctx.globalCompositeOperation = 'source-over';
-	}
-	const kick = up ? Math.sin(time * 7) * 0.35 : 0;
-	ctx.strokeStyle = '#0a0806';
-	ctx.lineWidth = 2.5;
-	// Legs (kicking when she's up there)
-	ctx.strokeStyle = '#e4b994';
-	ctx.lineWidth = 4;
-	ctx.beginPath();
-	ctx.moveTo(-3, -14);
-	ctx.lineTo(-4 + kick * 10, 0);
-	ctx.moveTo(3, -14);
-	ctx.lineTo(4 - kick * 10, 0);
-	ctx.stroke();
-	// The dress: deep red, to the knee
-	ctx.fillStyle = '#a3172b';
-	ctx.strokeStyle = '#0a0806';
-	ctx.lineWidth = 2.5;
-	ctx.beginPath();
-	ctx.moveTo(-6, -46);
-	ctx.lineTo(6, -46);
-	ctx.lineTo(13, -12);
-	ctx.lineTo(-13, -12);
-	ctx.closePath();
-	ctx.fill();
-	ctx.stroke();
-	// Arms: reaching out when she's up there
-	ctx.strokeStyle = '#e4b994';
-	ctx.lineWidth = 3.5;
-	ctx.beginPath();
-	ctx.moveTo(-5, -42);
-	ctx.lineTo(up ? -16 : -8, up ? -54 + kick * 6 : -28);
-	ctx.moveTo(5, -42);
-	ctx.lineTo(up ? 16 : 8, up ? -54 - kick * 6 : -28);
-	ctx.stroke();
-	// Head, dark hair down to the shoulders
-	ctx.fillStyle = '#3a2216';
-	ctx.beginPath();
-	ctx.ellipse(0, -54, 9, 11, 0, 0, Math.PI * 2);
-	ctx.fill();
-	ctx.fillStyle = '#e4b994';
-	ctx.beginPath();
-	ctx.arc(1.5, -55, 6.5, 0, Math.PI * 2);
-	ctx.fill();
-	ctx.strokeStyle = '#0a0806';
-	ctx.lineWidth = 1.5;
-	ctx.stroke();
-	ctx.restore();
 }
 
 // --------------------------------------------------------------- the airfield
@@ -1017,7 +857,32 @@ function drawThrowLine(ctx: CanvasRenderingContext2D, t: Thrown, at: { x: number
 }
 
 /** The show helicopter in Ferris colours, side-on: spinning down, its rotor whirling, smoke behind it. */
-function drawHelicopter(ctx: CanvasRenderingContext2D, x: number, y: number, alt: number, tilt: number, time: number, falling: boolean, ride: { x: number; y: number; tilt: number } | null = null) {
+/** Hal holding the helicopter up: beams from his ring to a cradle of light under it. */
+function drawHold(ctx: CanvasRenderingContext2D, hx: number, hy: number, x: number, top: number, time: number) {
+	ctx.save();
+	ctx.globalCompositeOperation = 'lighter';
+	const cy = top - 4;
+	const ry = hy - 70;
+	for (const side of [-1, 1]) {
+		ctx.strokeStyle = `rgba(80, 255, 130, ${0.35 + 0.1 * Math.sin(time * 12)})`;
+		ctx.lineWidth = 12;
+		ctx.beginPath();
+		ctx.moveTo(hx, ry);
+		ctx.lineTo(x + side * 50, cy);
+		ctx.stroke();
+		ctx.strokeStyle = 'rgba(220, 255, 230, 0.8)';
+		ctx.lineWidth = 3;
+		ctx.stroke();
+	}
+	ctx.strokeStyle = 'rgba(80, 255, 130, 0.8)';
+	ctx.lineWidth = 6;
+	ctx.beginPath();
+	ctx.ellipse(x, cy, 70, 16, 0, 0, Math.PI);
+	ctx.stroke();
+	ctx.restore();
+}
+
+function drawHelicopter(ctx: CanvasRenderingContext2D, x: number, y: number, alt: number, tilt: number, time: number, falling: boolean) {
 	ctx.save();
 	// Its shadow on the ground, growing as it comes down: where the track has to go
 	const near = 1 - Math.min(1, alt / (HELI.alt * SKY_DRAW));
@@ -1043,14 +908,8 @@ function drawHelicopter(ctx: CanvasRenderingContext2D, x: number, y: number, alt
 			ctx.fill();
 		}
 	}
-	if (ride) {
-		ctx.translate(ride.x, ride.y);
-		ctx.rotate(ride.tilt);
-		ctx.scale(0.8, 0.8);
-	} else {
-		ctx.translate(x, y - 40 - alt);
-		ctx.rotate(tilt);
-	}
+	ctx.translate(x, y - 40 - alt);
+	ctx.rotate(tilt);
 	ctx.strokeStyle = '#0a0806';
 	ctx.lineWidth = 3;
 	// Tail boom and rotor

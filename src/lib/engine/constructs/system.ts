@@ -26,6 +26,7 @@ import { createSquadState, type SquadState } from '../enemies/squad';
 import { chooseShieldTarget, smartChoice } from './smart';
 import {
 	BUBBLE_SHIELD,
+	CONSTRUCTS,
 	HELD_BEHAVIORS,
 	MAX_MINES_PER_PLAYER,
 	MAX_TRAPS_PER_PLAYER,
@@ -193,8 +194,8 @@ export interface Effect {
 		| 'swordArc'
 		// Sinestro's Prism Cell, closed round what it caught (draw/sinestro.ts)
 		| 'prismCell'
-		// Hal's Race Track, standing where he built it (missions read it to catch falling things)
-		| 'raceTrack';
+		// Hal's Carrier Strike: the carrier and its jets (it launches them as it ages, see updateCarriers)
+		| 'carrier';
 	x: number;
 	y: number;
 	age: number;
@@ -221,6 +222,9 @@ export interface Effect {
 	index?: number;
 	/** Who made it: effects at hand height are drawn at that Lantern's ring height. */
 	owner?: Player;
+	/** Carrier Strike: where the jets are going (it follows the nearest enemy) and how many have gone. */
+	mark?: { x: number; y: number };
+	launched?: number;
 	/** What it's wrapped round (a Prism Cell's catch): gone when that's free. */
 	held?: Dummy;
 }
@@ -711,8 +715,8 @@ function perform(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 			return placeMine(p, def, w);
 		case 'heal':
 			return placeAid(p, def, w);
-		case 'track':
-			placeTrack(p, def, w);
+		case 'carrier':
+			launchCarrier(p, def, w);
 			return true;
 		default:
 			return false;
@@ -914,25 +918,71 @@ function shockwave(p: Player, def: ConstructDef, w: ConstructWorld) {
 	w.effects.push({ kind: 'shockwave', form: def.shape, x: p.x, y: p.y, age: 0, life: 0.65, radius: def.range, owner: p });
 }
 
-/** Race Track: a loop of track where he aims. Whoever's on it is swept off along it. */
-function placeTrack(p: Player, def: ConstructDef, w: ConstructWorld) {
-	const angle = Math.atan2(p.aimY, p.aimX);
-	// At the crosshair when aiming with a mouse (as far as its range), else a fixed distance ahead
-	const reach = Math.min(def.range, Math.max(80, p.aimReach ?? def.range * 0.6));
-	const x = p.x + p.aimX * reach;
-	const y = p.y + p.aimY * reach;
-	const r = def.radius ?? 160;
-	for (const d of w.dummies) {
-		if (!isStanding(d) || Math.hypot(d.x - x, (d.y - y) * 1.6) > r) continue;
-		// Knocked along the track, the way it runs
-		hitDummyWithFx(w, d, power(p, def.damage), power(p, def.knockback), d.x - Math.cos(angle) * 40, d.y - Math.sin(angle) * 40, p);
-	}
-	w.effects.push({ kind: 'raceTrack', x, y, age: 0, life: durable(p, def.duration ?? 4), angle, radius: r, owner: p });
+/** Carrier Strike's timing: it rises, then launches a jet every `every` seconds; each takes `flight` to reach the mark. */
+export const CARRIER = { behind: 250, rise: 0.6, every: 0.36, flight: 0.62, hunt: 300 };
+
+/** Carrier Strike: the carrier rises behind him; its jets go for the crosshair. */
+function launchCarrier(p: Player, def: ConstructDef, w: ConstructWorld) {
+	const len = Math.hypot(p.aimX, p.aimY) || 1;
+	const ux = p.aimX / len;
+	const uy = p.aimY / len;
+	const reach = Math.min(def.range, Math.max(160, p.aimReach ?? def.range * 0.7));
+	const jets = def.count ?? 6;
+	// Side-on, so it sits behind him left or right, a little back into the scene
+	const side = ux >= 0 ? -1 : 1;
+	w.effects.push({
+		kind: 'carrier',
+		x: p.x + side * CARRIER.behind,
+		// Up in the air behind him, where it's in view and clear of the fight
+		y: p.y - 150,
+		age: 0,
+		life: CARRIER.rise + jets * CARRIER.every + CARRIER.flight + 0.9,
+		angle: side,
+		radius: def.radius,
+		mark: { x: p.x + ux * reach, y: p.y + uy * reach },
+		launched: 0,
+		owner: p,
+		form: def.id
+	});
 }
 
-/** The race tracks standing right now: where, and how big. */
-export function raceTracks(w: ConstructWorld): { x: number; y: number; radius: number }[] {
-	return w.effects.filter((e) => e.kind === 'raceTrack' && e.age < e.life - 0.3).map((e) => ({ x: e.x, y: e.y, radius: e.radius ?? 160 }));
+/** Each carrier sends its jets off on time; a jet's bomb lands `flight` after it launches, on the enemy nearest the mark. */
+function updateCarriers(w: ConstructWorld) {
+	for (const e of w.effects) {
+		if (e.kind !== 'carrier' || !e.mark || !e.owner) continue;
+		const def = e.owner.loadout.find((d) => d.id === e.form) ?? CONSTRUCTS.carrierStrike;
+		const jets = def.count ?? 6;
+		// Bombs due by now: one per jet that has had time to get there
+		const due = Math.min(jets, Math.max(0, Math.floor((e.age - CARRIER.rise - CARRIER.flight) / CARRIER.every) + 1));
+		while ((e.launched ?? 0) < due) {
+			e.launched = (e.launched ?? 0) + 1;
+			// It hunts: the bomb goes on whoever's closest to the mark
+			let best: Dummy | null = null;
+			let bestD = CARRIER.hunt;
+			for (const d of w.dummies) {
+				if (!isStanding(d)) continue;
+				const dd = Math.hypot(d.x - e.mark.x, d.y - e.mark.y);
+				if (dd < bestD) {
+					bestD = dd;
+					best = d;
+				}
+			}
+			if (best) e.mark = { x: best.x, y: best.y };
+			const p = e.owner;
+			const r = def.radius ?? 120;
+			const { x, y } = e.mark;
+			for (const d of w.dummies) {
+				if (!isStanding(d) || footprintGap(d, x, y) > r) continue;
+				hitDummyWithFx(w, d, power(p, def.damage), power(p, def.knockback), x, y - 40, p);
+				if (isStanding(d)) d.stun = Math.max(d.stun, def.stun ?? 0.3);
+			}
+			for (const o of breakables(w)) {
+				const [cx, cy] = center(o);
+				if (Math.hypot(cx - x, cy - y) <= r + Math.max(o.w, o.h) / 2) damageObstacle(w, o, power(p, def.damage));
+			}
+			w.effects.push({ kind: 'blast', x, y, age: 0, life: 0.55, radius: r * 1.1 });
+		}
+	}
 }
 
 /** Rocket Pod: a fan of missiles, each homing in on one of the enemies ahead. */
@@ -1459,6 +1509,7 @@ export function updateConstructWorld(w: ConstructWorld, dt: number) {
 	updateTraps(w, dt);
 	updateTurrets(w, dt);
 	updatePillarStrikes(w, dt);
+	updateCarriers(w);
 	w.aids = w.aids.filter((a) => (a.life -= dt) > 0);
 
 	for (const s of [...w.shields]) {

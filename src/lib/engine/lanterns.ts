@@ -18,7 +18,7 @@ export interface Look {
 	skin: string;
 	hair: string;
 	/** Hal's hair sits up with a side sweep; John's is cropped short; Sinestro's is slicked back to a widow's peak. */
-	hairStyle: 'swept' | 'cropped' | 'peak' | 'bob';
+	hairStyle: 'swept' | 'cropped' | 'peak' | 'bob' | 'long';
 	/** Hal wears the domino mask; John goes without one. */
 	mask: boolean;
 	/** A beaked, crested head instead of a human one (Tomar-Re). */
@@ -29,6 +29,10 @@ export interface Look {
 	mustache?: boolean;
 	/** Pointed ears (Arisia of Graxos IV). */
 	pointedEars?: boolean;
+	/** Hector Hammond: how far his skull has swollen round the growing brain, 0 (a normal man) to 1. */
+	cranium?: number;
+	/** 0..1: the eyes burn yellow (fear's light). */
+	eyeGlow?: number;
 	/** Arisia's suit from the animated series: a white bodice with the emblem at the collar, bare arms, a green skirt. */
 	arisia?: boolean;
 }

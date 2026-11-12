@@ -837,8 +837,8 @@ MISSIONS.push({
 	place: 'Coast City · Ferris Aircraft',
 	briefing: [
 		'The thing that came out of the yellow lantern fell to Earth, and Ferris Aircraft had Hector Hammond look at it. Now his mind won\u2019t stop growing, and it can move things.',
-		'New construct: THE RACE TRACK. It loops up where you aim. Whoever\u2019s on it gets swept off along it, and anything falling onto it rides it down in one piece. Build it under something coming down.',
+		'New construct: CARRIER STRIKE. An aircraft carrier rises up behind you and launches six jets at where you aim; each one goes for the nearest enemy there and bombs it. When the show helicopter falls, fly under its shadow and hold it up, all the way down.',
 		'Hammond throws the jets parked on the apron (step out of the yellow line), and he can take the construct in your hand and turn it on you: when he does, use a different one. If he takes someone up, hit him to break his concentration, then catch them.'
 	],
-	objectives: ['Catch the helicopter on the Race Track', 'Take down Hector Hammond', 'Don\u2019t let Carol fall']
+	objectives: ['Catch the helicopter: stay under it', 'Take down Hector Hammond', 'Don\u2019t let Carol fall']
 });

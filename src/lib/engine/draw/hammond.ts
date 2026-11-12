@@ -1,194 +1,92 @@
-// Hector Hammond after the fragment found him: a scientist in a tweed suit,
-// his skull swollen huge round a brain that won't stop growing, veins standing
-// out on it. He doesn't walk any more; he floats, and his eyes burn yellow
-// when he reaches out with his mind.
+// Hector Hammond, on the same skeleton as everyone else: a scientist in a
+// tweed jacket and a loosened tie. Since the fragment found him his skull has
+// swollen round a brain that won't stop growing, veins standing out on it. He
+// doesn't walk any more; he floats, and his eyes burn yellow when he reaches
+// out with his mind.
 
 import { isStanding } from '../dummy';
 import type { Enemy } from '../enemies/enemies';
+import { FIGURE_HEIGHT, drawLantern, ringPosition, type Figure, type LanternPose } from './lantern';
 
 const TAU = Math.PI * 2;
-const OUTLINE = '#120c06';
-/** How far off the ground he floats. */
-const FLOAT = 34;
+/** His size against Hal. */
+export const HAMMOND_SCALE = 1.15;
+/** How high he floats (before scaling). */
+const FLOAT = 26;
 
-export const hammondTop = (e: Enemy, y: number) => y - FLOAT - 168 + (isStanding(e) ? 0 : 120);
-export const hammondHand = (e: Enemy, x: number, y: number): [number, number] => [x + e.dir * 46, y - FLOAT - 86];
+/** Hammond as he is `grow` of the way (0 the man at the gala, 1 what the fragment made him), eyes at `glow`. */
+export function hammondFigure(grow: number, glow: number): Figure {
+	return {
+		id: 'hammond',
+		look: { skin: '#e3bd98', hair: '#8c8478', hairStyle: 'cropped', mask: false, cranium: grow, eyeGlow: glow },
+		bulk: 1.06,
+		outfit: { top: '#6a4a2e', topLit: '#8c6a46', trousers: '#4a3a2a', boots: '#1c1612', shirt: '#e8e2d4', tie: '#6a2424' }
+	};
+}
 
-export function drawHammond(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number) {
-	const b = e.brain;
-	const reaching = b.state === 'windup' || b.state === 'act';
-	const down = !isStanding(e);
-	ctx.save();
-	if (hasGround) {
-		ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-		ctx.beginPath();
-		ctx.ellipse(x, y, 30, 8, 0, 0, TAU);
-		ctx.fill();
-	}
-	ctx.translate(x, y);
-	if (down) {
-		// Slumped on the ground, holding his head
-		ctx.rotate(-e.dir * 1.35);
-		ctx.translate(0, 20);
-	} else ctx.translate(0, -FLOAT - Math.sin(time * 2) * 5);
-	ctx.scale(e.dir, 1);
-	ctx.lineJoin = 'round';
-	ctx.lineCap = 'round';
-	ctx.strokeStyle = OUTLINE;
-	ctx.lineWidth = 3;
-	const flash = e.flash > 0;
+export function hammondPose(dir: 1 | -1, float: number, reaching: boolean, hurt: number, down: boolean, shadow: boolean): LanternPose {
+	return {
+		dir,
+		walkPhase: 0,
+		altitude: float,
+		hoverHeight: FLOAT,
+		lean: 0,
+		glow: false,
+		shadow,
+		// Reaching out at you, hand open
+		firing: reaching,
+		aimX: dir,
+		aimY: -0.15,
+		hurt,
+		downed: down
+	};
+}
 
-	// Telekinesis round him while he's using it
-	if (reaching && !down) {
+/** Draws him with the telekinesis round him while he uses it. */
+export function drawHammondMan(ctx: CanvasRenderingContext2D, x: number, y: number, pose: LanternPose, grow: number, glow: number, time: number, scale = HAMMOND_SCALE) {
+	const reaching = pose.firing;
+	if (reaching || glow > 0.6) {
+		const top = y - (FIGURE_HEIGHT + pose.hoverHeight * pose.altitude * 1.35) * scale;
 		ctx.save();
 		ctx.globalCompositeOperation = 'lighter';
-		const g = ctx.createRadialGradient(0, -120, 10, 0, -120, 110);
-		g.addColorStop(0, 'rgba(255, 220, 90, 0.35)');
+		const cy = top + 20 * scale;
+		const r = 90 * scale * (0.6 + 0.4 * grow);
+		const g = ctx.createRadialGradient(x, cy, 6, x, cy, r);
+		g.addColorStop(0, `rgba(255, 220, 90, ${0.3 * Math.max(glow, reaching ? 1 : 0)})`);
 		g.addColorStop(1, 'rgba(255, 180, 0, 0)');
 		ctx.fillStyle = g;
 		ctx.beginPath();
-		ctx.arc(0, -120, 110, 0, TAU);
+		ctx.arc(x, cy, r, 0, TAU);
 		ctx.fill();
 		ctx.restore();
 	}
-
-	// Legs hanging, shoes dangling
-	const sway = Math.sin(time * 1.6) * 0.15;
-	for (const [hx, ph] of [
-		[-6, 0],
-		[7, 1.4]
-	]) {
-		ctx.fillStyle = '#4a3a2a';
+	drawLantern(ctx, hammondFigure(grow, glow), x, y, pose, time, scale);
+	if (reaching) {
+		// The hand he reaches with, alight
+		const [hx, hy] = ringPosition(x, y, pose, time, scale);
 		ctx.save();
-		ctx.translate(hx, -46);
-		ctx.rotate(sway * Math.sin(ph + time));
+		ctx.globalCompositeOperation = 'lighter';
+		const g = ctx.createRadialGradient(hx, hy, 0, hx, hy, 26);
+		g.addColorStop(0, 'rgba(255, 240, 160, 0.8)');
+		g.addColorStop(1, 'rgba(255, 180, 0, 0)');
+		ctx.fillStyle = g;
 		ctx.beginPath();
-		ctx.rect(-6, 0, 12, 44);
+		ctx.arc(hx, hy, 26, 0, TAU);
 		ctx.fill();
-		ctx.stroke();
-		ctx.fillStyle = '#1c1612';
-		ctx.beginPath();
-		ctx.ellipse(4, 46, 10, 5, 0, 0, TAU);
-		ctx.fill();
-		ctx.stroke();
 		ctx.restore();
 	}
-
-	// Tweed jacket over a shirt and a loosened tie; a slight paunch
-	ctx.fillStyle = flash ? '#fff4d8' : '#7a5a3a';
-	ctx.beginPath();
-	ctx.moveTo(-18, -44);
-	ctx.quadraticCurveTo(-24, -70, -16, -96);
-	ctx.lineTo(16, -96);
-	ctx.quadraticCurveTo(26, -70, 20, -44);
-	ctx.closePath();
-	ctx.fill();
-	ctx.stroke();
-	ctx.fillStyle = '#e8e2d4';
-	ctx.beginPath();
-	ctx.moveTo(-5, -96);
-	ctx.lineTo(5, -96);
-	ctx.lineTo(4, -60);
-	ctx.lineTo(-4, -60);
-	ctx.closePath();
-	ctx.fill();
-	ctx.fillStyle = '#5a2424';
-	ctx.beginPath();
-	ctx.moveTo(-2, -92);
-	ctx.lineTo(3, -92);
-	ctx.lineTo(4, -66);
-	ctx.lineTo(0, -62);
-	ctx.lineTo(-3, -66);
-	ctx.closePath();
-	ctx.fill();
-	// Tweed flecks
-	ctx.fillStyle = 'rgba(40, 26, 12, 0.35)';
-	for (let i = 0; i < 10; i++) ctx.fillRect(-14 + ((i * 7) % 26), -90 + ((i * 11) % 40), 2, 2);
-
-	// Arms: the far one reaching out at you when he uses his mind, the near one at his temple
-	ctx.fillStyle = flash ? '#fff4d8' : '#6e5034';
-	const out = reaching ? 1 : 0.35 + 0.1 * Math.sin(time * 2);
-	arm(ctx, 14, -90, 14 + 34 * out, -90 + 6 - 30 * out * 0.4, 10);
-	if (reaching) arm(ctx, -14, -90, -2, -128, 10);
-	else arm(ctx, -14, -90, -18, -56, 10);
-
-	// Neck, thin under the weight
-	ctx.fillStyle = '#d9b48f';
-	ctx.fillRect(-4, -106, 8, 12);
-	ctx.strokeRect(-4, -106, 8, 12);
-
-	// The head: a face of normal size under a cranium swollen twice too big
-	const pulse = 1 + 0.02 * Math.sin(time * (reaching ? 9 : 3));
-	ctx.fillStyle = flash ? '#fff4d8' : '#dcb592';
-	ctx.beginPath();
-	ctx.ellipse(-4, -142, 38 * pulse, 40 * pulse, -0.15, 0, TAU);
-	ctx.fill();
-	ctx.stroke();
-	ctx.beginPath();
-	ctx.ellipse(6, -116, 15, 15, 0, 0, TAU);
-	ctx.fill();
-	ctx.stroke();
-	// Veins standing out on the skull
-	ctx.strokeStyle = reaching ? 'rgba(170, 70, 90, 0.9)' : 'rgba(150, 80, 100, 0.6)';
-	ctx.lineWidth = 2;
-	ctx.beginPath();
-	ctx.moveTo(-26, -160);
-	ctx.quadraticCurveTo(-14, -150, -18, -134);
-	ctx.moveTo(-8, -176);
-	ctx.quadraticCurveTo(0, -160, -6, -146);
-	ctx.moveTo(12, -170);
-	ctx.quadraticCurveTo(20, -156, 14, -140);
-	ctx.stroke();
-	// Thin grey hair left at the sides
-	ctx.strokeStyle = '#8c8478';
-	ctx.lineWidth = 3;
-	ctx.beginPath();
-	ctx.moveTo(-38, -134);
-	ctx.quadraticCurveTo(-42, -122, -34, -112);
-	ctx.stroke();
-	// Face: heavy brow, a thin mouth
-	ctx.strokeStyle = OUTLINE;
-	ctx.lineWidth = 2.5;
-	ctx.beginPath();
-	ctx.moveTo(2, -124);
-	ctx.lineTo(18, -122);
-	ctx.moveTo(6, -106);
-	ctx.lineTo(16, -107);
-	ctx.stroke();
-	// Eyes, yellow and burning when he reaches out
-	const glow = reaching ? 1 : 0.35 + 0.15 * Math.sin(time * 4);
-	ctx.fillStyle = `rgba(255, ${200 + 50 * glow}, ${80 * (1 - glow)}, 1)`;
-	ctx.beginPath();
-	ctx.arc(12, -117, 3.2, 0, TAU);
-	ctx.fill();
-	ctx.globalCompositeOperation = 'lighter';
-	const eg = ctx.createRadialGradient(12, -117, 0, 12, -117, 20);
-	eg.addColorStop(0, `rgba(255, 230, 120, ${0.7 * glow})`);
-	eg.addColorStop(1, 'rgba(255, 180, 0, 0)');
-	ctx.fillStyle = eg;
-	ctx.beginPath();
-	ctx.arc(12, -117, 20, 0, TAU);
-	ctx.fill();
-	ctx.restore();
 }
 
-function arm(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, w: number) {
-	ctx.save();
-	ctx.lineWidth = w + 5;
-	ctx.strokeStyle = OUTLINE;
-	ctx.beginPath();
-	ctx.moveTo(x0, y0);
-	ctx.lineTo(x1, y1);
-	ctx.stroke();
-	ctx.lineWidth = w;
-	ctx.strokeStyle = ctx.fillStyle as string;
-	ctx.stroke();
-	ctx.fillStyle = '#dcb592';
-	ctx.beginPath();
-	ctx.arc(x1, y1, 5.5, 0, TAU);
-	ctx.fill();
-	ctx.lineWidth = 2;
-	ctx.strokeStyle = OUTLINE;
-	ctx.stroke();
-	ctx.restore();
+function enemyPose(e: Enemy, hasGround: boolean): LanternPose {
+	const b = e.brain;
+	const reaching = b.state === 'windup' || b.state === 'act';
+	return hammondPose(e.dir >= 0 ? 1 : -1, 1, reaching, e.flash > 0 ? 0.6 : 0, !isStanding(e), hasGround);
+}
+
+export const hammondTop = (e: Enemy, y: number) => (isStanding(e) ? y - (FIGURE_HEIGHT + FLOAT * 1.35) * HAMMOND_SCALE - 30 : y - 40);
+export const hammondHand = (e: Enemy, x: number, y: number): [number, number] => ringPosition(x, y, enemyPose(e, true), 0, HAMMOND_SCALE);
+
+export function drawHammond(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y: number, hasGround: boolean, time: number) {
+	const pose = enemyPose(e, hasGround);
+	drawHammondMan(ctx, x, y + Math.sin(time * 2) * 3, pose, 1, pose.firing ? 1 : 0.55 + 0.15 * Math.sin(time * 4), time);
 }

@@ -17,7 +17,7 @@ export const ABOUT: Partial<Record<ConstructId, string>> = {
 	energySword: 'A quick, light blade. Fast swings, close in.',
 	chaff: 'Flares that pull enemy shots away from you for a few seconds.',
 	targetingLock: 'Paint a target: everything you fire hits harder while the lock holds.',
-	raceTrack: 'A race track loops up where you aim: it sweeps whoever is on it off along it, and anything falling onto it rides it down safely.',
+	carrierStrike: 'A carrier rises behind you and launches six jets at your mark. Each one hunts the nearest enemy there and bombs it.',
 	// ---- John: the Marine and architect ----
 	precisionRifle: 'Hold to charge, let go to fire: a round that goes through a whole line of them.',
 	rifle: 'A working assault rifle, down to the bolt. Hold to fire.',
