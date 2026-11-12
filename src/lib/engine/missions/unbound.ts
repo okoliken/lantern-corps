@@ -259,6 +259,7 @@ export class Unbound implements MissionDirector {
 					continue;
 				}
 				g.k += dt / GRAB.drain;
+				g.grip.raised = heldLift(g);
 				if (g.k >= 1) {
 					g.state = 'drained';
 					g.grip.hp = 0;
@@ -292,6 +293,7 @@ export class Unbound implements MissionDirector {
 		d.hp = d.maxHp = GRAB.gripHp;
 		d.respawns = false;
 		d.priority = true;
+		d.raised = heldLift(g);
 		game.dummies.push(d);
 		g.grip = d;
 		if (this.gripsCut === 0) this.once('grip', 'Kilowog', 'It’s got one! Hit the GRIP, where it’s wrapped round him!');
@@ -430,6 +432,9 @@ export class Unbound implements MissionDirector {
 // ------------------------------------------------------------- drawing helpers
 
 /** A Guardian in the plaza: pouring will up at it; with a tendril wrapped round them, lifted and draining; or grey on the ground. */
+/** How high a held Guardian is lifted: higher as they drain. */
+const heldLift = (g: Guardian) => 30 + g.k * 50;
+
 function drawPlazaGuardian(ctx: CanvasRenderingContext2D, g: Guardian, px: { x: number; y: number }, time: number) {
 	const S = 1.45;
 	ctx.save();
@@ -449,7 +454,7 @@ function drawPlazaGuardian(ctx: CanvasRenderingContext2D, g: Guardian, px: { x: 
 		ctx.restore();
 		return;
 	}
-	const lift = g.state === 'held' ? 30 + g.k * 50 + Math.sin(time * 9) * 3 : 0;
+	const lift = g.state === 'held' ? heldLift(g) + Math.sin(time * 9) * 3 : 0;
 	ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
 	ctx.beginPath();
 	ctx.ellipse(g.x, g.y, 26, 8, 0, 0, Math.PI * 2);
@@ -488,7 +493,8 @@ function drawPlazaGuardian(ctx: CanvasRenderingContext2D, g: Guardian, px: { x: 
 	if (g.state === 'held') {
 		// The grip: coils of yellow round them, the thing to hit, with its health
 		const hp = g.grip ? g.grip.hp / g.grip.maxHp : 0;
-		const cy = g.y - lift - 50;
+		// Centred on the grip's body (BODY.parallaxGrip, raised with them), so shots go where the coils are
+		const cy = g.y - lift - 60;
 		ctx.save();
 		ctx.lineCap = 'round';
 		for (let i = 0; i < 4; i++) {

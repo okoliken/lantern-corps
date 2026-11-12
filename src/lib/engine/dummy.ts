@@ -46,6 +46,8 @@ export interface Dummy {
 	respawns: boolean;
 	/** Something the mission needs broken now (a grip on a Guardian): auto-aim, the smart ring, airstrikes and partners go for it first. */
 	priority?: boolean;
+	/** How far off the ground a thing without a brain is held up (a grip lifting a Guardian): its body, and shots at it, go up too. */
+	raised?: number;
 	/** A defeated enemy that has finished lingering: remove it from the world. */
 	gone: boolean;
 	/** Which way it faces: 1 right, -1 left. */
@@ -271,7 +273,7 @@ const HURT_SLACK = 8;
 /** How high a target is off the ground right now (a leap, a dive), and how much bigger it's grown. */
 function airAndGrowth(d: Dummy): [number, number] {
 	const brain = (d as { brain?: { air: number; form: number } }).brain;
-	return brain ? [brain.air * 70, 1 + 0.28 * brain.form] : [0, 1];
+	return brain ? [brain.air * 70, 1 + 0.28 * brain.form] : [d.raised ?? 0, 1];
 }
 
 /** How far up off the ground a target's body is (a leap, a swoop, a Lantern in flight). */
