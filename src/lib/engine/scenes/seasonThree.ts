@@ -4,11 +4,11 @@
 import { OA_GROUND, drawOaBackdrop } from '../draw/oa';
 import { THE_GALA, THE_STUDY } from '../../story/scenes';
 import { CastScene } from './cast';
-import { drawGuardianDais } from './summoned';
+import { drawGuardian, drawGuardianDais } from './summoned';
 import { drawStudiedLantern } from '../missions/studied';
 import { drawParallax } from '../draw/parallax';
 import { STAGE_GROUND, STAGE_H, STAGE_W, drawFerrisAirfield } from '../draw/stages';
-import { drawLantern, type Figure as LanternFigure } from '../draw/lantern';
+import { FIGURE_HEIGHT, drawLantern, ringPosition, type Figure as LanternFigure, type LanternPose } from '../draw/lantern';
 import { LANTERNS } from '../lanterns';
 import { GUESTS, drawCarol, drawGuest, drawJet } from '../missions/gala';
 import { createEnemy } from '../enemies/enemies';
@@ -36,55 +36,61 @@ const FLASH_TO = 4;
 
 const clamp = (v: number) => Math.max(0, Math.min(1, v));
 
-/** One of the first Lanterns, a dark shape lit by their ring; `light` 1 green, 0 drained grey. */
-function oldLantern(ctx: CanvasRenderingContext2D, x: number, y: number, light: number, aim: { x: number; y: number } | null, spin: number, t: number) {
-	const glow = light > 0.05 ? `rgba(${Math.round(150 - 90 * light)}, ${Math.round(150 + 105 * light)}, ${Math.round(150 - 30 * light)}, ` : 'rgba(150, 150, 150, ';
+/** The first Lanterns, each from a different world: Sinestro's story is of a whole Corps, not five shadows. */
+const OLD_LANTERNS: { figure: LanternFigure; scale: number }[] = [
+	// A Bolovaxian, bigger than Kilowog
+	{ figure: { id: 'old0', look: { skin: '#6f9a8c', hair: '#6f9a8c', hairStyle: 'cropped', mask: false, bolovaxian: true }, bulk: 1.7 }, scale: 1.55 },
+	// Avian, crested, from a world near Xudar
+	{ figure: { id: 'old1', look: { skin: '#5e86b8', hair: '#d9e4ef', hairStyle: 'cropped', mask: false, avian: { beak: '#e8c060', crest: '#d9e4ef' } }, bulk: 0.9 }, scale: 1.3 },
+	// A pale woman with pointed ears and a black bob
+	{ figure: { id: 'old2', look: { skin: '#cbb8e0', hair: '#191424', hairStyle: 'bob', mask: true, pointedEars: true }, bulk: 0.9 }, scale: 1.25 },
+	// Red-skinned and bald, Abin Sur's people
+	{ figure: { id: 'old3', look: { skin: '#b23a48', hair: '#b23a48', hairStyle: 'cropped', mask: false }, bulk: 1.05 }, scale: 1.35 },
+	// Golden-skinned, swept white hair, masked
+	{ figure: { id: 'old4', look: { skin: '#d6a24a', hair: '#f2ece0', hairStyle: 'swept', mask: true }, bulk: 1 }, scale: 1.3 }
+];
+
+/** Where the Lantern's anchor sits so their body is centred on (x, y). */
+const oldAnchor = (i: number, y: number) => y + (FIGURE_HEIGHT * OLD_LANTERNS[i].scale) / 2;
+
+function oldPose(dir: 1 | -1, aim: { x: number; y: number }, firing: boolean, struggle: number, falling: boolean): LanternPose {
+	return {
+		dir,
+		walkPhase: 0,
+		altitude: 1,
+		hoverHeight: 0,
+		lean: falling ? 0 : 0.55,
+		glow: !falling,
+		shadow: false,
+		firing,
+		aimX: aim.x,
+		aimY: aim.y,
+		shotKick: firing ? 0.25 : 0,
+		hurt: struggle,
+		downed: false
+	};
+}
+
+/** One of the first Lanterns; `light` 1 fighting, 0 drained to grey. Returns where their ring is. */
+function oldLantern(ctx: CanvasRenderingContext2D, i: number, x: number, y: number, light: number, aim: { x: number; y: number }, firing: boolean, struggle: number, spin: number, t: number): [number, number] {
+	const { figure, scale } = OLD_LANTERNS[i];
+	const dir: 1 | -1 = aim.x >= 0 ? 1 : -1;
+	const pose = oldPose(dir, aim, firing, struggle, spin !== 0);
+	const ay = oldAnchor(i, y);
+	// Writhing in its grip
+	const shake = struggle > 0 && light > 0 ? Math.sin(t * 31 + i) * 3 * struggle : 0;
 	ctx.save();
-	ctx.translate(x, y);
+	ctx.translate(x + shake, y);
 	ctx.rotate(spin);
-	ctx.scale(1.8, 1.8);
-	ctx.globalCompositeOperation = 'lighter';
-	const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 46);
-	g.addColorStop(0, glow + `${0.35 * light + 0.05})`);
-	g.addColorStop(1, glow + '0)');
-	ctx.fillStyle = g;
-	ctx.beginPath();
-	ctx.arc(0, 0, 46, 0, Math.PI * 2);
-	ctx.fill();
-	ctx.globalCompositeOperation = 'source-over';
-	ctx.fillStyle = '#100d08';
-	ctx.strokeStyle = glow + `${0.4 + 0.6 * light})`;
-	ctx.lineWidth = 2.5;
-	// Body flying flat out, legs trailing
-	ctx.beginPath();
-	ctx.ellipse(0, 4, 9, 22, 0, 0, Math.PI * 2);
-	ctx.fill();
-	ctx.stroke();
-	ctx.beginPath();
-	ctx.arc(0, -24, 8, 0, Math.PI * 2);
-	ctx.fill();
-	ctx.stroke();
-	ctx.lineWidth = 6;
-	ctx.strokeStyle = '#100d08';
-	ctx.beginPath();
-	ctx.moveTo(-4, 22);
-	ctx.lineTo(-7, 40 + Math.sin(t * 8) * 3);
-	ctx.moveTo(4, 22);
-	ctx.lineTo(6, 40 + Math.cos(t * 8) * 3);
-	ctx.stroke();
-	// Ring arm out at the target
-	const ax = aim ? aim.x : 1;
-	const ay = aim ? aim.y : 0.6;
-	ctx.beginPath();
-	ctx.moveTo(0, -10);
-	ctx.lineTo(ax * 26, -10 + ay * 26);
-	ctx.stroke();
-	ctx.fillStyle = glow + `${0.5 + 0.5 * light})`;
-	ctx.beginPath();
-	ctx.arc(ax * 28, -10 + ay * 28, 4, 0, Math.PI * 2);
-	ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
-	ctx.fill();
+	ctx.translate(-x, -y);
+	const base = ctx.globalAlpha;
+	if (light < 1) drawLantern(ctx, { ...figure, corps: 'spent' }, x, ay, pose, t, scale);
+	if (light > 0) {
+		ctx.globalAlpha = base * light;
+		drawLantern(ctx, figure, x, ay, pose, t, scale);
+	}
 	ctx.restore();
+	return ringPosition(x, ay, pose, t, scale);
 }
 
 function beam(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, a: number, t: number) {
@@ -111,28 +117,43 @@ function beam(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number,
 	ctx.restore();
 }
 
-/** A Guardian of the old days, robed, hands raised. */
-function oldGuardian(ctx: CanvasRenderingContext2D, x: number, y: number, power: number) {
-	ctx.fillStyle = '#7f2a2a';
-	ctx.beginPath();
-	ctx.moveTo(x - 18, y);
-	ctx.lineTo(x - 10, y - 46);
-	ctx.lineTo(x + 10, y - 46);
-	ctx.lineTo(x + 18, y);
-	ctx.fill();
-	ctx.fillStyle = '#5d8fd0';
-	ctx.beginPath();
-	ctx.arc(x, y - 56, 12, 0, Math.PI * 2);
-	ctx.fill();
-	ctx.strokeStyle = '#5d8fd0';
-	ctx.lineWidth = 5;
+/** A Guardian of the old days, both arms raised, pouring will out of their hands. Returns where the light leaves them. */
+function oldGuardian(ctx: CanvasRenderingContext2D, x: number, y: number, power: number, t: number): [number, number] {
+	const S = 1.7;
+	ctx.save();
+	ctx.translate(x, y);
+	ctx.scale(S, S);
+	ctx.translate(-x, -y);
+	drawGuardian(ctx, x, y, 0, 0, t);
+	const lift = 74 + power * 6 + Math.sin(t * 6) * 1.5;
 	ctx.lineCap = 'round';
+	for (const side of [-1, 1]) {
+		ctx.strokeStyle = '#050101';
+		ctx.lineWidth = 6;
+		ctx.beginPath();
+		ctx.moveTo(x + side * 10, y - 40);
+		ctx.quadraticCurveTo(x + side * 20, y - 56, x + side * 13, y - lift);
+		ctx.stroke();
+		// Red sleeve, then the blue hand
+		ctx.strokeStyle = '#a3201c';
+		ctx.lineWidth = 4;
+		ctx.stroke();
+		ctx.fillStyle = '#4f86c6';
+		ctx.beginPath();
+		ctx.arc(x + side * 13, y - lift, 3, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.stroke();
+	}
+	ctx.globalCompositeOperation = 'lighter';
+	const g = ctx.createRadialGradient(x, y - lift - 4, 0, x, y - lift - 4, 22);
+	g.addColorStop(0, `rgba(220, 255, 225, ${0.8 * power})`);
+	g.addColorStop(1, 'rgba(60, 255, 110, 0)');
+	ctx.fillStyle = g;
 	ctx.beginPath();
-	ctx.moveTo(x - 8, y - 40);
-	ctx.lineTo(x - 16, y - 68 - power * 8);
-	ctx.moveTo(x + 8, y - 40);
-	ctx.lineTo(x + 16, y - 68 - power * 8);
-	ctx.stroke();
+	ctx.arc(x, y - lift - 4, 22, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.restore();
+	return [x, y - (lift + 4) * S];
 }
 
 /** Where the five Lanterns hold in the air while they fight it. */
@@ -199,31 +220,33 @@ function drawFlashback(ctx: CanvasRenderingContext2D, t: number, line: number, a
 			const dx = PX.x - x;
 			const dy = PX.y - y;
 			const n = Math.hypot(dx, dy) || 1;
-			if (firing) {
-				beam(ctx, x + (dx / n) * 28, y - 10 + (dy / n) * 28, PX.x - (dx / n) * 60, PX.y - (dy / n) * 50, 1, t + i);
-				hit += 0.25;
-			}
+			const aim = { x: dx / n, y: dy / n };
 			if (drained > 0 && drained < 1) {
 				ctx.save();
 				ctx.globalCompositeOperation = 'lighter';
 				ctx.strokeStyle = `rgba(255, 220, 120, ${0.8 * (1 - drained)})`;
 				ctx.lineWidth = 4;
 				ctx.beginPath();
-				ctx.arc(x, y, 30 + drained * 70, 0, Math.PI * 2);
+				ctx.arc(x, y, 40 + drained * 80, 0, Math.PI * 2);
 				ctx.stroke();
 				ctx.restore();
 			}
-			oldLantern(ctx, x, y, 1 - drained, { x: dx / n, y: dy / n }, (fromLeft ? 1 : -1) * (0.9 + fall * 3), t);
+			const spin = fall > 0 ? (fromLeft ? -1 : 1) * fall * 3 : 0;
+			const [rx, ry] = oldLantern(ctx, i, x, y, 1 - drained, aim, firing, held, spin, t);
+			if (firing) {
+				beam(ctx, rx, ry, PX.x - aim.x * 60, PX.y - aim.y * 50, 1, t + i);
+				hit += 0.25;
+			}
 		}
 		drawParallax(ctx, PX.x, PX.y, 1.05, t, { grabs, hit: Math.min(1, hit) * 0.6, rage: beat === 1 ? 1 : 0.4 });
 	} else {
 		// The Guardians pull it down into the battery
 		const pull = clamp((k - 0.6) / 2.4);
 		const sealed = k >= 3.2;
-		const guardians = [300, 390, 480];
-		for (const gx of guardians) {
-			oldGuardian(ctx, gx, 720, 1);
-			beam(ctx, gx + 12, 650, BATTERY.x - 40, BATTERY.y - 30, sealed ? 0.4 : 1, t + gx);
+		const guardians = [260, 370, 480];
+		for (const [i, gx] of guardians.entries()) {
+			const [hx, hy] = oldGuardian(ctx, gx, 690 + Math.sin(t * 1.3 + i * 2) * 4, 1, t + i);
+			beam(ctx, hx, hy, BATTERY.x - 40, BATTERY.y - 30, sealed ? 0.4 : 1, t + gx);
 		}
 		drawBatteryShape(ctx, BATTERY.x, BATTERY.y, t, sealed ? 1 : 0.5 + 0.3 * Math.sin(t * 10));
 		if (!sealed) {

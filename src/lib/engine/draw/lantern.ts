@@ -26,7 +26,7 @@ export interface Figure {
 	/** Everyday clothes instead of the uniform (before the ring chooses them): no emblem, no ring. */
 	outfit?: Outfit;
 	/** Which Corps' uniform and ring light: green (default), or Sinestro's yellow (season two). */
-	corps?: 'yellow';
+	corps?: 'yellow' | 'spent';
 }
 
 export interface Outfit {
@@ -62,6 +62,17 @@ const YELLOW_SUIT: SuitPalette = {
 	core: '#fffbe2',
 	aura: (a) => `rgba(255, 210, 58, ${a})`,
 	coreA: (a) => `rgba(255, 251, 226, ${a})`
+};
+/** A ring with its light drained out of it: the uniform gone ash grey. */
+const SPENT_SUIT: SuitPalette = {
+	suit: '#4a4d4b',
+	suitLit: '#6b6e6c',
+	suitDark: '#2e302f',
+	glow: '#8a8d8b',
+	light: '#a5a8a6',
+	core: '#d0d2d0',
+	aura: (a) => `rgba(140, 142, 140, ${a * 0.4})`,
+	coreA: (a) => `rgba(200, 202, 200, ${a * 0.5})`
 };
 /** The palette for the figure being drawn right now (drawLantern sets it). */
 let P: SuitPalette = GREEN_SUIT;
@@ -102,7 +113,7 @@ export function drawLantern(
 	scale = 1
 ) {
 	const before = P;
-	P = def.corps === 'yellow' ? YELLOW_SUIT : GREEN_SUIT;
+	P = def.corps === 'yellow' ? YELLOW_SUIT : def.corps === 'spent' ? SPENT_SUIT : GREEN_SUIT;
 	try {
 		drawFigure(ctx, def, x, y, pose, time, scale);
 	} finally {
