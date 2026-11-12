@@ -55,6 +55,7 @@ import type { LanternId } from '$lib/engine/lanterns';
 import { Summoned } from '$lib/engine/scenes/summoned';
 import * as S2 from '$lib/engine/scenes/seasonTwo';
 import * as S3 from '$lib/engine/scenes/seasonThree';
+import { Gala, buildGalaMap } from '$lib/engine/missions/gala';
 import { Studied, buildStudiedMap } from '$lib/engine/missions/studied';
 
 export interface MissionRun {
@@ -349,6 +350,13 @@ export function buildMission(id: string, options: Options): MissionRun {
 			const director = new LightsOut();
 			game.director = director;
 			return { game, director, outro: null, intro: S2.batteryFailing };
+		}
+		case 'gala': {
+			// Hal alone at the Ferris gala: the helicopter, then Hammond
+			const game = new Game({ ...options, players: [{ lantern: 'hal', keys: 'solo' }], map: buildGalaMap() });
+			const director = new Gala();
+			game.director = director;
+			return { game, director, outro: null, intro: S3.theGala };
 		}
 		case 'studied': {
 			// Hal and Kilowog hold the containment ring round the cracked yellow lantern

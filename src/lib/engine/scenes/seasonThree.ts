@@ -2,12 +2,17 @@
 // place and a cast on marks; the lines are in story/scenes.ts.
 
 import { OA_GROUND, drawOaBackdrop } from '../draw/oa';
-import { THE_STUDY } from '../../story/scenes';
+import { THE_GALA, THE_STUDY } from '../../story/scenes';
 import { CastScene } from './cast';
 import { drawGuardianDais } from './summoned';
 import { drawStudiedLantern } from '../missions/studied';
 import { drawParallax } from '../draw/parallax';
-import { STAGE_H, STAGE_W } from '../draw/stages';
+import { STAGE_GROUND, STAGE_H, STAGE_W, drawFerrisAirfield } from '../draw/stages';
+import { drawLantern, type Figure as LanternFigure } from '../draw/lantern';
+import { LANTERNS } from '../lanterns';
+import { GUESTS, drawCarol, drawGuest, drawJet } from '../missions/gala';
+import { createEnemy } from '../enemies/enemies';
+import { drawEnemy } from '../draw/enemies';
 
 /** Bars of green light across a Sciencell door. */
 function cellBars(ctx: CanvasRenderingContext2D, x: number, y: number, time: number) {
@@ -304,3 +309,135 @@ export const theStudy = () =>
 			{ speaker: 'sinestro', figure: { enemy: 'sinestro' }, marks: [{ x: 1200, y: OA_GROUND, dir: -1 }] }
 		]
 	});
+
+// ------------------------------------------------------------- episode 2
+
+const G = STAGE_GROUND;
+/** Hal at the gala: no mask, a dinner jacket. */
+const HAL_TUX: LanternFigure = {
+	id: 'hal',
+	look: { ...LANTERNS.hal.look, mask: false },
+	outfit: { top: '#16161c', topLit: '#2c2c36', trousers: '#121216', boots: '#0b0b0d' }
+};
+/** The jet he lifts, where it's parked, and where it ends up (in the hangar wall). */
+const GALA_JET = { x: 980, y: G + 125 };
+const GALA_WRECK = { x: 330, y: G + 30 };
+
+/** The jet through the scene: parked, lifted by his mind (line 3), flung into the hangar (line 4), burning there after. */
+function galaJet(ctx: CanvasRenderingContext2D, t: number, line: number, age: number) {
+	ctx.save();
+	if (line < 3) drawScaledJet(ctx, GALA_JET.x, GALA_JET.y, 0, 0, false, false);
+	else if (line === 3) {
+		const alt = Math.min(240, age * 110);
+		drawScaledJet(ctx, GALA_JET.x + Math.sin(t * 7) * 6, GALA_JET.y, alt, Math.sin(t * 3) * 0.12, false, true);
+	} else {
+		const k = line === 4 ? Math.min(1, Math.max(0, (age - 0.6) / 0.7)) : 1;
+		if (k < 1) {
+			const x = GALA_JET.x + (GALA_WRECK.x - GALA_JET.x) * k * k;
+			drawScaledJet(ctx, x, GALA_JET.y + (GALA_WRECK.y - GALA_JET.y) * k, 240 - 140 * k, k * 2.4, false, true);
+		} else {
+			drawScaledJet(ctx, GALA_WRECK.x, GALA_WRECK.y, 60, 0.5, true, false);
+			const since = line === 4 ? age - 1.3 : 9;
+			// The crash: a flash and a fireball, then it burns
+			if (since < 0.8) {
+				ctx.globalCompositeOperation = 'lighter';
+				const r = 80 + since * 260;
+				const g = ctx.createRadialGradient(GALA_WRECK.x, GALA_WRECK.y - 90, 0, GALA_WRECK.x, GALA_WRECK.y - 90, r);
+				g.addColorStop(0, `rgba(255, 240, 200, ${1 - since})`);
+				g.addColorStop(0.5, `rgba(255, 140, 40, ${0.8 * (1 - since)})`);
+				g.addColorStop(1, 'rgba(255, 80, 0, 0)');
+				ctx.fillStyle = g;
+				ctx.beginPath();
+				ctx.arc(GALA_WRECK.x, GALA_WRECK.y - 90, r, 0, Math.PI * 2);
+				ctx.fill();
+				ctx.globalCompositeOperation = 'source-over';
+			}
+			for (let i = 0; i < 5; i++) {
+				const fx = GALA_WRECK.x - 60 + i * 30;
+				const h = 30 + 20 * Math.sin(t * 9 + i * 2);
+				ctx.fillStyle = `rgba(255, ${120 + i * 20}, 30, 0.75)`;
+				ctx.beginPath();
+				ctx.moveTo(fx - 14, GALA_WRECK.y - 70);
+				ctx.quadraticCurveTo(fx, GALA_WRECK.y - 70 - h * 2, fx + 14, GALA_WRECK.y - 70);
+				ctx.fill();
+			}
+		}
+	}
+	ctx.restore();
+}
+
+function drawScaledJet(ctx: CanvasRenderingContext2D, x: number, y: number, alt: number, tilt: number, wreck: boolean, held: boolean) {
+	ctx.save();
+	ctx.translate(x, y);
+	ctx.scale(1.5, 1.5);
+	drawJet(ctx, 0, 0, alt / 1.5, tilt, -1, wreck, held);
+	ctx.restore();
+}
+
+/** The guests on the apron behind them: champagne, then panic. */
+function galaGuests(ctx: CanvasRenderingContext2D, t: number, line: number) {
+	GUESTS.slice(0, 12).forEach((g, i) => {
+		const x = 700 + ((i * 97) % 520);
+		const y = G - 20 + ((i * 37) % 50);
+		ctx.save();
+		ctx.translate(x, y);
+		ctx.scale(1.25, 1.25);
+		drawGuest(ctx, 0, 0, g, t, line >= 3, i);
+		ctx.restore();
+	});
+}
+
+export const theGala = () => {
+	const hammond = createEnemy('hammond', 1250, G + 40);
+	hammond.dir = -1;
+	return new CastScene(THE_GALA, {
+		talkStarts: 2,
+		backdrop: (ctx, t, scene) => {
+			drawFerrisAirfield(ctx, t, 0);
+			galaGuests(ctx, t, scene.line);
+		},
+		front: (ctx, t, scene) => {
+			galaJet(ctx, t, scene.line, scene.lineAge);
+			// His mind reaching out, a yellow shimmer over everything while he speaks
+			if (scene.line === 3 || scene.line === 4) {
+				ctx.fillStyle = `rgba(255, 210, 70, ${0.05 + 0.04 * Math.sin(t * 6)})`;
+				ctx.fillRect(0, 0, STAGE_W, STAGE_H);
+			}
+		},
+		cast: [
+			{
+				speaker: 'carol',
+				figure: {
+					draw: (ctx, x, y, _pose, t, _speaking, scale) => {
+						ctx.save();
+						ctx.translate(x, y);
+						ctx.scale(scale * 1.3, scale * 1.3);
+						drawCarol(ctx, 0, 0, 0, t, false, false);
+						ctx.restore();
+					}
+				},
+				marks: [{ x: 560, y: G + 40, dir: 1 }, { line: 5, x: 760, y: G + 30, time: 1.4, dir: -1 }]
+			},
+			{
+				speaker: 'hal',
+				figure: { draw: (ctx, x, y, pose, t, _speaking, scale) => drawLantern(ctx, HAL_TUX, x, y, { ...pose, firing: false }, t, scale) },
+				changes: { line: 5, figure: { lantern: 'hal' } },
+				marks: [{ x: 680, y: G + 50, dir: 1 }, { line: 5, x: 900, y: G + 40, lift: 220, time: 1.6, dir: 1 }]
+			},
+			{
+				speaker: 'hammond',
+				figure: {
+					draw: (ctx, x, y, _pose, t, speaking, scale) => {
+						hammond.brain.state = speaking ? 'act' : 'idle';
+						ctx.save();
+						ctx.translate(x, y);
+						ctx.scale(scale * 0.72, scale * 0.72);
+						drawEnemy(ctx, hammond, 0, 0, true, t, false);
+						ctx.restore();
+					}
+				},
+				marks: [{ x: 1200, y: G + 40, dir: -1 }]
+			}
+		]
+	});
+};

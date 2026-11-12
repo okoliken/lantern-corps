@@ -19,7 +19,7 @@ const DUMMY_RESPAWN = 3;
 const DEFEAT_LINGER = 0.9;
 
 /** What kind of target: a training dummy, or which enemy. */
-export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'flashSpar' | 'supermanSpar' | 'wonderwomanSpar' | 'hawkgirlSpar' | 'batmanSpar' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'aquamanSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterPrime' | 'manhunterCore' | 'reverseFlash' | 'signalSpire' | 'dexStarr' | 'rageBubble' | 'bloodConduit' | 'atrocitus' | 'enforcer' | 'fearGrunt' | 'scarecrow' | 'thug' | 'toxinTank' | 'weaponer' | 'forgeConduit' | 'mindAmp' | 'sinestroYellow' | 'frightened' | 'arkillo' | 'fearLens' | 'mantaDiver' | 'blackManta' | 'seaBreach' | 'thunderer' | 'qwardCharge' | 'firefly' | 'blaze' | 'lyssaDrak' | 'fearHound';
+export type TargetKind = 'dummy' | 'rageGrunt' | 'manhunterDrone' | 'redFighter' | 'zox' | 'skallox' | 'bleez' | 'rageTurret' | 'kilowog' | 'sinestro' | 'sparArisia' | 'sparKatma' | 'sparBoodikka' | 'sparHal' | 'sparJohn' | 'flashSpar' | 'supermanSpar' | 'wonderwomanSpar' | 'hawkgirlSpar' | 'batmanSpar' | 'tomarSpar' | 'guySpar' | 'kyleSpar' | 'aquamanSpar' | 'chpSpar' | 'salaakSpar' | 'gnortSpar' | 'razer' | 'spaceRock' | 'rageTorpedo' | 'gorillaBrute' | 'gorillaGunner' | 'grodd' | 'manhunter' | 'manhunterPrime' | 'manhunterCore' | 'reverseFlash' | 'signalSpire' | 'dexStarr' | 'rageBubble' | 'bloodConduit' | 'atrocitus' | 'enforcer' | 'fearGrunt' | 'scarecrow' | 'thug' | 'toxinTank' | 'weaponer' | 'forgeConduit' | 'mindAmp' | 'sinestroYellow' | 'frightened' | 'arkillo' | 'fearLens' | 'mantaDiver' | 'blackManta' | 'seaBreach' | 'thunderer' | 'qwardCharge' | 'firefly' | 'blaze' | 'lyssaDrak' | 'fearHound' | 'hammond';
 
 export interface Dummy {
 	kind: TargetKind;
@@ -214,6 +214,7 @@ export const BODY: Record<TargetKind, { halfWidth: number; height: number }> = {
 	blaze: { halfWidth: 50, height: 80 },
 	lyssaDrak: { halfWidth: 17, height: 100 },
 	fearHound: { halfWidth: 26, height: 56 },
+	hammond: { halfWidth: 24, height: 190 },
 	manhunterDrone: { halfWidth: 24, height: 86 },
 	redFighter: { halfWidth: 38, height: 78 },
 	zox: { halfWidth: 36, height: 112 },

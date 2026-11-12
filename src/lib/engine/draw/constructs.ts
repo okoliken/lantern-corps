@@ -1028,6 +1028,64 @@ export function drawDummy(
 
 // ---------------------------------------------------------------- effects
 
+/** How big the Race Track's loop is, against its size. */
+export const RACE_LOOP = 0.6;
+
+/** Hal's Race Track, side-on: a ramp up off the ground, a loop, and down the other side, built along its length. */
+function drawRaceTrack(ctx: CanvasRenderingContext2D, e: Effect, time: number) {
+	const R = e.radius ?? 170;
+	const dir = Math.cos(e.angle ?? 0) >= 0 ? 1 : -1;
+	const lr = R * RACE_LOOP;
+	const build = Math.min(1, e.age / 0.28);
+	const fade = Math.min(1, (e.life - e.age) / 0.35);
+	const path = new Path2D();
+	path.moveTo(e.x - dir * R * 1.15, e.y);
+	path.quadraticCurveTo(e.x - dir * R * 0.4, e.y, e.x, e.y);
+	path.arc(e.x, e.y - lr, lr, Math.PI / 2, Math.PI / 2 + TAU * dir, dir < 0);
+	path.quadraticCurveTo(e.x + dir * R * 0.4, e.y, e.x + dir * R * 1.15, e.y);
+	const length = R * 2.6 + TAU * lr;
+	ctx.globalAlpha = fade;
+	// Its shadow on the ground
+	ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+	ctx.beginPath();
+	ctx.ellipse(e.x, e.y + 4, R * 1.15, 14, 0, 0, TAU);
+	ctx.fill();
+	ctx.setLineDash([length * build, length]);
+	ctx.lineCap = 'round';
+	ctx.shadowColor = GREEN;
+	ctx.shadowBlur = 18;
+	ctx.strokeStyle = green(0.35);
+	ctx.lineWidth = 30;
+	ctx.stroke(path);
+	ctx.shadowBlur = 0;
+	ctx.strokeStyle = GREEN;
+	ctx.lineWidth = 22;
+	ctx.stroke(path);
+	ctx.strokeStyle = '#0d3d22';
+	ctx.lineWidth = 14;
+	ctx.stroke(path);
+	// Lane dashes running along it
+	ctx.setLineDash([14, 16]);
+	ctx.lineDashOffset = -time * 220;
+	ctx.strokeStyle = CORE;
+	ctx.lineWidth = 2.5;
+	if (build >= 1) ctx.stroke(path);
+	ctx.setLineDash([]);
+	ctx.lineDashOffset = 0;
+	// The struts holding the loop up
+	if (build >= 1) {
+		ctx.strokeStyle = green(0.6);
+		ctx.lineWidth = 5;
+		ctx.beginPath();
+		ctx.moveTo(e.x - lr * 0.7, e.y);
+		ctx.lineTo(e.x - lr * 0.25, e.y - lr * 1.8);
+		ctx.moveTo(e.x + lr * 0.7, e.y);
+		ctx.lineTo(e.x + lr * 0.25, e.y - lr * 1.8);
+		ctx.stroke();
+	}
+	ctx.globalAlpha = 1;
+}
+
 /**
  * One-off visuals. `lift` raises effects tied to a Lantern (slashes,
  * punches) to their hand height.
@@ -1037,6 +1095,9 @@ export function drawEffect(ctx: CanvasRenderingContext2D, e: Effect, lift: numbe
 	ctx.save();
 
 	switch (e.kind) {
+		case 'raceTrack':
+			drawRaceTrack(ctx, e, time);
+			break;
 		case 'slash': {
 			if (e.form === 'saber') {
 				drawSaberSlash(ctx, e, lift, time);

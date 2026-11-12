@@ -315,6 +315,28 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 		leans: { caution: 0.3, patience: 0.25 },
 		lieutenant: true
 	},
+	// Season three, The Gala: the scientist the fragment of the yellow lantern found
+	hammond: {
+		kind: 'hammond',
+		name: 'Hector Hammond',
+		faction: 'rogue',
+		tint: 'fear',
+		description:
+			'A scientist touched by a fragment of the yellow lantern. His mind keeps growing, and so does his skull. He throws whatever is near with telekinesis, drags you in, and can take hold of your constructs and turn them on you.',
+		mind: 'machine',
+		hp: 1400,
+		speed: 120,
+		accel: 4,
+		sight: 1100,
+		poise: 150,
+		scale: 1,
+		agility: 0.4,
+		movement: 'hover',
+		kit: ['meteors', 'chain', 'blast'],
+		range: 420,
+		leans: { caution: 0.45, patience: 0.3 },
+		lieutenant: true
+	},
 	blackManta: {
 		kind: 'blackManta',
 		name: 'Black Manta',

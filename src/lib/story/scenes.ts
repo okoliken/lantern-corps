@@ -30,7 +30,9 @@ export type Speaker =
 	| 'aquaman'
 	| 'manta'
 	| 'firefly'
-	| 'lyssa';
+	| 'lyssa'
+	| 'carol'
+	| 'hammond';
 
 export interface SceneLine {
 	who: Speaker;
@@ -65,7 +67,9 @@ export const SPEAKERS: Record<Speaker, { name: string; color: string }> = {
 	aquaman: { name: 'Aquaman', color: '#f4b04a' },
 	manta: { name: 'Black Manta', color: '#ff4a3a' },
 	firefly: { name: 'Firefly', color: '#ffb12a' },
-	lyssa: { name: 'Lyssa Drak', color: '#ffd23a' }
+	lyssa: { name: 'Lyssa Drak', color: '#ffd23a' },
+	carol: { name: 'Carol Ferris', color: '#ff8fa0' },
+	hammond: { name: 'Hector Hammond', color: '#f2c94c' }
 };
 
 /**
@@ -482,4 +486,14 @@ export const THE_STUDY: SceneLine[] = [
 	{ who: 'kilowog', text: "Don't listen to him, Jordan. He'd say anything to get out of that cell." },
 	{ who: 'hal', text: "Maybe. But nobody told him he was wrong." },
 	{ who: 'sinestro', text: "Guard it well. What's inside that lantern has been waiting a very long time.", mood: 'grin' }
+];
+
+/** Season three, episode 2: the Ferris Aircraft gala, and Hector Hammond shows what the fragment gave him. */
+export const THE_GALA: SceneLine[] = [
+	{ who: 'carol', text: 'Hal Jordan, in a tie. Somebody write down the date.' },
+	{ who: 'hal', text: "Couldn't let you face the investors alone. Who's the guy staring at us?" },
+	{ who: 'carol', text: "Hector Hammond. One of Dad's scientists. They had him look at something that fell out of the sky last week." },
+	{ who: 'hammond', text: "It didn't fall, Carol. It came looking for me. And now I can hear what every one of you is thinking." },
+	{ who: 'hammond', text: "You are all so LOUD.", mood: 'grin' },
+	{ who: 'hal', text: 'Carol, get everyone back. Now.', mood: 'alarm' }
 ];

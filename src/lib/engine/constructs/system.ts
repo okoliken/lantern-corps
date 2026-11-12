@@ -192,7 +192,9 @@ export interface Effect {
 		| 'hammerDrop'
 		| 'swordArc'
 		// Sinestro's Prism Cell, closed round what it caught (draw/sinestro.ts)
-		| 'prismCell';
+		| 'prismCell'
+		// Hal's Race Track, standing where he built it (missions read it to catch falling things)
+		| 'raceTrack';
 	x: number;
 	y: number;
 	age: number;
@@ -709,6 +711,9 @@ function perform(p: Player, def: ConstructDef, w: ConstructWorld): boolean {
 			return placeMine(p, def, w);
 		case 'heal':
 			return placeAid(p, def, w);
+		case 'track':
+			placeTrack(p, def, w);
+			return true;
 		default:
 			return false;
 	}
@@ -907,6 +912,27 @@ function shockwave(p: Player, def: ConstructDef, w: ConstructWorld) {
 		if (Math.hypot(cx - p.x, cy - p.y) <= def.range) damageObstacle(w, o, power(p, def.damage));
 	}
 	w.effects.push({ kind: 'shockwave', form: def.shape, x: p.x, y: p.y, age: 0, life: 0.65, radius: def.range, owner: p });
+}
+
+/** Race Track: a loop of track where he aims. Whoever's on it is swept off along it. */
+function placeTrack(p: Player, def: ConstructDef, w: ConstructWorld) {
+	const angle = Math.atan2(p.aimY, p.aimX);
+	// At the crosshair when aiming with a mouse (as far as its range), else a fixed distance ahead
+	const reach = Math.min(def.range, Math.max(80, p.aimReach ?? def.range * 0.6));
+	const x = p.x + p.aimX * reach;
+	const y = p.y + p.aimY * reach;
+	const r = def.radius ?? 160;
+	for (const d of w.dummies) {
+		if (!isStanding(d) || Math.hypot(d.x - x, (d.y - y) * 1.6) > r) continue;
+		// Knocked along the track, the way it runs
+		hitDummyWithFx(w, d, power(p, def.damage), power(p, def.knockback), d.x - Math.cos(angle) * 40, d.y - Math.sin(angle) * 40, p);
+	}
+	w.effects.push({ kind: 'raceTrack', x, y, age: 0, life: durable(p, def.duration ?? 4), angle, radius: r, owner: p });
+}
+
+/** The race tracks standing right now: where, and how big. */
+export function raceTracks(w: ConstructWorld): { x: number; y: number; radius: number }[] {
+	return w.effects.filter((e) => e.kind === 'raceTrack' && e.age < e.life - 0.3).map((e) => ({ x: e.x, y: e.y, radius: e.radius ?? 160 }));
 }
 
 /** Rocket Pod: a fan of missiles, each homing in on one of the enemies ahead. */

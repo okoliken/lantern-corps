@@ -37,7 +37,8 @@ export type Behavior =
 	| 'eject' // press: the ejector seat: launched clear, untouchable for the arc, a shockwave where he was
 	| 'chaff' // press: flares that pull enemy shots off him for a while
 	| 'lock' // press: paints a target: everything he fires for a while hits harder
-	| 'wingman'; // press: a small jet that flies alongside him and fires with him
+	| 'wingman' // press: a small jet that flies alongside him and fires with him
+	| 'track'; // press: a race track loops up where you aim: it sweeps up whatever's on it and sets falling things down
 
 /** Drawing style for a construct. Forge constructs will add their own. */
 type ConstructShape =
@@ -89,6 +90,7 @@ type ConstructShape =
 	| 'cluster'
 	| 'chaff'
 	| 'lock'
+	| 'track'
 	// Sinestro's own: the Korugar kit (draw/sinestro.ts)
 	| 'saber'
 	| 'talon'
@@ -293,6 +295,12 @@ export const CONSTRUCTS = {
 	targetingLock: {
 		id: 'targetingLock', name: 'Targeting Lock', short: 'Lock', behavior: 'lock', shape: 'lock',
 		cost: 10, cooldown: 9, damage: 0, knockback: 0, range: 0, duration: 5
+	},
+	// From the gala: a race track looped out of nowhere. Anything on it gets swept along it,
+	// and anything falling onto it rides it down to the ground in one piece
+	raceTrack: {
+		id: 'raceTrack', name: 'Race Track', short: 'Track', behavior: 'track', shape: 'track',
+		cost: 14, cooldown: 2.4, damage: 30, knockback: 640, range: 420, radius: 170, duration: 4
 	},
 	// Bigger and cruder than John's fist: brought down with a blast
 	megaHammer: {
@@ -555,7 +563,7 @@ export const LOADOUTS: Record<CrewId, ConstructId[]> = {
 
 /** Everything Hal and John can take into a fight: their kit plus the extras. Each carries ten (KIT_SIZE). */
 export const ARMORY: Partial<Record<CrewId, ConstructId[]>> = {
-	hal: [...LOADOUTS.hal, 'missileBarrage', 'bombingRun'],
+	hal: [...LOADOUTS.hal, 'missileBarrage', 'bombingRun', 'raceTrack'],
 	john: [...LOADOUTS.john, 'tank', 'mortar', 'gunship', 'claymores', 'sentry']
 };
 /** Constructs on the hotbar: keys 1 to 0. */

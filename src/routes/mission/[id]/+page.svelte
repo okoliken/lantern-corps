@@ -130,7 +130,7 @@
 				recorded = true;
 				campaign.complete(mission.id, d.stars);
 			} else if (d.state !== 'won') recorded = false;
-			if (d.state === 'won' && d.timer >= OUTRO_DELAY && !outroDone && !outro) {
+			if (d.state === 'won' && d.timer >= (d.outroAfter ?? OUTRO_DELAY) && !outroDone && !outro) {
 				if (makeOutro) {
 					outro = makeOutro();
 					game.paused = true;

@@ -27,6 +27,8 @@ export interface MissionDirector extends Director {
 	state: MissionState;
 	/** Intro: seconds until it starts. Won: seconds since the win. */
 	timer: number;
+	/** Seconds after the win before the outro and the result (an ending that plays out in the world: the default is short). */
+	readonly outroAfter?: number;
 	lives: number;
 	/** What to do right now, in a few words. */
 	readonly objective: string;

@@ -21,6 +21,15 @@ Ferris Aircraft gala, the Guardians' fear, and the ending in the sun.
   Telepathy and telekinesis, growing as Parallax feeds.
 - **Carol Ferris**, the Ferris Aircraft gala, Coast City.
 
+## Hal's new constructs
+
+Hal can't beat Parallax with the kit he has. Every act of the season gives him
+something new, each from the film, and each one also goes into his Armory:
+
+- **Race Track** (The Gala): loops up at the crosshair; sweeps whoever is on
+  it along it, and anything falling onto it rides it down safely.
+- *(planned)* Act 2 and Act 3 each bring more, building to the finale.
+
 ## Acts
 
 ### Act 1: The Impurity
@@ -30,11 +39,13 @@ Ferris Aircraft gala, the Guardians' fear, and the ending in the sun.
    damaged pylon (stand by it) to mend it. At the end the lantern shatters and a
    fragment streaks away, toward Earth.
 2. **The Gala** (Hal, Coast City). The Ferris Aircraft gala. Hector Hammond,
-   touched by the fragment, can move things with his mind: he drops a
-   helicopter on the crowd (catch it and set it down), throws the hangar's
-   aircraft, and takes hold of Hal's constructs and turns them on him (use a
-   different one). He floats Carol out over the drop: hit him to break his
-   concentration, and catch her.
+   touched by the fragment, can move things with his mind: he turns the show
+   helicopter over the crowd (build the new Race Track under it and it rides
+   the loop down), flings the jets parked on the apron, and takes the
+   construct in Hal's hand and turns it on him (use a different one). Half
+   beaten, he lifts Carol into the sky: hit him to break his concentration,
+   then catch her. Beaten, he's pulled up into the dark by something calling
+   him.
 3. *(planned)* John arrives on Earth; Sinestro's warning on Oa.
 
 ### Act 2: Parallax

@@ -7,6 +7,7 @@
 // inward before a roar.
 
 import { FEAR_HOUND_TOP, drawFearHound } from './fear';
+import { drawHammond, hammondHand, hammondTop } from './hammond';
 import { drawRinglessEnemy, isRinglessKind, ringlessMuzzle, ringlessTop } from './ringless';
 import { AQUAMAN_COLOR, aquamanHand, aquamanTop, drawAquamanEnemy, isAquamanKind, BATMAN_COLOR, batmanHand, batmanTop, drawBatmanEnemy, drawLeagueEnemy, drawReverseFlash, isBatmanKind, isLeagueKind, leagueColor, leagueHand, leagueTop, reverseFlashHand, reverseFlashTop } from './heroes';
 import type { LanternPose } from '../animation';
@@ -52,6 +53,11 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, x: number, y:
 	if (e.kind === 'fearHound') {
 		drawFearHound(ctx, e, x, y, hasGround, time);
 		if (overlay && isStanding(e)) inTint(ctx, 'fear', () => drawEnemyOverlay(ctx, e, x, y, y - FEAR_HOUND_TOP, [x + e.dir * 60, y - 44], time));
+		return;
+	}
+	if (e.kind === 'hammond') {
+		drawHammond(ctx, e, x, y, hasGround, time);
+		if (overlay && isStanding(e)) inTint(ctx, 'fear', () => drawEnemyOverlay(ctx, e, x, y, hammondTop(e, y), hammondHand(e, x, y), time));
 		return;
 	}
 	if (isRinglessKind(e.kind)) {

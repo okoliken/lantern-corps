@@ -109,6 +109,7 @@ export class Studied implements MissionDirector {
 	pulseAge = 9;
 	/** At the end: the lantern shattering, and the fragment streaking away. */
 	shatter = 0;
+	readonly outroAfter = FINALE_TIME + 1.5;
 	failReason: 'containment' | 'down' | null = null;
 	readonly comms = new Comms();
 	readonly starHint = '★ done · ★ no pylon lost · ★ Hal never went down';

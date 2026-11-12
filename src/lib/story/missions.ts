@@ -475,7 +475,7 @@ export const ACTS: ActInfo[] = [
 		tagline: 'The yellow lantern cracks on Oa, and a piece of what was inside it falls to Earth.',
 		lineup: [
 			'studied',
-			{ title: 'The Gala', tagline: 'The Ferris Aircraft gala. Hector Hammond moves things with his mind, and Hal\u2019s constructs are among them.' },
+			'gala',
 			{ title: 'Warnings', tagline: 'John comes home to Coast City; on Oa, Sinestro tells the Guardians what they already know.' }
 		]
 	},
@@ -826,4 +826,19 @@ MISSIONS.push({
 		'New: THE CONTAINMENT RING. They will go for the pylons and tear at them. A pylon that falls lets the lantern leak faster. Stand by a damaged pylon with nothing on you and Hal pours his will into it to mend it. And every few seconds the lantern pulses: fear over everyone near it.'
 	],
 	objectives: ['Keep the fear off the four pylons', 'Mend damaged pylons with your will', 'Hold the ring until the Guardians can seal it']
+});
+
+MISSIONS.push({
+	id: 'gala',
+	title: 'The Gala',
+	tagline: 'The Ferris Aircraft gala. Hector Hammond moves things with his mind, and Hal\u2019s constructs are among them.',
+	lantern: 'hal',
+	environment: 'planet',
+	place: 'Coast City · Ferris Aircraft',
+	briefing: [
+		'The thing that came out of the yellow lantern fell to Earth, and Ferris Aircraft had Hector Hammond look at it. Now his mind won\u2019t stop growing, and it can move things.',
+		'New construct: THE RACE TRACK. It loops up where you aim. Whoever\u2019s on it gets swept off along it, and anything falling onto it rides it down in one piece. Build it under something coming down.',
+		'Hammond throws the jets parked on the apron (step out of the yellow line), and he can take the construct in your hand and turn it on you: when he does, use a different one. If he takes someone up, hit him to break his concentration, then catch them.'
+	],
+	objectives: ['Catch the helicopter on the Race Track', 'Take down Hector Hammond', 'Don\u2019t let Carol fall']
 });
